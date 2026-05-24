@@ -271,7 +271,7 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
             "341801": { 
                 hasSubUnits: true,
                 subUnits: {
-                    "10688": {
+                    "10957": {
                         name: "โรงพยาบาลตาลสุม (กลุ่มงานบริการด้านปฐมภูมิ)",
                         villages: [
                             { moo: 1, name: "บ้านม่วงโคน" },
@@ -627,12 +627,9 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
                 // Find matching tambon for the logged in hoscode
                 for (let t in tambonData) {
                     if (tambonData[t].hasSubUnits) {
-                        let searchHos = loggedAdminHoscode;
-                        if (searchHos === '10957') searchHos = '10688';
-                        
-                        if (tambonData[t].subUnits[searchHos]) {
+                        if (tambonData[t].subUnits[loggedAdminHoscode]) {
                             targetTambon = t;
-                            targetSubUnit = searchHos;
+                            targetSubUnit = loggedAdminHoscode;
                             break;
                         }
                     } else {

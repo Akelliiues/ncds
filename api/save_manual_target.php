@@ -20,9 +20,6 @@ if (!$data || empty($data['cid'])) {
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 if ($admin_hoscode) {
     $allowed_hoscodes = [$admin_hoscode];
-    if ($admin_hoscode === '10957') {
-        $allowed_hoscodes[] = '10688';
-    }
     if (!in_array($data['hoscode'], $allowed_hoscodes)) {
         echo json_encode(['status' => 'error', 'message' => 'คุณไม่มีสิทธิ์บันทึกข้อมูลในหน่วยบริการนี้']);
         exit();

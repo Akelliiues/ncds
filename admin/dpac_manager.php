@@ -59,9 +59,6 @@ $params = [$budgetYear];
 
 if ($admin_hoscode) {
     $hoscodes = [$admin_hoscode];
-    if ($admin_hoscode === '10957') {
-        $hoscodes[] = '10688';
-    }
     $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
     $enrolled_query .= " AND p.hoscode IN ($inPlaceholders)";
     $params = array_merge($params, $hoscodes);
@@ -78,9 +75,6 @@ $vhv_params = [];
 
 if ($admin_hoscode) {
     $hoscodes = [$admin_hoscode];
-    if ($admin_hoscode === '10957') {
-        $hoscodes[] = '10688';
-    }
     $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
     $vhv_query .= " WHERE approved = 1 AND hoscode IN ($inPlaceholders)";
     $vhv_params = $hoscodes;

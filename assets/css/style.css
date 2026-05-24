@@ -498,6 +498,8 @@ h1, h2, h3, h4, h5, h6 {
     border-bottom: none;
     padding: 18px 24px;
     display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
     justify-content: space-between;
     align-items: center;
     box-shadow: 0 6px 15px rgba(166, 180, 200, 0.2);

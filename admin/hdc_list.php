@@ -60,13 +60,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 // Hospital list
 $hc_names = [
     '10957' => 'โรงพยาบาลตาลสุม',
-    '10688' => 'โรงพยาบาลตาลสุม',
     '03751' => 'รพ.สต.ดอนพันชาด',
-    '03752' => 'รพ.สต.สำโรง',
+    '03752' => 'รพ.สต.บ้านสำโรง',
     '03753' => 'รพ.สต.บ้านจิกเทิง',
-    '03754' => 'รพ.สต.หนองกุง',
+    '03754' => 'รพ.สต.บ้านหนองกุงใหญ่',
     '03755' => 'รพ.สต.นาคาย',
-    '03756' => 'รพ.สต.บ้านคำหนามแท่ง',
+    '03756' => 'รพ.สต.คำหนามแท่ง',
     '03757' => 'รพ.สต.คำหว้า'
 ];
 
@@ -125,14 +124,7 @@ $hoscode_villages = [
             11 => 'บ้านตาลสุม (เขตเทศบาล)', 12 => 'บ้านคำไม้ตาย'
         ]
     ],
-    '10688' => [
-        'tambon' => '341801',
-        'villages' => [
-            1 => 'บ้านม่วงโคน', 2 => 'บ้านดอนรังกา', 3 => 'บ้านนาห้วยแคน (เขตเทศบาล)',
-            5 => 'บ้านนามน (เขตเทศบาล)', 10 => 'บ้านนามน (เขตเทศบาล)',
-            11 => 'บ้านตาลสุม (เขตเทศบาล)', 12 => 'บ้านคำไม้ตาย'
-        ]
-    ],
+
     '03751' => [
         'tambon' => '341801',
         'villages' => [
@@ -210,13 +202,12 @@ if (!empty($filter_hoscode)) {
 
 if ($filter_hoscode) {
     $hoscodes = [$filter_hoscode];
-    if ($filter_hoscode === '10957') {
-        $hoscodes[] = '10688';
-    }
-    $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
-    $whereClauses[] = "hoscode IN ($inPlaceholders)";
-    $params = array_merge($params, $hoscodes);
+} else {
+    $hoscodes = ['10957', '03751', '03752', '03753', '03754', '03755', '03756', '03757'];
 }
+$inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
+$whereClauses[] = "hoscode IN ($inPlaceholders)";
+$params = array_merge($params, $hoscodes);
 
 if ($filter_vhid) {
     $selected_moo = intval(substr($filter_vhid, 6, 2));
@@ -249,13 +240,12 @@ $riskWhere = "WHERE risk IS NOT NULL AND risk != ''";
 $riskParams = [];
 if ($admin_hoscode) {
     $hoscodes = [$admin_hoscode];
-    if ($admin_hoscode === '10957') {
-        $hoscodes[] = '10688';
-    }
-    $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
-    $riskWhere .= " AND hoscode IN ($inPlaceholders)";
-    $riskParams = $hoscodes;
+} else {
+    $hoscodes = ['10957', '03751', '03752', '03753', '03754', '03755', '03756', '03757'];
 }
+$inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
+$riskWhere .= " AND hoscode IN ($inPlaceholders)";
+$riskParams = $hoscodes;
 $riskStmt = $pdo->prepare("SELECT DISTINCT risk FROM $table $riskWhere");
 $riskStmt->execute($riskParams);
 $availableRisks = $riskStmt->fetchAll(PDO::FETCH_COLUMN);
@@ -409,8 +399,7 @@ $availableRisks = $riskStmt->fetchAll(PDO::FETCH_COLUMN);
                         <select name="hoscode" class="form-select" onchange="this.form.submit()">
                             <option value="">-- ทุกแห่ง (ทั้งหมด) --</option>
                             <?php foreach ($hc_names as $code => $name): ?>
-                                <?php if ($code == 10688) continue; ?>
-                                <option value="<?= $code ?>" <?= ($filter_hoscode == $code || ($code === '10957' && $filter_hoscode === '10688')) ? 'selected' : '' ?>><?= htmlspecialchars($name) ?></option>
+                                <option value="<?= $code ?>" <?= ($filter_hoscode == $code) ? 'selected' : '' ?>><?= htmlspecialchars($name) ?></option>
                             <?php endforeach; ?>
                         </select>
                     <?php endif; ?>

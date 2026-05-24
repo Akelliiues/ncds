@@ -14,13 +14,12 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 // Hospital list
 $hc_names = [
     '10957' => 'โรงพยาบาลตาลสุม',
-    '10688' => 'โรงพยาบาลตาลสุม',
     '03751' => 'รพ.สต.ดอนพันชาด',
-    '03752' => 'รพ.สต.สำโรง',
+    '03752' => 'รพ.สต.บ้านสำโรง',
     '03753' => 'รพ.สต.บ้านจิกเทิง',
-    '03754' => 'รพ.สต.หนองกุง',
+    '03754' => 'รพ.สต.บ้านหนองกุงใหญ่',
     '03755' => 'รพ.สต.นาคาย',
-    '03756' => 'รพ.สต.บ้านคำหนามแท่ง',
+    '03756' => 'รพ.สต.คำหนามแท่ง',
     '03757' => 'รพ.สต.คำหว้า'
 ];
 
@@ -103,9 +102,6 @@ if ($filter_source === 'screened') {
     
     if ($filter_hoscode) {
         $hoscodes = [$filter_hoscode];
-        if ($filter_hoscode === '10957' || $filter_hoscode === '10688') {
-            $hoscodes = ['10957', '10688'];
-        }
         $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
         $sql .= " AND p.hoscode IN ($inPlaceholders)";
         $params = array_merge($params, $hoscodes);
@@ -153,9 +149,6 @@ if ($filter_source === 'screened') {
     
     if ($filter_hoscode) {
         $hoscodes = [$filter_hoscode];
-        if ($filter_hoscode === '10957' || $filter_hoscode === '10688') {
-            $hoscodes = ['10957', '10688'];
-        }
         $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
         $sql .= " AND p.hoscode IN ($inPlaceholders)";
         $params = array_merge($params, $hoscodes);
@@ -201,9 +194,6 @@ if ($filter_source === 'screened') {
     
     if ($filter_hoscode) {
         $hoscodes = [$filter_hoscode];
-        if ($filter_hoscode === '10957' || $filter_hoscode === '10688') {
-            $hoscodes = ['10957', '10688'];
-        }
         $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
         $sql .= " AND v.hoscode IN ($inPlaceholders)";
         $params = array_merge($params, $hoscodes);
@@ -257,13 +247,12 @@ if ($filter_source === 'screened') {
     
     if ($filter_hoscode) {
         $hoscodes = [$filter_hoscode];
-        if ($filter_hoscode === '10957' || $filter_hoscode === '10688') {
-            $hoscodes = ['10957', '10688'];
-        }
-        $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
-        $sql .= " AND p.hoscode IN ($inPlaceholders)";
-        $params = array_merge($params, $hoscodes);
+    } else {
+        $hoscodes = ['10957', '03751', '03752', '03753', '03754', '03755', '03756', '03757'];
     }
+    $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
+    $sql .= " AND p.hoscode IN ($inPlaceholders)";
+    $params = array_merge($params, $hoscodes);
     
     if ($filter_tambon) {
         $sql .= " AND p.sub_district_code = ?";
@@ -625,8 +614,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                             <select name="hoscode" id="hoscode" class="form-select" onchange="onHoscodeChange()">
                                 <option value="">-- ทุกแห่ง (ทั้งหมด) --</option>
                                 <?php foreach ($hc_names as $code => $name): ?>
-                                    <?php if ($code == 10688) continue; ?>
-                                    <option value="<?= $code ?>" <?= ($filter_hoscode == $code || ($code === '10957' && $filter_hoscode === '10688')) ? 'selected' : '' ?>><?= htmlspecialchars($name) ?></option>
+                                    <option value="<?= $code ?>" <?= ($filter_hoscode == $code) ? 'selected' : '' ?>><?= htmlspecialchars($name) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         <?php endif; ?>
@@ -1077,11 +1065,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
             const hcNamesObj = {
                 "10957": "โรงพยาบาลตาลสุม",
                 "03751": "รพ.สต.ดอนพันชาด",
-                "03752": "รพ.สต.สำโรง",
+                "03752": "รพ.สต.บ้านสำโรง",
                 "03753": "รพ.สต.บ้านจิกเทิง",
-                "03754": "รพ.สต.หนองกุง",
+                "03754": "รพ.สต.บ้านหนองกุงใหญ่",
                 "03755": "รพ.สต.นาคาย",
-                "03756": "รพ.สต.บ้านคำหนามแท่ง",
+                "03756": "รพ.สต.คำหนามแท่ง",
                 "03757": "รพ.สต.คำหว้า"
             };
             

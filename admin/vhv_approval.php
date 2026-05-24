@@ -15,13 +15,12 @@ $error = '';
 
 $hc_names = [
     '10957' => 'โรงพยาบาลตาลสุม',
-    '10688' => 'โรงพยาบาลตาลสุม',
     '03751' => 'รพ.สต.ดอนพันชาด',
-    '03752' => 'รพ.สต.สำโรง',
+    '03752' => 'รพ.สต.บ้านสำโรง',
     '03753' => 'รพ.สต.บ้านจิกเทิง',
-    '03754' => 'รพ.สต.หนองกุง',
+    '03754' => 'รพ.สต.บ้านหนองกุงใหญ่',
     '03755' => 'รพ.สต.นาคาย',
-    '03756' => 'รพ.สต.บ้านคำหนามแท่ง',
+    '03756' => 'รพ.สต.คำหนามแท่ง',
     '03757' => 'รพ.สต.คำหว้า'
 ];
 
@@ -120,9 +119,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $allowed_hoscodes = [];
             if ($admin_hoscode) {
                 $allowed_hoscodes = [$admin_hoscode];
-                if ($admin_hoscode === '10957') {
-                    $allowed_hoscodes[] = '10688';
-                }
             }
 
             // Determine which VHV ID to check authorization for
@@ -254,9 +250,6 @@ try {
 
     if ($admin_hoscode) {
         $hoscodes = [$admin_hoscode];
-        if ($admin_hoscode === '10957') {
-            $hoscodes[] = '10688';
-        }
         $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
         
         $pending_query .= " AND hoscode IN ($inPlaceholders)";
@@ -659,7 +652,6 @@ try {
                     <label for="modal_hoscode" class="modal-form-label">รพ.สต. ที่สังกัด</label>
                     <select name="hoscode" id="modal_hoscode" class="form-select" style="box-shadow: var(--neumorph-inset);">
                         <?php foreach ($hc_names as $code => $name): ?>
-                            <?php if ($code == 10688) continue; ?>
                             <option value="<?= $code ?>"><?= htmlspecialchars($name) ?></option>
                         <?php endforeach; ?>
                     </select>

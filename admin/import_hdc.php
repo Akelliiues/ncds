@@ -25,11 +25,11 @@ $selectedHoscode = '10957'; // default Tal Sum Hospital
 $hc_names = [
     '10957' => 'โรงพยาบาลตาลสุม',
     '03751' => 'รพ.สต.ดอนพันชาด',
-    '03752' => 'รพ.สต.สำโรง',
+    '03752' => 'รพ.สต.บ้านสำโรง',
     '03753' => 'รพ.สต.บ้านจิกเทิง',
-    '03754' => 'รพ.สต.หนองกุง',
+    '03754' => 'รพ.สต.บ้านหนองกุงใหญ่',
     '03755' => 'รพ.สต.นาคาย',
-    '03756' => 'รพ.สต.บ้านคำหนามแท่ง',
+    '03756' => 'รพ.สต.คำหนามแท่ง',
     '03757' => 'รพ.สต.คำหว้า'
 ];
 
@@ -429,15 +429,10 @@ if (isset($_POST['action_confirm'])) {
                 $stmtUpdateDpacCid = $pdo->prepare("UPDATE dpac_enrollments SET cid = ? WHERE cid = ?");
             }
             
-            // Symmetrical hospital check
             if ($selectedHoscode === 'ALL') {
                 $allowedHoscodes = array_keys($hc_names);
-                $allowedHoscodes[] = '10688';
             } else {
                 $allowedHoscodes = [$selectedHoscode];
-                if ($selectedHoscode === '10957') {
-                    $allowedHoscodes[] = '10688';
-                }
             }
             
             $pdo->beginTransaction();

@@ -26,9 +26,6 @@ $reason = "แอดมินจัดสรรแบบระบุตัว";
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 if ($admin_hoscode) {
     $allowed_hoscodes = [$admin_hoscode];
-    if ($admin_hoscode === '10957') {
-        $allowed_hoscodes[] = '10688';
-    }
     // Check VHV authority
     $vhvCheckStmt = $pdo->prepare("SELECT hoscode FROM vhv_users WHERE vhv_id = ?");
     $vhvCheckStmt->execute([$vhvId]);
