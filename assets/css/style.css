@@ -1,0 +1,757 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Sarabun:wght@300;400;600;800&display=swap');
+
+:root {
+    /* Soft Neumorphic Light Theme Palette */
+    --bg-main: #eef2f7;
+    --bg-card: #eef2f7;
+    --bg-darker: #e6eef8;
+    --border-color: transparent;
+    
+    --text-primary: #0d2c54;         /* Premium Navy Blue */
+    --text-secondary: #4b5563;       /* Charcoal Gray */
+    --text-muted: #9ca3af;           /* Muted Slate Gray */
+    
+    --color-primary: #0d2c54;        /* Primary Navy */
+    --color-primary-hover: #081d38;
+    --color-accent: #0d2c54;         /* Theme Accent */
+    --color-accent-hover: #081d38;
+    
+    --color-green: #10b981;          /* Success Green */
+    --color-yellow: #f59e0b;         /* Warning Yellow */
+    --color-red: #ef4444;            /* Danger Red */
+    
+    --font-base: 'Sarabun', 'Outfit', sans-serif;
+    --font-size-vhv: 18px;           /* Large readable font size for VHV */
+    --border-radius: 24px;
+    --transition-speed: 0.25s;
+    
+    /* Dual Shadows for Neumorphic depth */
+    --neumorph-flat: 6px 6px 12px #d1d9e6, -6px -6px 12px #ffffff;
+    --neumorph-inset: inset 4px 4px 8px #cbd5e1, inset -4px -4px 8px #ffffff;
+    --shadow-premium: var(--neumorph-flat);
+}
+
+/* Accessibility high-contrast & large-text reset for VHV pages */
+body.vhv-accessibility {
+    font-size: var(--font-size-vhv);
+    line-height: 1.6;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+}
+
+html, body {
+    overflow-x: hidden;
+    max-width: 100%;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: var(--font-base);
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    min-height: 100vh;
+}
+
+body.admin-body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* Modern Typography */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 800;
+    margin-top: 0;
+    color: var(--text-primary);
+}
+
+/* Neumorphic Shadow Utility Classes */
+.neumorph-flat {
+    background-color: var(--bg-card);
+    box-shadow: var(--neumorph-flat);
+    border: none;
+}
+
+.neumorph-inset {
+    background-color: var(--bg-card);
+    box-shadow: var(--neumorph-inset);
+    border: none;
+}
+
+/* Soft Neumorphic Cards */
+.card-dark {
+    background-color: var(--bg-card);
+    border: none;
+    border-radius: var(--border-radius);
+    padding: 24px;
+    box-shadow: var(--neumorph-flat);
+    margin-bottom: 24px;
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+.dashboard-page .grid-cols-4 .card-dark:hover {
+    transform: translateY(-2px);
+    box-shadow: 8px 8px 16px #c2ccd9, -8px -8px 16px #ffffff;
+}
+
+/* VHV Mobile Page Wrapper */
+.mobile-wrapper {
+    max-width: 480px;
+    margin: 0 auto;
+    background-color: var(--bg-main);
+    min-height: 100vh;
+    padding: 20px 20px 110px 20px;
+    position: relative;
+    border: none;
+    box-shadow: 0 0 30px rgba(166, 180, 200, 0.15);
+}
+
+/* Big Accessibility Neumorphic Inset Inputs */
+.input-large {
+    width: 100%;
+    height: 60px;
+    border-radius: 20px;
+    background-color: var(--bg-card);
+    border: none;
+    color: var(--text-primary);
+    font-size: 22px;
+    font-weight: 800;
+    padding: 0 16px;
+    text-align: center;
+    box-shadow: var(--neumorph-inset);
+    transition: box-shadow var(--transition-speed);
+}
+
+.input-large:focus {
+    outline: none;
+    box-shadow: var(--neumorph-inset), 0 0 0 2px var(--text-primary);
+}
+
+/* Zero-Typing Custom Numeric Pad Overlay */
+.numpad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.numpad-btn {
+    height: 65px;
+    border-radius: 20px;
+    background-color: var(--bg-card);
+    border: none;
+    color: var(--text-primary);
+    font-size: 24px;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--neumorph-flat);
+    transition: background-color 0.1s, transform 0.1s, box-shadow 0.1s;
+    user-select: none;
+}
+
+.numpad-btn:active {
+    box-shadow: var(--neumorph-inset);
+    transform: scale(0.96);
+}
+
+.numpad-btn.btn-action {
+    background-color: var(--bg-card);
+    color: var(--color-accent);
+    box-shadow: var(--neumorph-flat);
+}
+
+.numpad-btn.btn-action:active {
+    box-shadow: var(--neumorph-inset);
+}
+
+/* Neumorphic Buttons */
+.btn-giant {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 60px;
+    border-radius: 30px;
+    font-size: 18px;
+    font-weight: 800;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 12px;
+    text-decoration: none;
+    transition: all var(--transition-speed);
+}
+
+.btn-giant-primary {
+    background: var(--color-primary);
+    color: #fff;
+    box-shadow: 4px 4px 10px rgba(13, 44, 84, 0.25), 4px 4px 12px #d1d9e6, -4px -4px 12px #ffffff;
+}
+
+.btn-giant-primary:active {
+    transform: scale(0.98);
+    background: var(--color-primary-hover);
+    box-shadow: inset 3px 3px 6px #020914, inset -3px -3px 6px rgba(255,255,255,0.1);
+}
+
+.btn-giant-accent {
+    background: #1e40af; /* Royal blue contrast */
+    color: #ffffff;
+    box-shadow: 4px 4px 10px rgba(30, 64, 175, 0.25), 4px 4px 12px #d1d9e6, -4px -4px 12px #ffffff;
+}
+
+.btn-giant-accent:active {
+    transform: scale(0.98);
+    background: #1e3a8a;
+    box-shadow: inset 3px 3px 6px #0d1b3e, inset -3px -3px 6px rgba(255,255,255,0.1);
+}
+
+.btn-giant-danger {
+    background: var(--color-red);
+    color: #fff;
+    box-shadow: 4px 4px 10px rgba(239, 68, 68, 0.25), 4px 4px 12px #d1d9e6, -4px -4px 12px #ffffff;
+}
+
+.btn-giant-danger:active {
+    transform: scale(0.98);
+    box-shadow: inset 3px 3px 6px #7f1d1d, inset -3px -3px 6px rgba(255,255,255,0.1);
+}
+
+.btn-giant-secondary {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    box-shadow: var(--neumorph-flat);
+}
+
+.btn-giant-secondary:active {
+    box-shadow: var(--neumorph-inset);
+    transform: scale(0.98);
+}
+
+/* Big Risk Segment Toggles (Zero-Typing) */
+.toggle-group {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.toggle-item {
+    position: relative;
+}
+
+.toggle-item input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 8px;
+    background-color: var(--bg-card);
+    border: none;
+    border-radius: 20px;
+    color: var(--text-secondary);
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: var(--neumorph-flat);
+    transition: all var(--transition-speed);
+    text-align: center;
+}
+
+.toggle-label .dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    margin-bottom: 8px;
+    border: 2px solid #cbd5e1;
+    background-color: #ffffff;
+}
+
+/* Toggle Selection States with Inset Shadows and Risk Color Highlights */
+.toggle-item input[type="radio"]:checked + .toggle-label {
+    box-shadow: var(--neumorph-inset);
+    color: var(--text-primary);
+    font-weight: 800;
+}
+
+/* Color Rating overrides for Neumorphic pressed states */
+.toggle-green input[type="radio"]:checked + .toggle-label {
+    color: var(--color-green) !important;
+    background-color: rgba(16, 185, 129, 0.06) !important;
+}
+.toggle-green input[type="radio"]:checked + .toggle-label .dot {
+    background-color: var(--color-green) !important;
+    border-color: var(--color-green) !important;
+}
+
+.toggle-yellow input[type="radio"]:checked + .toggle-label {
+    color: var(--color-yellow) !important;
+    background-color: rgba(245, 158, 11, 0.06) !important;
+}
+.toggle-yellow input[type="radio"]:checked + .toggle-label .dot {
+    background-color: var(--color-yellow) !important;
+    border-color: var(--color-yellow) !important;
+}
+
+.toggle-orange input[type="radio"]:checked + .toggle-label {
+    color: #f97316 !important;
+    background-color: rgba(249, 115, 22, 0.06) !important;
+}
+.toggle-orange input[type="radio"]:checked + .toggle-label .dot {
+    background-color: #f97316 !important;
+    border-color: #f97316 !important;
+}
+
+.toggle-red input[type="radio"]:checked + .toggle-label {
+    color: var(--color-red) !important;
+    background-color: rgba(239, 68, 68, 0.06) !important;
+}
+.toggle-red input[type="radio"]:checked + .toggle-label .dot {
+    background-color: var(--color-red) !important;
+    border-color: var(--color-red) !important;
+}
+
+/* Floating Bottom Navigation Bar (Neumorphic Capsule style) */
+.bottom-nav {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
+    max-width: 440px;
+    height: 72px;
+    background-color: var(--bg-card);
+    border: none;
+    border-radius: 36px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 1000;
+    box-shadow: 8px 8px 20px #cbd5e1, -8px -8px 20px #ffffff;
+}
+
+.nav-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 800;
+    transition: color var(--transition-speed), transform var(--transition-speed);
+}
+
+.nav-link.active {
+    color: #1e40af; /* Primary dark navy/royal blue active state */
+    transform: scale(1.05);
+}
+
+.nav-link svg {
+    width: 24px;
+    height: 24px;
+    margin-bottom: 4px;
+}
+
+/* Custom styling for the prominent Scan Floating Action Button (FAB) */
+.bottom-nav .nav-scan-fab {
+    position: relative;
+    top: -15px; /* Raise it up slightly out of the bottom nav bar */
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1e40af, #0d2c54); /* Bold blue contrast */
+    color: #ffffff !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 8px 16px rgba(30, 64, 175, 0.35), 4px 4px 10px rgba(0, 0, 0, 0.05);
+    z-index: 1002;
+    transition: all var(--transition-speed);
+}
+
+.bottom-nav .nav-scan-fab:active {
+    transform: scale(0.95);
+    box-shadow: 0 4px 8px rgba(30, 64, 175, 0.3), inset 2px 2px 5px rgba(0,0,0,0.2);
+}
+
+.bottom-nav .nav-scan-fab svg {
+    width: 30px;
+    height: 30px;
+    margin-bottom: 0;
+    stroke: #ffffff;
+}
+
+.bottom-nav .nav-scan-fab span {
+    display: none; /* Hide label text to keep the circle clean */
+}
+
+/* FAB Pulse Glow Animation */
+@keyframes fab-pulse {
+    0% {
+        box-shadow: 0 8px 16px rgba(30, 64, 175, 0.35), 0 0 0 0 rgba(30, 64, 175, 0.4);
+    }
+    70% {
+        box-shadow: 0 8px 18px rgba(30, 64, 175, 0.4), 0 0 0 10px rgba(30, 64, 175, 0);
+    }
+    100% {
+        box-shadow: 0 8px 16px rgba(30, 64, 175, 0.35), 0 0 0 0 rgba(30, 64, 175, 0);
+    }
+}
+
+.fab-scan-pulse {
+    animation: fab-pulse 2s infinite;
+}
+
+/* Badging & Rank Milestones */
+.badge-gold {
+    background: #ffe066;
+    color: #3b2300;
+    box-shadow: 2px 2px 5px rgba(245, 158, 11, 0.3);
+}
+.badge-silver {
+    background: #e2e8f0;
+    color: #334155;
+    box-shadow: 2px 2px 5px rgba(148, 163, 184, 0.3);
+}
+.badge-bronze {
+    background: #fbcfe8;
+    color: #831843;
+    box-shadow: 2px 2px 5px rgba(219, 39, 119, 0.3);
+}
+.badge-custom {
+    background: #cbd5e1;
+    color: var(--text-primary);
+}
+
+.leaderboard-row {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    background-color: var(--bg-card);
+    border: none;
+    border-radius: 20px;
+    margin-bottom: 14px;
+    box-shadow: var(--neumorph-flat);
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+/* Leaderboard row hover disabled globally as requested */
+.leaderboard-row:hover {
+    transform: none;
+    box-shadow: var(--neumorph-flat);
+}
+
+.leader-rank {
+    font-size: 20px;
+    font-weight: 800;
+    width: 40px;
+    height: 40px;
+    text-align: center;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.leader-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: var(--bg-card);
+    box-shadow: var(--neumorph-inset);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0 16px;
+}
+
+.leader-info {
+    flex-grow: 1;
+}
+
+.leader-score {
+    text-align: right;
+    font-weight: 800;
+}
+
+/* Admin Dashboard layout components */
+.admin-navbar {
+    background-color: var(--bg-card);
+    border-bottom: none;
+    padding: 18px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 6px 15px rgba(166, 180, 200, 0.2);
+    border-radius: 0 0 24px 24px;
+    margin-bottom: 30px;
+}
+
+.admin-logo {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.admin-nav-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    margin-left: 24px;
+    font-weight: 800;
+    transition: color var(--transition-speed);
+}
+
+.admin-nav-links a:hover {
+    color: var(--text-primary);
+}
+
+.grid-cols-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+@media (max-width: 768px) {
+    .grid-cols-4 {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .grid-cols-4 {
+        grid-template-columns: 1fr;
+    }
+}
+
+.stat-val {
+    font-size: 32px;
+    font-weight: 800;
+    margin-top: 8px;
+    color: var(--text-primary);
+}
+
+#map {
+    height: 500px;
+    border-radius: var(--border-radius);
+    border: none;
+    box-shadow: var(--neumorph-inset);
+    margin-top: 16px;
+}
+
+/* Micro-animations */
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 4px 4px 10px #d1d9e6, -4px -4px 10px #ffffff; }
+    70% { transform: scale(1.03); box-shadow: 6px 6px 15px #cbd5e1, -6px -6px 15px #ffffff; }
+    100% { transform: scale(1); box-shadow: 4px 4px 10px #d1d9e6, -4px -4px 10px #ffffff; }
+}
+
+.pulse-target {
+    animation: pulse 2s infinite;
+}
+
+/* Responsive Table */
+.table-responsive {
+    overflow-x: auto;
+    border-radius: var(--border-radius);
+    box-shadow: var(--neumorph-inset);
+    background-color: var(--bg-card);
+    padding: 10px;
+}
+
+table.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table.admin-table th, table.admin-table td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    color: var(--text-secondary);
+}
+
+table.admin-table th {
+    background-color: var(--bg-darker);
+    color: var(--text-primary);
+    font-weight: 800;
+    border-radius: 12px;
+}
+
+/* Table row hover disabled globally as requested */
+table.admin-table tbody tr:hover {
+    background-color: transparent;
+}
+
+/* VHV Header Neumorphic Card */
+.vhv-header {
+    background: var(--bg-card);
+    border: none;
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 24px;
+    text-align: center;
+    position: relative;
+    box-shadow: var(--neumorph-flat);
+}
+
+/* Scroll picker well container */
+.scroll-picker-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px 0;
+    background: var(--bg-card);
+    border: none;
+    border-radius: 20px;
+    height: 120px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: var(--neumorph-inset);
+}
+
+.scroll-picker-wheel {
+    height: 100%;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    width: 120px;
+    text-align: center;
+    scrollbar-width: none;
+}
+
+.scroll-picker-wheel::-webkit-scrollbar {
+    display: none;
+}
+
+.scroll-picker-item {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--text-secondary);
+    scroll-snap-align: center;
+}
+
+.scroll-picker-item.selected {
+    color: var(--text-primary);
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.scroll-picker-indicator {
+    position: absolute;
+    top: 40px;
+    left: 8px;
+    right: 8px;
+    height: 40px;
+    border-radius: 8px;
+    box-shadow: 2px 2px 4px #cbd5e1, -2px -2px 4px #ffffff;
+    pointer-events: none;
+    background-color: rgba(13, 44, 84, 0.02);
+}
+
+/* Dropdown selections for register & forms */
+.form-select, .form-input-text, .form-control {
+    width: 100%;
+    height: 52px;
+    border-radius: var(--border-radius);
+    background-color: var(--bg-card);
+    border: none;
+    color: var(--text-primary);
+    font-size: 16px;
+    font-weight: 800;
+    padding: 0 16px;
+    box-shadow: var(--neumorph-inset);
+    transition: box-shadow var(--transition-speed);
+}
+
+.form-select:focus, .form-input-text:focus, .form-control:focus {
+    outline: none;
+    box-shadow: var(--neumorph-inset), 0 0 0 2px var(--text-primary);
+}
+
+/* Professional Icon Navbar & Tooltips */
+.admin-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.admin-nav-links a {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-color: var(--bg-card);
+    box-shadow: var(--neumorph-flat);
+    color: var(--text-secondary);
+    transition: all var(--transition-speed);
+    margin-left: 0 !important; /* Override old margin-left */
+}
+.admin-nav-links a:hover {
+    color: var(--color-green) !important;
+    transform: translateY(-2px);
+    box-shadow: 4px 4px 8px #cbd5e1, -4px -4px 8px #ffffff;
+}
+.admin-nav-links a.active {
+    background-color: var(--color-primary);
+    color: #ffffff !important;
+    box-shadow: var(--neumorph-inset);
+}
+.admin-nav-links a.active:hover {
+    color: #ffffff !important;
+}
+
+/* Tooltip styles */
+.admin-nav-links a[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: -38px;
+    left: 50%;
+    transform: translate(-50%, 6px);
+    background-color: var(--color-primary);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: bold;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all var(--transition-speed);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    z-index: 1000;
+}
+.admin-nav-links a[data-tooltip]:hover::after {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+/* Compact Table text size with normal wrapping */
+table.admin-table th, table.admin-table td {
+    font-size: 13px;
+    white-space: normal;
+    padding: 10px 12px;
+}

@@ -1,0 +1,16 @@
+{
+  "short_name": "NCD ตาลสุม",
+  "name": "NCD Prevention & screening - Tal Sum",
+  "icons": [
+    {
+      "src": "../assets/icon.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    }
+  ],
+  "start_url": "/vhv/index.php",
+  "background_color": "#0c101b",
+  "theme_color": "#0c101b",
+  "display": "standalone",
+  "orientation": "portrait"
+}
