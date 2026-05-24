@@ -246,12 +246,13 @@ if ($admin_hoscode) {
 
     $chartRiskStmt = $pdo->prepare("
         SELECT p.hoscode,
-               SUM(CASE WHEN s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126 THEN 1 ELSE 0 END) as high_risk,
-               SUM(CASE WHEN (s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125) THEN 1 ELSE 0 END) as moderate_risk,
-               SUM(CASE WHEN s.sys_bp1 < 120 AND s.dia_bp1 < 80 AND s.dtx_value < 100 THEN 1 ELSE 0 END) as normal
+               SUM(CASE WHEN a.assignment_status = 'completed' AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN 1 ELSE 0 END) as high_risk,
+               SUM(CASE WHEN a.assignment_status = 'completed' AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as moderate_risk,
+               SUM(CASE WHEN a.assignment_status = 'completed' AND (s.sys_bp1 < 120 AND s.dia_bp1 < 80 AND s.dtx_value < 100) THEN 1 ELSE 0 END) as normal,
+               SUM(CASE WHEN a.assignment_status IS NULL OR a.assignment_status != 'completed' THEN 1 ELSE 0 END) as unscreened
         FROM target_population p
-        JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed'
-        JOIN screening_results s ON a.assignment_id = s.assignment_id
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid
+        LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
         WHERE p.hoscode IN ($inPlaceholders)
         GROUP BY p.hoscode
     ");
@@ -370,12 +371,13 @@ if ($admin_hoscode) {
 
     $chartRiskData = $pdo->query("
         SELECT p.hoscode,
-               SUM(CASE WHEN s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126 THEN 1 ELSE 0 END) as high_risk,
-               SUM(CASE WHEN (s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125) THEN 1 ELSE 0 END) as moderate_risk,
-               SUM(CASE WHEN s.sys_bp1 < 120 AND s.dia_bp1 < 80 AND s.dtx_value < 100 THEN 1 ELSE 0 END) as normal
+               SUM(CASE WHEN a.assignment_status = 'completed' AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN 1 ELSE 0 END) as high_risk,
+               SUM(CASE WHEN a.assignment_status = 'completed' AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as moderate_risk,
+               SUM(CASE WHEN a.assignment_status = 'completed' AND (s.sys_bp1 < 120 AND s.dia_bp1 < 80 AND s.dtx_value < 100) THEN 1 ELSE 0 END) as normal,
+               SUM(CASE WHEN a.assignment_status IS NULL OR a.assignment_status != 'completed' THEN 1 ELSE 0 END) as unscreened
         FROM target_population p
-        JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed'
-        JOIN screening_results s ON a.assignment_id = s.assignment_id
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid
+        LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
         GROUP BY p.hoscode
     ")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -502,6 +504,15 @@ if ($admin_hoscode) {
         </div>
 
         <!-- Analytics Dashboard Section -->
+        
+        <!-- Overall Progress (Radial) -->
+        <div class="card-dark" style="margin-bottom: 20px;">
+            <h3 style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                ความคืบหน้าการดำเนินการคัดกรองภาพรวม (Overall Progress)
+            </h3>
+            <div id="chart-overall-progress" style="display: flex; justify-content: center;"></div>
+        </div>
+
         <div class="grid-cols-2" style="margin-bottom: 30px; gap: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));">
             <!-- Chart 1: Coverage -->
             <div class="card-dark">
@@ -767,10 +778,22 @@ if ($admin_hoscode) {
 
         // Risk Data
         const riskRaw = <?= json_encode($chartRiskData) ?>;
-        const riskCategories = riskRaw.map(d => hcNamesChart[d.hoscode] || d.hoscode);
-        const riskNormal = riskRaw.map(d => parseInt(d.normal) || 0);
-        const riskModerate = riskRaw.map(d => parseInt(d.moderate_risk) || 0);
-        const riskHigh = riskRaw.map(d => parseInt(d.high_risk) || 0);
+        // Group all known hoscodes from target_population to ensure every place is shown
+        const allHoscodesRaw = [...new Set(coverageRaw.map(d => d.hoscode))];
+        const riskCategories = allHoscodesRaw.map(hc => hcNamesChart[hc] || hc);
+        
+        const riskNormal = [];
+        const riskModerate = [];
+        const riskHigh = [];
+        const riskUnscreened = [];
+
+        allHoscodesRaw.forEach(hc => {
+            const match = riskRaw.find(d => d.hoscode === hc) || {normal:0, moderate_risk:0, high_risk:0, unscreened:0};
+            riskNormal.push(parseInt(match.normal) || 0);
+            riskModerate.push(parseInt(match.moderate_risk) || 0);
+            riskHigh.push(parseInt(match.high_risk) || 0);
+            riskUnscreened.push(parseInt(match.unscreened) || 0);
+        });
 
         // Risk Chart (100% Stacked)
         var optionsRisk = {
@@ -783,6 +806,9 @@ if ($admin_hoscode) {
             }, {
                 name: 'เสี่ยงสูง',
                 data: riskHigh
+            }, {
+                name: 'ยังไม่คัดกรอง',
+                data: riskUnscreened
             }],
             chart: {
                 type: 'bar',
@@ -793,7 +819,7 @@ if ($admin_hoscode) {
                 toolbar: { show: false }
             },
             theme: { mode: 'dark' },
-            colors: ['#22c55e', '#f59e0b', '#ef4444'],
+            colors: ['#22c55e', '#f59e0b', '#ef4444', '#4b5563'],
             plotOptions: { bar: { borderRadius: 2 } },
             xaxis: {
                 categories: riskCategories,
@@ -890,6 +916,64 @@ if ($admin_hoscode) {
             }
         };
         new ApexCharts(document.querySelector("#chart-trend"), optionsTrend).render();
+
+        // Overall Progress Chart (RadialBar)
+        const totalTargetsCount = <?= intval($metrics['total_targets']) ?>;
+        const totalScreenedCount = <?= intval($metrics['screened_count']) ?>;
+        const progressPercent = totalTargetsCount > 0 ? Math.round((totalScreenedCount / totalTargetsCount) * 100) : 0;
+
+        var optionsProgress = {
+            series: [progressPercent],
+            chart: {
+                height: 300,
+                type: 'radialBar',
+                background: 'transparent'
+            },
+            theme: { mode: 'dark' },
+            plotOptions: {
+                radialBar: {
+                    hollow: {
+                        size: '70%',
+                        background: 'transparent'
+                    },
+                    track: {
+                        background: '#374151',
+                        strokeWidth: '100%'
+                    },
+                    dataLabels: {
+                        name: {
+                            offsetY: -10,
+                            color: '#9ca3af',
+                            fontSize: '14px',
+                            fontWeight: '600'
+                        },
+                        value: {
+                            color: '#22c55e',
+                            fontSize: '36px',
+                            fontWeight: 'bold',
+                            show: true,
+                            formatter: function (val) {
+                                return val + "%"
+                            }
+                        }
+                    }
+                }
+            },
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shade: 'dark',
+                    type: 'horizontal',
+                    gradientToColors: ['#a3e635'],
+                    stops: [0, 100]
+                }
+            },
+            stroke: { lineCap: 'round' },
+            colors: ['#22c55e'],
+            labels: ['ความครอบคลุมทั้งหมด'],
+        };
+        new ApexCharts(document.querySelector("#chart-overall-progress"), optionsProgress).render();
+
     </script>
 
     <!-- Map Script Initialization -->
