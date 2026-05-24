@@ -26,21 +26,26 @@ $db_error = '';
 
 try {
     $pendingStmt = $pdo->prepare("
-        SELECT a.assignment_id, a.assignment_status, p.cid, p.hid, p.first_name, p.last_name, p.house_no, p.moo, p.need_screen_dm, p.need_screen_ht, p.health_status_origin
+        SELECT a.assignment_id, a.assignment_status, p.cid, p.hid, p.first_name, p.last_name, p.house_no, p.moo, p.need_screen_dm, p.need_screen_ht, p.health_status_origin,
+               s.skipped_reason
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status = 'pending'
+        LEFT JOIN (
+            SELECT assignment_id, skipped_reason 
+            FROM screening_results 
+            WHERE skipped_reason IS NOT NULL
+        ) s ON a.assignment_id = s.assignment_id
+        WHERE a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('pending', 'skipped')
         ORDER BY LENGTH(p.house_no), p.house_no
     ");
     $pendingStmt->execute([$vhvId]);
     $pendingTasks = $pendingStmt->fetchAll();
 
     $completedStmt = $pdo->prepare("
-        SELECT a.assignment_id, a.assignment_status, p.cid, p.first_name, p.last_name, p.house_no, p.moo, s.skipped_reason
+        SELECT a.assignment_id, a.assignment_status, p.cid, p.first_name, p.last_name, p.house_no, p.moo
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
-        LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
-        WHERE a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('completed', 'skipped')
+        WHERE a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status = 'completed'
         ORDER BY a.assigned_at DESC
     ");
     $completedStmt->execute([$vhvId]);
@@ -218,6 +223,11 @@ try {
                                     <span style="color: var(--color-primary); margin-left: 5px;">HT</span>
                                 <?php endif; ?>
                             </p>
+                            <?php if ($pt['assignment_status'] === 'skipped'): ?>
+                                <p style="font-size: 13px; margin-top: 6px; color: var(--color-yellow); font-weight: bold; background: rgba(245,158,11,0.1); padding: 4px 8px; border-radius: 4px; display: inline-block;">
+                                    ⚠️ ข้ามชั่วคราว: <?= htmlspecialchars($pt['skipped_reason'] ?: 'ไม่อยู่บ้าน') ?> (รอคัดกรองใหม่)
+                                </p>
+                            <?php endif; ?>
                         </div>
                         <div>
                             <svg width="24" height="24" fill="none" stroke="var(--border-color)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"></path></svg>
@@ -239,22 +249,12 @@ try {
                         <div class="task-info">
                             <h4>บ้านเลขที่ <?= htmlspecialchars($ct['house_no']) ?></h4>
                             <p>ผู้รับคัดกรอง: <?= htmlspecialchars($ct['first_name'] . ' ' . $ct['last_name']) ?></p>
-                            <?php if ($ct['assignment_status'] === 'skipped'): ?>
-                                <p style="color: var(--color-yellow); font-size: 13px; font-weight: bold;">
-                                    ⚠️ ข้ามชั่วคราว: <?= htmlspecialchars($ct['skipped_reason'] ?: 'ไม่อยู่บ้าน') ?>
-                                </p>
-                            <?php else: ?>
-                                <p style="color: var(--color-green); font-size: 13px; font-weight: bold;">
-                                    ✅ คัดกรองสำเร็จเรียบร้อย
-                                </p>
-                            <?php endif; ?>
+                            <p style="color: var(--color-green); font-size: 13px; font-weight: bold;">
+                                ✅ คัดกรองสำเร็จเรียบร้อย
+                            </p>
                         </div>
                         <div>
-                            <?php if ($ct['assignment_status'] === 'skipped'): ?>
-                                <span class="badge" style="background-color: rgba(245,158,11,0.2); color: var(--color-yellow);">ข้ามเคส</span>
-                            <?php else: ?>
-                                <span class="badge" style="background-color: rgba(16,185,129,0.2); color: var(--color-green);">เสร็จสิ้น</span>
-                            <?php endif; ?>
+                            <span class="badge" style="background-color: rgba(16,185,129,0.2); color: var(--color-green);">เสร็จสิ้น</span>
                         </div>
                     </div>
                 <?php endforeach; ?>

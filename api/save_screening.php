@@ -126,6 +126,10 @@ try {
         $alcohol = $_POST['alcohol_risk'] ?? 'green';
         $cvRiskScore = (float)($_POST['cv_risk_score'] ?? 0);
 
+        // 0. Delete any previous skipped entry to prevent duplicate rows for this assignment
+        $delStmt = $pdo->prepare("DELETE FROM screening_results WHERE assignment_id = ?");
+        $delStmt->execute([$assignmentId]);
+
         // 1. Insert into screening_results
         $screenStmt = $pdo->prepare("
             INSERT INTO screening_results 

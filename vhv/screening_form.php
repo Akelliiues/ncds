@@ -25,7 +25,7 @@ if (!empty($hid)) {
         SELECT p.*, a.assignment_id
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE p.hid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status = 'pending'
+        WHERE p.hid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('pending', 'skipped')
     ");
     $residentsStmt->execute([$hid, $vhvId]);
     $residents = $residentsStmt->fetchAll();
@@ -45,7 +45,7 @@ if (!empty($hid)) {
         SELECT p.*, a.assignment_id
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status = 'pending'
+        WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('pending', 'skipped')
     ");
     $residentsStmt->execute([$cid, $vhvId]);
     $residents = $residentsStmt->fetchAll();
@@ -455,6 +455,10 @@ if (!empty($hid)) {
                 <span id="numpad-title" style="color: var(--color-accent); font-weight: bold; font-size: 18px;">แป้นพิมพ์ตัวเลข</span>
                 <button type="button" onclick="closeNumPad()" style="background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer;">✕</button>
             </div>
+            <!-- Number Display Box -->
+            <div id="numpad-display-box" style="background-color: var(--bg-main); border: 2px solid var(--color-primary); border-radius: 12px; padding: 15px; text-align: center; font-size: 36px; font-weight: 800; color: var(--color-accent); margin-bottom: 16px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); min-height: 70px; display: flex; align-items: center; justify-content: center; letter-spacing: 2px;">
+                0
+            </div>
             <div id="numpad-container"></div>
             <button type="button" onclick="closeNumPad()" class="btn-giant btn-giant-success" style="margin-top: 16px; margin-bottom: 0; background: linear-gradient(135deg, var(--color-green), #059669); color: white; height: 50px; font-size: 18px;">ตกลง</button>
         </div>
@@ -671,7 +675,7 @@ if (!empty($hid)) {
             document.getElementById('numpad-overlay').style.display = 'block';
             document.getElementById('numpad-drawer').classList.add('open');
 
-            activeNumPad = new VhvNumPad(inputId, 'numpad-container');
+            activeNumPad = new VhvNumPad(inputId, 'numpad-container', 'numpad-display-box');
             const currentVal = document.getElementById(inputId).value;
             activeNumPad.setValue(currentVal || '');
         }
@@ -905,6 +909,36 @@ if (!empty($hid)) {
 
         // Submit Screening Data
         function submitScreening() {
+            if (!selectedResident) {
+                alert("กรุณาเลือกผู้รับการคัดกรอง");
+                return;
+            }
+
+            // Validation logic
+            const w = parseFloat(document.getElementById('weight').value) || 0;
+            const h = parseFloat(document.getElementById('height').value) || 0;
+            if (w <= 0 || h <= 0) {
+                alert("กรุณากรอกข้อมูล น้ำหนัก และ ส่วนสูง ให้ครบถ้วน");
+                return;
+            }
+
+            if (selectedResident.needHt) {
+                const sys1 = parseInt(document.getElementById('sys_bp1').value) || 0;
+                const dia1 = parseInt(document.getElementById('dia_bp1').value) || 0;
+                if (sys1 <= 0 || dia1 <= 0) {
+                    alert("กรุณากรอกค่าความดันโลหิต (ตัวบนและตัวล่าง) ให้ครบถ้วน");
+                    return;
+                }
+            }
+
+            if (selectedResident.needDm) {
+                const dtx = parseInt(document.getElementById('dtx_value').value) || 0;
+                if (dtx <= 0) {
+                    alert("กรุณากรอกระดับน้ำตาลในเลือด (DTX)");
+                    return;
+                }
+            }
+
             const form = document.getElementById('screening-form');
             const formData = new FormData(form);
             

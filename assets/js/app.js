@@ -76,9 +76,10 @@ function updateOnlineStatus() {
 
 // Zero-Typing Numeric Pad Helper
 class VhvNumPad {
-    constructor(inputId, padContainerId) {
+    constructor(inputId, padContainerId, displayBoxId = null) {
         this.input = document.getElementById(inputId);
         this.container = document.getElementById(padContainerId);
+        this.displayBox = displayBoxId ? document.getElementById(displayBoxId) : null;
         this.currentValue = '';
         if (this.input && this.container) {
             this.init();
@@ -124,16 +125,20 @@ class VhvNumPad {
                 this.currentValue += val;
             }
         }
-        this.input.value = this.currentValue;
-        
-        // Trigger input event programmatically
-        const event = new Event('input', { bubbles: true });
-        this.input.dispatchEvent(event);
+        this.updateDisplay();
     }
 
     setValue(val) {
         this.currentValue = val.toString();
+        this.updateDisplay();
+    }
+    
+    updateDisplay() {
         this.input.value = this.currentValue;
+        if (this.displayBox) {
+            this.displayBox.innerText = this.currentValue || '0';
+        }
+        // Trigger input event programmatically
         const event = new Event('input', { bubbles: true });
         this.input.dispatchEvent(event);
     }
