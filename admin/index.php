@@ -230,6 +230,60 @@ if ($admin_hoscode) {
     ");
     $editTargetsStmt->execute($hoscodes);
     $editableTargets = $editTargetsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // --- NEW CHARTS DATA (ADMIN) ---
+    $chartCoverageStmt = $pdo->prepare("
+        SELECT p.hoscode, 
+               COUNT(*) as total_targets,
+               SUM(CASE WHEN a.assignment_status = 'completed' THEN 1 ELSE 0 END) as screened
+        FROM target_population p
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid
+        WHERE p.hoscode IN ($inPlaceholders)
+        GROUP BY p.hoscode
+    ");
+    $chartCoverageStmt->execute($hoscodes);
+    $chartCoverageData = $chartCoverageStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $chartRiskStmt = $pdo->prepare("
+        SELECT p.hoscode,
+               SUM(CASE WHEN s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126 THEN 1 ELSE 0 END) as high_risk,
+               SUM(CASE WHEN (s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125) THEN 1 ELSE 0 END) as moderate_risk,
+               SUM(CASE WHEN s.sys_bp1 < 120 AND s.dia_bp1 < 80 AND s.dtx_value < 100 THEN 1 ELSE 0 END) as normal
+        FROM target_population p
+        JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed'
+        JOIN screening_results s ON a.assignment_id = s.assignment_id
+        WHERE p.hoscode IN ($inPlaceholders)
+        GROUP BY p.hoscode
+    ");
+    $chartRiskStmt->execute($hoscodes);
+    $chartRiskData = $chartRiskStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $chartDiseaseStmt = $pdo->prepare("
+        SELECT 
+            SUM(CASE WHEN (s.sys_bp1 >= 140 OR s.dia_bp1 >= 90) AND s.dtx_value < 126 THEN 1 ELSE 0 END) as ht_only,
+            SUM(CASE WHEN s.sys_bp1 < 140 AND s.dia_bp1 < 90 AND s.dtx_value >= 126 THEN 1 ELSE 0 END) as dm_only,
+            SUM(CASE WHEN (s.sys_bp1 >= 140 OR s.dia_bp1 >= 90) AND s.dtx_value >= 126 THEN 1 ELSE 0 END) as ht_dm,
+            SUM(CASE WHEN s.sys_bp1 < 140 AND s.dia_bp1 < 90 AND s.dtx_value < 126 THEN 1 ELSE 0 END) as normal
+        FROM screening_results s
+        JOIN task_assignments a ON s.assignment_id = a.assignment_id AND a.assignment_status = 'completed'
+        JOIN target_population p ON a.target_cid = p.cid
+        WHERE p.hoscode IN ($inPlaceholders)
+    ");
+    $chartDiseaseStmt->execute($hoscodes);
+    $chartDiseaseData = $chartDiseaseStmt->fetch(PDO::FETCH_ASSOC);
+
+    $chartTrendStmt = $pdo->prepare("
+        SELECT DATE(s.created_at) as screen_date, COUNT(*) as daily_count
+        FROM screening_results s
+        JOIN task_assignments a ON s.assignment_id = a.assignment_id AND a.assignment_status = 'completed'
+        JOIN target_population p ON a.target_cid = p.cid
+        WHERE p.hoscode IN ($inPlaceholders)
+          AND s.created_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+        GROUP BY DATE(s.created_at)
+        ORDER BY screen_date ASC
+    ");
+    $chartTrendStmt->execute($hoscodes);
+    $chartTrendData = $chartTrendStmt->fetchAll(PDO::FETCH_ASSOC);
 } else {
     $metricsQuery = $pdo->query("
         SELECT 
@@ -303,6 +357,46 @@ if ($admin_hoscode) {
         FROM target_population 
         ORDER BY moo, house_no
     ")->fetchAll(PDO::FETCH_ASSOC);
+
+    // --- NEW CHARTS DATA (SUPER ADMIN) ---
+    $chartCoverageData = $pdo->query("
+        SELECT p.hoscode, 
+               COUNT(*) as total_targets,
+               SUM(CASE WHEN a.assignment_status = 'completed' THEN 1 ELSE 0 END) as screened
+        FROM target_population p
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid
+        GROUP BY p.hoscode
+    ")->fetchAll(PDO::FETCH_ASSOC);
+
+    $chartRiskData = $pdo->query("
+        SELECT p.hoscode,
+               SUM(CASE WHEN s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126 THEN 1 ELSE 0 END) as high_risk,
+               SUM(CASE WHEN (s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125) THEN 1 ELSE 0 END) as moderate_risk,
+               SUM(CASE WHEN s.sys_bp1 < 120 AND s.dia_bp1 < 80 AND s.dtx_value < 100 THEN 1 ELSE 0 END) as normal
+        FROM target_population p
+        JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed'
+        JOIN screening_results s ON a.assignment_id = s.assignment_id
+        GROUP BY p.hoscode
+    ")->fetchAll(PDO::FETCH_ASSOC);
+
+    $chartDiseaseData = $pdo->query("
+        SELECT 
+            SUM(CASE WHEN (s.sys_bp1 >= 140 OR s.dia_bp1 >= 90) AND s.dtx_value < 126 THEN 1 ELSE 0 END) as ht_only,
+            SUM(CASE WHEN s.sys_bp1 < 140 AND s.dia_bp1 < 90 AND s.dtx_value >= 126 THEN 1 ELSE 0 END) as dm_only,
+            SUM(CASE WHEN (s.sys_bp1 >= 140 OR s.dia_bp1 >= 90) AND s.dtx_value >= 126 THEN 1 ELSE 0 END) as ht_dm,
+            SUM(CASE WHEN s.sys_bp1 < 140 AND s.dia_bp1 < 90 AND s.dtx_value < 126 THEN 1 ELSE 0 END) as normal
+        FROM screening_results s
+        JOIN task_assignments a ON s.assignment_id = a.assignment_id AND a.assignment_status = 'completed'
+    ")->fetch(PDO::FETCH_ASSOC);
+
+    $chartTrendData = $pdo->query("
+        SELECT DATE(s.created_at) as screen_date, COUNT(*) as daily_count
+        FROM screening_results s
+        JOIN task_assignments a ON s.assignment_id = a.assignment_id AND a.assignment_status = 'completed'
+        WHERE s.created_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+        GROUP BY DATE(s.created_at)
+        ORDER BY screen_date ASC
+    ")->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
 <!DOCTYPE html>
@@ -320,6 +414,9 @@ if ($admin_hoscode) {
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- Leaflet Heatmap Plugin -->
     <script src="https://leaflet.github.io/Leaflet.heat/dist/leaflet-heat.js"></script>
+    
+    <!-- ApexCharts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 </head>
 <body class="admin-body dashboard-page">
     <div class="admin-navbar">
@@ -404,7 +501,40 @@ if ($admin_hoscode) {
             </div>
         </div>
 
+        <!-- Analytics Dashboard Section -->
+        <div class="grid-cols-2" style="margin-bottom: 30px; gap: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));">
+            <!-- Chart 1: Coverage -->
+            <div class="card-dark">
+                <h3 style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                    ความครอบคลุมการคัดกรอง แยกตาม รพ.สต.
+                </h3>
+                <div id="chart-coverage"></div>
+            </div>
 
+            <!-- Chart 2: Risk Distribution -->
+            <div class="card-dark">
+                <h3 style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                    ระดับความเสี่ยงประชากร แยกตาม รพ.สต.
+                </h3>
+                <div id="chart-risk"></div>
+            </div>
+
+            <!-- Chart 3: Disease Breakdown -->
+            <div class="card-dark">
+                <h3 style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                    สัดส่วนกลุ่มโรคที่สงสัย (จากผลคัดกรอง)
+                </h3>
+                <div id="chart-disease"></div>
+            </div>
+
+            <!-- Chart 4: Screening Trend -->
+            <div class="card-dark">
+                <h3 style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                    แนวโน้มการคัดกรองรายวัน (14 วันล่าสุด)
+                </h3>
+                <div id="chart-trend"></div>
+            </div>
+        </div>
 
         <!-- Recent Screenings Table -->
         <div class="card-dark" style="margin-top: 30px;">
@@ -587,6 +717,180 @@ if ($admin_hoscode) {
                 </div>
             </div>
         </div>
+
+    <!-- ApexCharts Initialization -->
+    <script>
+        // Data from PHP
+        const hcNamesChart = <?= json_encode($hc_names) ?>;
+        
+        // Coverage Data
+        const coverageRaw = <?= json_encode($chartCoverageData) ?>;
+        const covCategories = coverageRaw.map(d => hcNamesChart[d.hoscode] || d.hoscode);
+        const covTotal = coverageRaw.map(d => parseInt(d.total_targets));
+        const covScreened = coverageRaw.map(d => parseInt(d.screened));
+
+        // Coverage Chart
+        var optionsCoverage = {
+            series: [{
+                name: 'เป้าหมายทั้งหมด',
+                data: covTotal
+            }, {
+                name: 'คัดกรองแล้ว',
+                data: covScreened
+            }],
+            chart: {
+                type: 'bar',
+                height: 350,
+                background: 'transparent',
+                toolbar: { show: false }
+            },
+            theme: { mode: 'dark' },
+            colors: ['#4b5563', '#22c55e'],
+            plotOptions: {
+                bar: {
+                    horizontal: false,
+                    columnWidth: '55%',
+                    borderRadius: 4
+                },
+            },
+            dataLabels: { enabled: false },
+            xaxis: {
+                categories: covCategories,
+                labels: { style: { colors: '#9ca3af' } }
+            },
+            yaxis: {
+                labels: { style: { colors: '#9ca3af' } }
+            },
+            tooltip: { theme: 'dark' }
+        };
+        new ApexCharts(document.querySelector("#chart-coverage"), optionsCoverage).render();
+
+        // Risk Data
+        const riskRaw = <?= json_encode($chartRiskData) ?>;
+        const riskCategories = riskRaw.map(d => hcNamesChart[d.hoscode] || d.hoscode);
+        const riskNormal = riskRaw.map(d => parseInt(d.normal) || 0);
+        const riskModerate = riskRaw.map(d => parseInt(d.moderate_risk) || 0);
+        const riskHigh = riskRaw.map(d => parseInt(d.high_risk) || 0);
+
+        // Risk Chart (100% Stacked)
+        var optionsRisk = {
+            series: [{
+                name: 'ปกติ',
+                data: riskNormal
+            }, {
+                name: 'เสี่ยงปานกลาง',
+                data: riskModerate
+            }, {
+                name: 'เสี่ยงสูง',
+                data: riskHigh
+            }],
+            chart: {
+                type: 'bar',
+                height: 350,
+                stacked: true,
+                stackType: '100%',
+                background: 'transparent',
+                toolbar: { show: false }
+            },
+            theme: { mode: 'dark' },
+            colors: ['#22c55e', '#f59e0b', '#ef4444'],
+            plotOptions: { bar: { borderRadius: 2 } },
+            xaxis: {
+                categories: riskCategories,
+                labels: { style: { colors: '#9ca3af' } }
+            },
+            yaxis: {
+                labels: { style: { colors: '#9ca3af' } }
+            },
+            tooltip: { theme: 'dark' },
+            fill: { opacity: 1 }
+        };
+        new ApexCharts(document.querySelector("#chart-risk"), optionsRisk).render();
+
+        // Disease Data
+        const diseaseRaw = <?= json_encode($chartDiseaseData) ?>;
+        const diseaseSeries = [
+            parseInt(diseaseRaw?.ht_only || 0), 
+            parseInt(diseaseRaw?.dm_only || 0), 
+            parseInt(diseaseRaw?.ht_dm || 0), 
+            parseInt(diseaseRaw?.normal || 0)
+        ];
+        
+        // Disease Chart (Donut)
+        var optionsDisease = {
+            series: diseaseSeries,
+            chart: {
+                type: 'donut',
+                height: 350,
+                background: 'transparent'
+            },
+            theme: { mode: 'dark' },
+            labels: ['สงสัยความดัน (HT)', 'สงสัยเบาหวาน (DM)', 'สงสัยทั้ง HT และ DM', 'ปกติ'],
+            colors: ['#3b82f6', '#8b5cf6', '#ec4899', '#22c55e'],
+            stroke: { show: false },
+            legend: {
+                position: 'bottom',
+                labels: { colors: '#9ca3af' }
+            },
+            dataLabels: {
+                enabled: true,
+                formatter: function (val) {
+                    return Math.round(val) + "%"
+                }
+            },
+            tooltip: { theme: 'dark' }
+        };
+        new ApexCharts(document.querySelector("#chart-disease"), optionsDisease).render();
+
+        // Trend Data
+        const trendRaw = <?= json_encode($chartTrendData) ?>;
+        const trendCategories = trendRaw.map(d => d.screen_date);
+        const trendCounts = trendRaw.map(d => parseInt(d.daily_count));
+
+        // Trend Chart (Area)
+        var optionsTrend = {
+            series: [{
+                name: 'จำนวนคัดกรอง',
+                data: trendCounts
+            }],
+            chart: {
+                type: 'area',
+                height: 350,
+                background: 'transparent',
+                toolbar: { show: false }
+            },
+            theme: { mode: 'dark' },
+            colors: ['#0ea5e9'],
+            dataLabels: { enabled: false },
+            stroke: { curve: 'smooth', width: 2 },
+            xaxis: {
+                categories: trendCategories,
+                labels: {
+                    style: { colors: '#9ca3af' },
+                    formatter: function (val) {
+                        if (!val) return '';
+                        const parts = val.split('-');
+                        if(parts.length < 3) return val;
+                        return parts[2] + '/' + parts[1]; // DD/MM format
+                    }
+                }
+            },
+            yaxis: {
+                labels: { style: { colors: '#9ca3af' } }
+            },
+            tooltip: { theme: 'dark' },
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.7,
+                    opacityTo: 0.1,
+                    stops: [0, 90, 100]
+                }
+            }
+        };
+        new ApexCharts(document.querySelector("#chart-trend"), optionsTrend).render();
+    </script>
 
     <!-- Map Script Initialization -->
     <script>
