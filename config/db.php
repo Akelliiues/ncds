@@ -188,6 +188,16 @@ try {
     // Fail silently
 }
 
+// Auto-migration: Add is_hl_coach column to vhv_users if it doesn't exist
+try {
+    $check = $pdo->query("SHOW COLUMNS FROM `vhv_users` LIKE 'is_hl_coach'");
+    if ($check->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `vhv_users` ADD COLUMN `is_hl_coach` TINYINT(1) NOT NULL DEFAULT 0");
+    }
+} catch (\PDOException $e) {
+    // Fail silently
+}
+
 // Auto-create admin_users table if it doesn't exist
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS `admin_users` (
@@ -262,6 +272,74 @@ try {
     // Fail silently
 }
 
+// Auto-migration: Add database performance indexes
+try {
+    // staging_hdc_dm indexes
+    $idxCheck = $pdo->query("SHOW INDEX FROM `staging_hdc_dm` WHERE Key_name = 'idx_staging_dm_cid'");
+    if ($idxCheck->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `staging_hdc_dm` ADD INDEX `idx_staging_dm_cid` (`cid`)");
+    }
+} catch (\PDOException $e) {}
+
+try {
+    $idxCheck = $pdo->query("SHOW INDEX FROM `staging_hdc_dm` WHERE Key_name = 'idx_staging_dm_hos_pid'");
+    if ($idxCheck->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `staging_hdc_dm` ADD INDEX `idx_staging_dm_hos_pid` (`hoscode`, `pid`)");
+    }
+} catch (\PDOException $e) {}
+
+try {
+    $idxCheck = $pdo->query("SHOW INDEX FROM `staging_hdc_dm` WHERE Key_name = 'idx_staging_dm_check_vhid'");
+    if ($idxCheck->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `staging_hdc_dm` ADD INDEX `idx_staging_dm_check_vhid` (`check_vhid`)");
+    }
+} catch (\PDOException $e) {}
+
+try {
+    // staging_hdc_ht indexes
+    $idxCheck = $pdo->query("SHOW INDEX FROM `staging_hdc_ht` WHERE Key_name = 'idx_staging_ht_cid'");
+    if ($idxCheck->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `staging_hdc_ht` ADD INDEX `idx_staging_ht_cid` (`cid`)");
+    }
+} catch (\PDOException $e) {}
+
+try {
+    $idxCheck = $pdo->query("SHOW INDEX FROM `staging_hdc_ht` WHERE Key_name = 'idx_staging_ht_hos_pid'");
+    if ($idxCheck->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `staging_hdc_ht` ADD INDEX `idx_staging_ht_hos_pid` (`hoscode`, `pid`)");
+    }
+} catch (\PDOException $e) {}
+
+try {
+    $idxCheck = $pdo->query("SHOW INDEX FROM `staging_hdc_ht` WHERE Key_name = 'idx_staging_ht_check_vhid'");
+    if ($idxCheck->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `staging_hdc_ht` ADD INDEX `idx_staging_ht_check_vhid` (`check_vhid`)");
+    }
+} catch (\PDOException $e) {}
+
+try {
+    // target_population indexes
+    $idxCheck = $pdo->query("SHOW INDEX FROM `target_population` WHERE Key_name = 'idx_target_hos_pid'");
+    if ($idxCheck->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `target_population` ADD INDEX `idx_target_hos_pid` (`hoscode`, `pid`)");
+    }
+} catch (\PDOException $e) {}
+
+try {
+    $idxCheck = $pdo->query("SHOW INDEX FROM `target_population` WHERE Key_name = 'idx_target_vhid'");
+    if ($idxCheck->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `target_population` ADD INDEX `idx_target_vhid` (`vhid_code`)");
+    }
+} catch (\PDOException $e) {}
+
+try {
+    // vhv_users index
+    $idxCheck = $pdo->query("SHOW INDEX FROM `vhv_users` WHERE Key_name = 'idx_vhv_approved'");
+    if ($idxCheck->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `vhv_users` ADD INDEX `idx_vhv_approved` (`approved`)");
+    }
+} catch (\PDOException $e) {}
+
 // Auto-create jhcis_homes table if it doesn't exist
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS `jhcis_homes` (
@@ -276,3 +354,187 @@ try {
 } catch (\PDOException $e) {
     // Fail silently
 }
+
+if (!function_exists('get_village_only_name')) {
+    function get_village_only_name($vhid_code, $moo)
+    {
+        $vhid_code = trim((string)$vhid_code);
+        $tambon = substr($vhid_code, 0, 6);
+        if (empty($tambon) || strlen($tambon) < 6) {
+            $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
+            $hoscode_tambons = [
+                '10957' => '341801',
+                '03751' => '341801',
+                '03752' => '341802',
+                '03753' => '341803',
+                '03754' => '341804',
+                '03755' => '341805',
+                '03756' => '341805',
+                '03757' => '341806'
+            ];
+            if ($admin_hoscode && isset($hoscode_tambons[$admin_hoscode])) {
+                $tambon = $hoscode_tambons[$admin_hoscode];
+            }
+        }
+        $moo = intval($moo);
+
+        $villages = [
+            '341801' => [
+                1 => 'บ้านม่วงโคน', 2 => 'บ้านดอนรังกา', 3 => 'บ้านนาห้วยแคน', 4 => 'บ้านดอนพันชาด', 5 => 'บ้านนามน',
+                6 => 'บ้านดอนตะลี', 7 => 'บ้านปากห้วย', 8 => 'บ้านโนนค้อ', 9 => 'บ้านแก่งกบ', 10 => 'บ้านนามน',
+                11 => 'บ้านตาลสุม', 12 => 'บ้านคำไม้ตาย', 13 => 'บ้านปากเซ', 14 => 'บ้านโนนสวรรค์', 15 => 'บ้านทุ่งเจริญ'
+            ],
+            '341802' => [
+                1 => 'บ้านสำโรงใหญ่', 2 => 'บ้านสำโรงกลาง', 3 => 'บ้านนาโพธิ์', 4 => 'บ้านสำโรงใต้',
+                5 => 'บ้านนาแพง', 6 => 'บ้านหนองโน', 7 => 'บ้านหนองสะเดา', 8 => 'บ้านทุ่งเจริญ'
+            ],
+            '341803' => [
+                1 => 'บ้านจิกเทิง', 2 => 'บ้านจิกลุ่ม', 3 => 'บ้านเชียงแก้ว', 4 => 'บ้านเชียงแก้ว',
+                5 => 'บ้านดอนโด่', 6 => 'บ้านดอนยูง', 7 => 'บ้านค้อ', 8 => 'บ้านดอนแป้นลม', 9 => 'บ้านสร้างคำ'
+            ],
+            '341804' => [
+                1 => 'บ้านหนองกุงใหญ่', 2 => 'บ้านหนองกุงน้อย', 3 => 'บ้านคำแคน', 4 => 'บ้านสร้างแสง',
+                5 => 'บ้านคำเตยใต้', 6 => 'บ้านสร้างหว้า', 7 => 'บ้านคำเตยเหนือ', 8 => 'บ้านสร้างหว้าพัฒนา'
+            ],
+            '341805' => [
+                1 => 'บ้านนาคาย', 2 => 'บ้านโนนจิก', 3 => 'บ้านหนองเป็ด', 4 => 'บ้านโนนยาง', 5 => 'บ้านดอนขวาง',
+                6 => 'บ้านดอนหวาย', 7 => 'บ้านโคกคล้าย', 8 => 'บ้านคำหนามแท่ง', 9 => 'บ้านคำผักหนอก', 10 => 'บ้านคำฮี',
+                11 => 'บ้านห่องแดง', 12 => 'บ้านโนนสำราญ', 13 => 'บ้านโนนเจริญ'
+            ],
+            '341806' => [
+                1 => 'บ้านคำหว้า', 2 => 'บ้านคำหว้า', 3 => 'บ้านห้วยดู่', 4 => 'บ้านนาทมเหนือ',
+                5 => 'บ้านไฮหย่อง', 6 => 'บ้านนาทมใต้'
+            ]
+        ];
+
+        return $villages[$tambon][$moo] ?? "";
+    }
+}
+
+if (!function_exists('get_village_display_name')) {
+    function get_village_display_name($vhid_code, $moo)
+    {
+        $vname = get_village_only_name($vhid_code, $moo);
+        $moo_val = intval($moo);
+        if (empty($vname) || strpos($vname, 'หมู่ที่') === 0 || strpos($vname, 'หมู่ ') === 0) {
+            return "หมู่ " . $moo_val;
+        }
+        return "หมู่ " . $moo_val . " " . $vname;
+    }
+}
+
+// Dynamic village-hospital mapping loader
+$hoscode_villages = [
+    '10957' => [
+        'tambon' => '341801',
+        'villages' => [
+            1 => 'บ้านม่วงโคน', 2 => 'บ้านดอนรังกา', 3 => 'บ้านนาห้วยแคน (เขตเทศบาล)',
+            5 => 'บ้านนามน (เขตเทศบาล)', 10 => 'บ้านนามน (เขตเทศบาล)',
+            11 => 'บ้านตาลสุม (เขตเทศบาล)', 12 => 'บ้านคำไม้ตาย'
+        ]
+    ],
+    '03751' => [
+        'tambon' => '341801',
+        'villages' => [
+            4 => 'บ้านดอนพันชาด', 6 => 'บ้านดอนตะลี', 7 => 'บ้านปากห้วย', 8 => 'บ้านโนนค้อ',
+            9 => 'บ้านแก่งกบ', 13 => 'บ้านปากเซ', 14 => 'บ้านโนนสวรรค์', 15 => 'บ้านทุ่งเจริญ'
+        ]
+    ],
+    '03752' => [
+        'tambon' => '341802',
+        'villages' => [
+            1 => 'บ้านสำโรงใหญ่', 2 => 'บ้านสำโรงกลาง', 3 => 'บ้านนาโพธิ์', 4 => 'บ้านสำโรงใต้',
+            5 => 'บ้านนาแพง', 6 => 'บ้านหนองโน', 7 => 'บ้านหนองสะเดา', 8 => 'บ้านทุ่งเจริญ'
+        ]
+    ],
+    '03753' => [
+        'tambon' => '341803',
+        'villages' => [
+            1 => 'บ้านจิกเทิง', 2 => 'บ้านจิกลุ่ม', 3 => 'บ้านเชียงแก้ว', 4 => 'บ้านเชียงแก้ว',
+            5 => 'บ้านดอนโด่ (บ้านดอนโต)', 6 => 'บ้านดอนยูง', 7 => 'บ้านค้อ', 8 => 'บ้านดอนแป้นลม', 9 => 'บ้านสร้างคำ'
+        ]
+    ],
+    '03754' => [
+        'tambon' => '341804',
+        'villages' => [
+            1 => 'บ้านหนองกุงใหญ่', 2 => 'บ้านหนองกุงน้อย', 3 => 'บ้านคำแคน', 4 => 'บ้านสร้างแสง',
+            5 => 'บ้านคำเตยใต้', 6 => 'บ้านสร้างหว้า', 7 => 'บ้านคำเตยเหนือ', 8 => 'บ้านสร้างหว้าพัฒนา'
+        ]
+    ],
+    '03755' => [
+        'tambon' => '341805',
+        'villages' => [
+            1 => 'บ้านนาคาย', 2 => 'บ้านโนนจิก', 3 => 'บ้านหนองเป็ด', 4 => 'บ้านโนนยาง', 5 => 'บ้านดอนขวาง',
+            6 => 'บ้านดอนหวาย'
+        ]
+    ],
+    '03756' => [
+        'tambon' => '341805',
+        'villages' => [
+            7 => 'บ้านโคกคล้าย', 8 => 'บ้านคำหนามแท่ง', 9 => 'บ้านคำผักหนอก', 10 => 'บ้านคำฮี',
+            11 => 'บ้านห่องแดง', 12 => 'บ้านโนนสำราญ', 13 => 'บ้านโนนเจริญ'
+        ]
+    ],
+    '03757' => [
+        'tambon' => '341806',
+        'villages' => [
+            1 => 'บ้านคำหว้า', 2 => 'บ้านคำหว้า', 3 => 'บ้านห้วยดู่', 4 => 'บ้านนาทมเหนือ',
+            5 => 'บ้านไฮหย่อง', 6 => 'บ้านนาทมใต้'
+        ]
+    ]
+];
+
+// Complete/update mapping dynamically from database
+if (isset($pdo)) {
+    try {
+        $stmt_map = $pdo->query("
+            SELECT DISTINCT hoscode, sub_district_code, moo 
+            FROM target_population 
+            WHERE hoscode IS NOT NULL AND sub_district_code IS NOT NULL AND moo IS NOT NULL 
+              AND hoscode != '' AND sub_district_code != '' AND moo != ''
+        ");
+        while ($row = $stmt_map->fetch(PDO::FETCH_ASSOC)) {
+            $hc = trim($row['hoscode']);
+            $sub = trim($row['sub_district_code']);
+            $m = intval($row['moo']);
+            
+            if (!isset($hoscode_villages[$hc])) {
+                $hoscode_villages[$hc] = [
+                    'tambon' => $sub,
+                    'villages' => []
+                ];
+            }
+            if (!isset($hoscode_villages[$hc]['villages'][$m])) {
+                $vname = get_village_only_name($sub, $m);
+                if ($vname) {
+                    $hoscode_villages[$hc]['villages'][$m] = $vname;
+                }
+            }
+        }
+    } catch (\Exception $e) {
+        // Fail silently
+    }
+}
+
+if (!function_exists('get_village_display_name_by_hoscode')) {
+    function get_village_display_name_by_hoscode($hoscode, $moo)
+    {
+        global $hoscode_villages;
+        $moo_val = intval($moo);
+        
+        if (!empty($hoscode) && isset($hoscode_villages[$hoscode]['villages'][$moo_val])) {
+            return "หมู่ " . $moo_val . " " . $hoscode_villages[$hoscode]['villages'][$moo_val];
+        }
+        
+        $tambon = isset($hoscode_villages[$hoscode]['tambon']) ? $hoscode_villages[$hoscode]['tambon'] : null;
+        if ($tambon) {
+            $vname = get_village_only_name($tambon, $moo_val);
+            if ($vname) {
+                return "หมู่ " . $moo_val . " " . $vname;
+            }
+        }
+        
+        return "หมู่ " . $moo_val;
+    }
+}
+

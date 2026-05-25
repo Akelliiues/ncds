@@ -269,10 +269,31 @@ if ($filter_source === 'screened') {
 }
 
 $reportData = [];
+$totalRecords = 0;
+$totalPages = 0;
+$page = max(1, intval($_GET['page'] ?? 1));
+$limit = 50;
+$offset = ($page - 1) * $limit;
+
 try {
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-    $reportData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $reportData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } else {
+        // Count total records
+        $countSql = "SELECT COUNT(*) FROM ($sql) as sub";
+        $countStmt = $pdo->prepare($countSql);
+        $countStmt->execute($params);
+        $totalRecords = $countStmt->fetchColumn();
+        $totalPages = ceil($totalRecords / $limit);
+
+        // Paginate query
+        $sqlPaginated = $sql . " LIMIT $limit OFFSET $offset";
+        $stmt = $pdo->prepare($sqlPaginated);
+        $stmt->execute($params);
+        $reportData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 } catch (\Throwable $e) {
     $queryError = $e->getMessage();
 }
@@ -416,6 +437,32 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
             gap: 15px;
             margin-top: 15px;
             flex-wrap: wrap;
+        }
+        .pagination {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .page-link {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .page-link:hover {
+            border-color: var(--color-primary);
+            background: var(--bg-darker);
+        }
+        .page-link.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
         }
         
         /* Print Stylesheet */
@@ -635,7 +682,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
         <!-- Results Card -->
         <div class="card-dark">
             <h3 style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 20px;" class="no-print">
-                ตัวอย่างข้อมูลรายงาน (พบ <?= count($reportData) ?> รายการ)
+                ตัวอย่างข้อมูลรายงาน (พบทั้งหมด <?= number_format($totalRecords) ?> รายการ<?= $totalPages > 1 ? " | หน้าที่ $page/$totalPages" : "" ?>)
             </h3>
             
             <?php if (isset($queryError)): ?>
@@ -725,7 +772,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                                         ?>
                                         <tr>
                                             <td style="text-align: center;"><?= $no++ ?></td>
-                                            <td><?= htmlspecialchars(substr($row['cid'], 0, 4) . '-XXXXX-' . substr($row['cid'], -3)) ?></td>
+                                            <td><?= htmlspecialchars((strpos($row['cid'], '*') === false) ? $row['cid'] : (substr($row['cid'], 0, 4) . '-XXXXX-' . substr($row['cid'], -3))) ?></td>
                                             <td><strong style="color: var(--text-primary);"><?= htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) ?></strong></td>
                                             <td><?= htmlspecialchars($row['house_no']) ?></td>
                                             <td><?= htmlspecialchars($village_full) ?></td>
@@ -762,7 +809,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                                         ?>
                                         <tr>
                                             <td style="text-align: center;"><?= $no++ ?></td>
-                                            <td><?= htmlspecialchars(substr($row['cid'], 0, 4) . '-XXXXX-' . substr($row['cid'], -3)) ?></td>
+                                            <td><?= htmlspecialchars((strpos($row['cid'], '*') === false) ? $row['cid'] : (substr($row['cid'], 0, 4) . '-XXXXX-' . substr($row['cid'], -3))) ?></td>
                                             <td><strong style="color: var(--text-primary);"><?= htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) ?></strong></td>
                                             <td><?= htmlspecialchars($row['house_no']) ?></td>
                                             <td><?= htmlspecialchars($village_full) ?></td>
@@ -832,6 +879,36 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                         </tbody>
                     </table>
                 </div>
+                
+                <!-- Pagination (Hidden on Print) -->
+                <?php if ($totalPages > 1): ?>
+                    <div class="pagination no-print" style="margin-top: 25px; margin-bottom: 10px;">
+                        <?php
+                        $startPage = max(1, $page - 3);
+                        $endPage = min($totalPages, $page + 3);
+                        
+                        $queryParams = $_GET;
+                        
+                        if ($startPage > 1) {
+                            $queryParams['page'] = 1;
+                            echo '<a href="?' . http_build_query($queryParams) . '" class="page-link">1</a>';
+                            if ($startPage > 2) echo '<span style="padding: 6px; color: var(--text-secondary);">...</span>';
+                        }
+                        
+                        for ($i = $startPage; $i <= $endPage; $i++) {
+                            $active = ($i == $page) ? 'active' : '';
+                            $queryParams['page'] = $i;
+                            echo '<a href="?' . http_build_query($queryParams) . '" class="page-link ' . $active . '">' . $i . '</a>';
+                        }
+                        
+                        if ($endPage < $totalPages) {
+                            if ($endPage < $totalPages - 1) echo '<span style="padding: 6px; color: var(--text-secondary);">...</span>';
+                            $queryParams['page'] = $totalPages;
+                            echo '<a href="?' . http_build_query($queryParams) . '" class="page-link">' . $totalPages . '</a>';
+                        }
+                        ?>
+                    </div>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>

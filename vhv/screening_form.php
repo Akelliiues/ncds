@@ -422,6 +422,59 @@ if (!empty($hid)) {
             </form>
         <?php endif; ?>
 
+        <!-- HL-Coach Guidance Modal -->
+        <div id="hl-coach-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(13, 44, 84, 0.4); backdrop-filter: blur(5px); z-index: 4000; align-items: center; justify-content: center;">
+            <div style="background: white; border-radius: 20px; width: 90%; max-width: 450px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-height: 90vh; overflow-y: auto;">
+                
+                <!-- Modal Header -->
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(251, 191, 36, 0.2); border: 2px solid #fbbf24; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 12px;">✨</div>
+                    <h3 style="color: var(--color-accent); font-size: 20px; font-weight: 800; margin: 0;">คัมภีร์แนะนำ HL-Coach</h3>
+                    <p style="color: var(--text-secondary); font-size: 14px; margin: 4px 0 0;">คำแนะนำสำหรับผู้นำการปรับเปลี่ยนพฤติกรรม</p>
+                </div>
+
+                <!-- Access & Understand -->
+                <div style="background: var(--bg-body); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: var(--neumorph-inset);">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--color-primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">1</div>
+                        <strong style="color: var(--color-accent); font-size: 15px;">Access & Understand (ประเมินผล)</strong>
+                    </div>
+                    <div id="hl-risk-badge" style="display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: bold; margin-bottom: 8px;">
+                        <!-- Injected by JS -->
+                    </div>
+                    <p style="font-size: 13px; color: var(--text-secondary); margin: 0;" id="hl-risk-desc">
+                        <!-- Injected by JS -->
+                    </p>
+                </div>
+
+                <!-- Appraise -->
+                <div style="background: var(--bg-body); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: var(--neumorph-inset);">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--color-yellow); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">2</div>
+                        <strong style="color: var(--color-accent); font-size: 15px;">Appraise (ชวนคุยประเมินความพร้อม)</strong>
+                    </div>
+                    <p style="font-size: 14px; color: var(--text-primary); margin: 0; line-height: 1.5; font-style: italic;">
+                        "ตา/ยาย เห็นผลที่ออกมาไหมครับ/คะ? คิดว่าตัวเองจะไหวไหมถ้าเรามาลองปรับเรื่องการกิน หรือการขยับร่างกายกันสักนิด เพื่อให้รอบหน้าผลมันดีขึ้น?"
+                    </p>
+                </div>
+
+                <!-- Apply -->
+                <div style="background: var(--bg-body); border-radius: 12px; padding: 16px; margin-bottom: 24px; box-shadow: var(--neumorph-inset);">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--color-green); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">3</div>
+                        <strong style="color: var(--color-accent); font-size: 15px;">Apply (แนะนำเทคนิค 3อ. 2ส.)</strong>
+                    </div>
+                    <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: var(--text-primary); line-height: 1.6;" id="hl-apply-list">
+                        <!-- Injected by JS -->
+                    </ul>
+                </div>
+
+                <button type="button" onclick="closeHlCoachModal()" class="btn-giant btn-giant-success" style="width: 100%; margin: 0; background: linear-gradient(135deg, var(--color-green), #059669); color: white; font-size: 16px; border-radius: 12px;">
+                    ยืนยันการให้คำแนะนำ & จบงาน
+                </button>
+            </div>
+        </div>
+
         <!-- Skip Case Modal Overlay -->
         <div id="skip-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(13, 44, 84, 0.3); backdrop-filter: blur(4px); z-index: 3000; align-items: center; justify-content: center;">
             <div class="card-dark" style="width: 90%; max-width: 420px; margin: 0 auto; background: var(--bg-main); box-shadow: var(--neumorph-flat); border-radius: 28px; padding: 24px;">
@@ -954,8 +1007,12 @@ if (!empty($hid)) {
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
-                    alert("บันทึกการคัดกรองและส่งการ์ดประเมินไปยังครอบครัวทาง LINE เรียบร้อยแล้ว! อสม. ได้รับ +1 คะแนนสะสม");
-                    window.location.href = 'index.php';
+                    if (data.is_hl_coach) {
+                        showHlCoachModal(data.hl_risk_level);
+                    } else {
+                        alert("บันทึกการคัดกรองและส่งการ์ดประเมินไปยังครอบครัวทาง LINE เรียบร้อยแล้ว! อสม. ได้รับ +1 คะแนนสะสม");
+                        window.location.href = 'index.php';
+                    }
                 } else {
                     alert("เกิดข้อผิดพลาดในการบันทึก: " + data.message);
                 }

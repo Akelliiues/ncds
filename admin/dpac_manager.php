@@ -160,12 +160,40 @@ function get_vhv_responsibility_desc($vhid_code) {
             <div class="card-dark" style="margin-bottom: 30px; border: 2px dashed var(--color-green); background-color: rgba(16, 185, 129, 0.02);">
                 <h3 style="color: var(--color-green); margin-bottom: 15px;">มอบหมายงานติดตามรอบใหม่</h3>
                 <div style="display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap;">
+                    
+                    <?php if ($admin_hoscode): ?>
+                        <?php
+                        // Fetch villages under responsibility of this hoscode
+                        $villages_stmt = $pdo->prepare("SELECT DISTINCT moo, sub_district_code FROM target_population WHERE hoscode = ? ORDER BY moo");
+                        $villages_stmt->execute([$admin_hoscode]);
+                        $resp_villages = $villages_stmt->fetchAll(PDO::FETCH_ASSOC);
+                        ?>
+                        <div style="flex: 1; min-width: 200px;">
+                            <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--text-secondary);">กรองตามหมู่บ้าน:</label>
+                            <select id="filter_village" class="form-select" onchange="filterVhvByVillage()">
+                                <option value="">-- แสดงหมู่บ้านทั้งหมด --</option>
+                                <?php foreach ($resp_villages as $rv): ?>
+                                    <?php 
+                                    $village_name = get_village_only_name($rv['sub_district_code'], $rv['moo']);
+                                    $vhid_prefix = substr($rv['sub_district_code'], 0, 6) . sprintf("%02d", $rv['moo']);
+                                    ?>
+                                    <option value="<?= htmlspecialchars($vhid_prefix) ?>">
+                                        หมู่ <?= htmlspecialchars($rv['moo']) ?> <?= htmlspecialchars($village_name) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    <?php endif; ?>
+
                     <div style="flex: 1; min-width: 250px;">
                         <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--text-secondary);">เลือก อสม. ที่รับผิดชอบ:</label>
-                        <select name="vhv_id" class="form-select" required>
+                        <select name="vhv_id" id="vhv_select" class="form-select" required>
                             <option value="">-- เลือก อสม. --</option>
                             <?php foreach ($vhvList as $v): ?>
-                                <option value="<?= htmlspecialchars($v['vhv_id']) ?>">
+                                <?php
+                                $vhid_prefix = !empty($v['vhid_code']) && strlen($v['vhid_code']) >= 8 ? substr($v['vhid_code'], 0, 8) : '';
+                                ?>
+                                <option value="<?= htmlspecialchars($v['vhv_id']) ?>" data-vhid-prefix="<?= htmlspecialchars($vhid_prefix) ?>">
                                     <?= htmlspecialchars($v['vhv_name']) ?> (<?= htmlspecialchars(get_vhv_responsibility_desc($v['vhid_code'])) ?>)
                                 </option>
                             <?php endforeach; ?>
@@ -233,6 +261,34 @@ function get_vhv_responsibility_desc($vhid_code) {
         document.getElementById('selectAll').addEventListener('change', function(e) {
             document.querySelectorAll('input[name="enrollments[]"]').forEach(cb => cb.checked = e.target.checked);
         });
+
+        function filterVhvByVillage() {
+            const filterVal = document.getElementById('filter_village').value;
+            const vhvSelect = document.getElementById('vhv_select');
+            if (!vhvSelect) return;
+            const options = vhvSelect.querySelectorAll('option');
+            
+            options.forEach(opt => {
+                if (opt.value === "") {
+                    // Keep the default option visible
+                    opt.style.display = "";
+                    return;
+                }
+                
+                const prefix = opt.getAttribute('data-vhid-prefix') || '';
+                if (filterVal === "" || prefix === filterVal) {
+                    opt.style.display = "";
+                } else {
+                    opt.style.display = "none";
+                }
+            });
+            
+            // Reset the selection to default if the currently selected one is hidden
+            const selectedOpt = vhvSelect.options[vhvSelect.selectedIndex];
+            if (selectedOpt && selectedOpt.style.display === "none") {
+                vhvSelect.value = "";
+            }
+        }
     </script>
 </body>
 </html>

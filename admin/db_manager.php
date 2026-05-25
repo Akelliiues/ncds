@@ -87,6 +87,36 @@ $hcNames = [
             background-color: var(--color-red);
             color: white;
         }
+        .btn-manage {
+            background-color: rgba(13, 44, 84, 0.1);
+            color: var(--color-primary);
+            border: 1px solid var(--color-primary);
+            padding: 7px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .btn-manage:hover {
+            background-color: var(--color-primary);
+            color: white;
+        }
+        .btn-danger {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--color-red);
+            border: 1px solid var(--color-red);
+            padding: 7px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
     </style>
 </head>
 <body class="admin-dashboard">
@@ -127,9 +157,14 @@ $hcNames = [
                             <td><?= number_format($row['total_screenings']) ?> รายการ</td>
                             <td>
                                 <?php if ($row['total_targets'] > 0): ?>
-                                    <button class="btn-danger" onclick="clearData('<?= htmlspecialchars($row['hoscode']) ?>', '<?= $hcNames[$row['hoscode']] ?? $row['hoscode'] ?>')">
-                                        ล้างข้อมูล รพ.สต. นี้
-                                    </button>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <a href="db_records.php?hoscode=<?= urlencode($row['hoscode']) ?>" class="btn-manage">
+                                            ⚙️ จัดการรายบุคคล
+                                        </a>
+                                        <button class="btn-danger" onclick="clearData('<?= htmlspecialchars($row['hoscode']) ?>', '<?= $hcNames[$row['hoscode']] ?? $row['hoscode'] ?>')">
+                                            🗑️ ล้างข้อมูล รพ.สต.
+                                        </button>
+                                    </div>
                                 <?php else: ?>
                                     <span style="color: var(--text-muted); font-size: 13px;">ว่างเปล่า</span>
                                 <?php endif; ?>

@@ -277,11 +277,21 @@ try {
             }
         }
 
+        // Calculate overall risk for HL-Coach
+        $hl_risk_level = 'green';
+        if ($sys1 >= 160 || $dia1 >= 100 || ($dtxType === 'fpg' && $dtx >= 126) || ($dtxType === 'random' && $dtx >= 200) || $cvRiskScore >= 30) {
+            $hl_risk_level = 'red';
+        } elseif ($sys1 >= 140 || $dia1 >= 90 || ($dtxType === 'fpg' && $dtx >= 100) || ($dtxType === 'random' && $dtx >= 140) || $cvRiskScore >= 20) {
+            $hl_risk_level = 'yellow';
+        }
+
         echo json_encode([
             'status' => 'success',
             'message' => 'บันทึกข้อมูลเรียบร้อย',
             'reward_status' => $approvalStatus,
-            'log' => $reasonLog
+            'log' => $reasonLog,
+            'hl_risk_level' => $hl_risk_level,
+            'is_hl_coach' => $_SESSION['is_hl_coach'] ?? false
         ]);
         exit();
 

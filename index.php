@@ -83,7 +83,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $_SESSION['vhid_code'] = $user['vhid_code'];
                             $_SESSION['hoscode'] = $user['hoscode'];
                             $_SESSION['is_leader'] = (bool)$user['is_leader'];
-
+                            $_SESSION['is_hl_coach'] = (bool)$user['is_hl_coach'];
+                            
                             header("Location: vhv/index.php");
                             exit();
                         }

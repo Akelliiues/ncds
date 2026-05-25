@@ -58,6 +58,9 @@ $stmt->execute($params);
 $people = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 function maskName($firstName, $lastName) {
+    if (strpos($firstName, '*') === false && strpos($lastName, '*') === false) {
+        return $firstName . ' ' . $lastName;
+    }
     $maskedFirst = mb_substr($firstName, 0, 3) . '***';
     $maskedLast = mb_substr($lastName, 0, 1) . '***';
     return $maskedFirst . ' ' . $maskedLast;
@@ -200,12 +203,24 @@ function maskName($firstName, $lastName) {
                 <?php if (count($people) > 0): ?>
                     <?php foreach ($people as $person): ?>
                         <div class="qr-card">
+                            <!-- System Name & District Header -->
+                            <div style="font-size: 12px; font-weight: bold; color: #0f172a; border-bottom: 1.5px solid #cbd5e1; padding-bottom: 6px; margin-bottom: 10px; display: flex; justify-content: space-between;">
+                                <span>🌐 SSOTansum NCD</span>
+                                <span style="color: #475569;">อ.ตาลสุม</span>
+                            </div>
+
                             <div class="house-details">บ้านเลขที่ <?= htmlspecialchars($person['house_no']) ?> หมู่ <?= htmlspecialchars($person['moo']) ?></div>
                             <div class="house-members"><?= htmlspecialchars(maskName($person['first_name'], $person['last_name'])) ?></div>
                             
                             <div class="qr-code-img" id="qr-<?= htmlspecialchars($person['cid']) ?>"></div>
                             
                             <div style="font-size: 11px; margin-top: 5px; color: #777;">HID: <?= htmlspecialchars($person['hid']) ?></div>
+
+                            <!-- Message of Care -->
+                            <div style="border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-top: 10px; font-size: 11px; font-style: italic; color: #0284c7; font-weight: bold; line-height: 1.4;">
+                                "ด้วยความห่วงใยในสุขภาพของท่าน"<br>
+                                <span style="font-size: 10px; font-weight: normal; color: #475569;">หลีกเลี่ยงหวาน มัน เค็ม และตรวจเช็คสุขภาพสม่ำเสมอ</span>
+                            </div>
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
@@ -221,16 +236,20 @@ function maskName($firstName, $lastName) {
 
     <!-- Script to Handle Relations and QR Generation -->
     <script>
-        const relations = {
-            "10957": { tambon: "341801", villages: [ { moo: 1, name: "บ้านม่วงโคน" }, { moo: 2, name: "บ้านดอนรังกา" }, { moo: 3, name: "บ้านนาห้วยแคน" }, { moo: 5, name: "บ้านนามน" }, { moo: 10, name: "บ้านนามน" }, { moo: 11, name: "บ้านตาลสุม" }, { moo: 12, name: "บ้านคำไม้ตาย" } ] },
-            "03751": { tambon: "341801", villages: [ { moo: 4, name: "บ้านดอนพันชาด" }, { moo: 6, name: "บ้านดอนตะลี" }, { moo: 7, name: "บ้านปากห้วย" }, { moo: 8, name: "บ้านโนนค้อ" }, { moo: 9, name: "บ้านแก่งกบ" }, { moo: 13, name: "บ้านปากเซ" }, { moo: 14, name: "บ้านโนนสวรรค์" }, { moo: 15, name: "บ้านทุ่งเจริญ" } ] },
-            "03752": { tambon: "341802", villages: [ { moo: 1, name: "บ้านสำโรงใหญ่" }, { moo: 2, name: "บ้านสำโรงกลาง" }, { moo: 3, name: "บ้านนาโพธิ์" }, { moo: 4, name: "บ้านสำโรงใต้" }, { moo: 5, name: "บ้านทรายมูลเหนือ" }, { moo: 6, name: "บ้านทรายมูลใต้" }, { moo: 7, name: "บ้านหนองบัว" }, { moo: 8, name: "บ้านทุ่งเจริญ" } ] },
-            "03753": { tambon: "341803", villages: [ { moo: 1, name: "บ้านจิกเทิง" }, { moo: 2, name: "บ้านจิกลุ่ม" }, { moo: 3, name: "บ้านเชียงแก้ว" }, { moo: 4, name: "บ้านเชียงแก้ว" }, { moo: 5, name: "บ้านดอนโด่" }, { moo: 6, name: "บ้านดอนยูง" }, { moo: 7, name: "บ้านค้อ" }, { moo: 8, name: "บ้านดอนแป้นลม" }, { moo: 9, name: "บ้านสร้างคำ" } ] },
-            "03754": { tambon: "341804", villages: [ { moo: 1, name: "บ้านหนองกุงใหญ่" }, { moo: 2, name: "บ้านหนองกุงน้อย" }, { moo: 3, name: "บ้านคำแคน" }, { moo: 4, name: "บ้านสร้างแสง" }, { moo: 5, name: "บ้านคำเตยใต้" }, { moo: 6, name: "บ้านสร้างหว้า" }, { moo: 7, name: "บ้านคำเตยเหนือ" }, { moo: 8, name: "บ้านสร้างหว้าพัฒนา" } ] },
-            "03755": { tambon: "341805", villages: [ { moo: 1, name: "บ้านนาคาย" }, { moo: 2, name: "บ้านโนนจิก" }, { moo: 3, name: "บ้านหนองเป็ด" }, { moo: 4, name: "บ้านโนนยาง" }, { moo: 5, name: "บ้านดอนขวาง" }, { moo: 6, name: "บ้านดอนหวาย" } ] },
-            "03756": { tambon: "341805", villages: [ { moo: 7, name: "บ้านโคกคล้าย" }, { moo: 8, name: "บ้านคำหนามแท่ง" }, { moo: 9, name: "บ้านคำผักหนอก" }, { moo: 10, name: "บ้านคำฮี" }, { moo: 11, name: "บ้านห่องแดง" }, { moo: 12, name: "บ้านโนนสำราญ" }, { moo: 13, name: "บ้านโนนเจริญ" } ] },
-            "03757": { tambon: "341806", villages: [ { moo: 1, name: "บ้านคำหว้า" }, { moo: 2, name: "บ้านคำหว้า" }, { moo: 3, name: "บ้านห้วยดู่" }, { moo: 4, name: "บ้านนาทมเหนือ" }, { moo: 5, name: "บ้านไฮหย่อง" }, { moo: 6, name: "บ้านนาทมใต้" } ] }
-        };
+        const relations = <?php 
+            $relations = [];
+            foreach ($hoscode_villages as $hc => $info) {
+                $vList = [];
+                foreach ($info['villages'] as $moo => $name) {
+                    $vList[] = ['moo' => (int)$moo, 'name' => $name];
+                }
+                $relations[$hc] = [
+                    'tambon' => $info['tambon'],
+                    'villages' => $vList
+                ];
+            }
+            echo json_encode($relations, JSON_UNESCAPED_UNICODE);
+        ?>;
 
         function onHoscodeChange() {
             const hSelect = document.getElementById('hoscode');

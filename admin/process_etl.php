@@ -18,17 +18,11 @@ require_once __DIR__ . '/../config/db.php';
 
 // Validate 13-digit Thai Citizen ID using mod 11 checksum
 function validateThaiCitizenID($id) {
-    if (!preg_match('/^[0-9]{13}$/', $id)) {
+    $id = preg_replace('/[^0-9*]/', '', $id);
+    if (strlen($id) !== 13) {
         return false;
     }
-
-    $sum = 0;
-    for ($i = 0; $i < 12; $i++) {
-        $sum += (int)$id[$i] * (13 - $i);
-    }
-
-    $checkDigit = (11 - ($sum % 11)) % 10;
-    return $checkDigit === (int)$id[12];
+    return true;
 }
 
 $message = '';
@@ -89,6 +83,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $checkVhid = $source['check_vhid'] ?? ($dmData['check_vhid'] ?? $htData['check_vhid'] ?? '');
             $pid = $source['pid'] ?? null;
             $hoscode = $source['hoscode'] ?? ($dmData['hoscode'] ?? $htData['hoscode'] ?? '00000');
+            $hoscode = trim((string)$hoscode);
+            if (is_numeric($hoscode) && strlen($hoscode) < 5) {
+                $hoscode = str_pad($hoscode, 5, '0', STR_PAD_LEFT);
+            }
 
             // Parse house no and Moo from address or check_vhid
             $houseNo = '';
@@ -125,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $needScreenHt = false;
             }
 
-            // Map baseline health_status_origin (0 = Normal, 1 = Risk, 2 = High Risk, 5 = Diagnosed/Exclude)
+            // Map baseline health_status_origin (0 = Normal, 1 = Risk, 2 = High Risk, 3 = Suspect, 5 = Diagnosed/Exclude)
             if ($dmRisk === '2' || $htRisk === '2') {
                 $healthStatusOrigin = 'HIGH_RISK';
             } elseif ($dmRisk === '1' && $htRisk === '1') {
@@ -134,14 +132,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $healthStatusOrigin = 'DM_ONLY';
             } elseif ($htRisk === '1') {
                 $healthStatusOrigin = 'HT_ONLY';
+            } elseif ($dmRisk === '3' || $htRisk === '3') {
+                $healthStatusOrigin = 'SUSPECT';
             } else {
                 $healthStatusOrigin = 'NORMAL';
+            }
+
+            // For SUSPECT (Risk 3), set screening flags to false initially (we manage them separately)
+            if ($healthStatusOrigin === 'SUSPECT') {
+                $needScreenDm = false;
+                $needScreenHt = false;
             }
 
             // Check if patient already exists in target_population by hoscode and pid (stable unique keys)
             $exists = false;
             if ($hoscode && $pid) {
-                $checkStmt = $pdo->prepare("SELECT cid, first_name, last_name, house_no, moo, sub_district_code, vhid_code, latitude, longitude FROM target_population WHERE hoscode = ? AND pid = ?");
+                $checkStmt = $pdo->prepare("SELECT cid, first_name, last_name, house_no, moo, sub_district_code, vhid_code, latitude, longitude, need_screen_dm, need_screen_ht FROM target_population WHERE LPAD(hoscode, 5, '0') = LPAD(?, 5, '0') AND pid = ?");
                 $checkStmt->execute([$hoscode, $pid]);
                 $exists = $checkStmt->fetch();
             }
@@ -151,6 +157,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $realCid = $exists['cid'];
                 $lat = $exists['latitude'] ?: ($source['latitude'] ?? null) ?: ($latMin + mt_rand() / mt_getrandmax() * ($latMax - $latMin));
                 $lng = $exists['longitude'] ?: ($source['longitude'] ?? null) ?: ($lngMin + mt_rand() / mt_getrandmax() * ($lngMax - $lngMin));
+
+                // If suspect was already activated as target by admin, preserve that status
+                if ($exists['need_screen_dm'] == 1) {
+                    $needScreenDm = true;
+                }
+                if ($exists['need_screen_ht'] == 1) {
+                    $needScreenHt = true;
+                }
 
                 // Update, preserving existing demographics (avoid overwriting real names/CID with masked values)
                 $updateStmt = $pdo->prepare("
@@ -270,12 +284,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             <?php endif; ?>
 
-            <form action="" method="POST" style="margin-top: 30px;">
+            <form action="" method="POST" id="etl-form" style="margin-top: 30px;">
                 <button type="submit" class="btn-giant btn-giant-primary" style="border-radius: var(--border-radius);">
                     เริ่มประมวลผลข้อมูลและกรองรายชื่อคัดกรอง (Run ETL Engine)
                 </button>
             </form>
         </div>
     </div>
+
+    <!-- Progress Overlay Modal -->
+    <div id="progress-overlay" class="modal-overlay" style="display: none; flex-direction: column; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(13, 44, 84, 0.4); backdrop-filter: blur(4px); z-index: 9999; color: white;">
+        <div class="modal-content" style="background: rgba(13, 44, 84, 0.9); backdrop-filter: blur(10px); color: white; padding: 40px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); width: 90%; max-width: 450px; text-align: center;">
+            <div class="spinner" style="margin: 0 auto 24px auto; width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--color-accent); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            <h3 id="progress-status" style="margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: white;">กำลังประมวลผลระบบ ETL...</h3>
+            <p id="progress-substatus" style="margin: 0 0 24px 0; font-size: 13px; color: rgba(255,255,255,0.6);">ระบบกำลังรวบรวมและวิเคราะห์ข้อมูลคัดแยกกลุ่มเป้าหมาย</p>
+            <div style="background: rgba(255,255,255,0.1); border-radius: 10px; height: 10px; overflow: hidden; position: relative;">
+                <div id="progress-bar" style="background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-accent) 100%); width: 0%; height: 100%; transition: width 0.2s ease-out; border-radius: 10px;"></div>
+            </div>
+            <div id="progress-percent" style="margin-top: 10px; font-size: 14px; font-weight: bold; color: var(--color-accent);">0%</div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+
+    <script>
+        function runProgressAnimation(duration, statusMessages) {
+            const overlay = document.getElementById('progress-overlay');
+            const progressBar = document.getElementById('progress-bar');
+            const progressPercent = document.getElementById('progress-percent');
+            const progressStatus = document.getElementById('progress-status');
+            
+            overlay.style.display = 'flex';
+            
+            let start = null;
+            function step(timestamp) {
+                if (!start) start = timestamp;
+                const progress = Math.min((timestamp - start) / duration, 1);
+                
+                // Slow down progress as it approaches 95%
+                const displayProgress = Math.floor(progress * 94); 
+                
+                progressBar.style.width = displayProgress + '%';
+                progressPercent.textContent = displayProgress + '%';
+                
+                // Update messages based on progress
+                if (statusMessages && statusMessages.length > 0) {
+                    const msgIndex = Math.min(Math.floor(progress * statusMessages.length), statusMessages.length - 1);
+                    progressStatus.textContent = statusMessages[msgIndex];
+                }
+                
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            }
+            window.requestAnimationFrame(step);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const etlForm = document.getElementById('etl-form');
+            if (etlForm) {
+                etlForm.addEventListener('submit', () => {
+                    runProgressAnimation(6000, [
+                        "กำลังเริ่มต้นดึงข้อมูลจากตารางนำเข้าชั่วคราว...",
+                        "กำลังประมวลผลหาค่าบัตรประชาชนแบบไม่ซ้ำ (Unique CID)...",
+                        "กำลังเปรียบเทียบข้อมูลกลุ่มเสี่ยง DM และ HT...",
+                        "กำลังคัดแยกผู้ป่วยที่ได้รับการวินิจฉัยแล้ว (Exclusion Rules)...",
+                        "กำลังจำลองพิกัดบ้านสำหรับแสดงผลแผนที่คลัสเตอร์...",
+                        "กำลังบันทึกรายชื่อใหม่และปรับปรุงกลุ่มเป้าหมายเดิม...",
+                        "เสร็จสิ้นการประมวลผล กำลังเปิดเผยตารางสถิติสรุปผล..."
+                    ]);
+                });
+            }
+        });
+    </script>
 </body>
 </html>

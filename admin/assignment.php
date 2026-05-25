@@ -128,6 +128,24 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
             </div>
         </div>
 
+        <!-- Target Group Tabs -->
+        <div class="tabs" style="display: flex; gap: 8px; margin: 20px 0; background-color: var(--bg-card); padding: 6px; border-radius: 16px; box-shadow: var(--neumorph-inset); width: fit-content; flex-wrap: wrap;">
+            <button onclick="switchTargetGroup('main')" id="tab-group-main" class="tab active" style="border: none; background: none; font-size: 15px; font-weight: 800; padding: 10px 20px; cursor: pointer; border-radius: 12px; transition: all var(--transition-speed); color: var(--text-secondary);">
+                📋 กลุ่มเป้าหมายหลัก (Risk 1-2)
+            </button>
+            <button onclick="switchTargetGroup('suspect')" id="tab-group-suspect" class="tab" style="border: none; background: none; font-size: 15px; font-weight: 800; padding: 10px 20px; cursor: pointer; border-radius: 12px; transition: all var(--transition-speed); color: var(--text-secondary);">
+                🔵 กลุ่มป่วย/สงสัยป่วย (Risk 3) [สำรอง]
+            </button>
+        </div>
+
+        <style>
+            .tabs .tab.active {
+                background-color: var(--color-primary);
+                color: white !important;
+                box-shadow: var(--neumorph-flat);
+            }
+        </style>
+
         <!-- Step 2: Lists (Targets vs VHVs) -->
         <div class="grid-container">
             <!-- Left: Targets -->
@@ -155,7 +173,7 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
             </div>
 
             <!-- Right: VHVs -->
-            <div class="list-card">
+            <div class="list-card" id="vhv-card">
                 <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
                     <h3 style="margin: 0; color: var(--text-primary);">รายชื่อ อสม. ในพื้นที่</h3>
                     <span style="font-size: 12px; color: var(--text-muted);" id="vhv-count">พบ 0 ราย</span>
@@ -167,6 +185,29 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 
                 <div class="list-body" id="vhv-list">
                     <div style="text-align: center; color: var(--text-muted); padding: 40px;">กรุณาเลือกหมู่บ้าน</div>
+                </div>
+            </div>
+
+            <!-- Right: Suspect Activation Panel -->
+            <div class="list-card" id="suspect-activation-card" style="display: none;">
+                <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+                    <h3 style="margin: 0; color: var(--color-accent);">จัดการรายชื่อกลุ่มป่วย/สงสัยป่วย</h3>
+                    <span style="font-size: 12px; color: var(--text-muted);">ระบุผู้ใช้เป็นกลุ่มเป้าหมายคัดกรองหลัก</span>
+                </div>
+                
+                <div style="margin-top: 20px; font-size: 14px; color: var(--text-secondary); line-height: 1.6; flex: 1;">
+                    <p style="margin-bottom: 12px;">👉 <b>ขั้นตอนดำเนินการ:</b></p>
+                    <ol style="padding-left: 20px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px;">
+                        <li>เลือกประชากรป่วย/สงสัยป่วยฝั่งซ้ายมือ</li>
+                        <li>กดปุ่ม <b>"ยืนยันระบุเป็นกลุ่มเป้าหมายหลัก"</b> ด้านล่างนี้</li>
+                        <li>ระบบจะย้ายรายชื่อเข้าสู่กลุ่มคัดกรอง และ อสม. จะเห็นงานเพื่อไปดำเนินการได้ทันที</li>
+                    </ol>
+                </div>
+
+                <div>
+                    <button onclick="activateSuspects()" class="btn-primary" style="width: 100%; height: 50px; font-size: 16px; font-weight: bold; border-radius: var(--border-radius); border: none; background: var(--color-green); color: white; cursor: pointer; box-shadow: var(--neumorph-flat);">
+                        💾 ยืนยันระบุเป็นกลุ่มเป้าหมายหลัก
+                    </button>
                 </div>
             </div>
         </div>
@@ -389,6 +430,25 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
         }
 
         let currentTargets = [];
+        let currentTargetGroup = 'main';
+
+        function switchTargetGroup(group) {
+            currentTargetGroup = group;
+            
+            // Toggle active tab class
+            document.getElementById('tab-group-main').classList.toggle('active', group === 'main');
+            document.getElementById('tab-group-suspect').classList.toggle('active', group === 'suspect');
+            
+            // Toggle side cards
+            document.getElementById('vhv-card').style.display = group === 'main' ? 'flex' : 'none';
+            document.getElementById('suspect-activation-card').style.display = group === 'suspect' ? 'flex' : 'none';
+            
+            // Reset selections
+            document.getElementById('select-all').checked = false;
+            updateSelectedCount();
+            
+            fetchData();
+        }
 
         function fetchData() {
             const tambon = document.getElementById('tambon').value;
@@ -412,7 +472,7 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
             const vhidCode = tambon + moo.padStart(2, '0');
 
             // Fetch Targets
-            fetch(`../api/get_assignment_data.php?type=targets&moo=${moo}&vhid=${vhidCode}`)
+            fetch(`../api/get_assignment_data.php?type=targets&moo=${moo}&vhid=${vhidCode}&group=${currentTargetGroup}`)
                 .then(r => r.json())
                 .then(data => {
                     currentTargets = data;
@@ -512,6 +572,32 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
                 .then(data => {
                     if (data.status === 'success') {
                         alert("มอบหมายงานสำเร็จ!");
+                        fetchData(); // Refresh lists
+                    } else {
+                        alert("เกิดข้อผิดพลาด: " + data.message);
+                    }
+                })
+                .catch(err => alert("เกิดข้อผิดพลาดในการเชื่อมต่อ"));
+            }
+        }
+
+        function activateSuspects() {
+            const cids = Array.from(document.querySelectorAll('.item-cb:checked')).map(cb => cb.value);
+            if (cids.length === 0) {
+                alert("กรุณาเลือกประชากรป่วย/สงสัยป่วยที่ต้องการเปิดสิทธิ์ก่อนครับ");
+                return;
+            }
+
+            if (confirm(`ยืนยันเปิดสิทธิ์คัดกรองประชากรที่เลือกจำนวน ${cids.length} ราย?`)) {
+                fetch('../api/activate_suspect_targets.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cids: cids })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert(data.message);
                         fetchData(); // Refresh lists
                     } else {
                         alert("เกิดข้อผิดพลาด: " + data.message);

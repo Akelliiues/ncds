@@ -35,10 +35,11 @@ $hc_names = [
 
 // Helper to match column headers case-insensitively
 function getColumnIndex($headers, $possibleNames) {
-    foreach ($headers as $idx => $header) {
-        $headerClean = strtolower(trim(preg_replace('/[\x{FEFF}\x{FFFE}]/u', '', $header)));
-        foreach ($possibleNames as $name) {
-            if ($headerClean === strtolower($name)) {
+    foreach ($possibleNames as $name) {
+        $nameClean = strtolower(trim($name));
+        foreach ($headers as $idx => $header) {
+            $headerClean = strtolower(trim(preg_replace('/[\x{FEFF}\x{FFFE}]/u', '', $header)));
+            if ($headerClean === $nameClean) {
                 return $idx;
             }
         }
@@ -50,12 +51,18 @@ function getColumnIndex($headers, $possibleNames) {
 function isHeaderRow($row) {
     if (empty($row)) return false;
     
-    // Check if the 3rd element (index 2) is a valid CID (13-digit number)
-    if (isset($row[2]) && preg_match('/^[0-9]{13}$/', $row[2])) {
-        return false; // It's a data row
+    // Check if any cell is a 13-digit CID (usually means data row, not header)
+    foreach ($row as $val) {
+        if (preg_match('/^[0-9]{13}$/', trim((string)$val))) {
+            return false;
+        }
     }
     
-    $commonHeaders = ['cid', 'pid', 'hn', 'hcode', 'hoscode', 'name', 'fname', 'discharge', 'typearea', 'sbp', 'dbp', 'risk'];
+    $commonHeaders = [
+        'cid', 'pid', 'hn', 'hcode', 'hoscode', 'hospcode', 
+        'name', 'fname', 'discharge', 'typearea', 'sbp', 'dbp', 'risk',
+        'hid', 'house', 'roomno', 'latitude', 'longitude', 'village', 'tambon', 'ampur', 'changwat'
+    ];
     foreach ($row as $val) {
         $valClean = strtolower(trim(preg_replace('/[\x{FEFF}\x{FFFE}]/u', '', $val)));
         if (in_array($valClean, $commonHeaders)) {
@@ -70,7 +77,7 @@ function isHeaderRow($row) {
 // Columns definition for each import type
 $columnMappings = [
     'person' => [
-        'hoscode' => ['hoscode', 'hcode', 'pcucode', 'hos_code', 'h_code'],
+        'hoscode' => ['hoscode', 'hcode', 'pcucode', 'hos_code', 'h_code', 'hospcode'],
         'pid' => ['pid', 'hn', 'p_id', 'person_id', 'hn_no'],
         'cid' => ['cid', 'card_id', 'citizen_id', 'personal_id'],
         'first_name' => ['first_name', 'firstname', 'name', 'fname'],
@@ -83,7 +90,7 @@ $columnMappings = [
         'typearea' => ['typearea', 'type_area']
     ],
     'dm' => [
-        'hoscode' => ['hoscode', 'hcode', 'pcucode', 'hos_code', 'h_code'],
+        'hoscode' => ['hoscode', 'hcode', 'pcucode', 'hos_code', 'h_code', 'hospcode'],
         'hosname' => ['hosname', 'hos_name'],
         'pid' => ['pid', 'hn', 'p_id', 'person_id', 'hn_no'],
         'cid' => ['cid', 'card_id', 'citizen_id', 'personal_id'],
@@ -107,7 +114,7 @@ $columnMappings = [
         'result' => ['result', 'screening_result']
     ],
     'ht' => [
-        'hoscode' => ['hoscode', 'hcode', 'pcucode', 'hos_code', 'h_code'],
+        'hoscode' => ['hoscode', 'hcode', 'pcucode', 'hos_code', 'h_code', 'hospcode'],
         'hosname' => ['hosname', 'hos_name'],
         'pid' => ['pid', 'hn', 'p_id', 'person_id', 'hn_no'],
         'cid' => ['cid', 'card_id', 'citizen_id', 'personal_id'],
@@ -127,10 +134,14 @@ $columnMappings = [
     'home' => [
         'hoscode' => ['hoscode', 'hcode', 'pcucode', 'hos_code', 'h_code', 'hospcode'],
         'hid' => ['hid', 'h_id', 'home_id'],
-        'house_no' => ['house_no', 'house_num', 'no', 'addr', 'address'],
-        'vhid_code' => ['vhid_code', 'vhid', 'check_vhid', 'check_vhic', 'vhic', 'village_id', 'village_code'],
+        'house_no' => ['house_no', 'house_num', 'no', 'addr', 'address', 'house'],
+        'vhid_code' => ['vhid_code', 'vhid', 'check_vhid', 'check_vhic', 'vhic', 'village_id', 'village_code', 'vhvid'],
         'latitude' => ['latitude', 'lat', 'house_lat'],
-        'longitude' => ['longitude', 'lng', 'lon', 'house_lng']
+        'longitude' => ['longitude', 'lng', 'lon', 'house_lng'],
+        'village' => ['village', 'moo'],
+        'tambon' => ['tambon', 'sub_district', 'subdistrict'],
+        'ampur' => ['ampur', 'district'],
+        'changwat' => ['changwat', 'province']
     ]
 ];
 
@@ -171,7 +182,11 @@ $thaiColNames = [
     'risk' => 'ระดับความเสี่ยง 0,1,2 (risk)',
     'result' => 'สรุปผลตรวจ (result)',
     'latitude' => 'ละติจูด (latitude)',
-    'longitude' => 'ลองจิจูด (longitude)'
+    'longitude' => 'ลองจิจูด (longitude)',
+    'village' => 'หมู่ที่ (village)',
+    'tambon' => 'รหัสตำบล (tambon)',
+    'ampur' => 'รหัสอำเภอ (ampur)',
+    'changwat' => 'รหัสจังหวัด (changwat)'
 ];
 
 $previewData = null;
@@ -225,65 +240,76 @@ if (isset($_POST['action_upload']) && isset($_FILES['csv_file'])) {
                     }
                     $hasHeaders = isHeaderRow($firstRow);
                 
-                $mapping = [];
-                $expectedCols = $columnMappings[$importType];
-                $criticalCols = $criticalColumns[$importType];
-                $missingCritical = [];
-                $headers = [];
-                
-                if ($hasHeaders) {
-                    $headers = $firstRow;
-                    foreach ($expectedCols as $colKey => $names) {
-                        $idx = getColumnIndex($headers, $names);
-                        $mapping[$colKey] = $idx;
-                        if ($idx === -1 && in_array($colKey, $criticalCols)) {
-                            $missingCritical[] = $colKey;
-                        }
-                    }
-                } else {
-                    // No headers: check if JHCIS PERSON or HOME file structure
-                    if ($importType === 'person' && count($firstRow) >= 23) {
-                        $mapping = [
-                            'hoscode' => 0,
-                            'pid' => 1,
-                            'cid' => 2,
-                            'first_name' => 4,
-                            'last_name' => 5,
-                            'sex' => 6,
-                            'birth' => 7,
-                            'hid' => -1,
-                            'house_no' => -1,
-                            'vhid_code' => -1,
-                            'typearea' => 22
-                        ];
-                    } elseif ($importType === 'home' && count($firstRow) >= 18) {
-                        $mapping = [
-                            'hoscode' => 0,
-                            'hid' => 1,
-                            'house_no' => 4,
-                            'vhid_code' => 9,
-                            'latitude' => 16,
-                            'longitude' => 17
-                        ];
-                    } else {
-                        // Assume first row is header but missing critical cols
+                    $mapping = [];
+                    $expectedCols = $columnMappings[$importType];
+                    $criticalCols = $criticalColumns[$importType];
+                    $missingCritical = [];
+                    $headers = [];
+                    
+                    if ($hasHeaders) {
                         $headers = $firstRow;
                         foreach ($expectedCols as $colKey => $names) {
                             $idx = getColumnIndex($headers, $names);
                             $mapping[$colKey] = $idx;
+                            // Special case for home: if vhid_code is missing but village components are matched, it's not missing
                             if ($idx === -1 && in_array($colKey, $criticalCols)) {
+                                if ($colKey === 'vhid_code' && $importType === 'home') {
+                                    // Will check later if components are present
+                                } else {
+                                    $missingCritical[] = $colKey;
+                                }
+                            }
+                        }
+                        
+                        // Re-validate vhid_code for home type area
+                        if ($importType === 'home' && $mapping['vhid_code'] === -1) {
+                            if ($mapping['village'] === -1 || $mapping['tambon'] === -1 || $mapping['ampur'] === -1 || $mapping['changwat'] === -1) {
+                                $missingCritical[] = 'vhid_code';
+                            }
+                        }
+                    } else {
+                        // Generate mock headers
+                        $headers = [];
+                        for ($i = 0; $i < count($firstRow); $i++) {
+                            $headers[] = "คอลัมน์ที่ " . ($i + 1) . " (ไม่มีชื่อหัว)";
+                        }
+                        
+                        // Fallbacks for JHCIS
+                        if ($importType === 'person' && count($firstRow) >= 23) {
+                            $mapping = [
+                                'hoscode' => 0, 'pid' => 2, 'cid' => 1, 'first_name' => 5, 'last_name' => 6,
+                                'sex' => 8, 'birth' => 9, 'hid' => 3, 'house_no' => -1, 'vhid_code' => -1, 'typearea' => 29
+                            ];
+                        } elseif ($importType === 'home' && count($firstRow) >= 18) {
+                            $mapping = [
+                                'hoscode' => 0, 'hid' => 1, 'house_no' => 6, 'vhid_code' => 20, 'latitude' => 16, 'longitude' => 17,
+                                'village' => 11, 'tambon' => 12, 'ampur' => 13, 'changwat' => 14
+                            ];
+                        } else {
+                            foreach ($expectedCols as $colKey => $names) {
+                                $mapping[$colKey] = -1;
+                            }
+                        }
+                        
+                        // Check criticals
+                        foreach ($criticalCols as $colKey) {
+                            if ((!isset($mapping[$colKey]) || $mapping[$colKey] === -1)) {
+                                if ($colKey === 'vhid_code' && $importType === 'home' && isset($mapping['village']) && $mapping['village'] !== -1 && isset($mapping['tambon']) && $mapping['tambon'] !== -1 && isset($mapping['ampur']) && $mapping['ampur'] !== -1 && isset($mapping['changwat']) && $mapping['changwat'] !== -1) {
+                                    continue;
+                                }
                                 $missingCritical[] = $colKey;
                             }
                         }
+                        
+                        // Rewind since first row is data
+                        rewind($handle);
                     }
-                    // Rewind since first row is data
-                    rewind($handle);
-                }
-                
-                // Read first 5 data rows for preview table
-                $sampleRows = [];
-                $count = 0;
-                while (($row = fgetcsv($handle, 1000, $delimiter)) !== false && $count < 5) {
+                    
+                    // Read first 5 data rows for preview table
+                    $sampleRows = [];
+                    $rawSampleRows = [];
+                    $count = 0;
+                    while (($row = fgetcsv($handle, 1000, $delimiter)) !== false && $count < 5) {
                         if (empty(array_filter($row))) continue;
                         
                         foreach ($row as $k => $v) {
@@ -292,6 +318,8 @@ if (isset($_POST['action_upload']) && isset($_FILES['csv_file'])) {
                             }
                             $row[$k] = trim((string)$row[$k]);
                         }
+                        
+                        $rawSampleRows[] = $row;
                         
                         $mappedRow = [];
                         foreach ($mapping as $colKey => $idx) {
@@ -312,7 +340,8 @@ if (isset($_POST['action_upload']) && isset($_FILES['csv_file'])) {
                         'headers_count' => count($headers),
                         'missing_critical' => $missingCritical,
                         'sample_rows' => $sampleRows,
-                        'expected_cols' => $expectedCols,
+                        'raw_sample_rows' => $rawSampleRows,
+                        'expected_cols' => array_keys($expectedCols),
                         'raw_headers' => $headers
                     ];
                     $step = 2;
@@ -357,39 +386,41 @@ if (isset($_POST['action_confirm'])) {
             $mapping = [];
             $expectedCols = $columnMappings[$importType];
             
-            if ($hasHeaders) {
+            $hasPostMap = isset($_POST['mapping']) && is_array($_POST['mapping']);
+            
+            if ($hasPostMap) {
                 foreach ($expectedCols as $colKey => $names) {
-                    $mapping[$colKey] = getColumnIndex($firstRow, $names);
+                    $mapping[$colKey] = isset($_POST['mapping'][$colKey]) && $_POST['mapping'][$colKey] !== '' ? (int)$_POST['mapping'][$colKey] : -1;
                 }
             } else {
-                if ($importType === 'person' && count($firstRow) >= 23) {
-                    $mapping = [
-                        'hoscode' => 0,
-                        'pid' => 1,
-                        'cid' => 2,
-                        'first_name' => 4,
-                        'last_name' => 5,
-                        'sex' => 6,
-                        'birth' => 7,
-                        'hid' => -1,
-                        'house_no' => -1,
-                        'vhid_code' => -1,
-                        'typearea' => 22
-                    ];
-                } elseif ($importType === 'home' && count($firstRow) >= 18) {
-                    $mapping = [
-                        'hoscode' => 0,
-                        'hid' => 1,
-                        'house_no' => 4,
-                        'vhid_code' => 9,
-                        'latitude' => 16,
-                        'longitude' => 17
-                    ];
-                } else {
+                if ($hasHeaders) {
                     foreach ($expectedCols as $colKey => $names) {
                         $mapping[$colKey] = getColumnIndex($firstRow, $names);
                     }
+                } else {
+                    if ($importType === 'person' && count($firstRow) >= 23) {
+                        $mapping = [
+                            'hoscode' => 0, 'pid' => 2, 'cid' => 1, 'first_name' => 5, 'last_name' => 6,
+                            'sex' => 8, 'birth' => 9, 'hid' => 3, 'house_no' => -1, 'vhid_code' => -1, 'typearea' => 29
+                        ];
+                    } elseif ($importType === 'home' && count($firstRow) >= 18) {
+                        $mapping = [
+                            'hoscode' => 0, 'hid' => 1, 'house_no' => 6, 'vhid_code' => 20, 'latitude' => 16, 'longitude' => 17,
+                            'village' => 11, 'tambon' => 12, 'ampur' => 13, 'changwat' => 14
+                        ];
+                    } else {
+                        foreach ($expectedCols as $colKey => $names) {
+                            $mapping[$colKey] = getColumnIndex($firstRow, $names);
+                        }
+                    }
                 }
+            }
+            
+            if ($selectedHoscode === 'ALL' && (!isset($mapping['hoscode']) || $mapping['hoscode'] === -1)) {
+                throw new \Exception("หากเลือก 'ทุกหน่วยบริการ' จำเป็นต้องจับคู่คอลัมน์ รหัสหน่วยบริการ (hoscode)");
+            }
+
+            if (!$hasHeaders) {
                 rewind($handle); // First row is data, rewind to start reading from line 1
             }
             
@@ -409,6 +440,7 @@ if (isset($_POST['action_confirm'])) {
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
             } elseif ($importType === 'home') {
+                $stmtCheckHome = $pdo->prepare("SELECT 1 FROM target_population WHERE LPAD(hoscode, 5, '0') = LPAD(?, 5, '0') AND hid = ? LIMIT 1");
                 $stmt = $pdo->prepare("
                     INSERT INTO jhcis_homes 
                     (hoscode, hid, house_no, vhid_code, latitude, longitude)
@@ -421,22 +453,29 @@ if (isset($_POST['action_confirm'])) {
                 ");
             } else {
                 // Type: person
-                $stmtCheckPerson = $pdo->prepare("SELECT * FROM target_population WHERE cid = ? OR (hoscode = ? AND pid = ?)");
+                $stmtCheckPerson = $pdo->prepare("SELECT * FROM target_population WHERE cid = ? OR (LPAD(hoscode, 5, '0') = LPAD(?, 5, '0') AND pid = ?)");
                 $stmtUpdatePersonCid = $pdo->prepare("UPDATE target_population SET cid = ?, hid = ?, pid = ?, first_name = ?, last_name = ?, sex = ?, birth = ?, house_no = ?, moo = ?, sub_district_code = ?, vhid_code = ?, hoscode = ?, updated_at = NOW() WHERE cid = ?");
                 $stmtUpdatePersonSimple = $pdo->prepare("UPDATE target_population SET hid = ?, pid = ?, first_name = ?, last_name = ?, sex = ?, birth = ?, house_no = ?, moo = ?, sub_district_code = ?, vhid_code = ?, hoscode = ?, updated_at = NOW() WHERE cid = ?");
-                $stmtInsertPerson = $pdo->prepare("INSERT INTO target_population (cid, hid, pid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmtInsertPerson = $pdo->prepare("INSERT INTO target_population (cid, hid, pid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE hid=VALUES(hid), pid=VALUES(pid), first_name=VALUES(first_name), last_name=VALUES(last_name), sex=VALUES(sex), birth=VALUES(birth), house_no=VALUES(house_no), moo=VALUES(moo), sub_district_code=VALUES(sub_district_code), vhid_code=VALUES(vhid_code), hoscode=VALUES(hoscode), updated_at=NOW()");
                 $stmtUpdateAssignCid = $pdo->prepare("UPDATE task_assignments SET target_cid = ? WHERE target_cid = ?");
                 $stmtUpdateDpacCid = $pdo->prepare("UPDATE dpac_enrollments SET cid = ? WHERE cid = ?");
             }
             
             if ($selectedHoscode === 'ALL') {
-                $allowedHoscodes = array_keys($hc_names);
+                $allowedHoscodes = array_map(function($code) {
+                    return str_pad(trim($code), 5, '0', STR_PAD_LEFT);
+                }, array_keys($hc_names));
             } else {
-                $allowedHoscodes = [$selectedHoscode];
+                $allowedHoscodes = [str_pad(trim($selectedHoscode), 5, '0', STR_PAD_LEFT)];
             }
             
             $pdo->beginTransaction();
             $linesImported = 0;
+            $insertedCount = 0;
+            $updatedCount = 0;
+            $skippedCount = 0;
+            $skippedDetails = [];
+
             while (($row = fgetcsv($handle, 1000, $delimiter)) !== false) {
                 if (empty(array_filter($row))) continue;
                 
@@ -454,9 +493,28 @@ if (isset($_POST['action_confirm'])) {
                 }
                 
                 // Get hoscode
-                $rowHoscode = $rowVals['hoscode'] ?: $selectedHoscode;
+                $rowHoscode = $rowVals['hoscode'] !== null ? trim((string)$rowVals['hoscode']) : '';
+                if ($rowHoscode === '') {
+                    $rowHoscode = $selectedHoscode;
+                }
+                if (is_numeric($rowHoscode) && strlen($rowHoscode) < 5) {
+                    $rowHoscode = str_pad($rowHoscode, 5, '0', STR_PAD_LEFT);
+                }
+                
                 if (!in_array($rowHoscode, $allowedHoscodes)) {
+                    $skippedCount++;
+                    $skippedDetails[] = "รหัสหน่วยบริการ ($rowHoscode) ไม่ตรงกับสิทธิ์ที่เลือกนำเข้า";
                     continue; // Skip mismatching records
+                }
+                
+                // Filter HDC data (dm and ht): only import risk group 1, 2, 3 (discard 0, N/A, and others)
+                if ($importType === 'dm' || $importType === 'ht') {
+                    $riskVal = isset($rowVals['risk']) ? trim((string)$rowVals['risk']) : '';
+                    if (!in_array($riskVal, ['1', '2', '3'])) {
+                        $skippedCount++;
+                        $skippedDetails[] = "ระดับความเสี่ยง ($riskVal) ไม่ใช่กลุ่มเสี่ยง 1, 2, 3";
+                        continue; // Discard normal (0), N/A, empty, or other groups
+                    }
                 }
                 
                 // Clean dates
@@ -468,173 +526,217 @@ if (isset($_POST['action_confirm'])) {
                     }
                 }
                 
-                if ($importType === 'dm') {
-                    $dateScreen = $rowVals['date_screen'] ?? null;
-                    if ($dateScreen) {
-                        $dateScreen = preg_replace('/[^0-9\-]/', '', $dateScreen);
-                        if (strlen($dateScreen) === 8 && is_numeric($dateScreen)) {
-                            $dateScreen = substr($dateScreen, 0, 4) . '-' . substr($dateScreen, 4, 2) . '-' . substr($dateScreen, 6, 2);
+                try {
+                    if ($importType === 'dm') {
+                        $dateScreen = $rowVals['date_screen'] ?? null;
+                        if ($dateScreen) {
+                            $dateScreen = preg_replace('/[^0-9\-]/', '', $dateScreen);
+                            if (strlen($dateScreen) === 8 && is_numeric($dateScreen)) {
+                                $dateScreen = substr($dateScreen, 0, 4) . '-' . substr($dateScreen, 4, 2) . '-' . substr($dateScreen, 6, 2);
+                            }
                         }
-                    }
-                    
-                    $stmt->execute([
-                        $rowHoscode,
-                        $rowVals['hosname'] ?: ($hc_names[$rowHoscode] ?? ''),
-                        $rowVals['pid'],
-                        $rowVals['cid'],
-                        $rowVals['name'],
-                        $rowVals['lname'],
-                        $rowVals['sex'],
-                        $birthDate ?: null,
-                        $rowVals['hid'],
-                        $rowVals['addr'],
-                        $rowVals['check_vhid'],
-                        $rowVals['nation'],
-                        $rowVals['discharge'],
-                        $rowVals['typearea'],
-                        $dateScreen ?: null,
-                        $rowVals['bstest'],
-                        ($rowVals['bslevel'] !== '' && is_numeric($rowVals['bslevel'])) ? (int)$rowVals['bslevel'] : null,
-                        $rowVals['hosp_screen'],
-                        $rowVals['hosp_input'],
-                        $rowVals['providername'],
-                        $rowVals['risk'],
-                        $rowVals['result']
-                    ]);
-                } elseif ($importType === 'ht') {
-                    $stmt->execute([
-                        $rowHoscode,
-                        $rowVals['hosname'] ?: ($hc_names[$rowHoscode] ?? ''),
-                        $rowVals['pid'],
-                        $rowVals['cid'],
-                        $rowVals['name'],
-                        $rowVals['lname'],
-                        $rowVals['sex'],
-                        $birthDate ?: null,
-                        $rowVals['hid'],
-                        $rowVals['addr'],
-                        $rowVals['check_vhid'],
-                        $rowVals['nation'],
-                        $rowVals['typearea'],
-                        ($rowVals['sbp'] !== '' && is_numeric($rowVals['sbp'])) ? (int)$rowVals['sbp'] : null,
-                        ($rowVals['dbp'] !== '' && is_numeric($rowVals['dbp'])) ? (int)$rowVals['dbp'] : null,
-                        $rowVals['risk']
-                    ]);
-                } elseif ($importType === 'home') {
-                    $lat = ($rowVals['latitude'] !== '' && is_numeric($rowVals['latitude'])) ? (float)$rowVals['latitude'] : null;
-                    $lng = ($rowVals['longitude'] !== '' && is_numeric($rowVals['longitude'])) ? (float)$rowVals['longitude'] : null;
-                    
-                    if ($lat == 0 || $lng == 0) {
-                        $lat = null;
-                        $lng = null;
-                    }
-                    
-                    $stmt->execute([
-                        $rowHoscode,
-                        $rowVals['hid'],
-                        $rowVals['house_no'],
-                        $rowVals['vhid_code'],
-                        $lat,
-                        $lng
-                    ]);
-                } else {
-                    // Type: person
-                    $newCid = $rowVals['cid'];
-                    $pid = $rowVals['pid'];
-                    $firstName = $rowVals['first_name'];
-                    $lastName = $rowVals['last_name'];
-                    $sex = $rowVals['sex'];
-                    
-                    // Determine address defaults
-                    $checkVhid = $rowVals['vhid_code'] ?? '';
-                    $houseNo = $rowVals['house_no'] ?? '';
-                    if (strlen($checkVhid) === 8) {
-                        $moo = (int)substr($checkVhid, 6, 2);
-                        $subDistrictCode = substr($checkVhid, 0, 6);
-                    } else {
-                        $moo = 1;
-                        $subDistrictCode = '341801';
-                        $checkVhid = '34180101';
-                    }
-
-                    // Check if person exists by (hoscode and pid) OR (cid)
-                    $stmtCheckPerson->execute([$newCid, $rowHoscode, $pid]);
-                    $existing = $stmtCheckPerson->fetch();
-
-                    if ($existing) {
-                        $oldCid = $existing['cid'];
                         
-                        // Preserve existing address and coordinates from HDC if they already exist
-                        $finalHid = !empty($existing['hid']) ? $existing['hid'] : ($rowVals['hid'] ?: null);
-                        $finalHouseNo = !empty($existing['house_no']) ? $existing['house_no'] : ($houseNo ?: null);
-                        $finalMoo = !empty($existing['moo']) ? $existing['moo'] : $moo;
-                        $finalSubDistrict = !empty($existing['sub_district_code']) ? $existing['sub_district_code'] : $subDistrictCode;
-                        $finalVhid = !empty($existing['vhid_code']) && $existing['vhid_code'] !== '34180101' ? $existing['vhid_code'] : $checkVhid;
-
-                        if ($oldCid !== $newCid) {
-                            // Primary key change: disable foreign key checks temporarily
-                            $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
-                            
-                            // Update task assignments target_cid
-                            $stmtUpdateAssignCid->execute([$newCid, $oldCid]);
-                            
-                            // Update DPAC enrollments cid
-                            $stmtUpdateDpacCid->execute([$newCid, $oldCid]);
-                            
-                            // Update person record using the old CID as unique key for update
-                            $stmtUpdatePersonCid->execute([
-                                $newCid,
-                                $finalHid,
-                                $pid,
-                                $firstName,
-                                $lastName,
-                                $sex,
-                                $birthDate ?: null,
-                                $finalHouseNo,
-                                $finalMoo,
-                                $finalSubDistrict,
-                                $finalVhid,
+                        $stmt->execute([
+                            $rowHoscode,
+                            $rowVals['hosname'] ?: ($hc_names[$rowHoscode] ?? ''),
+                            $rowVals['pid'],
+                            $rowVals['cid'],
+                            $rowVals['name'],
+                            $rowVals['lname'],
+                            $rowVals['sex'],
+                            $birthDate ?: null,
+                            $rowVals['hid'],
+                            $rowVals['addr'],
+                            $rowVals['check_vhid'],
+                            $rowVals['nation'],
+                            $rowVals['discharge'],
+                            $rowVals['typearea'],
+                            $dateScreen ?: null,
+                            $rowVals['bstest'],
+                            ($rowVals['bslevel'] !== '' && is_numeric($rowVals['bslevel'])) ? (int)$rowVals['bslevel'] : null,
+                            $rowVals['hosp_screen'],
+                            $rowVals['hosp_input'],
+                            $rowVals['providername'],
+                            $rowVals['risk'],
+                            $rowVals['result']
+                        ]);
+                        $insertedCount++;
+                    } elseif ($importType === 'ht') {
+                        $stmt->execute([
+                            $rowHoscode,
+                            $rowVals['hosname'] ?: ($hc_names[$rowHoscode] ?? ''),
+                            $rowVals['pid'],
+                            $rowVals['cid'],
+                            $rowVals['name'],
+                            $rowVals['lname'],
+                            $rowVals['sex'],
+                            $birthDate ?: null,
+                            $rowVals['hid'],
+                            $rowVals['addr'],
+                            $rowVals['check_vhid'],
+                            $rowVals['nation'],
+                            $rowVals['typearea'],
+                            ($rowVals['sbp'] !== '' && is_numeric($rowVals['sbp'])) ? (int)$rowVals['sbp'] : null,
+                            ($rowVals['dbp'] !== '' && is_numeric($rowVals['dbp'])) ? (int)$rowVals['dbp'] : null,
+                            $rowVals['risk']
+                        ]);
+                        $insertedCount++;
+                    } elseif ($importType === 'home') {
+                        $lat = ($rowVals['latitude'] !== '' && is_numeric($rowVals['latitude'])) ? (float)$rowVals['latitude'] : null;
+                        $lng = ($rowVals['longitude'] !== '' && is_numeric($rowVals['longitude'])) ? (float)$rowVals['longitude'] : null;
+                        
+                        if ($lat == 0 || $lng == 0) {
+                            $lat = null;
+                            $lng = null;
+                        }
+                        
+                        $vhidCode = $rowVals['vhid_code'];
+                        if (empty($vhidCode) || strlen($vhidCode) !== 8) {
+                            if (!empty($rowVals['changwat']) && !empty($rowVals['ampur']) && !empty($rowVals['tambon']) && !empty($rowVals['village'])) {
+                                $vhidCode = trim($rowVals['changwat']) . trim($rowVals['ampur']) . trim($rowVals['tambon']) . str_pad(trim($rowVals['village']), 2, '0', STR_PAD_LEFT);
+                            }
+                        }
+                        
+                        $stmtCheckHome->execute([$rowHoscode, $rowVals['hid']]);
+                        $existsInTargetPop = $stmtCheckHome->fetch();
+                        
+                        if ($delimiter === ',' || $existsInTargetPop) {
+                            $stmt->execute([
                                 $rowHoscode,
-                                $oldCid
+                                $rowVals['hid'],
+                                $rowVals['house_no'],
+                                $vhidCode,
+                                $lat,
+                                $lng
                             ]);
-                            
-                            $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
+                            $insertedCount++;
                         } else {
-                            // Same CID: update demographics and preserve address
-                            $stmtUpdatePersonSimple->execute([
-                                $finalHid,
-                                $pid,
-                                $firstName,
-                                $lastName,
-                                $sex,
-                                $birthDate ?: null,
-                                $finalHouseNo,
-                                $finalMoo,
-                                $finalSubDistrict,
-                                $finalVhid,
-                                $rowHoscode,
-                                $newCid
-                            ]);
+                            $skippedCount++;
+                            $skippedDetails[] = "บ้านรหัส HID {$rowVals['hid']} ไม่พบในประชากรเป้าหมายหลัก (ข้ามสำหรับไฟล์ JHCIS)";
                         }
                     } else {
-                        // Insert new record
-                        $stmtInsertPerson->execute([
-                            $newCid,
-                            $rowVals['hid'] ?: null,
-                            $pid,
-                            $firstName,
-                            $lastName,
-                            $sex,
-                            $birthDate ?: null,
-                            $houseNo ?: null,
-                            $moo,
-                            $subDistrictCode,
-                            $checkVhid,
-                            $rowHoscode
-                        ]);
+                        // Type: person
+                        $newCid = $rowVals['cid'];
+                        $pid = $rowVals['pid'];
+                        $firstName = $rowVals['first_name'];
+                        $lastName = $rowVals['last_name'];
+                        $sex = $rowVals['sex'];
+                        
+                        // Determine address defaults
+                        $checkVhid = $rowVals['vhid_code'] ?? '';
+                        $houseNo = $rowVals['house_no'] ?? '';
+                        if (strlen($checkVhid) === 8) {
+                            $moo = (int)substr($checkVhid, 6, 2);
+                            $subDistrictCode = substr($checkVhid, 0, 6);
+                        } else {
+                            $moo = 1;
+                            $subDistrictCode = '341801';
+                            $checkVhid = '34180101';
+                        }
+
+                        // Check if person exists by (hoscode and pid) OR (cid)
+                        $stmtCheckPerson->execute([$newCid, $rowHoscode, $pid]);
+                        $existing = $stmtCheckPerson->fetch();
+
+                        if ($existing) {
+                            $oldCid = $existing['cid'];
+                            
+                            // Preserve existing address and coordinates from HDC if they already exist
+                            $finalHid = !empty($existing['hid']) ? $existing['hid'] : ($rowVals['hid'] ?: null);
+                            $finalHouseNo = !empty($existing['house_no']) ? $existing['house_no'] : ($houseNo ?: null);
+                            $finalMoo = !empty($existing['moo']) ? $existing['moo'] : $moo;
+                            $finalSubDistrict = !empty($existing['sub_district_code']) ? $existing['sub_district_code'] : $subDistrictCode;
+                            $finalVhid = !empty($existing['vhid_code']) && $existing['vhid_code'] !== '34180101' ? $existing['vhid_code'] : $checkVhid;
+
+                            if ($oldCid !== $newCid) {
+                                // Check if new CID already exists in database to avoid PRIMARY KEY duplicate violation
+                                $checkCidStmt = $pdo->prepare("SELECT 1 FROM target_population WHERE cid = ?");
+                                $checkCidStmt->execute([$newCid]);
+                                if ($checkCidStmt->fetch()) {
+                                    $skippedCount++;
+                                    $skippedDetails[] = "ข้ามรายชื่อ: CID $newCid ซ้ำซ้อนกับประชากรรายอื่นที่มีอยู่ในระบบแล้ว (เดิมมี CID $oldCid)";
+                                    continue;
+                                }
+
+                                // Primary key change: disable foreign key checks temporarily
+                                $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
+                                
+                                // Update task assignments target_cid
+                                $stmtUpdateAssignCid->execute([$newCid, $oldCid]);
+                                
+                                // Update DPAC enrollments cid
+                                $stmtUpdateDpacCid->execute([$newCid, $oldCid]);
+                                
+                                // Update person record using the old CID as unique key for update
+                                $stmtUpdatePersonCid->execute([
+                                    $newCid,
+                                    $finalHid,
+                                    $pid,
+                                    $firstName,
+                                    $lastName,
+                                    $sex,
+                                    $birthDate ?: null,
+                                    $finalHouseNo,
+                                    $finalMoo,
+                                    $finalSubDistrict,
+                                    $finalVhid,
+                                    $rowHoscode,
+                                    $oldCid
+                                ]);
+                                
+                                $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
+                                $updatedCount++;
+                            } else {
+                                // Same CID: update demographics and preserve address
+                                $stmtUpdatePersonSimple->execute([
+                                    $finalHid,
+                                    $pid,
+                                    $firstName,
+                                    $lastName,
+                                    $sex,
+                                    $birthDate ?: null,
+                                    $finalHouseNo,
+                                    $finalMoo,
+                                    $finalSubDistrict,
+                                    $finalVhid,
+                                    $rowHoscode,
+                                    $newCid
+                                ]);
+                                $updatedCount++;
+                            }
+                        } else {
+                            if ($delimiter === '|') {
+                                $skippedCount++;
+                                $skippedDetails[] = "ข้ามรายชื่อ: ไม่พบข้อมูลในระบบหลักที่มาจาก HDC (CID: {$newCid}, PID: {$pid}) (ห้ามนำเข้าหากไม่มีใน HDC)";
+                            } else {
+                                $stmtInsertPerson->execute([
+                                    $newCid,
+                                    $rowVals['hid'] ?: null,
+                                    $pid,
+                                    $firstName,
+                                    $lastName,
+                                    $sex,
+                                    $birthDate ?: null,
+                                    $houseNo ?: null,
+                                    $moo,
+                                    $subDistrictCode,
+                                    $checkVhid,
+                                    $rowHoscode
+                                ]);
+                                $insertedCount++;
+                            }
+                        }
+                    }
+                    $linesImported++;
+                } catch (\PDOException $e) {
+                    $skippedCount++;
+                    $errCode = $e->getCode();
+                    if ($errCode == 23000 || strpos($e->getMessage(), '1062') !== false) {
+                        $skippedDetails[] = "แถวที่ " . ($linesImported + $skippedCount) . ": ข้อมูลเลขประจำตัวประชาชน หรือรหัสซ้ำซ้อนกับระบบ";
+                    } else {
+                        $skippedDetails[] = "แถวที่ " . ($linesImported + $skippedCount) . ": " . $e->getMessage();
                     }
                 }
-                $linesImported++;
             }
             fclose($handle);
             
@@ -642,7 +744,7 @@ if (isset($_POST['action_confirm'])) {
             if ($importType === 'person' || $importType === 'home') {
                 $pdo->exec("
                     UPDATE target_population t
-                    JOIN jhcis_homes h ON t.hoscode = h.hoscode AND t.hid = h.hid
+                    JOIN jhcis_homes h ON LPAD(t.hoscode, 5, '0') = LPAD(h.hoscode, 5, '0') AND t.hid = h.hid
                     SET 
                       t.house_no = CASE WHEN h.house_no IS NOT NULL AND h.house_no != '' THEN h.house_no ELSE t.house_no END,
                       t.vhid_code = CASE WHEN h.vhid_code IS NOT NULL AND h.vhid_code != '' THEN h.vhid_code ELSE t.vhid_code END,
@@ -657,7 +759,15 @@ if (isset($_POST['action_confirm'])) {
             $pdo->commit();
             
             unlink($tempPath);
-            $message = "นำเข้าข้อมูลสู่ระบบสำเร็จเรียบร้อย! จำนวนทั้งสิ้น $linesImported แถว";
+            
+            // Generate detailed summary message
+            $importSummary = [
+                'inserted' => $insertedCount,
+                'updated' => $updatedCount,
+                'skipped' => $skippedCount,
+                'skippedDetails' => array_values(array_unique($skippedDetails))
+            ];
+            $message = 'success';
             $step = 1;
         } catch (\Exception $e) {
             try {
@@ -773,17 +883,77 @@ if (isset($_POST['action_confirm'])) {
 
     <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
         
-        <?php if (!empty($message)): ?>
-            <div style="background-color: rgba(16, 185, 129, 0.15); border: 2px solid var(--color-green); color: var(--color-green); padding: 16px; border-radius: var(--border-radius); margin-bottom: 24px;">
-                <strong>สำเร็จ!</strong> <?= htmlspecialchars($message) ?>
-                <?php if ($importType !== 'person'): ?>
-                <div style="margin-top: 12px;">
-                    <a href="process_etl.php" class="btn-primary" style="padding: 10px 20px; text-decoration: none; display: inline-block; border-radius: 8px;">
-                        ไปหน้าประมวลผลข้อมูล (Run ETL Process) →
-                    </a>
+        <?php if (!empty($message) && $message === 'success' && isset($importSummary)): ?>
+            <!-- Success Modal -->
+            <div id="success-modal-overlay" class="modal-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(13, 44, 84, 0.4); backdrop-filter: blur(4px); z-index: 9999; color: white;">
+                <div class="modal-content" style="background: var(--bg-card); color: var(--text-primary); padding: 0; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); width: 90%; max-width: 500px; text-align: left; overflow: hidden; animation: modalPop 0.4s cubic-bezier(0.16, 1, 0.3, 1);">
+                    <div style="background: var(--color-green); padding: 30px 24px; text-align: center; color: white;">
+                        <div style="width: 72px; height: 72px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+                            <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                        </div>
+                        <h2 style="margin: 0; font-size: 24px; font-weight: bold; color: white;">นำเข้าข้อมูลสำเร็จ!</h2>
+                        <p style="margin: 8px 0 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">ระบบได้บันทึกข้อมูลเข้าสู่ฐานข้อมูลเรียบร้อยแล้ว</p>
+                    </div>
+                    <div style="padding: 24px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border-color);">
+                            <span style="color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--color-green);"></div>
+                                นำเข้าใหม่สำเร็จ
+                            </span>
+                            <strong style="color: var(--color-green); font-size: 18px;"><?= number_format($importSummary['inserted']) ?> <span style="font-size: 13px; font-weight: normal; color: var(--text-secondary);">รายการ</span></strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border-color);">
+                            <span style="color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--color-accent);"></div>
+                                อัปเดตข้อมูลเดิม
+                            </span>
+                            <strong style="color: var(--color-accent); font-size: 18px;"><?= number_format($importSummary['updated']) ?> <span style="font-size: 13px; font-weight: normal; color: var(--text-secondary);">รายการ</span></strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0; <?= $importSummary['skipped'] > 0 ? 'border-bottom: 1px solid var(--border-color);' : '' ?>">
+                            <span style="color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--color-red);"></div>
+                                ข้ามข้อมูล (ไม่ผ่านเงื่อนไข)
+                            </span>
+                            <strong style="color: var(--color-red); font-size: 18px;"><?= number_format($importSummary['skipped']) ?> <span style="font-size: 13px; font-weight: normal; color: var(--text-secondary);">รายการ</span></strong>
+                        </div>
+                        
+                        <?php if ($importSummary['skipped'] > 0): ?>
+                        <div style="margin-top: 16px; background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.1); border-radius: 12px; padding: 16px; max-height: 160px; overflow-y: auto;">
+                            <strong style="color: var(--color-red); font-size: 13px; display: block; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                เหตุผลการข้าม (แสดงสูงสุด 5 สาเหตุ):
+                            </strong>
+                            <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+                                <?php 
+                                $uniqueReasons = array_slice($importSummary['skippedDetails'], 0, 5);
+                                foreach ($uniqueReasons as $reason): ?>
+                                    <li style="margin-bottom: 6px;"><?= htmlspecialchars($reason) ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                            <?php if (count($importSummary['skippedDetails']) > 5): ?>
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 10px; text-align: center; font-style: italic;">และอื่นๆ อีก <?= number_format(count($importSummary['skippedDetails']) - 5) ?> สาเหตุ...</div>
+                            <?php endif; ?>
+                        </div>
+                        <?php endif; ?>
+
+                        <div style="margin-top: 24px; display: flex; gap: 12px;">
+                            <button type="button" onclick="document.getElementById('success-modal-overlay').style.display='none'" class="btn-giant" style="flex: 1; background: var(--bg-darker); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; cursor: pointer; padding: 14px; font-weight: bold; font-size: 15px; transition: all 0.2s;">ปิดหน้าต่าง</button>
+                            <?php if ($importType === 'person' || $importType === 'home'): ?>
+                                <a href="process_etl.php" class="btn-giant btn-giant-primary" style="flex: 1.5; text-decoration: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; padding: 14px; font-weight: bold; font-size: 15px; border: none; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); transition: all 0.2s;">ไปประมวลผล (ETL) →</a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
                 </div>
-                <?php endif; ?>
             </div>
+            <style>
+                @keyframes modalPop {
+                    from { opacity: 0; transform: scale(0.9) translateY(20px); }
+                    to { opacity: 1; transform: scale(1) translateY(0); }
+                }
+                #success-modal-overlay .btn-giant:hover {
+                    transform: translateY(-2px);
+                }
+            </style>
         <?php endif; ?>
 
         <?php if (!empty($error)): ?>
@@ -803,7 +973,7 @@ if (isset($_POST['action_confirm'])) {
                     อัปโหลดไฟล์นำเข้าข้อมูลเพื่อพักที่ตาราง staging หรือปรับปรุงฐานข้อมูลทะเบียนประชากร โดยเลือกประเภทไฟล์และรหัสหน่วยบริการที่อ้างอิง
                 </p>
 
-                <form action="" method="POST" enctype="multipart/form-data">
+                <form action="" method="POST" enctype="multipart/form-data" id="upload-form">
                     <input type="hidden" name="action_upload" value="1">
                     
                     <!-- Step 1: Select Hospital -->
@@ -915,10 +1085,10 @@ if (isset($_POST['action_confirm'])) {
                 </form>
             </div>
         <?php else: ?>
-            <!-- STEP 2: Preview & Confirm -->
+            <!-- STEP 2: Preview & Confirm with Mapping -->
             <div class="card-dark">
                 <h2 style="border-bottom: 2px solid var(--border-color); padding-bottom: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-                    ตรวจสอบความถูกต้องและจับคู่คอลัมน์ (Data Preview)
+                    ตรวจสอบความถูกต้องและจับคู่คอลัมน์ (Data Preview & Mapping)
                 </h2>
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; font-size: 14px; color: var(--text-secondary);">
                     <div style="background: var(--bg-darker); padding: 12px 16px; border-radius: 8px;">
@@ -932,109 +1102,97 @@ if (isset($_POST['action_confirm'])) {
                     </div>
                 </div>
 
-                <!-- Missing Critical Columns warning -->
-                <?php if (!empty($previewData['missing_critical'])): ?>
-                    <div style="background-color: rgba(239, 68, 68, 0.15); border: 2px solid var(--color-red); color: var(--color-red); padding: 16px; border-radius: var(--border-radius); margin-bottom: 24px;">
-                        <strong>⚠️ ข้อควรระวัง:</strong> ไม่พบคอลัมน์สำคัญที่ระบบต้องการ ได้แก่: 
-                        <strong><?= implode(', ', array_map(function($c) use ($thaiColNames) { return $thaiColNames[$c] ?? $c; }, $previewData['missing_critical'])) ?></strong> 
-                        กรุณาตรวจสอบว่ามีคอลัมน์เหล่านี้หรือไม่หรือสะกดถูกต้องหรือไม่ก่อนกดนำเข้า
-                    </div>
-                <?php endif; ?>
-
-                <h3 style="color: var(--color-accent); margin-bottom: 12px;">1. ผลวิเคราะห์ความตรงกันของหัวคอลัมน์ (Header Mapping Analysis)</h3>
-                <div class="table-responsive" style="margin-bottom: 30px;">
-                    <table class="admin-table mapping-table">
-                        <thead>
-                            <tr>
-                                <th>ช่องข้อมูลที่ระบบต้องการ (Expected)</th>
-                                <th>คอลัมน์ที่ตรวจพบในไฟล์ (Detected)</th>
-                                <th style="text-align: center;">สถานะ (Status)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($previewData['expected_cols'] as $colKey => $possibleNames): ?>
-                                <?php 
-                                $idx = $previewData['mapping'][$colKey];
-                                $foundName = ($idx !== -1 && isset($previewData['raw_headers'][$idx])) ? $previewData['raw_headers'][$idx] : null;
-                                $isCrit = in_array($colKey, $criticalColumns[$previewData['import_type']]);
-                                ?>
-                                <tr>
-                                    <td style="font-weight: bold;">
-                                        <?= $thaiColNames[$colKey] ?? $colKey ?> 
-                                        <?= $isCrit ? '<span style="color: var(--color-red);">*จำเป็น</span>' : '' ?>
-                                    </td>
-                                    <td>
-                                        <?= $foundName ? '<span style="color: var(--text-primary); font-family: monospace;">' . htmlspecialchars($foundName) . '</span> (คอลัมน์ที่ ' . ($idx+1) . ')' : '<span style="color: var(--text-secondary); font-style: italic;">ไม่พบในไฟล์</span>' ?>
-                                    </td>
-                                    <td style="text-align: center;">
-                                        <?php if ($idx !== -1): ?>
-                                            <span class="badge badge-success">✅ ตรงกัน</span>
-                                        <?php elseif ($isCrit): ?>
-                                            <span class="badge badge-danger">❌ ไม่พบ (บังคับ)</span>
-                                        <?php else: ?>
-                                            <span class="badge badge-warning">⚠️ ไม่มี (เว้นว่างได้)</span>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                <!-- Dynamic Warning Div for Client-side Validation -->
+                <div id="critical-warning" style="display: none; background-color: rgba(239, 68, 68, 0.15); border: 2px solid var(--color-red); color: var(--color-red); padding: 16px; border-radius: var(--border-radius); margin-bottom: 24px;">
+                    <strong>⚠️ ข้อควรระวัง:</strong> ยังจับคู่คอลัมน์สำคัญไม่ครบถ้วน ได้แก่: 
+                    <strong id="missing-cols-list"></strong> 
+                    กรุณาจับคู่คอลัมน์เหล่านั้นให้ถูกต้องก่อนกดยืนยันการนำเข้าข้อมูล
                 </div>
 
-                <h3 style="color: var(--color-accent); margin-bottom: 12px;">2. ตัวอย่างข้อมูลคัดกรอง 5 แถวแรก (First 5 Rows Sample Preview)</h3>
-                <div class="table-responsive" style="margin-bottom: 30px;">
-                    <table class="admin-table" style="font-size: 12px;">
-                        <thead>
-                            <tr>
-                                <?php foreach ($previewData['expected_cols'] as $colKey => $names): ?>
-                                    <th><?= str_replace(' (', '<br>(', $thaiColNames[$colKey] ?? $colKey) ?></th>
-                                <?php endforeach; ?>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (empty($previewData['sample_rows'])): ?>
+                <!-- Main Confirm Form enclosing Mappings -->
+                <form action="" method="POST" id="confirm-form">
+                    <input type="hidden" name="action_confirm" value="1">
+                    <input type="hidden" name="import_type" value="<?= htmlspecialchars($previewData['import_type']) ?>">
+                    <input type="hidden" name="hoscode" value="<?= htmlspecialchars($previewData['hoscode']) ?>">
+                    <input type="hidden" name="temp_file" value="<?= htmlspecialchars($previewData['temp_file']) ?>">
+                    <input type="hidden" name="delimiter" value="<?= htmlspecialchars($previewData['delimiter']) ?>">
+
+                    <h3 style="color: var(--color-accent); margin-bottom: 12px;">1. เลือกจับคู่หัวคอลัมน์จากไฟล์ (Map File Columns to Database)</h3>
+                    <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
+                        ระบบระบุความสอดคล้องเบื้องต้นให้โดยอัตโนมัติแล้ว คุณสามารถปรับเปลี่ยนหรือจับคู่คอลัมน์ต่างๆ ให้ถูกต้องตรงตามความต้องการได้
+                    </p>
+                    <div class="table-responsive" style="margin-bottom: 30px;">
+                        <table class="admin-table mapping-table">
+                            <thead>
                                 <tr>
-                                    <td colspan="<?= count($previewData['expected_cols']) ?>" style="text-align: center;">ไม่มีข้อมูลแสดงผลตัวอย่าง</td>
+                                    <th>ช่องข้อมูลที่ระบบต้องการ (Expected Column)</th>
+                                    <th>เลือกคอลัมน์ในไฟล์ที่ตรงกัน (Select File Column)</th>
+                                    <th style="text-align: center; width: 180px;">สถานะ (Status)</th>
                                 </tr>
-                            <?php else: ?>
-                                <?php foreach ($previewData['sample_rows'] as $row): ?>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($columnMappings[$previewData['import_type']] as $colKey => $possibleNames): ?>
+                                    <?php 
+                                    $idx = $previewData['mapping'][$colKey];
+                                    $isCrit = in_array($colKey, $criticalColumns[$previewData['import_type']]);
+                                    ?>
                                     <tr>
-                                        <?php foreach ($previewData['expected_cols'] as $colKey => $names): ?>
-                                            <?php 
-                                            $val = $row[$colKey];
-                                            $isMaskedVal = ($colKey === 'cid' || $colKey === 'name' || $colKey === 'lname' || $colKey === 'first_name' || $colKey === 'last_name');
-                                            ?>
-                                            <td style="<?= $isMaskedVal && strpos($val, '*') !== false ? 'color: var(--color-yellow); font-family: monospace;' : '' ?>">
-                                                <?= $val !== null ? htmlspecialchars($val) : '<span style="color: #666;">-</span>' ?>
-                                            </td>
-                                        <?php endforeach; ?>
+                                        <td style="font-weight: bold; font-size: 13.5px;">
+                                            <?= $thaiColNames[$colKey] ?? $colKey ?> 
+                                            <?= $isCrit ? '<span style="color: var(--color-red); font-size: 12px; margin-left: 4px;">*จำเป็น</span>' : '' ?>
+                                        </td>
+                                        <td>
+                                            <select id="select-map-<?= $colKey ?>" name="mapping[<?= $colKey ?>]" onchange="onMappingChanged('<?= $colKey ?>')" data-critical="<?= $isCrit ? '1' : '0' ?>" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-darker); color: var(--text-primary); font-size: 13px; font-weight: 500; cursor: pointer; outline: none;">
+                                                <option value="-1">-- ไม่ระบุ / ไม่นำเข้า --</option>
+                                                <?php foreach ($previewData['raw_headers'] as $hIdx => $hName): ?>
+                                                    <option value="<?= $hIdx ?>" <?= $hIdx === $idx ? 'selected' : '' ?>>
+                                                        คอลัมน์ที่ <?= $hIdx + 1 ?>: <?= htmlspecialchars($hName) ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <span id="badge-<?= $colKey ?>" class="badge"></span>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
+                            </tbody>
+                        </table>
+                    </div>
 
-                <!-- Forms containing buttons -->
-                <div style="display: flex; gap: 16px; margin-top: 30px;">
-                    <form action="" method="POST" style="flex: 1;">
-                        <input type="hidden" name="temp_file" value="<?= htmlspecialchars($previewData['temp_file']) ?>">
-                        <button type="submit" name="action_cancel" class="btn-giant" style="background: transparent; border: 2px solid var(--color-red); color: var(--color-red); border-radius: var(--border-radius); width: 100%;">
+                    <h3 style="color: var(--color-accent); margin-bottom: 12px;">2. ตัวอย่างข้อมูลคัดกรอง 5 แถวแรกตามการจับคู่ (First 5 Rows Preview)</h3>
+                    <div class="table-responsive" style="margin-bottom: 30px;">
+                        <table class="admin-table" style="font-size: 12px;">
+                            <thead>
+                                <tr>
+                                    <?php foreach ($columnMappings[$previewData['import_type']] as $colKey => $names): ?>
+                                        <th id="header-prev-<?= $colKey ?>"><?= str_replace(' (', '<br>(', $thaiColNames[$colKey] ?? $colKey) ?></th>
+                                    <?php endforeach; ?>
+                                </tr>
+                            </thead>
+                            <tbody id="preview-table-body">
+                                <!-- Populated dynamically by javascript -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Forms containing buttons -->
+                    <div style="display: flex; gap: 16px; margin-top: 30px;">
+                        <button type="button" onclick="cancelUpload()" class="btn-giant" style="flex: 1; background: transparent; border: 2px solid var(--color-red); color: var(--color-red); border-radius: var(--border-radius); cursor: pointer;">
                             ✕ ยกเลิกและอัปโหลดใหม่
                         </button>
-                    </form>
-                    
-                    <form action="" method="POST" style="flex: 1;">
-                        <input type="hidden" name="action_confirm" value="1">
-                        <input type="hidden" name="import_type" value="<?= htmlspecialchars($previewData['import_type']) ?>">
-                        <input type="hidden" name="hoscode" value="<?= htmlspecialchars($previewData['hoscode']) ?>">
-                        <input type="hidden" name="temp_file" value="<?= htmlspecialchars($previewData['temp_file']) ?>">
-                        <input type="hidden" name="delimiter" value="<?= htmlspecialchars($previewData['delimiter']) ?>">
-                        <button type="submit" class="btn-giant btn-giant-primary" style="border-radius: var(--border-radius); width: 100%;">
+                        
+                        <button type="submit" id="confirm-import-btn" class="btn-giant btn-giant-primary" style="flex: 1; border-radius: var(--border-radius); cursor: pointer;">
                             💾 ยืนยันการนำเข้าข้อมูล (Confirm Import)
                         </button>
-                    </form>
-                </div>
+                    </div>
+                </form>
+
+                <!-- Hidden Cancel Form -->
+                <form action="" method="POST" id="cancel-form" style="display: none;">
+                    <input type="hidden" name="action_cancel" value="1">
+                    <input type="hidden" name="temp_file" value="<?= htmlspecialchars($previewData['temp_file']) ?>">
+                </form>
             </div>
         <?php endif; ?>
     </div>
@@ -1065,6 +1223,226 @@ if (isset($_POST['action_confirm'])) {
                 display.style.color = 'var(--text-secondary)';
             }
         }
+
+        function cancelUpload() {
+            document.getElementById('cancel-form').submit();
+        }
+
+        <?php if ($step === 2): ?>
+        // Client-side mapping preview logic
+        const expectedCols = <?= json_encode(array_keys($columnMappings[$previewData['import_type']])) ?>;
+        const rawSampleRows = <?= json_encode($previewData['raw_sample_rows'] ?? []) ?>;
+        const thaiColNames = <?= json_encode($thaiColNames) ?>;
+
+        function updateStatusBadge(colKey) {
+            const select = document.getElementById('select-map-' + colKey);
+            const badge = document.getElementById('badge-' + colKey);
+            const isCrit = select.getAttribute('data-critical') === '1';
+            const idx = parseInt(select.value);
+            
+            if (idx !== -1) {
+                badge.className = 'badge badge-success';
+                badge.textContent = '✅ จับคู่แล้ว';
+            } else if (isCrit) {
+                badge.className = 'badge badge-danger';
+                badge.textContent = '❌ ไม่พบ (บังคับ)';
+            } else {
+                badge.className = 'badge badge-warning';
+                badge.textContent = '⚠️ ไม่มี (เว้นว่าง)';
+            }
+        }
+
+        function checkMissingCritical() {
+            const importType = '<?= $previewData['import_type'] ?>';
+            let missing = [];
+            
+            if (importType === 'person') {
+                if (parseInt(document.getElementById('select-map-pid').value) === -1) missing.push('pid');
+                if (parseInt(document.getElementById('select-map-cid').value) === -1) missing.push('cid');
+                if (parseInt(document.getElementById('select-map-first_name').value) === -1) missing.push('first_name');
+                if (parseInt(document.getElementById('select-map-last_name').value) === -1) missing.push('last_name');
+            } else if (importType === 'home') {
+                if (parseInt(document.getElementById('select-map-hid').value) === -1) missing.push('hid');
+                
+                const hasVhid = parseInt(document.getElementById('select-map-vhid_code').value) !== -1;
+                const hasParts = parseInt(document.getElementById('select-map-village').value) !== -1 &&
+                                 parseInt(document.getElementById('select-map-tambon').value) !== -1 &&
+                                 parseInt(document.getElementById('select-map-ampur').value) !== -1 &&
+                                 parseInt(document.getElementById('select-map-changwat').value) !== -1;
+                if (!hasVhid && !hasParts) {
+                    missing.push('vhid_code');
+                }
+            } else if (importType === 'dm') {
+                if (parseInt(document.getElementById('select-map-pid').value) === -1) missing.push('pid');
+                if (parseInt(document.getElementById('select-map-risk').value) === -1) missing.push('risk');
+            } else if (importType === 'ht') {
+                if (parseInt(document.getElementById('select-map-pid').value) === -1) missing.push('pid');
+                if (parseInt(document.getElementById('select-map-risk').value) === -1) missing.push('risk');
+            }
+            
+            // Check hoscode mapping if selected hospital is 'ALL'
+            const selectedHoscodeVal = document.querySelector('input[name="hoscode"]') ? document.querySelector('input[name="hoscode"]').value : '';
+            const selectHoscodeMap = document.getElementById('select-map-hoscode');
+            if (selectedHoscodeVal === 'ALL' && selectHoscodeMap && parseInt(selectHoscodeMap.value) === -1) {
+                missing.push('hoscode');
+            }
+            
+            const warningDiv = document.getElementById('critical-warning');
+            const confirmBtn = document.getElementById('confirm-import-btn');
+            
+            if (missing.length > 0) {
+                warningDiv.style.display = 'block';
+                confirmBtn.disabled = true;
+                confirmBtn.style.opacity = '0.5';
+                confirmBtn.style.cursor = 'not-allowed';
+                
+                const names = missing.map(c => thaiColNames[c] || c);
+                document.getElementById('missing-cols-list').textContent = names.join(', ');
+            } else {
+                warningDiv.style.display = 'none';
+                confirmBtn.disabled = false;
+                confirmBtn.style.opacity = '1';
+                confirmBtn.style.cursor = 'pointer';
+            }
+        }
+
+        function renderPreviewTable() {
+            const tbody = document.getElementById('preview-table-body');
+            tbody.innerHTML = '';
+            
+            if (rawSampleRows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="' + expectedCols.length + '" style="text-align: center;">ไม่มีข้อมูลแสดงผลตัวอย่าง</td></tr>';
+                return;
+            }
+            
+            rawSampleRows.forEach(row => {
+                const tr = document.createElement('tr');
+                expectedCols.forEach(colKey => {
+                    const select = document.getElementById('select-map-' + colKey);
+                    const idx = select ? parseInt(select.value) : -1;
+                    const val = (idx !== -1 && row[idx] !== undefined) ? row[idx] : null;
+                    
+                    const td = document.createElement('td');
+                    if (val !== null) {
+                        td.textContent = val;
+                        const isMaskedVal = (colKey === 'cid' || colKey === 'name' || colKey === 'lname' || colKey === 'first_name' || colKey === 'last_name');
+                        if (isMaskedVal && val.includes('*')) {
+                            td.style.color = 'var(--color-yellow)';
+                            td.style.fontFamily = 'monospace';
+                        }
+                    } else {
+                        td.innerHTML = '<span style="color: #666;">-</span>';
+                    }
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
+        function onMappingChanged(colKey) {
+            updateStatusBadge(colKey);
+            checkMissingCritical();
+            
+            // If vhid_code or parts changed for type home, update their statuses/warnings dynamically
+            const importType = '<?= $previewData['import_type'] ?>';
+            if (importType === 'home') {
+                updateStatusBadge('vhid_code');
+                updateStatusBadge('village');
+                updateStatusBadge('tambon');
+                updateStatusBadge('ampur');
+                updateStatusBadge('changwat');
+            }
+            
+            renderPreviewTable();
+        }
+
+        // Initialize badges, critical warning, and preview table
+        expectedCols.forEach(updateStatusBadge);
+        checkMissingCritical();
+        renderPreviewTable();
+        <?php endif; ?>
+    </script>
+
+    <!-- Progress Overlay Modal -->
+    <div id="progress-overlay" class="modal-overlay" style="display: none; flex-direction: column; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(13, 44, 84, 0.4); backdrop-filter: blur(4px); z-index: 9999; color: white;">
+        <div class="modal-content" style="background: rgba(13, 44, 84, 0.9); backdrop-filter: blur(10px); color: white; padding: 40px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); width: 90%; max-width: 450px; text-align: center;">
+            <div class="spinner" style="margin: 0 auto 24px auto; width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--color-accent); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            <h3 id="progress-status" style="margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: white;">กำลังประมวลผล...</h3>
+            <p id="progress-substatus" style="margin: 0 0 24px 0; font-size: 13px; color: rgba(255,255,255,0.6);">กรุณารอสักครู่ ห้ามปิดหรือรีเฟรชหน้าต่างนี้</p>
+            <div style="background: rgba(255,255,255,0.1); border-radius: 10px; height: 10px; overflow: hidden; position: relative;">
+                <div id="progress-bar" style="background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-accent) 100%); width: 0%; height: 100%; transition: width 0.2s ease-out; border-radius: 10px;"></div>
+            </div>
+            <div id="progress-percent" style="margin-top: 10px; font-size: 14px; font-weight: bold; color: var(--color-accent);">0%</div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+
+    <script>
+        function runProgressAnimation(duration, statusMessages) {
+            const overlay = document.getElementById('progress-overlay');
+            const progressBar = document.getElementById('progress-bar');
+            const progressPercent = document.getElementById('progress-percent');
+            const progressStatus = document.getElementById('progress-status');
+            
+            overlay.style.display = 'flex';
+            
+            let start = null;
+            function step(timestamp) {
+                if (!start) start = timestamp;
+                const progress = Math.min((timestamp - start) / duration, 1);
+                
+                // Slow down progress as it approaches 95%
+                const displayProgress = Math.floor(progress * 92); 
+                
+                progressBar.style.width = displayProgress + '%';
+                progressPercent.textContent = displayProgress + '%';
+                
+                // Update messages based on progress
+                if (statusMessages && statusMessages.length > 0) {
+                    const msgIndex = Math.min(Math.floor(progress * statusMessages.length), statusMessages.length - 1);
+                    progressStatus.textContent = statusMessages[msgIndex];
+                }
+                
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            }
+            window.requestAnimationFrame(step);
+        }
+
+        // Bind progress overlay to forms
+        document.addEventListener('DOMContentLoaded', () => {
+            const uploadForm = document.getElementById('upload-form');
+            if (uploadForm) {
+                uploadForm.addEventListener('submit', () => {
+                    runProgressAnimation(4000, [
+                        "กำลังอัปโหลดไฟล์ขึ้นสู่เซิร์ฟเวอร์...",
+                        "กำลังเชื่อมต่อและเปิดไฟล์...",
+                        "กำลังตรวจสอบโครงสร้างคอลัมน์...",
+                        "กำลังจัดเรียงข้อมูลพรีวิวสำหรับคุณ..."
+                    ]);
+                });
+            }
+
+            const confirmForm = document.getElementById('confirm-form');
+            if (confirmForm) {
+                confirmForm.addEventListener('submit', () => {
+                    runProgressAnimation(6000, [
+                        "กำลังดึงไฟล์ข้อมูลจากระบบสำรอง...",
+                        "กำลังวิเคราะห์ข้อมูลรายแถว...",
+                        "กำลังเริ่มเชื่อมต่อบันทึกข้อมูล...",
+                        "กำลังล้างตารางพักเก่าลงฐานข้อมูลใหม่...",
+                        "กำลังอัปเดตข้อมูลทะเบียนบ้านและบุคคล...",
+                        "กำลังจัดเก็บประวัติข้อมูลลงฐานข้อมูล..."
+                    ]);
+                });
+            }
+        });
     </script>
 </body>
 </html>

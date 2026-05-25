@@ -9,6 +9,7 @@ require_once __DIR__ . '/../config/db.php';
 
 $message = '';
 $diseaseType = $_GET['type'] ?? 'DM';
+// Default: show only กลุ่มเสี่ยง (1) and เสี่ยงสูง (2) — exclude ปกติ(0) and ป่วย/สงสัย(3)
 $riskFilter = $_GET['risk'] ?? 'all';
 
 // Process Enrollment
@@ -78,114 +79,42 @@ $tambons = [
     '341806' => 'ตำบลคำหว้า'
 ];
 
-function get_village_only_name($vhid_code, $moo) {
-    $tambon = substr($vhid_code, 0, 6);
-    $moo = intval($moo);
-    
-    $villages = [
-        '341801' => [
-            1 => 'บ้านม่วงโคน', 2 => 'บ้านดอนรังกา', 3 => 'บ้านนาห้วยแคน', 4 => 'บ้านดอนพันชาด', 5 => 'บ้านนามน',
-            6 => 'บ้านดอนตะลี', 7 => 'บ้านปากห้วย', 8 => 'บ้านโนนค้อ', 9 => 'บ้านแก่งกบ', 10 => 'บ้านนามน',
-            11 => 'บ้านตาลสุม', 12 => 'บ้านคำไม้ตาย', 13 => 'บ้านปากเซ', 14 => 'บ้านโนนสวรรค์', 15 => 'บ้านทุ่งเจริญ'
-        ],
-        '341802' => [
-            1 => 'บ้านสำโรงใหญ่', 2 => 'บ้านสำโรงกลาง', 3 => 'บ้านนาโพธิ์', 4 => 'บ้านสำโรงใต้', 5 => 'บ้านทรายมูลเหนือ',
-            6 => 'บ้านทรายมูลใต้', 7 => 'บ้านหนองบัว', 8 => 'บ้านทุ่งเจริญ'
-        ],
-        '341803' => [
-            1 => 'บ้านจิกเทิง', 2 => 'บ้านจิกลุ่ม', 3 => 'บ้านเชียงแก้ว', 4 => 'บ้านเชียงแก้ว', 5 => 'บ้านดอนโด่',
-            6 => 'บ้านดอนยูง', 7 => 'บ้านค้อ', 8 => 'บ้านดอนแป้นลม', 9 => 'บ้านสร้างคำ'
-        ],
-        '341804' => [
-            1 => 'บ้านหนองกุงใหญ่', 2 => 'บ้านหนองกุงน้อย', 3 => 'บ้านคำแคน', 4 => 'บ้านสร้างแสง', 5 => 'บ้านคำเตยใต้',
-            6 => 'บ้านสร้างหว้า', 7 => 'บ้านคำเตยเหนือ', 8 => 'บ้านสร้างหว้าพัฒนา'
-        ],
-        '341805' => [
-            1 => 'บ้านนาคาย', 2 => 'บ้านโนนจิก', 3 => 'บ้านหนองเป็ด', 4 => 'บ้านโนนยาง', 5 => 'บ้านดอนขวาง',
-            6 => 'บ้านดอนหวาย', 7 => 'บ้านโคกคล้าย', 8 => 'บ้านคำหนามแท่ง', 9 => 'บ้านคำผักหนอก', 10 => 'บ้านคำฮี',
-            11 => 'บ้านห่องแดง', 12 => 'บ้านโนนสำราญ', 13 => 'บ้านโนนเจริญ'
-        ],
-        '341806' => [
-            1 => 'บ้านคำหว้า', 2 => 'บ้านคำหว้า', 3 => 'บ้านห้วยดู่', 4 => 'บ้านนาทมเหนือ', 5 => 'บ้านไฮหย่อง',
-            6 => 'บ้านนาทมใต้'
-        ]
-    ];
 
-    return $villages[$tambon][$moo] ?? "หมู่ที่ {$moo}";
+
+function get_risk_label($risk) {
+    $risk = trim((string)$risk);
+    if ($risk === '0') {
+        return 'ปกติ';
+    } elseif ($risk === '1') {
+        return 'กลุ่มเสี่ยง';
+    } elseif ($risk === '2') {
+        return 'กลุ่มเสี่ยงสูง';
+    } elseif ($risk === '3') {
+        return 'ป่วย/สงสัยป่วย';
+    }
+    return $risk;
 }
 
-// Mapping of hospital codes (hoscode) to tambon and villages (moo & name)
-$hoscode_villages = [
-    '10957' => [
-        'tambon' => '341801',
-        'villages' => [
-            1 => 'บ้านม่วงโคน', 2 => 'บ้านดอนรังกา', 3 => 'บ้านนาห้วยแคน (เขตเทศบาล)',
-            5 => 'บ้านนามน (เขตเทศบาล)', 10 => 'บ้านนามน (เขตเทศบาล)',
-            11 => 'บ้านตาลสุม (เขตเทศบาล)', 12 => 'บ้านคำไม้ตาย'
-        ]
-    ],
+function calculate_age($birth_date) {
+    if (empty($birth_date)) {
+        return '-';
+    }
+    try {
+        $birthDate = new DateTime($birth_date);
+        $today = new DateTime();
+        $age = $today->diff($birthDate)->y;
+        return $age . ' ปี';
+    } catch (\Exception $e) {
+        return '-';
+    }
+}
 
-    '03751' => [
-        'tambon' => '341801',
-        'villages' => [
-            4 => 'บ้านดอนพันชาด', 6 => 'บ้านดอนตะลี', 7 => 'บ้านปากห้วย', 8 => 'บ้านโนนค้อ',
-            9 => 'บ้านแก่งกบ', 13 => 'บ้านปากเซ', 14 => 'บ้านโนนสวรรค์', 15 => 'บ้านทุ่งเจริญ'
-        ]
-    ],
-    '03752' => [
-        'tambon' => '341802',
-        'villages' => [
-            1 => 'บ้านสำโรงใหญ่', 2 => 'บ้านสำโรงกลาง', 3 => 'บ้านนาโพธิ์', 4 => 'บ้านสำโรงใต้',
-            5 => 'บ้านทรายมูลเหนือ', 6 => 'บ้านทรายมูลใต้', 7 => 'บ้านหนองบัว', 8 => 'บ้านทุ่งเจริญ'
-        ]
-    ],
-    '03753' => [
-        'tambon' => '341803',
-        'villages' => [
-            1 => 'บ้านจิกเทิง', 2 => 'บ้านจิกลุ่ม', 3 => 'บ้านเชียงแก้ว', 4 => 'บ้านเชียงแก้ว',
-            5 => 'บ้านดอนโด่ (บ้านดอนโต)', 6 => 'บ้านดอนยูง', 7 => 'บ้านค้อ', 8 => 'บ้านดอนแป้นลม', 9 => 'บ้านสร้างคำ'
-        ]
-    ],
-    '03754' => [
-        'tambon' => '341804',
-        'villages' => [
-            1 => 'บ้านหนองกุงใหญ่', 2 => 'บ้านหนองกุงน้อย', 3 => 'บ้านคำแคน', 4 => 'บ้านสร้างแสง',
-            5 => 'บ้านคำเตยใต้', 6 => 'บ้านสร้างหว้า', 7 => 'บ้านคำเตยเหนือ', 8 => 'บ้านสร้างหว้าพัฒนา'
-        ]
-    ],
-    '03755' => [
-        'tambon' => '341805',
-        'villages' => [
-            1 => 'บ้านนาคาย', 2 => 'บ้านโนนจิก', 3 => 'บ้านหนองเป็ด', 4 => 'บ้านโนนยาง', 5 => 'บ้านดอนขวาง',
-            6 => 'บ้านดอนหวาย'
-        ]
-    ],
-    '03756' => [
-        'tambon' => '341805',
-        'villages' => [
-            7 => 'บ้านโคกคล้าย', 8 => 'บ้านคำหนามแท่ง', 9 => 'บ้านคำผักหนอก', 10 => 'บ้านคำฮี',
-            11 => 'บ้านห่องแดง', 12 => 'บ้านโนนสำราญ', 13 => 'บ้านโนนเจริญ'
-        ]
-    ],
-    '03757' => [
-        'tambon' => '341806',
-        'villages' => [
-            1 => 'บ้านคำหว้า', 2 => 'บ้านคำหว้า', 3 => 'บ้านห้วยดู่', 4 => 'บ้านนาทมเหนือ',
-            5 => 'บ้านไฮหย่อง', 6 => 'บ้านนาทมใต้'
-        ]
-    ]
-];
+
 
 // Fetch Data
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
-$table = $diseaseType === 'DM' ? 'staging_hdc_dm' : 'staging_hdc_ht';
 $whereClauses = [];
 $params = [];
-
-if ($riskFilter !== 'all') {
-    $whereClauses[] = "risk = ?";
-    $params[] = $riskFilter;
-}
 
 $filter_hoscode = $_GET['hoscode'] ?? '';
 $filter_tambon = $_GET['tambon'] ?? '';
@@ -206,49 +135,138 @@ if ($filter_hoscode) {
     $hoscodes = ['10957', '03751', '03752', '03753', '03754', '03755', '03756', '03757'];
 }
 $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
-$whereClauses[] = "hoscode IN ($inPlaceholders)";
-$params = array_merge($params, $hoscodes);
 
-if ($filter_vhid) {
-    $selected_moo = intval(substr($filter_vhid, 6, 2));
-    $moo_str = sprintf('%02d', $selected_moo);
-    $whereClauses[] = "RIGHT(check_vhid, 2) = ?";
-    $params[] = $moo_str;
-    
-    // If hoscode is not selected, restrict check_vhid by the tambon prefix of the selected village
-    if (empty($filter_hoscode)) {
-        $village_tambon = substr($filter_vhid, 0, 6);
-        $whereClauses[] = "check_vhid LIKE ?";
-        $params[] = $village_tambon . '%';
+// Pagination Variables
+$page = max(1, intval($_GET['page'] ?? 1));
+$limit = 50;
+$offset = ($page - 1) * $limit;
+$totalRecords = 0;
+$totalPages = 0;
+
+if ($diseaseType === 'BOTH') {
+    if ($riskFilter !== 'all') {
+        $whereClauses[] = "(dm.risk = ? OR ht.risk = ?)";
+        $params[] = $riskFilter;
+        $params[] = $riskFilter;
+    } else {
+        // Default: exclude ปกติ (0) and ป่วย/สงสัยป่วย (3)
+        $whereClauses[] = "(dm.risk IN ('1','2') OR ht.risk IN ('1','2'))";
     }
-} elseif ($filter_tambon) {
-    $whereClauses[] = "check_vhid LIKE ?";
-    $params[] = $filter_tambon . '%';
-}
+    $whereClauses[] = "dm.hoscode IN ($inPlaceholders)";
+    $params = array_merge($params, $hoscodes);
 
-$whereClause = "";
-if (!empty($whereClauses)) {
-    $whereClause = "WHERE " . implode(" AND ", $whereClauses);
-}
+    if ($filter_vhid) {
+        $selected_moo = intval(substr($filter_vhid, 6, 2));
+        $moo_str = sprintf('%02d', $selected_moo);
+        $whereClauses[] = "RIGHT(dm.check_vhid, 2) = ?";
+        $params[] = $moo_str;
 
-$stmt = $pdo->prepare("SELECT * FROM $table $whereClause ORDER BY name ASC LIMIT 1000");
-$stmt->execute($params);
-$records = $stmt->fetchAll();
+        // If hoscode is not selected, restrict check_vhid by the tambon prefix of the selected village
+        if (empty($filter_hoscode)) {
+            $village_tambon = substr($filter_vhid, 0, 6);
+            $whereClauses[] = "dm.check_vhid LIKE ?";
+            $params[] = $village_tambon . '%';
+        }
+    } elseif ($filter_tambon) {
+        $whereClauses[] = "dm.check_vhid LIKE ?";
+        $params[] = $filter_tambon . '%';
+    }
 
-// Get unique risks for tabs
-$riskWhere = "WHERE risk IS NOT NULL AND risk != ''";
-$riskParams = [];
-if ($admin_hoscode) {
-    $hoscodes = [$admin_hoscode];
+    $whereClause = "";
+    if (!empty($whereClauses)) {
+        $whereClause = "WHERE " . implode(" AND ", $whereClauses);
+    }
+
+    // Count total records
+    $countSql = "
+        SELECT COUNT(dm.cid)
+        FROM staging_hdc_dm dm
+        INNER JOIN staging_hdc_ht ht ON LPAD(dm.hoscode, 5, '0') = LPAD(ht.hoscode, 5, '0') AND dm.pid = ht.pid
+        $whereClause
+    ";
+    $countStmt = $pdo->prepare($countSql);
+    $countStmt->execute($params);
+    $totalRecords = $countStmt->fetchColumn();
+    $totalPages = ceil($totalRecords / $limit);
+
+    $sql = "
+        SELECT 
+            dm.cid, dm.name, dm.lname, dm.sex, dm.birth, dm.addr, dm.check_vhid, dm.hoscode,
+            dm.bstest, dm.bslevel, dm.risk as dm_risk,
+            ht.sbp, ht.dbp, ht.risk as ht_risk,
+            t.cid AS real_cid, t.first_name AS real_first_name, t.last_name AS real_last_name, t.birth AS real_birth
+        FROM staging_hdc_dm dm
+        INNER JOIN staging_hdc_ht ht ON LPAD(dm.hoscode, 5, '0') = LPAD(ht.hoscode, 5, '0') AND dm.pid = ht.pid
+        LEFT JOIN target_population t ON LPAD(dm.hoscode, 5, '0') = LPAD(t.hoscode, 5, '0') AND dm.pid = t.pid
+        $whereClause
+        ORDER BY COALESCE(t.first_name, dm.name) ASC
+        LIMIT $limit OFFSET $offset
+    ";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $records = $stmt->fetchAll();
 } else {
-    $hoscodes = ['10957', '03751', '03752', '03753', '03754', '03755', '03756', '03757'];
+    $table = $diseaseType === 'DM' ? 'staging_hdc_dm' : 'staging_hdc_ht';
+    if ($riskFilter !== 'all') {
+        $whereClauses[] = "s.risk = ?";
+        $params[] = $riskFilter;
+    } else {
+        // Default: exclude ปกติ (0) and ป่วย/สงสัยป่วย (3)
+        $whereClauses[] = "s.risk IN ('1','2')";
+    }
+    $whereClauses[] = "s.hoscode IN ($inPlaceholders)";
+    $params = array_merge($params, $hoscodes);
+
+    if ($filter_vhid) {
+        $selected_moo = intval(substr($filter_vhid, 6, 2));
+        $moo_str = sprintf('%02d', $selected_moo);
+        $whereClauses[] = "RIGHT(s.check_vhid, 2) = ?";
+        $params[] = $moo_str;
+
+        // If hoscode is not selected, restrict check_vhid by the tambon prefix of the selected village
+        if (empty($filter_hoscode)) {
+            $village_tambon = substr($filter_vhid, 0, 6);
+            $whereClauses[] = "s.check_vhid LIKE ?";
+            $params[] = $village_tambon . '%';
+        }
+    } elseif ($filter_tambon) {
+        $whereClauses[] = "s.check_vhid LIKE ?";
+        $params[] = $filter_tambon . '%';
+    }
+
+    $whereClause = "";
+    if (!empty($whereClauses)) {
+        $whereClause = "WHERE " . implode(" AND ", $whereClauses);
+    }
+
+    // Count total records
+    $countSql = "
+        SELECT COUNT(s.cid)
+        FROM $table s
+        $whereClause
+    ";
+    $countStmt = $pdo->prepare($countSql);
+    $countStmt->execute($params);
+    $totalRecords = $countStmt->fetchColumn();
+    $totalPages = ceil($totalRecords / $limit);
+
+    $sql = "
+        SELECT 
+            s.*,
+            t.cid AS real_cid, t.first_name AS real_first_name, t.last_name AS real_last_name, t.birth AS real_birth
+        FROM $table s
+        LEFT JOIN target_population t ON LPAD(s.hoscode, 5, '0') = LPAD(t.hoscode, 5, '0') AND s.pid = t.pid
+        $whereClause
+        ORDER BY COALESCE(t.first_name, s.name) ASC
+        LIMIT $limit OFFSET $offset
+    ";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $records = $stmt->fetchAll();
 }
-$inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
-$riskWhere .= " AND hoscode IN ($inPlaceholders)";
-$riskParams = $hoscodes;
-$riskStmt = $pdo->prepare("SELECT DISTINCT risk FROM $table $riskWhere");
-$riskStmt->execute($riskParams);
-$availableRisks = $riskStmt->fetchAll(PDO::FETCH_COLUMN);
+
+// Get risk options for tabs (only กลุ่มเสี่ยง=1 and เสี่ยงสูง=2)
+$availableRisks = ['1', '2'];
 
 ?>
 <!DOCTYPE html>
@@ -300,6 +318,32 @@ $availableRisks = $riskStmt->fetchAll(PDO::FETCH_COLUMN);
         .risk-normal { background: rgba(16, 185, 129, 0.15); color: var(--color-green); }
         .risk-risk { background: rgba(245, 158, 11, 0.15); color: var(--color-yellow); }
         .risk-high { background: rgba(239, 68, 68, 0.15); color: var(--color-red); }
+        .pagination {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .page-link {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .page-link:hover {
+            border-color: var(--color-primary);
+            background: var(--bg-darker);
+        }
+        .page-link.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
     </style>
 </head>
 <body class="admin-body">
@@ -318,7 +362,6 @@ $availableRisks = $riskStmt->fetchAll(PDO::FETCH_COLUMN);
         <?php
         $filterParams = [];
         if ($filter_hoscode) $filterParams['hoscode'] = $filter_hoscode;
-        if ($filter_tambon) $filterParams['tambon'] = $filter_tambon;
         if ($filter_vhid) $filterParams['vhid'] = $filter_vhid;
 
         // Populate village options based on selected area
@@ -332,13 +375,13 @@ $availableRisks = $riskStmt->fetchAll(PDO::FETCH_COLUMN);
                     $village_options[$vcode] = "หมู่ {$moo} {$name}";
                 }
             }
-        } elseif (!empty($filter_tambon)) {
+        } else {
+            // Populate all villages from all hospitals
             foreach ($hoscode_villages as $h => $info) {
-                if ($info['tambon'] === $filter_tambon) {
-                    foreach ($info['villages'] as $moo => $name) {
-                        $vcode = $filter_tambon . sprintf('%02d', $moo);
-                        $village_options[$vcode] = "หมู่ {$moo} {$name}";
-                    }
+                $tcode = $info['tambon'];
+                foreach ($info['villages'] as $moo => $name) {
+                    $vcode = $tcode . sprintf('%02d', $moo);
+                    $village_options[$vcode] = "หมู่ {$moo} {$name} (" . ($hc_names[$h] ?? $h) . ")";
                 }
             }
             ksort($village_options);
@@ -366,18 +409,6 @@ $availableRisks = $riskStmt->fetchAll(PDO::FETCH_COLUMN);
                     <?php endif; ?>
                 </div>
 
-                <?php if (empty($filter_hoscode)): ?>
-                <div style="width: 180px;">
-                    <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--text-secondary);">ตำบล</label>
-                    <select name="tambon" class="form-select" onchange="this.form.submit()">
-                        <option value="">-- ทุกตำบล --</option>
-                        <?php foreach ($tambons as $code => $name): ?>
-                            <option value="<?= $code ?>" <?= $filter_tambon == $code ? 'selected' : '' ?>><?= htmlspecialchars($name) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <?php endif; ?>
-
                 <div style="flex: 1; min-width: 200px;">
                     <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--text-secondary);">หมู่บ้าน</label>
                     <select name="vhid" class="form-select" onchange="this.form.submit()">
@@ -402,20 +433,21 @@ $availableRisks = $riskStmt->fetchAll(PDO::FETCH_COLUMN);
         <div class="tabs">
             <a href="?<?= http_build_query(array_merge($filterParams, ['type' => 'DM', 'risk' => $riskFilter])) ?>" class="tab <?= $diseaseType === 'DM' ? 'active' : '' ?>">เบาหวาน (DM)</a>
             <a href="?<?= http_build_query(array_merge($filterParams, ['type' => 'HT', 'risk' => $riskFilter])) ?>" class="tab <?= $diseaseType === 'HT' ? 'active' : '' ?>">ความดัน (HT)</a>
+            <a href="?<?= http_build_query(array_merge($filterParams, ['type' => 'BOTH', 'risk' => $riskFilter])) ?>" class="tab <?= $diseaseType === 'BOTH' ? 'active' : '' ?>">ทั้ง DM/HT</a>
         </div>
 
         <div class="tabs">
-            <a href="?<?= http_build_query(array_merge($filterParams, ['type' => $diseaseType, 'risk' => 'all'])) ?>" class="tab <?= $riskFilter === 'all' ? 'active' : '' ?>">ทั้งหมด</a>
-            <?php foreach ($availableRisks as $r): ?>
-                <a href="?<?= http_build_query(array_merge($filterParams, ['type' => $diseaseType, 'risk' => $r])) ?>" class="tab <?= $riskFilter === $r ? 'active' : '' ?>"><?= htmlspecialchars($r) ?></a>
-            <?php endforeach; ?>
+            <a href="?<?= http_build_query(array_merge($filterParams, ['type' => $diseaseType, 'risk' => 'all'])) ?>" class="tab <?= $riskFilter === 'all' ? 'active' : '' ?>">📋 กลุ่มเป้าหมายหลัก (Risk 1-2)</a>
+            <a href="?<?= http_build_query(array_merge($filterParams, ['type' => $diseaseType, 'risk' => '1'])) ?>" class="tab <?= $riskFilter === '1' ? 'active' : '' ?>">🟡 กลุ่มเสี่ยง (Risk 1)</a>
+            <a href="?<?= http_build_query(array_merge($filterParams, ['type' => $diseaseType, 'risk' => '2'])) ?>" class="tab <?= $riskFilter === '2' ? 'active' : '' ?>">🔴 กลุ่มเสี่ยงสูง (Risk 2)</a>
+            <a href="?<?= http_build_query(array_merge($filterParams, ['type' => $diseaseType, 'risk' => '3'])) ?>" class="tab <?= $riskFilter === '3' ? 'active' : '' ?>">🔵 ป่วย/สงสัยป่วย (Risk 3)</a>
         </div>
 
         <form method="post">
             <input type="hidden" name="action" value="enroll_dpac">
             <div class="card-dark">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
-                    <h3 style="margin: 0; color: var(--color-accent);">รายชื่อเป้าหมาย (<?= count($records) ?> รายการ)</h3>
+                    <h3 style="margin: 0; color: var(--color-accent);">รายชื่อเป้าหมาย (พบทั้งหมด <?= number_format($totalRecords) ?> รายการ<?= $totalPages > 1 ? " | หน้าที่ $page/$totalPages" : "" ?>)</h3>
                     <button type="submit" class="btn-primary" style="padding: 10px 20px; border-radius: 20px; border: none; background: var(--color-green); color: white; cursor: pointer; font-weight: bold; box-shadow: var(--neumorph-flat);">
                         + นำเข้าโครงการปรับเปลี่ยนพฤติกรรม (DPAC)
                     </button>
@@ -431,8 +463,10 @@ $availableRisks = $riskStmt->fetchAll(PDO::FETCH_COLUMN);
                                 <th>ที่อยู่ / หมู่บ้าน</th>
                                 <?php if ($diseaseType === 'DM'): ?>
                                     <th>ระดับน้ำตาล (FBS)</th>
-                                <?php else: ?>
+                                <?php elseif ($diseaseType === 'HT'): ?>
                                     <th>ความดัน (SBP/DBP)</th>
+                                <?php else: ?>
+                                    <th>ระดับน้ำตาล & ความดัน</th>
                                 <?php endif; ?>
                                 <th>ระดับความเสี่ยง</th>
                             </tr>
@@ -440,39 +474,125 @@ $availableRisks = $riskStmt->fetchAll(PDO::FETCH_COLUMN);
                         <tbody>
                             <?php if (empty($records)): ?>
                                 <tr>
-                                    <td colspan="5" style="text-align: center; padding: 20px; color: var(--text-secondary);">ไม่มีข้อมูล</td>
+                                    <td colspan="6" style="text-align: center; padding: 20px; color: var(--text-secondary);">ไม่มีข้อมูล</td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($records as $r): ?>
                                     <?php 
-                                        $riskClass = 'risk-normal';
-                                        if (strpos($r['risk'], 'สูง') !== false) $riskClass = 'risk-high';
-                                        else if (strpos($r['risk'], 'เสี่ยง') !== false) $riskClass = 'risk-risk';
+                                        // Resolve real unmasked JHCIS details if matched
+                                        $displayCid = (!empty($r['real_cid']) && strpos($r['real_cid'], '*') === false) ? $r['real_cid'] : $r['cid'];
+                                        $displayName = (!empty($r['real_first_name']) && strpos($r['real_first_name'], '*') === false) ? $r['real_first_name'] : $r['name'];
+                                        $displayLname = (!empty($r['real_last_name']) && strpos($r['real_last_name'], '*') === false) ? $r['real_last_name'] : $r['lname'];
+                                        $displayBirth = (!empty($r['real_birth'])) ? $r['real_birth'] : $r['birth'];
 
+                                        $age = calculate_age($displayBirth);
                                         $vhid = $r['check_vhid'] ?? '';
                                         $moo = strlen($vhid) === 8 ? intval(substr($vhid, 6, 2)) : 0;
-                                        $tambon = strlen($vhid) === 8 ? substr($vhid, 0, 6) : '';
-                                        $village_only = get_village_only_name($tambon, $moo);
-                                        $village_full = $moo > 0 ? "หมู่ {$moo} {$village_only}" : '';
+                                        $village_full = get_village_display_name_by_hoscode($r['hoscode'], $moo);
                                         $address_full = trim(($r['addr'] ?? '') . ' ' . $village_full);
                                     ?>
                                     <tr>
-                                        <td style="text-align: center;"><input type="checkbox" name="cids[]" value="<?= htmlspecialchars($r['cid']) ?>"></td>
-                                        <td><?= htmlspecialchars($r['cid']) ?></td>
-                                        <td style="font-weight: bold; color: var(--text-primary);"><?= htmlspecialchars($r['name'] . ' ' . $r['lname']) ?></td>
+                                        <td style="text-align: center;"><input type="checkbox" name="cids[]" value="<?= htmlspecialchars($displayCid) ?>"></td>
+                                        <td><?= htmlspecialchars($displayCid) ?></td>
+                                        <td style="font-weight: bold; color: var(--text-primary);">
+                                            <?= htmlspecialchars($displayName . ' ' . $displayLname) ?><br>
+                                            <span style="font-size: 12px; font-weight: normal; color: var(--text-muted);">อายุ: <?= htmlspecialchars($age) ?></span>
+                                        </td>
                                         <td><?= htmlspecialchars($address_full ?: '-') ?></td>
+                                        
                                         <?php if ($diseaseType === 'DM'): ?>
-                                            <td><?= htmlspecialchars($r['result'] ?? '-') ?> mg/dL</td>
-                                        <?php else: ?>
+                                            <?php
+                                                $risk_label = get_risk_label($r['risk']);
+                                                $riskClass = 'risk-normal';
+                                                if (strpos($risk_label, 'สูง') !== false || $r['risk'] === '3') $riskClass = 'risk-high';
+                                                else if (strpos($risk_label, 'เสี่ยง') !== false || $r['risk'] === '1' || $r['risk'] === '2') $riskClass = 'risk-risk';
+                                            ?>
+                                            <td>
+                                                <?= htmlspecialchars($r['bslevel'] ?? '-') ?> mg/dL
+                                                <?php if (!empty($r['bstest'])): ?>
+                                                    <br><span style="font-size: 11px; color: var(--text-secondary);">(<?= htmlspecialchars($r['bstest']) ?>)</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td><span class="risk-badge <?= $riskClass ?>"><?= htmlspecialchars($risk_label) ?></span></td>
+                                            
+                                        <?php elseif ($diseaseType === 'HT'): ?>
+                                            <?php
+                                                $risk_label = get_risk_label($r['risk']);
+                                                $riskClass = 'risk-normal';
+                                                if (strpos($risk_label, 'สูง') !== false || $r['risk'] === '3') $riskClass = 'risk-high';
+                                                else if (strpos($risk_label, 'เสี่ยง') !== false || $r['risk'] === '1' || $r['risk'] === '2') $riskClass = 'risk-risk';
+                                            ?>
                                             <td><?= htmlspecialchars($r['sbp'] ?? '-') ?> / <?= htmlspecialchars($r['dbp'] ?? '-') ?> mmHg</td>
+                                            <td><span class="risk-badge <?= $riskClass ?>"><?= htmlspecialchars($risk_label) ?></span></td>
+                                            
+                                        <?php else: ?>
+                                            <?php
+                                                $dm_risk_label = get_risk_label($r['dm_risk']);
+                                                $ht_risk_label = get_risk_label($r['ht_risk']);
+                                                
+                                                $dm_class = 'risk-normal';
+                                                if (strpos($dm_risk_label, 'สูง') !== false || $r['dm_risk'] === '3') $dm_class = 'risk-high';
+                                                else if (strpos($dm_risk_label, 'เสี่ยง') !== false || $r['dm_risk'] === '1' || $r['dm_risk'] === '2') $dm_class = 'risk-risk';
+
+                                                $ht_class = 'risk-normal';
+                                                if (strpos($ht_risk_label, 'สูง') !== false || $r['ht_risk'] === '3') $ht_class = 'risk-high';
+                                                else if (strpos($ht_risk_label, 'เสี่ยง') !== false || $r['ht_risk'] === '1' || $r['ht_risk'] === '2') $ht_class = 'risk-risk';
+                                            ?>
+                                            <td>
+                                                <div style="font-size: 13px; margin-bottom: 4px;">
+                                                    🍭 <strong>FBS:</strong> <?= htmlspecialchars($r['bslevel'] ?? '-') ?> mg/dL 
+                                                    <?php if (!empty($r['bstest'])): ?>
+                                                        <span style="font-size: 11px; color: var(--text-secondary);">(<?= htmlspecialchars($r['bstest']) ?>)</span>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <div style="font-size: 13px;">
+                                                    🫀 <strong>BP:</strong> <?= htmlspecialchars($r['sbp'] ?? '-') ?>/<?= htmlspecialchars($r['dbp'] ?? '-') ?> mmHg
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                                    <span>DM: <span class="risk-badge <?= $dm_class ?>"><?= htmlspecialchars($dm_risk_label) ?></span></span>
+                                                    <span>HT: <span class="risk-badge <?= $ht_class ?>"><?= htmlspecialchars($ht_risk_label) ?></span></span>
+                                                </div>
+                                            </td>
                                         <?php endif; ?>
-                                        <td><span class="risk-badge <?= $riskClass ?>"><?= htmlspecialchars($r['risk']) ?></span></td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Pagination (Hidden on Print) -->
+                <?php if ($totalPages > 1): ?>
+                    <div class="pagination no-print" style="margin-bottom: 20px;">
+                        <?php
+                        $startPage = max(1, $page - 3);
+                        $endPage = min($totalPages, $page + 3);
+                        
+                        $queryParams = $_GET;
+                        
+                        if ($startPage > 1) {
+                            $queryParams['page'] = 1;
+                            echo '<a href="?' . http_build_query($queryParams) . '" class="page-link">1</a>';
+                            if ($startPage > 2) echo '<span style="padding: 6px; color: var(--text-secondary);">...</span>';
+                        }
+                        
+                        for ($i = $startPage; $i <= $endPage; $i++) {
+                            $active = ($i == $page) ? 'active' : '';
+                            $queryParams['page'] = $i;
+                            echo '<a href="?' . http_build_query($queryParams) . '" class="page-link ' . $active . '">' . $i . '</a>';
+                        }
+                        
+                        if ($endPage < $totalPages) {
+                            if ($endPage < $totalPages - 1) echo '<span style="padding: 6px; color: var(--text-secondary);">...</span>';
+                            $queryParams['page'] = $totalPages;
+                            echo '<a href="?' . http_build_query($queryParams) . '" class="page-link">' . $totalPages . '</a>';
+                        }
+                        ?>
+                    </div>
+                <?php endif; ?>
+
             </div>
         </form>
     </div>

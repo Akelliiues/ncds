@@ -34,11 +34,11 @@ function getPositiveTitle($rank) {
 
 // Query Top 50 VHVs across the village based on approved reward points
 $leaderboardStmt = $pdo->query("
-    SELECT u.vhv_id, u.vhv_name, u.vhv_moo,
+    SELECT u.vhv_id, u.vhv_name, u.vhv_moo, u.is_hl_coach,
            SUM(r.points_earned) as total_points
      FROM vhv_users u
      LEFT JOIN vhv_rewards r ON u.vhv_id = r.vhv_id AND r.approval_status = 'approved'
-     GROUP BY u.vhv_id, u.vhv_name, u.vhv_moo
+     GROUP BY u.vhv_id, u.vhv_name, u.vhv_moo, u.is_hl_coach
      ORDER BY total_points DESC, u.vhv_name ASC
 ");
 $allLeaders = $leaderboardStmt->fetchAll();
@@ -166,6 +166,11 @@ $topFifty = array_slice($allLeaders, 0, 50);
                         <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">
                             หมู่ที่ <?= $leader['vhv_moo'] ?>
                         </p>
+                        <?php if (!empty($leader['is_hl_coach'])): ?>
+                            <div style="margin-top: 6px; font-size: 12px; color: #fbbf24; font-weight: bold; display: inline-block; background-color: rgba(251, 191, 36, 0.1); padding: 4px 8px; border-radius: 8px; border: 1px solid rgba(251,191,36,0.3);">
+                                ✨ HL-Coach
+                            </div>
+                        <?php endif; ?>
                         <?php 
                         $rowTitle = getPositiveTitle($rankNum);
                         if ($rowTitle): 

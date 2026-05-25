@@ -15,6 +15,7 @@ $vhvMoo = $_SESSION['vhv_moo'];
 $vhidCode = $_SESSION['vhid_code'];
 $isLeader = $_SESSION['is_leader'];
 $hoscode = $_SESSION['hoscode'];
+$isHlCoach = $_SESSION['is_hl_coach'] ?? false;
 
 // Fetch assigned tasks for budget year 2026
 // Grouped by status

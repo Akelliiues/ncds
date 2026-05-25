@@ -93,6 +93,67 @@ if ($action === 'clear_hoscode') {
         ]);
     }
     exit();
+} elseif ($action === 'delete_individual_record') {
+    $cid = $_POST['cid'] ?? '';
+    if (empty($cid)) {
+        echo json_encode(['status' => 'error', 'message' => 'ไม่ได้ระบุ CID']);
+        exit();
+    }
+
+    try {
+        $pdo->beginTransaction();
+
+        // 1. Delete vhv_rewards
+        $pdo->prepare("
+            DELETE FROM vhv_rewards WHERE screening_id IN (
+                SELECT s.screening_id 
+                FROM screening_results s
+                JOIN task_assignments a ON s.assignment_id = a.assignment_id
+                WHERE a.target_cid = ?
+            )
+        ")->execute([$cid]);
+
+        // 2. Delete screening_results
+        $pdo->prepare("
+            DELETE FROM screening_results WHERE assignment_id IN (
+                SELECT assignment_id FROM task_assignments WHERE target_cid = ?
+            )
+        ")->execute([$cid]);
+
+        // 3. Delete task_assignments
+        $pdo->prepare("DELETE FROM task_assignments WHERE target_cid = ?")->execute([$cid]);
+
+        // 4. Delete dpac_followups
+        $pdo->prepare("
+            DELETE FROM dpac_followups WHERE enrollment_id IN (
+                SELECT enrollment_id FROM dpac_enrollments WHERE cid = ?
+            )
+        ")->execute([$cid]);
+
+        // 5. Delete dpac_enrollments
+        $pdo->prepare("DELETE FROM dpac_enrollments WHERE cid = ?")->execute([$cid]);
+
+        // 6. Delete target_population
+        $stmt = $pdo->prepare("DELETE FROM target_population WHERE cid = ?");
+        $stmt->execute([$cid]);
+        $deletedRows = $stmt->rowCount();
+
+        $pdo->commit();
+
+        echo json_encode([
+            'status' => 'success',
+            'message' => 'ลบข้อมูลรายบุคคลสำเร็จ',
+            'deleted_count' => $deletedRows
+        ]);
+
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()
+        ]);
+    }
+    exit();
 } else {
     echo json_encode(['status' => 'error', 'message' => 'คำสั่งไม่ถูกต้อง']);
     exit();

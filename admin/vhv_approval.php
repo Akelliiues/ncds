@@ -169,6 +169,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                     $pdo->commit();
                     $message = "ลบข้อมูลการลงทะเบียน อสม. เรียบร้อยแล้ว";
+                } elseif ($action === 'toggle_hl_coach') {
+                    $stmt = $pdo->prepare("UPDATE vhv_users SET is_hl_coach = NOT is_hl_coach WHERE vhv_id = ?");
+                    $stmt->execute([$target_vhv_id]);
+                    $message = "อัปเดตสถานะ HL-Coach เรียบร้อยแล้ว";
                 } elseif ($action === 'edit') {
                     $old_vhv_id = $_POST['old_vhv_id'] ?? '';
                     $new_vhv_id = trim($_POST['vhv_id'] ?? '');
@@ -244,33 +248,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 // Fetch Pending and Approved Lists
 try {
-    $pending_query = "SELECT * FROM vhv_users WHERE approved = 0";
-    $approved_query = "SELECT * FROM vhv_users WHERE approved = 1";
-    $params = [];
+    $tab = $_GET['tab'] ?? 'pending';
+    if ($tab !== 'approved') {
+        $tab = 'pending';
+    }
 
+    $page = max(1, intval($_GET['page'] ?? 1));
+    $limit = 50;
+    $offset = ($page - 1) * $limit;
+
+    $params = [];
+    $inPlaceholders = "";
     if ($admin_hoscode) {
         $hoscodes = [$admin_hoscode];
         $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
-        
-        $pending_query .= " AND hoscode IN ($inPlaceholders)";
-        $approved_query .= " AND hoscode IN ($inPlaceholders)";
         $params = $hoscodes;
     }
 
-    $pending_query .= " ORDER BY created_at DESC";
-    $approved_query .= " ORDER BY vhv_name ASC";
+    // 1. Fetch counts for tab badges
+    $count_pending_query = "SELECT COUNT(*) FROM vhv_users WHERE approved = 0";
+    $count_approved_query = "SELECT COUNT(*) FROM vhv_users WHERE approved = 1";
 
-    $stmt = $pdo->prepare($pending_query);
-    $stmt->execute($params);
-    $pending_list = $stmt->fetchAll();
+    if ($admin_hoscode) {
+        $count_pending_query .= " AND hoscode IN ($inPlaceholders)";
+        $count_approved_query .= " AND hoscode IN ($inPlaceholders)";
+    }
 
-    $stmt = $pdo->prepare($approved_query);
+    $stmt = $pdo->prepare($count_pending_query);
     $stmt->execute($params);
-    $approved_list = $stmt->fetchAll();
+    $total_pending = $stmt->fetchColumn();
+
+    $stmt = $pdo->prepare($count_approved_query);
+    $stmt->execute($params);
+    $total_approved = $stmt->fetchColumn();
+
+    // 2. Fetch records for active tab only
+    $total_records = ($tab === 'approved') ? $total_approved : $total_pending;
+    $total_pages = ceil($total_records / $limit);
+
+    // Guard page overflow
+    if ($page > $total_pages && $total_pages > 0) {
+        $page = $total_pages;
+        $offset = ($page - 1) * $limit;
+    }
+
+    if ($tab === 'approved') {
+        $active_query = "SELECT * FROM vhv_users WHERE approved = 1";
+        if ($admin_hoscode) {
+            $active_query .= " AND hoscode IN ($inPlaceholders)";
+        }
+        $active_query .= " ORDER BY vhv_name ASC LIMIT $limit OFFSET $offset";
+    } else {
+        $active_query = "SELECT * FROM vhv_users WHERE approved = 0";
+        if ($admin_hoscode) {
+            $active_query .= " AND hoscode IN ($inPlaceholders)";
+        }
+        $active_query .= " ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
+    }
+
+    $stmt = $pdo->prepare($active_query);
+    $stmt->execute($params);
+    $active_list = $stmt->fetchAll();
+
+    // Map $pending_list and $approved_list to work with existing HTML code
+    $pending_list = ($tab === 'pending') ? $active_list : [];
+    $approved_list = ($tab === 'approved') ? $active_list : [];
 } catch (\PDOException $e) {
     $error = "เกิดข้อผิดพลาดในการโหลดข้อมูล: " . $e->getMessage();
     $pending_list = [];
     $approved_list = [];
+    $total_pending = 0;
+    $total_approved = 0;
+    $total_pages = 0;
 }
 ?>
 <!DOCTYPE html>
@@ -396,16 +445,56 @@ try {
             color: var(--text-primary);
             font-size: 15px;
         }
+        .pagination {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .page-link {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .page-link:hover {
+            border-color: var(--color-primary);
+            background: var(--bg-darker);
+        }
+        .page-link.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
     </style>
 </head>
 <body class="admin-body">
     <?php include 'navbar.php'; ?>
 
     <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
-        <h2 style="color: var(--color-accent); margin-bottom: 8px;">จัดการผู้ใช้งาน อสม.</h2>
-        <p style="color: var(--text-secondary); margin-bottom: 30px;">
-            หน่วยบริการผู้รับผิดชอบ: <strong><?= htmlspecialchars($admin_title) ?></strong>
-        </p>
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <h2 style="color: var(--color-accent); margin-top: 0; margin-bottom: 8px;">จัดการผู้ใช้งาน อสม.</h2>
+                <p style="color: var(--text-secondary); margin: 0;">
+                    หน่วยบริการผู้รับผิดชอบ: <strong><?= htmlspecialchars($admin_title) ?></strong>
+                </p>
+            </div>
+            <?php if ($admin_hoscode === null): ?>
+            <div>
+                <a href="import_vhv.php" class="btn-giant btn-giant-primary" style="margin: 0; padding: 10px 20px; font-size: 15px; display: inline-flex; align-items: center; gap: 8px;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline>
+                    </svg>
+                    นำเข้าข้อมูล (ThaiPHC)
+                </a>
+            </div>
+            <?php endif; ?>
+        </div>
 
         <?php if (!empty($message)): ?>
             <div style="background-color: rgba(16, 185, 129, 0.15); border: 2px solid var(--color-green); color: var(--color-green); padding: 16px; border-radius: var(--border-radius); margin-bottom: 24px; font-weight: bold;">
@@ -421,16 +510,16 @@ try {
 
         <!-- Sub Tabs -->
         <div class="tab-menu">
-            <a href="#pending" class="tab-link active" onclick="switchTab('pending', this)">
-                รอการอนุมัติ (<?= count($pending_list) ?>)
+            <a href="?tab=pending" class="tab-link <?= $tab === 'pending' ? 'active' : '' ?>">
+                รอการอนุมัติ (<?= number_format($total_pending) ?>)
             </a>
-            <a href="#approved" class="tab-link" onclick="switchTab('approved', this)">
-                อนุมัติแล้ว (<?= count($approved_list) ?>)
+            <a href="?tab=approved" class="tab-link <?= $tab === 'approved' ? 'active' : '' ?>">
+                อนุมัติแล้ว (<?= number_format($total_approved) ?>)
             </a>
         </div>
 
         <!-- Pending Approvals Section -->
-        <div id="pending-section" class="card-dark">
+        <div id="pending-section" class="card-dark" style="display: <?= $tab === 'pending' ? 'block' : 'none' ?>;">
             <h3 style="color: var(--color-accent); margin-top: 0; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
                 <span>⏳</span> รายการสิทธิ์ อสม. รอการอนุมัติ
             </h3>
@@ -496,10 +585,41 @@ try {
                     </tbody>
                 </table>
             </div>
+            
+            <!-- Pagination -->
+            <?php if ($tab === 'pending' && $total_pages > 1): ?>
+                <div class="pagination no-print">
+                    <?php
+                    $startPage = max(1, $page - 3);
+                    $endPage = min($total_pages, $page + 3);
+                    
+                    $queryParams = $_GET;
+                    $queryParams['tab'] = 'pending';
+                    
+                    if ($startPage > 1) {
+                        $queryParams['page'] = 1;
+                        echo '<a href="?' . http_build_query($queryParams) . '" class="page-link">1</a>';
+                        if ($startPage > 2) echo '<span style="padding: 6px; color: var(--text-secondary);">...</span>';
+                    }
+                    
+                    for ($i = $startPage; $i <= $endPage; $i++) {
+                        $active = ($i == $page) ? 'active' : '';
+                        $queryParams['page'] = $i;
+                        echo '<a href="?' . http_build_query($queryParams) . '" class="page-link ' . $active . '">' . $i . '</a>';
+                    }
+                    
+                    if ($endPage < $total_pages) {
+                        if ($endPage < $total_pages - 1) echo '<span style="padding: 6px; color: var(--text-secondary);">...</span>';
+                        $queryParams['page'] = $total_pages;
+                        echo '<a href="?' . http_build_query($queryParams) . '" class="page-link">' . $total_pages . '</a>';
+                    }
+                    ?>
+                </div>
+            <?php endif; ?>
         </div>
 
         <!-- Approved Users Section -->
-        <div id="approved-section" class="card-dark" style="display: none;">
+        <div id="approved-section" class="card-dark" style="display: <?= $tab === 'approved' ? 'block' : 'none' ?>;">
             <h3 style="color: var(--color-accent); margin-top: 0; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
                 <span>✅</span> รายการ อสม. ที่อนุมัติสิทธิ์เรียบร้อยแล้ว
             </h3>
@@ -512,6 +632,7 @@ try {
                             <th>เบอร์โทรศัพท์ (ID เข้าใช้งาน)</th>
                             <th>หมู่บ้าน</th>
                             <th>รพ.สต. ที่สังกัด</th>
+                            <th>สถานะ โค้ช (HL)</th>
                             <th>สถานะประธาน</th>
                             <th style="width: 180px; text-align: center;">จัดการ</th>
                         </tr>
@@ -530,6 +651,13 @@ try {
                                     <td><?= htmlspecialchars(get_village_full_name($user['vhid_code'], $user['vhv_moo'])) ?></td>
                                     <td><?= htmlspecialchars($hc_names[$user['hoscode']] ?? $user['hoscode']) ?></td>
                                     <td>
+                                        <?php if (!empty($user['is_hl_coach'])): ?>
+                                            <span style="color: #fbbf24; font-weight: bold; background: rgba(251,191,36,0.1); padding: 4px 8px; border-radius: 4px; font-size: 12px;">✨ HL-Coach</span>
+                                        <?php else: ?>
+                                            <span style="color: var(--text-muted);">-</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
                                         <?php if ($user['is_leader']): ?>
                                             <span style="color: var(--color-accent); font-weight: bold;">ประธาน อสม.</span>
                                         <?php else: ?>
@@ -544,6 +672,15 @@ try {
                                                 <input type="hidden" name="action" value="suspend">
                                                 <button type="submit" class="action-btn suspend" title="ระงับสิทธิ์">
                                                     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                                                </button>
+                                            </form>
+
+                                            <!-- Toggle HL-Coach Button -->
+                                            <form method="POST" class="action-form">
+                                                <input type="hidden" name="target_vhv_id" value="<?= $user['vhv_id'] ?>">
+                                                <input type="hidden" name="action" value="toggle_hl_coach">
+                                                <button type="submit" class="action-btn edit" title="<?= !empty($user['is_hl_coach']) ? 'ปลดจาก HL-Coach' : 'เลื่อนเป็น HL-Coach' ?>" style="border-color: #fbbf24; color: #fbbf24; background: <?= !empty($user['is_hl_coach']) ? 'rgba(251,191,36,0.2)' : 'transparent' ?>;">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
                                                 </button>
                                             </form>
 
@@ -571,6 +708,37 @@ try {
                     </tbody>
                 </table>
             </div>
+
+            <!-- Pagination (Approved) -->
+            <?php if ($tab === 'approved' && $total_pages > 1): ?>
+                <div class="pagination no-print">
+                    <?php
+                    $startPage = max(1, $page - 3);
+                    $endPage = min($total_pages, $page + 3);
+
+                    $queryParams = $_GET;
+                    $queryParams['tab'] = 'approved';
+
+                    if ($startPage > 1) {
+                        $queryParams['page'] = 1;
+                        echo '<a href="?' . http_build_query($queryParams) . '" class="page-link">1</a>';
+                        if ($startPage > 2) echo '<span style="padding: 6px; color: var(--text-secondary);">...</span>';
+                    }
+
+                    for ($i = $startPage; $i <= $endPage; $i++) {
+                        $active = ($i == $page) ? 'active' : '';
+                        $queryParams['page'] = $i;
+                        echo '<a href="?' . http_build_query($queryParams) . '" class="page-link ' . $active . '">' . $i . '</a>';
+                    }
+
+                    if ($endPage < $total_pages) {
+                        if ($endPage < $total_pages - 1) echo '<span style="padding: 6px; color: var(--text-secondary);">...</span>';
+                        $queryParams['page'] = $total_pages;
+                        echo '<a href="?' . http_build_query($queryParams) . '" class="page-link">' . $total_pages . '</a>';
+                    }
+                    ?>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -631,18 +799,6 @@ try {
     </div>
 
     <script>
-        function switchTab(tab, element) {
-            document.querySelectorAll('.tab-link').forEach(link => link.classList.remove('active'));
-            element.classList.add('active');
-
-            if (tab === 'pending') {
-                document.getElementById('pending-section').style.display = 'block';
-                document.getElementById('approved-section').style.display = 'none';
-            } else {
-                document.getElementById('pending-section').style.display = 'none';
-                document.getElementById('approved-section').style.display = 'block';
-            }
-        }
 
         function openEditModal(userJson) {
             try {

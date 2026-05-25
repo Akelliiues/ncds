@@ -10,87 +10,6 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 
 require_once __DIR__ . '/../config/db.php';
 
-function get_village_only_name($vhid_code, $moo)
-{
-    $tambon = substr($vhid_code, 0, 6);
-    $moo = intval($moo);
-
-    $villages = [
-        '341801' => [
-            1 => 'บ้านม่วงโคน',
-            2 => 'บ้านดอนรังกา',
-            3 => 'บ้านนาห้วยแคน',
-            4 => 'บ้านดอนพันชาด',
-            5 => 'บ้านนามน',
-            6 => 'บ้านดอนตะลี',
-            7 => 'บ้านปากห้วย',
-            8 => 'บ้านโนนค้อ',
-            9 => 'บ้านแก่งกบ',
-            10 => 'บ้านนามน',
-            11 => 'บ้านตาลสุม',
-            12 => 'บ้านคำไม้ตาย',
-            13 => 'บ้านปากเซ',
-            14 => 'บ้านโนนสวรรค์',
-            15 => 'บ้านทุ่งเจริญ'
-        ],
-        '341802' => [
-            1 => 'บ้านสำโรงใหญ่',
-            2 => 'บ้านสำโรงกลาง',
-            3 => 'บ้านนาโพธิ์',
-            4 => 'บ้านสำโรงใต้',
-            5 => 'บ้านทรายมูลเหนือ',
-            6 => 'บ้านทรายมูลใต้',
-            7 => 'บ้านหนองบัว',
-            8 => 'บ้านทุ่งเจริญ'
-        ],
-        '341803' => [
-            1 => 'บ้านจิกเทิง',
-            2 => 'บ้านจิกลุ่ม',
-            3 => 'บ้านเชียงแก้ว',
-            4 => 'บ้านเชียงแก้ว',
-            5 => 'บ้านดอนโด่',
-            6 => 'บ้านดอนยูง',
-            7 => 'บ้านค้อ',
-            8 => 'บ้านดอนแป้นลม',
-            9 => 'บ้านสร้างคำ'
-        ],
-        '341804' => [
-            1 => 'บ้านหนองกุงใหญ่',
-            2 => 'บ้านหนองกุงน้อย',
-            3 => 'บ้านคำแคน',
-            4 => 'บ้านสร้างแสง',
-            5 => 'บ้านคำเตยใต้',
-            6 => 'บ้านสร้างหว้า',
-            7 => 'บ้านคำเตยเหนือ',
-            8 => 'บ้านสร้างหว้าพัฒนา'
-        ],
-        '341805' => [
-            1 => 'บ้านนาคาย',
-            2 => 'บ้านโนนจิก',
-            3 => 'บ้านหนองเป็ด',
-            4 => 'บ้านโนนยาง',
-            5 => 'บ้านดอนขวาง',
-            6 => 'บ้านดอนหวาย',
-            7 => 'บ้านโคกคล้าย',
-            8 => 'บ้านคำหนามแท่ง',
-            9 => 'บ้านคำผักหนอก',
-            10 => 'บ้านคำฮี',
-            11 => 'บ้านห่องแดง',
-            12 => 'บ้านโนนสำราญ',
-            13 => 'บ้านโนนเจริญ'
-        ],
-        '341806' => [
-            1 => 'บ้านคำหว้า',
-            2 => 'บ้านคำหว้า',
-            3 => 'บ้านห้วยดู่',
-            4 => 'บ้านนาทมเหนือ',
-            5 => 'บ้านไฮหย่อง',
-            6 => 'บ้านนาทมใต้'
-        ]
-    ];
-
-    return $villages[$tambon][$moo] ?? "หมู่ที่ {$moo}";
-}
 
 // Fetch summary metrics
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
@@ -116,6 +35,29 @@ if ($admin_hoscode) {
     $total_targets->execute($hoscodes);
     $total_targets_val = $total_targets->fetchColumn();
 
+    // Query target groups by health_status_origin
+    $groupStmt = $pdo->prepare("
+        SELECT 
+            SUM(CASE WHEN health_status_origin = 'DM_ONLY' AND (need_screen_dm = 1 OR need_screen_ht = 1) THEN 1 ELSE 0 END) as group_dm,
+            SUM(CASE WHEN health_status_origin = 'HT_ONLY' AND (need_screen_dm = 1 OR need_screen_ht = 1) THEN 1 ELSE 0 END) as group_ht,
+            SUM(CASE WHEN health_status_origin IN ('BOTH','HIGH_RISK') AND (need_screen_dm = 1 OR need_screen_ht = 1) THEN 1 ELSE 0 END) as group_both,
+            SUM(CASE WHEN health_status_origin IN ('HIGH_RISK','DM_ONLY','HT_ONLY','BOTH') AND (need_screen_dm = 1 OR need_screen_ht = 1) THEN 1 ELSE 0 END) as group_risk,
+            SUM(CASE WHEN health_status_origin = 'NORMAL' THEN 1 ELSE 0 END) as group_normal,
+            SUM(CASE WHEN need_screen_dm = 0 AND need_screen_ht = 0 THEN 1 ELSE 0 END) as group_suspected
+        FROM target_population WHERE hoscode IN ($inPlaceholders)
+    ");
+    $groupStmt->execute($hoscodes);
+    $groupCounts = $groupStmt->fetch(PDO::FETCH_ASSOC);
+
+    // Detail breakdown per group for modal
+    $groupDetailStmt = $pdo->prepare("
+        SELECT health_status_origin, COUNT(*) as count 
+        FROM target_population WHERE hoscode IN ($inPlaceholders)
+        GROUP BY health_status_origin ORDER BY FIELD(health_status_origin, 'HIGH_RISK','BOTH','DM_ONLY','HT_ONLY','NORMAL')
+    ");
+    $groupDetailStmt->execute($hoscodes);
+    $groupDetail = $groupDetailStmt->fetchAll(PDO::FETCH_ASSOC);
+
     $screened = $pdo->prepare("SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'completed' AND p.hoscode IN ($inPlaceholders)");
     $screened->execute($hoscodes);
     $screened_val = $screened->fetchColumn();
@@ -138,6 +80,12 @@ if ($admin_hoscode) {
 
     $metrics = [
         'total_targets' => $total_targets_val,
+        'group_risk' => $groupCounts['group_risk'] ?? 0,
+        'group_dm' => $groupCounts['group_dm'] ?? 0,
+        'group_ht' => $groupCounts['group_ht'] ?? 0,
+        'group_both' => $groupCounts['group_both'] ?? 0,
+        'group_normal' => $groupCounts['group_normal'] ?? 0,
+        'group_suspected' => $groupCounts['group_suspected'] ?? 0,
         'screened_count' => $screened_val,
         'pending_count' => $pending_val,
         'skipped_count' => $skipped_val,
@@ -146,9 +94,13 @@ if ($admin_hoscode) {
     ];
 
     // Card 1 Detail: Targets per village (moo)
-    $mooQuery = $pdo->prepare("SELECT moo, COUNT(*) as count FROM target_population WHERE hoscode IN ($inPlaceholders) GROUP BY moo ORDER BY moo");
+    $mooQuery = $pdo->prepare("SELECT hoscode, moo, COUNT(*) as count FROM target_population WHERE hoscode IN ($inPlaceholders) GROUP BY hoscode, moo ORDER BY moo");
     $mooQuery->execute($hoscodes);
     $targetsDetail = $mooQuery->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($targetsDetail as &$row) {
+        $row['village_name'] = get_village_display_name_by_hoscode($row['hoscode'], $row['moo']);
+    }
+    unset($row);
 
     // Card 2 Detail: Screened cases risk distribution
     $screenedDetailQuery = $pdo->prepare("
@@ -228,19 +180,24 @@ if ($admin_hoscode) {
 
     // --- NEW CHARTS DATA (ADMIN) ---
     $chartCoverageStmt = $pdo->prepare("
-        SELECT p.hoscode, 
+        SELECT p.hoscode, p.sub_district_code, p.moo,
                COUNT(*) as total_targets,
                SUM(CASE WHEN a.assignment_status = 'completed' THEN 1 ELSE 0 END) as screened
         FROM target_population p
         LEFT JOIN task_assignments a ON p.cid = a.target_cid
         WHERE p.hoscode IN ($inPlaceholders)
-        GROUP BY p.hoscode
+        GROUP BY p.hoscode, p.sub_district_code, p.moo
+        ORDER BY p.moo
     ");
     $chartCoverageStmt->execute($hoscodes);
     $chartCoverageData = $chartCoverageStmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($chartCoverageData as &$row) {
+        $row['village_name'] = get_village_display_name_by_hoscode($row['hoscode'], $row['moo']);
+    }
+    unset($row);
 
     $chartRiskStmt = $pdo->prepare("
-        SELECT p.hoscode,
+        SELECT p.hoscode, p.sub_district_code, p.moo,
                SUM(CASE WHEN a.assignment_status = 'completed' AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN 1 ELSE 0 END) as high_risk,
                SUM(CASE WHEN a.assignment_status = 'completed' AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as moderate_risk,
                SUM(CASE WHEN a.assignment_status = 'completed' AND (s.sys_bp1 < 120 AND s.dia_bp1 < 80 AND s.dtx_value < 100) THEN 1 ELSE 0 END) as normal,
@@ -249,10 +206,15 @@ if ($admin_hoscode) {
         LEFT JOIN task_assignments a ON p.cid = a.target_cid
         LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
         WHERE p.hoscode IN ($inPlaceholders)
-        GROUP BY p.hoscode
+        GROUP BY p.hoscode, p.sub_district_code, p.moo
+        ORDER BY p.moo
     ");
     $chartRiskStmt->execute($hoscodes);
     $chartRiskData = $chartRiskStmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($chartRiskData as &$row) {
+        $row['village_name'] = get_village_display_name_by_hoscode($row['hoscode'], $row['moo']);
+    }
+    unset($row);
 
     $chartDiseaseStmt = $pdo->prepare("
         SELECT 
@@ -322,6 +284,35 @@ if ($admin_hoscode) {
     $metricsParams = array_merge($valid_hoscodes, $valid_hoscodes, $valid_hoscodes, $valid_hoscodes, $valid_hoscodes, $valid_hoscodes);
     $metricsStmt->execute($metricsParams);
     $metrics = $metricsStmt->fetch(PDO::FETCH_ASSOC);
+
+    // Query target groups by health_status_origin
+    $groupStmtSa = $pdo->prepare("
+        SELECT 
+            SUM(CASE WHEN health_status_origin = 'DM_ONLY' AND (need_screen_dm = 1 OR need_screen_ht = 1) THEN 1 ELSE 0 END) as group_dm,
+            SUM(CASE WHEN health_status_origin = 'HT_ONLY' AND (need_screen_dm = 1 OR need_screen_ht = 1) THEN 1 ELSE 0 END) as group_ht,
+            SUM(CASE WHEN health_status_origin IN ('BOTH','HIGH_RISK') AND (need_screen_dm = 1 OR need_screen_ht = 1) THEN 1 ELSE 0 END) as group_both,
+            SUM(CASE WHEN health_status_origin IN ('HIGH_RISK','DM_ONLY','HT_ONLY','BOTH') AND (need_screen_dm = 1 OR need_screen_ht = 1) THEN 1 ELSE 0 END) as group_risk,
+            SUM(CASE WHEN health_status_origin = 'NORMAL' THEN 1 ELSE 0 END) as group_normal,
+            SUM(CASE WHEN need_screen_dm = 0 AND need_screen_ht = 0 THEN 1 ELSE 0 END) as group_suspected
+        FROM target_population WHERE hoscode IN ($inPlaceholdersSa)
+    ");
+    $groupStmtSa->execute($valid_hoscodes);
+    $groupCounts = $groupStmtSa->fetch(PDO::FETCH_ASSOC);
+    $metrics['group_risk'] = $groupCounts['group_risk'] ?? 0;
+    $metrics['group_dm'] = $groupCounts['group_dm'] ?? 0;
+    $metrics['group_ht'] = $groupCounts['group_ht'] ?? 0;
+    $metrics['group_both'] = $groupCounts['group_both'] ?? 0;
+    $metrics['group_normal'] = $groupCounts['group_normal'] ?? 0;
+    $metrics['group_suspected'] = $groupCounts['group_suspected'] ?? 0;
+
+    // Detail breakdown per group for modal
+    $groupDetailStmtSa = $pdo->prepare("
+        SELECT health_status_origin, COUNT(*) as count 
+        FROM target_population WHERE hoscode IN ($inPlaceholdersSa)
+        GROUP BY health_status_origin ORDER BY FIELD(health_status_origin, 'HIGH_RISK','BOTH','DM_ONLY','HT_ONLY','NORMAL')
+    ");
+    $groupDetailStmtSa->execute($valid_hoscodes);
+    $groupDetail = $groupDetailStmtSa->fetchAll(PDO::FETCH_ASSOC);
 
     // Card 1 Detail: Targets per hoscode for super admin
     $targetsDetailStmt = $pdo->prepare("SELECT hoscode, COUNT(*) as count FROM target_population WHERE hoscode IN ($inPlaceholdersSa) GROUP BY hoscode ORDER BY hoscode");
@@ -607,17 +598,68 @@ if ($admin_hoscode) {
                 style="color: var(--color-accent);"><?= htmlspecialchars($admin_title) ?></strong>
         </p>
 
-        <!-- Metrics Grid -->
-        <div class="grid-cols-4" style="margin-bottom: 30px;">
-            <div class="card-dark" style="cursor: pointer;" onclick="showCardModal('targets')">
-                <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">ประชากรเป้าหมาย</span>
-                <div class="stat-val"><?= number_format($metrics['total_targets']) ?> <span
-                        style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
-                <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);">
-                    นำเข้าข้อมูลคัดกรองเบื้องต้นจาก HDC (คลิกดูรายละเอียด)
+        <!-- Target Group Summary -->
+        <div style="margin-bottom: 12px;">
+            <h3 style="color: var(--color-accent); margin-bottom: 8px; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                กลุ่มเป้าหมายการคัดกรอง
+                <span style="font-size: 13px; font-weight: normal; color: var(--text-secondary);">(รวมทั้งหมด <?= number_format($metrics['total_targets']) ?> ราย)</span>
+            </h3>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; margin-bottom: 30px;">
+            <!-- กลุ่มเสี่ยง DM -->
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #f97316; position: relative; overflow: hidden;" onclick="showCardModal('targets')">
+                <div style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(249, 115, 22, 0.08);"></div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <span style="font-size: 22px;">🟠</span>
+                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">เสี่ยง (เบาหวาน)</span>
+                </div>
+                <div class="stat-val" style="color: #f97316;"><?= number_format($metrics['group_dm']) ?> <span style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
+                <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                    เฉพาะเบาหวาน — คัดกรองซ้ำ
+                </div>
+                <div style="margin-top: 6px; font-size: 12px; color: #f97316; font-weight: bold;">
+                    <?= $metrics['total_targets'] > 0 ? round(($metrics['group_dm'] / $metrics['total_targets']) * 100, 1) : 0 ?>% ของเป้าหมาย
                 </div>
             </div>
 
+            <!-- กลุ่มเสี่ยง HT -->
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #06b6d4; position: relative; overflow: hidden;" onclick="showCardModal('targets')">
+                <div style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(6, 182, 212, 0.08);"></div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <span style="font-size: 22px;">🔵</span>
+                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">เสี่ยง (ความดัน)</span>
+                </div>
+                <div class="stat-val" style="color: #06b6d4;"><?= number_format($metrics['group_ht']) ?> <span style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
+                <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                    เฉพาะความดัน — คัดกรองซ้ำ
+                </div>
+                <div style="margin-top: 6px; font-size: 12px; color: #06b6d4; font-weight: bold;">
+                    <?= $metrics['total_targets'] > 0 ? round(($metrics['group_ht'] / $metrics['total_targets']) * 100, 1) : 0 ?>% ของเป้าหมาย
+                </div>
+            </div>
+
+            <!-- กลุ่มเสี่ยง Both/High Risk -->
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-red); position: relative; overflow: hidden;" onclick="showCardModal('targets')">
+                <div style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(239, 68, 68, 0.08);"></div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <span style="font-size: 22px;">🔴</span>
+                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">เสี่ยง (เบาหวาน+ความดัน)</span>
+                </div>
+                <div class="stat-val" style="color: var(--color-red);"><?= number_format($metrics['group_both']) ?> <span style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
+                <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                    เสี่ยงทั้งคู่/สูง — คัดกรองซ้ำ
+                </div>
+                <div style="margin-top: 6px; font-size: 12px; color: var(--color-red); font-weight: bold;">
+                    <?= $metrics['total_targets'] > 0 ? round(($metrics['group_both'] / $metrics['total_targets']) * 100, 1) : 0 ?>% ของเป้าหมาย
+                </div>
+            </div>
+
+
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="grid-cols-4" style="margin-bottom: 30px;">
             <div class="card-dark" style="cursor: pointer;" onclick="showCardModal('screened')">
                 <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">คัดกรองเสร็จสิ้น</span>
                 <div class="stat-val" style="color: var(--color-green);">
@@ -627,6 +669,16 @@ if ($admin_hoscode) {
                     คิดเป็น
                     <?= $metrics['total_targets'] > 0 ? round(($metrics['screened_count'] / $metrics['total_targets']) * 100, 1) : 0 ?>%
                     ของเป้าหมาย (คลิกดูรายละเอียด)
+                </div>
+            </div>
+
+            <div class="card-dark" style="cursor: pointer;" onclick="showCardModal('pending')">
+                <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">รอดำเนินการ (Pending)</span>
+                <div class="stat-val" style="color: var(--color-primary);">
+                    <?= number_format($metrics['pending_count']) ?> <span
+                        style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
+                <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);">
+                    มอบหมายแล้ว รอ อสม. ดำเนินการ
                 </div>
             </div>
 
@@ -928,9 +980,11 @@ if ($admin_hoscode) {
             // Data from PHP
             const hcNamesChart = <?= json_encode($hc_names) ?>;
 
+            const isRegularAdmin = <?= json_encode($admin_hoscode !== null) ?>;
+
             // Coverage Data
             const coverageRaw = <?= json_encode($chartCoverageData) ?>;
-            const covCategories = coverageRaw.map(d => hcNamesChart[d.hoscode] || d.hoscode);
+            const covCategories = coverageRaw.map(d => isRegularAdmin ? (d.village_name || "หมู่ " + d.moo) : (hcNamesChart[d.hoscode] || d.hoscode));
             const covTotal = coverageRaw.map(d => parseInt(d.total_targets));
             const covScreened = coverageRaw.map(d => parseInt(d.screened));
 
@@ -973,29 +1027,38 @@ if ($admin_hoscode) {
 
             // Risk Data
             const riskRaw = <?= json_encode($chartRiskData) ?>;
-            // Group all known hoscodes from target_population to ensure every place is shown
-            const allHoscodesRaw = [...new Set(coverageRaw.map(d => d.hoscode))];
-            const riskCategories = allHoscodesRaw.map(hc => hcNamesChart[hc] || hc);
+            
+            const riskCategories = isRegularAdmin 
+                ? coverageRaw.map(d => d.village_name || "หมู่ " + d.moo)
+                : [...new Set(coverageRaw.map(d => d.hoscode))].map(hc => hcNamesChart[hc] || hc);
 
             const riskNormal = [];
             const riskModerate = [];
             const riskHigh = [];
             const riskUnscreened = [];
 
-            allHoscodesRaw.forEach(hc => {
-                const match = riskRaw.find(d => d.hoscode === hc) || { normal: 0, moderate_risk: 0, high_risk: 0, unscreened: 0 };
-                riskNormal.push(parseInt(match.normal) || 0);
-                riskModerate.push(parseInt(match.moderate_risk) || 0);
-                riskHigh.push(parseInt(match.high_risk) || 0);
-                riskUnscreened.push(parseInt(match.unscreened) || 0);
-            });
+            if (isRegularAdmin) {
+                coverageRaw.forEach(covRow => {
+                    const match = riskRaw.find(d => d.moo === covRow.moo && d.sub_district_code === covRow.sub_district_code) || { normal: 0, moderate_risk: 0, high_risk: 0, unscreened: 0 };
+                    riskNormal.push(parseInt(match.normal) || 0);
+                    riskModerate.push(parseInt(match.moderate_risk) || 0);
+                    riskHigh.push(parseInt(match.high_risk) || 0);
+                    riskUnscreened.push(parseInt(match.unscreened) || 0);
+                });
+            } else {
+                const allHoscodesRaw = [...new Set(coverageRaw.map(d => d.hoscode))];
+                allHoscodesRaw.forEach(hc => {
+                    const match = riskRaw.find(d => d.hoscode === hc) || { normal: 0, moderate_risk: 0, high_risk: 0, unscreened: 0 };
+                    riskNormal.push(parseInt(match.normal) || 0);
+                    riskModerate.push(parseInt(match.moderate_risk) || 0);
+                    riskHigh.push(parseInt(match.high_risk) || 0);
+                    riskUnscreened.push(parseInt(match.unscreened) || 0);
+                });
+            }
 
             // Risk Chart (100% Stacked)
             var optionsRisk = {
                 series: [{
-                    name: 'ปกติ',
-                    data: riskNormal
-                }, {
                     name: 'เสี่ยงปานกลาง',
                     data: riskModerate
                 }, {
@@ -1014,7 +1077,7 @@ if ($admin_hoscode) {
                     toolbar: { show: false }
                 },
                 theme: { mode: 'dark' },
-                colors: ['#22c55e', '#f59e0b', '#ef4444', '#4b5563'],
+                colors: ['#f59e0b', '#ef4444', '#4b5563'],
                 legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
                 plotOptions: { bar: { borderRadius: 2 } },
                 xaxis: {
@@ -1032,7 +1095,6 @@ if ($admin_hoscode) {
             // Disease Data
             const diseaseRaw = <?= json_encode($chartDiseaseData) ?>;
             const diseaseSeries = [
-                parseInt(diseaseRaw?.normal_group || 0),
                 parseInt(diseaseRaw?.risk_group || 0),
                 parseInt(diseaseRaw?.dm_only || 0),
                 parseInt(diseaseRaw?.ht_only || 0),
@@ -1048,8 +1110,8 @@ if ($admin_hoscode) {
                     background: 'transparent'
                 },
                 theme: { mode: 'dark' },
-                labels: ['กลุ่มปกติ', 'กลุ่มเสี่ยง', 'ป่วย/สงสัยเบาหวาน (DM)', 'ป่วย/สงสัยความดัน (HT)', 'ป่วย/สงสัยทั้ง HT และ DM'],
-                colors: ['#22c55e', '#f59e0b', '#8b5cf6', '#3b82f6', '#ec4899'],
+                labels: ['กลุ่มเสี่ยง', 'ป่วย/สงสัยเบาหวาน (DM)', 'ป่วย/สงสัยความดัน (HT)', 'ป่วย/สงสัยทั้ง HT และ DM'],
+                colors: ['#f59e0b', '#8b5cf6', '#3b82f6', '#ec4899'],
                 stroke: { show: false },
                 legend: {
                     position: 'bottom',
@@ -1122,13 +1184,13 @@ if ($admin_hoscode) {
 
             const progressData = [];
             
-            // Calculate per hoscode
+            // Calculate per village or per hoscode
             coverageRaw.forEach(d => {
                 const targets = parseInt(d.total_targets);
                 const screened = parseInt(d.screened);
                 const pct = targets > 0 ? Math.round((screened / targets) * 100) : 0;
                 progressData.push({
-                    x: hcNamesChart[d.hoscode] || d.hoscode,
+                    x: isRegularAdmin ? (d.village_name || "หมู่ " + d.moo) : (hcNamesChart[d.hoscode] || d.hoscode),
                     y: pct,
                     fillColor: '#22c55e'
                 });
@@ -1139,7 +1201,7 @@ if ($admin_hoscode) {
             
             // Push overall first (always at the top)
             progressData.unshift({
-                x: 'ภาพรวมทั้งอำเภอ',
+                x: isRegularAdmin ? 'ภาพรวมหน่วยบริการ' : 'ภาพรวมทั้งอำเภอ',
                 y: progressPercent,
                 fillColor: '#0ea5e9' // Distinct color for overall
             });
@@ -1592,18 +1654,49 @@ if ($admin_hoscode) {
         <!-- Metric Card Modal JS -->
         <script>
             var targetsDetail = <?= json_encode($targetsDetail) ?>;
+            var groupDetail = <?= json_encode($groupDetail) ?>;
             var screenedDetail = <?= json_encode($screenedDetail) ?>;
             var skippedDetail = <?= json_encode($skippedDetail) ?>;
             var rewardsDetail = <?= json_encode($rewardsDetail) ?>;
+
+            var groupLabels = {
+                'HIGH_RISK': '🔴 เสี่ยงสูง (High Risk)',
+                'BOTH': '🟠 เสี่ยงทั้ง HT+DM',
+                'DM_ONLY': '🟡 เสี่ยงเบาหวาน (DM)',
+                'HT_ONLY': '🟡 เสี่ยงความดัน (HT)',
+                'NORMAL': '🟢 กลุ่มปกติ (Normal)'
+            };
+            var groupColors = {
+                'HIGH_RISK': 'var(--color-red)',
+                'BOTH': '#f97316',
+                'DM_ONLY': 'var(--color-yellow)',
+                'HT_ONLY': 'var(--color-yellow)',
+                'NORMAL': 'var(--color-green)'
+            };
 
             function showCardModal(type) {
                 var title = '';
                 var html = '';
 
                 if (type === 'targets') {
+                    title = '📊 กลุ่มเป้าหมายการคัดกรอง แยกตามสถานะ HDC';
+                    html = '<table class="admin-table"><thead><tr><th>กลุ่มเป้าหมาย</th><th style="text-align: right;">จำนวน (ราย)</th></tr></thead><tbody>';
+                    if (groupDetail.length === 0) {
+                        html += '<tr><td colspan="2" style="text-align: center;">ไม่มีข้อมูล</td></tr>';
+                    } else {
+                        groupDetail.forEach(function (row) {
+                            var label = groupLabels[row.health_status_origin] || row.health_status_origin;
+                            var color = groupColors[row.health_status_origin] || 'var(--text-primary)';
+                            html += '<tr><td style="color: ' + color + '; font-weight: bold;">' + label + '</td><td style="text-align: right; font-weight: bold; color: ' + color + ';">' + Number(row.count).toLocaleString() + ' ราย</td></tr>';
+                        });
+                    }
+                    html += '<tr style="background-color: var(--bg-darker); font-weight: bold;"><td>รวมทั้งหมด</td><td style="text-align: right;">' + Number(<?= $metrics['total_targets'] ?>).toLocaleString() + ' ราย</td></tr>';
+                    html += '</tbody></table>';
+
+                    // Also show per-village/hoscode breakdown
+                    html += '<h4 style="margin-top: 20px; color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">แยกตามพื้นที่</h4>';
+                    html += '<table class="admin-table"><thead><tr><th>พื้นที่</th><th style="text-align: right;">จำนวน (ราย)</th></tr></thead><tbody>';
                     <?php if (!$admin_hoscode): ?>
-                    title = '📊 จำนวนเป้าหมายแยกราย รพ.สต.';
-                    html = '<table class="admin-table"><thead><tr><th>หน่วยบริการ</th><th style="text-align: right;">จำนวนเป้าหมาย (ราย)</th></tr></thead><tbody>';
                     if (targetsDetail.length === 0) {
                         html += '<tr><td colspan="2" style="text-align: center;">ไม่มีข้อมูล</td></tr>';
                     } else {
@@ -1612,13 +1705,11 @@ if ($admin_hoscode) {
                         });
                     }
                     <?php else: ?>
-                    title = '📊 จำนวนเป้าหมายแยกรายหมู่บ้าน';
-                    html = '<table class="admin-table"><thead><tr><th>หมู่ที่</th><th style="text-align: right;">จำนวนเป้าหมาย (ราย)</th></tr></thead><tbody>';
                     if (targetsDetail.length === 0) {
                         html += '<tr><td colspan="2" style="text-align: center;">ไม่มีข้อมูล</td></tr>';
                     } else {
                         targetsDetail.forEach(function (row) {
-                            html += '<tr><td>หมู่ที่ ' + row.moo + '</td><td style="text-align: right; font-weight: bold;">' + Number(row.count).toLocaleString() + ' ราย</td></tr>';
+                            html += '<tr><td>' + (row.village_name || ('หมู่ที่ ' + row.moo)) + '</td><td style="text-align: right; font-weight: bold;">' + Number(row.count).toLocaleString() + ' ราย</td></tr>';
                         });
                     }
                     <?php endif; ?>

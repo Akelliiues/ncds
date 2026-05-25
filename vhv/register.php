@@ -22,16 +22,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         try {
             // 1. ตรวจสอบว่าเบอร์โทรศัพท์ (vhv_id) นี้ลงทะเบียนไปหรือยัง
-            $checkStmt = $pdo->prepare("SELECT vhv_id FROM vhv_users WHERE vhv_id = ?");
+            $checkStmt = $pdo->prepare("SELECT vhv_id, vhv_name, hoscode, approved FROM vhv_users WHERE vhv_id = ?");
             $checkStmt->execute([$phone]);
-            if ($checkStmt->fetch()) {
+            $existingRow = $checkStmt->fetch();
+
+            if ($existingRow && $existingRow['approved'] == 1) {
                 $error = 'เบอร์โทรศัพท์นี้ถูกใช้ลงทะเบียนไปแล้วในระบบ';
-            } else {
-                // 2. คำนวณหา vhid_code (รหัสพื้นที่ 8 หลัก)
-                // รูปแบบ: รหัสจังหวัด(34) + รหัสอำเภอ(18) + รหัสตำบล(01-06) + รหัสหมู่บ้าน(01-15)
+            } elseif ($existingRow && $existingRow['approved'] == 0) {
+                // Found a pre-imported pending record — try to auto-activate if name + hoscode match
+                $vhvNameFull = $title . $firstName . ' ' . $lastName;
                 $vhidCode = $tambonCode . sprintf("%02d", $moo);
-                
-                // 3. ค้นหารหัส รพ.สต./โรงพยาบาล (hoscode) จากข้อมูลประชากร หรือจัดสรรตามเขตรับผิดชอบทางการ
+
+                // Resolve hoscode for the tambon+moo the user submitted
                 $hoscode = '';
                 $hosStmt = $pdo->prepare("SELECT hoscode FROM target_population WHERE vhid_code = ? LIMIT 1");
                 $hosStmt->execute([$vhidCode]);
@@ -39,34 +41,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($hosRow && !empty($hosRow['hoscode'])) {
                     $hoscode = $hosRow['hoscode'];
                 } else {
-                    // หากไม่พบในฐานข้อมูลเป้าหมาย ให้ใช้เกณฑ์การแบ่งเขตพื้นที่บริการปฐมภูมิของอำเภอตาลสุม
-                    if ($tambonCode === '341801') { // ตำบลตาลสุม
-                        // รพ.สต.บ้านดอนพันชาด (03751) ดูแลหมู่ 4, 6, 7, 8, 9, 13, 14, 15
-                        // โรงพยาบาลตาลสุม (10957) ดูแลหมู่ 1, 2, 3, 5, 10, 11, 12
+                    if ($tambonCode === '341801') {
                         $donPhanchadMoos = [4, 6, 7, 8, 9, 13, 14, 15];
                         $hoscode = in_array($moo, $donPhanchadMoos) ? '03751' : '10957';
-                    } elseif ($tambonCode === '341802') { // ตำบลสำโรง
-                        // รพ.สต.สำโรง (03752)
-                        $hoscode = '03752';
-                    } elseif ($tambonCode === '341803') { // ตำบลจิกเทิง
-                        // รพ.สต.บ้านจิกเทิง (03753)
-                        $hoscode = '03753';
-                    } elseif ($tambonCode === '341804') { // ตำบลหนองกุง
-                        // รพ.สต.หนองกุง (03754)
-                        $hoscode = '03754';
-                    } elseif ($tambonCode === '341805') { // ตำบลนาคาย
-                        // รพ.สต.นาคาย (03755) ดูแลหมู่ 1-6
-                        // รพ.สต.บ้านคำหนามแท่ง (03756) ดูแลหมู่ 7-13
-                        $hoscode = ($moo >= 1 && $moo <= 6) ? '03755' : '03756';
-                    } elseif ($tambonCode === '341806') { // ตำบลคำหว้า
-                        // รพ.สต.คำหว้า (03757)
-                        $hoscode = '03757';
-                    } else {
-                        $hoscode = '10957'; // Fallback
-                    }
+                    } elseif ($tambonCode === '341802') { $hoscode = '03752';
+                    } elseif ($tambonCode === '341803') { $hoscode = '03753';
+                    } elseif ($tambonCode === '341804') { $hoscode = '03754';
+                    } elseif ($tambonCode === '341805') { $hoscode = ($moo >= 1 && $moo <= 6) ? '03755' : '03756';
+                    } elseif ($tambonCode === '341806') { $hoscode = '03757';
+                    } else { $hoscode = '10957'; }
                 }
 
-                // 4. บันทึกข้อมูล อสม.
+                // Compare: name similarity (strip prefix variations) + hoscode
+                $importedName = trim($existingRow['vhv_name']);
+                $submittedName = trim($vhvNameFull);
+                $nameMatch = (mb_strpos($importedName, $firstName) !== false && mb_strpos($importedName, $lastName) !== false);
+                $hoscodeMatch = ($existingRow['hoscode'] === $hoscode);
+
+                if ($nameMatch && $hoscodeMatch) {
+                    // Auto-activate: update password, mark approved = 1, update name/moo/vhid
+                    $passwordHash = password_hash('1234', PASSWORD_DEFAULT);
+                    $actStmt = $pdo->prepare("
+                        UPDATE vhv_users
+                        SET approved = 1, vhv_name = ?, vhv_moo = ?, vhid_code = ?, password_hash = ?
+                        WHERE vhv_id = ?
+                    ");
+                    $actStmt->execute([$submittedName, $moo, $vhidCode, $passwordHash, $phone]);
+                    $message = 'ยืนยันตัวตนสำเร็จ! ระบบตรวจพบข้อมูลของคุณในฐานข้อมูล อนุมัติสิทธิ์ให้คุณโดยอัตโนมัติแล้ว! รหัสผ่านเริ่มต้นคือ "1234" (กรุณาเปลี่ยนรหัสผ่านหลังเข้าสู่ระบบ)';
+                    $success = true;
+                } else {
+                    $error = 'พบรายชื่อเบอร์โทรนี้ในระบบ แต่ชื่อ-นามสกุลหรือเขตรับผิดชอบไม่ตรงกัน กรุณาติดต่อเจ้าหน้าที่เพื่อตรวจสอบสิทธิ์';
+                }
+            } else {
+                // No existing record — insert new pending
+                // 2. คำนวณหา vhid_code
+                $vhidCode = $tambonCode . sprintf("%02d", $moo);
+                
+                // 3. ค้นหา hoscode
+                $hoscode = '';
+                $hosStmt = $pdo->prepare("SELECT hoscode FROM target_population WHERE vhid_code = ? LIMIT 1");
+                $hosStmt->execute([$vhidCode]);
+                $hosRow = $hosStmt->fetch();
+                if ($hosRow && !empty($hosRow['hoscode'])) {
+                    $hoscode = $hosRow['hoscode'];
+                } else {
+                    if ($tambonCode === '341801') {
+                        $donPhanchadMoos = [4, 6, 7, 8, 9, 13, 14, 15];
+                        $hoscode = in_array($moo, $donPhanchadMoos) ? '03751' : '10957';
+                    } elseif ($tambonCode === '341802') { $hoscode = '03752';
+                    } elseif ($tambonCode === '341803') { $hoscode = '03753';
+                    } elseif ($tambonCode === '341804') { $hoscode = '03754';
+                    } elseif ($tambonCode === '341805') { $hoscode = ($moo >= 1 && $moo <= 6) ? '03755' : '03756';
+                    } elseif ($tambonCode === '341806') { $hoscode = '03757';
+                    } else { $hoscode = '10957'; }
+                }
+
+                // 4. บันทึกข้อมูล
                 $vhvName = $title . $firstName . ' ' . $lastName;
                 $passwordHash = password_hash('1234', PASSWORD_DEFAULT);
 
