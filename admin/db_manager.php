@@ -90,7 +90,7 @@ $hcNames = [
     </style>
 </head>
 <body class="admin-dashboard">
-    <div class="admin-wrapper" style="max-width: 1000px; margin: 0 auto; padding: 20px;">
+    <div class="admin-wrapper" style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
             <div>
                 <h1 style="color: var(--color-accent); margin: 0; font-size: 28px;">⚙️ จัดการฐานข้อมูลระบบ (DB Manager)</h1>
