@@ -25,10 +25,12 @@ if (isset($_GET['action'])) {
 
         try {
             $pdo->exec("ALTER TABLE target_population ADD COLUMN prefix VARCHAR(50) NULL AFTER pid");
-        } catch (Exception $e) {}
+        } catch (Exception $e) {
+        }
         try {
             $pdo->exec("ALTER TABLE target_population ADD COLUMN is_manual TINYINT(1) DEFAULT 0 AFTER need_screen_ht");
-        } catch (Exception $e) {}
+        } catch (Exception $e) {
+        }
 
         $sql = "SELECT cid, prefix, first_name, last_name, birth, house_no, TIMESTAMPDIFF(YEAR, birth, CURDATE()) as age, need_screen_dm, need_screen_ht, health_status_origin, is_manual 
                 FROM target_population 
@@ -53,7 +55,7 @@ if (isset($_GET['action'])) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_GET['action'] == 'add_manual') {
         header('Content-Type: application/json');
         $data = json_decode(file_get_contents('php://input'), true);
-        
+
         $cid = $data['cid'] ?? '';
         $prefix = $data['prefix'] ?? '';
         $fname = $data['fname'] ?? '';
@@ -65,22 +67,24 @@ if (isset($_GET['action'])) {
         $tambon = $data['tambon'] ?? '';
         $moo = $data['moo'] ?? '';
         $hoscode = $data['hoscode'] ?? '';
-        
+
         $birth = $birth_formatted;
         $hid = '';
         $pid = '';
-        $sex = '1'; 
-        
+        $sex = '1';
+
         $moo_str = str_pad($moo, 2, '0', STR_PAD_LEFT);
         $vhid_code = $tambon . $moo_str;
-        
+
         try {
             try {
                 $pdo->exec("ALTER TABLE target_population ADD COLUMN prefix VARCHAR(50) NULL AFTER pid");
-            } catch (Exception $e) {}
+            } catch (Exception $e) {
+            }
             try {
                 $pdo->exec("ALTER TABLE target_population ADD COLUMN is_manual TINYINT(1) DEFAULT 0 AFTER need_screen_ht");
-            } catch (Exception $e) {}
+            } catch (Exception $e) {
+            }
 
             if ($dm == 1 && $ht == 1) {
                 $origin = 'BOTH';
@@ -103,7 +107,22 @@ if (isset($_GET['action'])) {
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([
-                    $cid, $hid, $pid, $prefix, $fname, $lname, $sex, $birth, $house_no, $moo, $tambon, $vhid_code, $hoscode, $origin, $dm, $ht
+                    $cid,
+                    $hid,
+                    $pid,
+                    $prefix,
+                    $fname,
+                    $lname,
+                    $sex,
+                    $birth,
+                    $house_no,
+                    $moo,
+                    $tambon,
+                    $vhid_code,
+                    $hoscode,
+                    $origin,
+                    $dm,
+                    $ht
                 ]);
             }
             echo json_encode(['status' => 'success']);
@@ -301,17 +320,22 @@ if (isset($_GET['action'])) {
                 <span id="selected-count" style="color: var(--color-accent); font-weight: bold;">เลือก 0 คน</span>
             </div>
             <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
-                <label style="display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; color: var(--text-primary); cursor: pointer; font-size: 14px;">
-                    <input type="checkbox" id="set_dm" checked style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-accent);">
+                <label
+                    style="display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; color: var(--text-primary); cursor: pointer; font-size: 14px;">
+                    <input type="checkbox" id="set_dm" checked
+                        style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-accent);">
                     เป้าหมายเบาหวาน (DM)
                 </label>
-                <label style="display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; color: var(--text-primary); cursor: pointer; font-size: 14px;">
-                    <input type="checkbox" id="set_ht" checked style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-accent);">
+                <label
+                    style="display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; color: var(--text-primary); cursor: pointer; font-size: 14px;">
+                    <input type="checkbox" id="set_ht" checked
+                        style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-accent);">
                     เป้าหมายความดัน (HT)
                 </label>
                 <button onclick="updateTargetStatus()" class="btn-giant btn-giant-primary" title="บันทึกการตั้งค่า"
                     style="margin: 0; padding: 0; display: inline-flex; align-items: center; justify-content: center; width: 44px !important; height: 44px !important; border-radius: 50% !important; min-width: 44px;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
                         <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                         <polyline points="17 21 17 13 7 13 7 21"></polyline>
                         <polyline points="7 3 7 8 15 8"></polyline>
@@ -322,12 +346,14 @@ if (isset($_GET['action'])) {
 
         <!-- Target List -->
         <div class="list-card" style="height: auto; min-height: 500px;">
-            <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <div
+                style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
                 <h3 style="margin: 0; color: var(--text-primary);">รายชื่อประชากร <span id="target-count"
                         style="font-size: 14px; color: var(--text-muted); font-weight: normal;">(พบ 0 ราย)</span></h3>
                 <button onclick="showManualAddModal()" class="btn-giant btn-giant-primary" title="เพิ่มประชากรใหม่"
                     style="margin: 0; padding: 0; display: inline-flex; align-items: center; justify-content: center; width: 44px !important; height: 44px !important; border-radius: 50% !important; min-width: 44px;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
                         <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                         <circle cx="8.5" cy="7" r="4"></circle>
                         <line x1="20" y1="8" x2="20" y2="14"></line>
@@ -451,7 +477,7 @@ if (isset($_GET['action'])) {
                 else if (originText === 'HIGH_RISK') originText = 'กลุ่มเสี่ยงสูง';
                 else if (originText === 'NORMAL') originText = 'ปกติ';
                 else if (originText === 'MANUAL') originText = 'แมนนวล (ข้อมูลเก่า)';
-                
+
                 if (t.is_manual == 1) originText += ' (แมนนวล)';
 
                 html += `
@@ -569,11 +595,11 @@ if (isset($_GET['action'])) {
                 alert('กรุณาเลือกพื้นที่ (ตำบลและหมู่บ้าน) ก่อนเพิ่มข้อมูลแมนนวล');
                 return;
             }
-            
+
             modalMode = 'add';
             document.getElementById('modal-title').innerText = '+ เพิ่มประชากรเป้าหมายแบบแมนนวล';
             document.getElementById('manual_cid').disabled = false;
-            
+
             document.getElementById('manual_cid').value = '';
             document.getElementById('manual_prefix').value = '';
             document.getElementById('manual_fname').value = '';
@@ -582,6 +608,8 @@ if (isset($_GET['action'])) {
             document.getElementById('manual_house_no').value = '';
             document.getElementById('manual_dm').checked = true;
             document.getElementById('manual_ht').checked = true;
+            document.getElementById('cid-error').style.display = 'none';
+            document.getElementById('manual_cid').style.borderColor = 'var(--border-color)';
 
             document.getElementById('manual-add-modal').style.display = 'flex';
         }
@@ -589,18 +617,20 @@ if (isset($_GET['action'])) {
         function editTarget(cid) {
             const t = currentTargets.find(x => x.cid === cid);
             if (!t) return;
-            
+
             modalMode = 'edit';
             editCid = cid;
             document.getElementById('modal-title').innerText = 'แก้ไขข้อมูลประชากร';
             document.getElementById('manual_cid').value = t.cid;
+            document.getElementById('cid-error').style.display = 'none';
+            document.getElementById('manual_cid').style.borderColor = 'var(--border-color)';
             formatThaiID(document.getElementById('manual_cid'));
             document.getElementById('manual_cid').disabled = true; // Cannot edit CID
-            
+
             document.getElementById('manual_prefix').value = t.prefix || '';
             document.getElementById('manual_fname').value = t.first_name || '';
             document.getElementById('manual_lname').value = t.last_name || '';
-            
+
             if (t.birth) {
                 const parts = t.birth.split('-');
                 if (parts.length === 3) {
@@ -610,11 +640,11 @@ if (isset($_GET['action'])) {
             } else {
                 document.getElementById('manual_birth_date').value = '';
             }
-            
+
             document.getElementById('manual_house_no').value = t.house_no || '';
             document.getElementById('manual_dm').checked = t.need_screen_dm == 1;
             document.getElementById('manual_ht').checked = t.need_screen_ht == 1;
-            
+
             document.getElementById('manual-add-modal').style.display = 'flex';
         }
 
@@ -626,7 +656,7 @@ if (isset($_GET['action'])) {
             const tambon = document.getElementById('tambon').value;
             const moo = document.getElementById('moo').value;
             let hoscode = '';
-            
+
             if (tambonData[tambon].hasSubUnits) {
                 hoscode = document.getElementById('hoscode').value;
                 if (!hoscode) { alert('กรุณาเลือกหน่วยบริการ'); return; }
@@ -636,7 +666,7 @@ if (isset($_GET['action'])) {
 
             const rawBirthDate = document.getElementById('manual_birth_date').value.trim();
             if (!rawBirthDate) { alert('กรุณาระบุ วัน/เดือน/ปีเกิด (พ.ศ.)'); return; }
-            
+
             const parts = rawBirthDate.split('/');
             if (parts.length !== 3) {
                 alert('กรุณาระบุรูปแบบ วัน/เดือน/ปีเกิด ให้ถูกต้อง เช่น 25/10/2530');
@@ -650,11 +680,13 @@ if (isset($_GET['action'])) {
                 return;
             }
             const yearCE = yearBE - 543;
-            
+
             const rawCid = document.getElementById('manual_cid').value.replace(/\D/g, '');
-            if (!isValidThaiID(rawCid)) {
-                alert('เลขบัตรประชาชนไม่ถูกต้องตามหลักเกณฑ์ กรุณาตรวจสอบ');
-                return;
+            if (modalMode === 'add') {
+                if (!isValidThaiID(rawCid)) {
+                    alert('เลขบัตรประชาชนไม่ถูกต้องตามหลักเกณฑ์ กรุณาตรวจสอบ');
+                    return;
+                }
             }
 
             const prefix = document.getElementById('manual_prefix').value;
@@ -680,36 +712,56 @@ if (isset($_GET['action'])) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             })
-            .then(r => r.json())
-            .then(res => {
-                if (res.status === 'success') {
-                    alert('เพิ่มประชากรเป้าหมายสำเร็จ!');
-                    closeManualAddModal();
-                    document.getElementById('manual_cid').value = '';
-                    document.getElementById('manual_fname').value = '';
-                    document.getElementById('manual_lname').value = '';
-                    document.getElementById('manual_birth_date').value = '';
-                    document.getElementById('manual_house_no').value = '';
-                    fetchData();
-                } else {
-                    alert('เกิดข้อผิดพลาด: ' + (res.message || 'ไม่สามารถบันทึกได้'));
-                }
-            })
-            .catch(err => alert('เกิดข้อผิดพลาดในการเชื่อมต่อ'));
+                .then(r => r.json())
+                .then(res => {
+                    if (res.status === 'success') {
+                        if (modalMode === 'edit') {
+                            alert('การแก้ไขสำเร็จ');
+                        } else {
+                            alert('เพิ่มประชากรกลุ่มเป้าหมายสำเร็จ!');
+                        }
+                        closeManualAddModal();
+                        document.getElementById('manual_cid').value = '';
+                        document.getElementById('manual_fname').value = '';
+                        document.getElementById('manual_lname').value = '';
+                        document.getElementById('manual_birth_date').value = '';
+                        document.getElementById('manual_house_no').value = '';
+                        fetchData();
+                    } else {
+                        alert('เกิดข้อผิดพลาด: ' + (res.message || 'ไม่สามารถบันทึกได้'));
+                    }
+                })
+                .catch(err => alert('เกิดข้อผิดพลาดในการเชื่อมต่อ'));
         }
-        
+
         function formatThaiID(input) {
             let val = input.value.replace(/\D/g, '');
             if (val.length > 13) val = val.substring(0, 13);
-            
+
             let formatted = '';
             if (val.length > 0) formatted += val.substring(0, 1);
             if (val.length > 1) formatted += '-' + val.substring(1, 5);
             if (val.length > 5) formatted += '-' + val.substring(5, 10);
             if (val.length > 10) formatted += '-' + val.substring(10, 12);
             if (val.length > 12) formatted += '-' + val.substring(12, 13);
-            
+
             input.value = formatted;
+
+            const errDiv = document.getElementById('cid-error');
+            if (errDiv) {
+                if (val.length === 13) {
+                    if (!isValidThaiID(val)) {
+                        errDiv.style.display = 'block';
+                        input.style.borderColor = '#ff4d4f';
+                    } else {
+                        errDiv.style.display = 'none';
+                        input.style.borderColor = 'var(--border-color)';
+                    }
+                } else {
+                    errDiv.style.display = 'none';
+                    input.style.borderColor = 'var(--border-color)';
+                }
+            }
         }
 
         function isValidThaiID(id) {
@@ -725,53 +777,74 @@ if (isset($_GET['action'])) {
     </script>
 
     <!-- Manual Add Modal -->
-    <div id="manual-add-modal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
+    <div id="manual-add-modal" class="modal-overlay"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
         <div class="modal-content card-dark" style="max-width: 500px; width: 100%; padding: 24px; position: relative;">
-            <h3 id="modal-title" style="margin-top: 0; color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">+ เพิ่มประชากรเป้าหมายแบบแมนนวล</h3>
+            <h3 id="modal-title"
+                style="margin-top: 0; color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+                + เพิ่มประชากรเป้าหมายแบบแมนนวล</h3>
             <div style="margin-top: 16px;">
-                <label class="form-label" style="color: var(--text-secondary); display: block; margin-bottom: 4px;">เลขบัตรประชาชน (13 หลัก)</label>
-                <input type="text" id="manual_cid" class="form-control" maxlength="17" placeholder="X-XXXX-XXXXX-XX-X" style="width: 100%; box-sizing: border-box;" oninput="formatThaiID(this)">
+                <label class="form-label"
+                    style="color: var(--text-secondary); display: block; margin-bottom: 4px;">เลขบัตรประชาชน (13
+                    หลัก)</label>
+                <input type="text" id="manual_cid" class="form-control" maxlength="17" placeholder="X-XXXX-XXXXX-XX-X"
+                    style="width: 100%; box-sizing: border-box;" oninput="formatThaiID(this)">
+                <div id="cid-error" style="color: #ff4d4f; font-size: 12px; margin-top: 4px; display: none;">
+                    เลขบัตรประชาชนไม่ถูกต้องตามหลักเกณฑ์ Mod 11</div>
             </div>
             <div style="display: flex; gap: 12px; margin-top: 12px;">
                 <div style="width: 120px; flex-shrink: 0;">
-                    <label class="form-label" style="color: var(--text-secondary); display: block; margin-bottom: 4px;">คำนำหน้า</label>
+                    <label class="form-label"
+                        style="color: var(--text-secondary); display: block; margin-bottom: 4px;">คำนำหน้า</label>
                     <select id="manual_prefix" class="form-control" style="width: 100%; box-sizing: border-box;">
                         <option value="นาย">นาย</option>
                         <option value="นาง">นาง</option>
                         <option value="นางสาว">นางสาว</option>
-                        <option value="ด.ช.">ด.ช.</option>
-                        <option value="ด.ญ.">ด.ญ.</option>
                         <option value="">(ไม่ระบุ)</option>
                     </select>
                 </div>
                 <div style="flex: 1;">
-                    <label class="form-label" style="color: var(--text-secondary); display: block; margin-bottom: 4px;">ชื่อ</label>
-                    <input type="text" id="manual_fname" class="form-control" placeholder="ชื่อจริง" style="width: 100%; box-sizing: border-box;">
+                    <label class="form-label"
+                        style="color: var(--text-secondary); display: block; margin-bottom: 4px;">ชื่อ</label>
+                    <input type="text" id="manual_fname" class="form-control" placeholder="ชื่อจริง"
+                        style="width: 100%; box-sizing: border-box;">
                 </div>
                 <div style="flex: 1;">
-                    <label class="form-label" style="color: var(--text-secondary); display: block; margin-bottom: 4px;">นามสกุล</label>
-                    <input type="text" id="manual_lname" class="form-control" placeholder="นามสกุล" style="width: 100%; box-sizing: border-box;">
+                    <label class="form-label"
+                        style="color: var(--text-secondary); display: block; margin-bottom: 4px;">นามสกุล</label>
+                    <input type="text" id="manual_lname" class="form-control" placeholder="นามสกุล"
+                        style="width: 100%; box-sizing: border-box;">
                 </div>
             </div>
             <div style="display: flex; gap: 12px; margin-top: 12px;">
                 <div style="flex: 1;">
-                    <label class="form-label" style="color: var(--text-secondary); display: block; margin-bottom: 4px;">วัน/เดือน/ปีเกิด (พ.ศ.)</label>
-                    <input type="text" id="manual_birth_date" class="form-control" placeholder="เช่น 25/10/2530" style="width: 100%; box-sizing: border-box;" oninput="this.value = this.value.replace(/\D/g, '').substring(0,8).replace(/^(\d{2})(\d{1,2})?(\d{1,4})?$/, function(_, d, m, y) { return d + (m ? '/' + m : '') + (y ? '/' + y : ''); })">
+                    <label class="form-label"
+                        style="color: var(--text-secondary); display: block; margin-bottom: 4px;">วัน/เดือน/ปีเกิด
+                        (พ.ศ.)</label>
+                    <input type="text" id="manual_birth_date" class="form-control" placeholder="เช่น 25/10/2530"
+                        style="width: 100%; box-sizing: border-box;"
+                        oninput="this.value = this.value.replace(/\D/g, '').substring(0,8).replace(/^(\d{2})(\d{1,2})?(\d{1,4})?$/, function(_, d, m, y) { return d + (m ? '/' + m : '') + (y ? '/' + y : ''); })">
                 </div>
                 <div style="flex: 1;">
-                    <label class="form-label" style="color: var(--text-secondary); display: block; margin-bottom: 4px;">บ้านเลขที่</label>
-                    <input type="text" id="manual_house_no" class="form-control" placeholder="บ้านเลขที่" style="width: 100%; box-sizing: border-box;">
+                    <label class="form-label"
+                        style="color: var(--text-secondary); display: block; margin-bottom: 4px;">บ้านเลขที่</label>
+                    <input type="text" id="manual_house_no" class="form-control" placeholder="บ้านเลขที่"
+                        style="width: 100%; box-sizing: border-box;">
                 </div>
             </div>
             <div style="margin-top: 16px;">
-                <label class="form-label" style="color: var(--text-secondary); display: block; margin-bottom: 4px;">ต้องการตรวจ</label>
+                <label class="form-label"
+                    style="color: var(--text-secondary); display: block; margin-bottom: 4px;">ต้องการตรวจ</label>
                 <div style="display: flex; gap: 16px; margin-top: 8px;">
-                    <label style="color: var(--text-primary); cursor: pointer;"><input type="checkbox" id="manual_dm" checked style="accent-color: var(--color-accent);"> เบาหวาน (DM)</label>
-                    <label style="color: var(--text-primary); cursor: pointer;"><input type="checkbox" id="manual_ht" checked style="accent-color: var(--color-accent);"> ความดัน (HT)</label>
+                    <label style="color: var(--text-primary); cursor: pointer;"><input type="checkbox" id="manual_dm"
+                            checked style="accent-color: var(--color-accent);"> เบาหวาน (DM)</label>
+                    <label style="color: var(--text-primary); cursor: pointer;"><input type="checkbox" id="manual_ht"
+                            checked style="accent-color: var(--color-accent);"> ความดัน (HT)</label>
                 </div>
             </div>
             <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
-                <button onclick="closeManualAddModal()" class="btn-giant" style="background: var(--bg-main); color: var(--text-secondary); box-shadow: var(--neumorph-flat);">ยกเลิก</button>
+                <button onclick="closeManualAddModal()" class="btn-giant"
+                    style="background: var(--bg-main); color: var(--text-secondary); box-shadow: var(--neumorph-flat);">ยกเลิก</button>
                 <button onclick="submitManualAdd()" class="btn-giant btn-giant-primary">บันทึกข้อมูล</button>
             </div>
         </div>

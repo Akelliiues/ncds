@@ -12,6 +12,76 @@ $diseaseType = $_GET['type'] ?? 'DM';
 // Default: show only กลุ่มเสี่ยง (1) and เสี่ยงสูง (2) — exclude ปกติ(0) and ป่วย/สงสัย(3)
 $riskFilter = $_GET['risk'] ?? 'all';
 
+$riskFilter = $_GET['risk'] ?? 'all';
+
+// Process API Toggle Target
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'toggle_target') {
+    header('Content-Type: application/json');
+    $data = json_decode(file_get_contents('php://input'), true);
+    $cid = $data['cid'] ?? '';
+    if (!$cid) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid CID']);
+        exit;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("SELECT cid FROM target_population WHERE cid = ?");
+        $stmt->execute([$cid]);
+        $exists = $stmt->rowCount() > 0;
+        
+        if ($exists) {
+            $del = $pdo->prepare("DELETE FROM target_population WHERE cid = ?");
+            $del->execute([$cid]);
+            echo json_encode(['status' => 'removed']);
+        } else {
+            $stmtDM = $pdo->prepare("SELECT * FROM staging_hdc_dm WHERE cid = ? LIMIT 1");
+            $stmtDM->execute([$cid]);
+            $dm = $stmtDM->fetch();
+            
+            $stmtHT = $pdo->prepare("SELECT * FROM staging_hdc_ht WHERE cid = ? LIMIT 1");
+            $stmtHT->execute([$cid]);
+            $ht = $stmtHT->fetch();
+            
+            $r = $dm ?: $ht;
+            if (!$r) {
+                echo json_encode(['status' => 'error', 'message' => 'ไม่พบข้อมูลใน HDC']);
+                exit;
+            }
+            
+            $need_dm = $dm ? 1 : 0;
+            $need_ht = $ht ? 1 : 0;
+            
+            if ($need_dm && $need_ht) $origin = 'BOTH';
+            else if ($need_dm) $origin = 'DM_ONLY';
+            else if ($need_ht) $origin = 'HT_ONLY';
+            else $origin = 'NORMAL';
+            
+            $vhid_code = $r['check_vhid'] ?? '';
+            if (strlen($vhid_code) === 8) {
+                $tambon = substr($vhid_code, 0, 6);
+                $moo = intval(substr($vhid_code, 6, 2));
+            } else {
+                // Fallback if check_vhid is missing in HDC
+                $vhid_code = '34180101';
+                $tambon = '341801';
+                $moo = 1;
+            }
+            
+            $insert = $pdo->prepare("INSERT INTO target_population 
+                (cid, pid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode, health_status_origin, need_screen_dm, need_screen_ht)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $insert->execute([
+                $r['cid'], $r['pid'], $r['name'], $r['lname'], $r['sex'], $r['birth'], $r['addr'], $moo, $tambon, $vhid_code, $r['hoscode'], $origin, $need_dm, $need_ht
+            ]);
+            
+            echo json_encode(['status' => 'added']);
+        }
+    } catch (Exception $e) {
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+    exit;
+}
+
 // Process Enrollment
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'enroll_dpac') {
     $cids = $_POST['cids'] ?? [];
@@ -200,7 +270,7 @@ if ($diseaseType === 'BOTH') {
             t.cid AS real_cid, t.first_name AS real_first_name, t.last_name AS real_last_name, t.birth AS real_birth
         FROM staging_hdc_dm dm
         INNER JOIN staging_hdc_ht ht ON LPAD(dm.hoscode, 5, '0') = LPAD(ht.hoscode, 5, '0') AND dm.pid = ht.pid
-        LEFT JOIN target_population t ON LPAD(dm.hoscode, 5, '0') = LPAD(t.hoscode, 5, '0') AND dm.pid = t.pid
+        LEFT JOIN target_population t ON t.cid = dm.cid
         $whereClause
         ORDER BY COALESCE(t.first_name, dm.name) ASC
         LIMIT $limit OFFSET $offset
@@ -258,7 +328,7 @@ if ($diseaseType === 'BOTH') {
             s.*,
             t.cid AS real_cid, t.first_name AS real_first_name, t.last_name AS real_last_name, t.birth AS real_birth
         FROM $table s
-        LEFT JOIN target_population t ON LPAD(s.hoscode, 5, '0') = LPAD(t.hoscode, 5, '0') AND s.pid = t.pid
+        LEFT JOIN target_population t ON t.cid = s.cid
         $whereClause
         ORDER BY COALESCE(t.first_name, s.name) ASC
         LIMIT $limit OFFSET $offset
@@ -520,6 +590,7 @@ $availableRisks = ['1', '2'];
                                     <th>ระดับน้ำตาล & ความดัน</th>
                                 <?php endif; ?>
                                 <th>ระดับความเสี่ยง</th>
+                                <th style="width: 80px; text-align: center;">จัดการ</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -630,6 +701,27 @@ $availableRisks = ['1', '2'];
                                                 </div>
                                             </td>
                                         <?php endif; ?>
+                                        
+                                        <!-- Toggle Target Column -->
+                                        <td style="text-align: center;">
+                                            <?php $is_target = !empty($r['real_cid']); ?>
+                                            <button type="button" class="btn-toggle-target" 
+                                                    data-cid="<?= htmlspecialchars($displayCid) ?>"
+                                                    data-status="<?= $is_target ? '1' : '0' ?>"
+                                                    title="<?= $is_target ? 'นำออกจากกลุ่มเป้าหมาย' : 'เพิ่มเป็นกลุ่มเป้าหมาย' ?>"
+                                                    style="background: transparent; border: none; cursor: pointer; color: <?= $is_target ? '#e11d48' : 'var(--text-muted)' ?>; padding: 4px;"
+                                                    onclick="toggleTarget(this)">
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="<?= $is_target ? 'currentColor' : 'none' ?>" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <?php if ($is_target): ?>
+                                                        <!-- Solid Heart/Star to indicate it's a target -->
+                                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                                    <?php else: ?>
+                                                        <!-- User Plus to indicate 'add' -->
+                                                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="17" y1="11" x2="23" y2="11"></line>
+                                                    <?php endif; ?>
+                                                </svg>
+                                            </button>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php endif; ?>
@@ -677,6 +769,46 @@ $availableRisks = ['1', '2'];
         document.getElementById('selectAll').addEventListener('change', function (e) {
             document.querySelectorAll('input[name="cids[]"]').forEach(cb => cb.checked = e.target.checked);
         });
+
+        function toggleTarget(btn) {
+            const cid = btn.getAttribute('data-cid');
+            const isTarget = btn.getAttribute('data-status') === '1';
+            
+            const originalIcon = btn.innerHTML;
+            btn.innerHTML = '<span style="font-size:12px;">⏳</span>';
+            btn.style.pointerEvents = 'none';
+
+            fetch('hdc_list.php?action=toggle_target', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cid: cid })
+            })
+            .then(r => r.json())
+            .then(res => {
+                btn.style.pointerEvents = 'auto';
+                if (res.status === 'added') {
+                    alert('เพิ่มประชากรกลุ่มเป้าหมายสำเร็จ');
+                    btn.setAttribute('data-status', '1');
+                    btn.setAttribute('title', 'นำออกจากกลุ่มเป้าหมาย');
+                    btn.style.color = '#e11d48';
+                    btn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>';
+                } else if (res.status === 'removed') {
+                    alert('นำออกจากกลุ่มเป้าหมายแล้ว');
+                    btn.setAttribute('data-status', '0');
+                    btn.setAttribute('title', 'เพิ่มเป็นกลุ่มเป้าหมาย');
+                    btn.style.color = 'var(--text-muted)';
+                    btn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="17" y1="11" x2="23" y2="11"></line></svg>';
+                } else {
+                    alert('เกิดข้อผิดพลาด: ' + (res.message || 'ไม่สามารถดำเนินการได้'));
+                    btn.innerHTML = originalIcon;
+                }
+            })
+            .catch(err => {
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+                btn.style.pointerEvents = 'auto';
+                btn.innerHTML = originalIcon;
+            });
+        }
     </script>
 </body>
 

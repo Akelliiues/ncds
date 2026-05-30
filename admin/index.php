@@ -180,14 +180,14 @@ if ($admin_hoscode) {
 
     // --- NEW CHARTS DATA (ADMIN) ---
     $chartCoverageStmt = $pdo->prepare("
-        SELECT p.hoscode, p.sub_district_code, p.moo,
+        SELECT p.hoscode, p.moo,
                COUNT(*) as total_targets,
                SUM(CASE WHEN a.assignment_status = 'completed' THEN 1 ELSE 0 END) as screened
         FROM target_population p
         LEFT JOIN task_assignments a ON p.cid = a.target_cid
         WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-        GROUP BY p.hoscode, p.sub_district_code, p.moo
-        ORDER BY p.moo
+        GROUP BY p.hoscode, p.moo
+        ORDER BY p.hoscode, p.moo
     ");
     $chartCoverageStmt->execute($hoscodes);
     $chartCoverageData = $chartCoverageStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -197,17 +197,17 @@ if ($admin_hoscode) {
     unset($row);
 
     $chartRiskStmt = $pdo->prepare("
-        SELECT p.hoscode, p.sub_district_code, p.moo,
+        SELECT p.hoscode, MAX(p.sub_district_code) as sub_district_code, p.moo,
                SUM(CASE WHEN a.assignment_status = 'completed' AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN 1 ELSE 0 END) as high_risk,
                SUM(CASE WHEN a.assignment_status = 'completed' AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as moderate_risk,
-               SUM(CASE WHEN a.assignment_status = 'completed' AND (s.sys_bp1 < 120 AND s.dia_bp1 < 80 AND s.dtx_value < 100) THEN 1 ELSE 0 END) as normal,
+               SUM(CASE WHEN a.assignment_status = 'completed' AND (s.sys_bp1 < 120 AND s.dia_bp1 < 80 AND (s.dtx_value < 100 OR s.dtx_value IS NULL) AND (s.cv_risk_score < 10 OR s.cv_risk_score IS NULL)) THEN 1 ELSE 0 END) as normal,
                SUM(CASE WHEN a.assignment_status IS NULL OR a.assignment_status != 'completed' THEN 1 ELSE 0 END) as unscreened
         FROM target_population p
         LEFT JOIN task_assignments a ON p.cid = a.target_cid
         LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
         WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-        GROUP BY p.hoscode, p.sub_district_code, p.moo
-        ORDER BY p.moo
+        GROUP BY p.hoscode, p.moo
+        ORDER BY p.hoscode, p.moo
     ");
     $chartRiskStmt->execute($hoscodes);
     $chartRiskData = $chartRiskStmt->fetchAll(PDO::FETCH_ASSOC);
