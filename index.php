@@ -144,9 +144,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body class="vhv-accessibility">
     <div class="login-container">
-        <div class="login-brand">
-            <span>สำนักงานสาธารณสุขอำเภอตาลสุม</span>
-            <h1>ระบบคัดกรอง NCD Portal</h1>
+        <div class="login-brand" style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 24px;">
+            <img src="assets/icon.png" alt="NCDs Prevention Logo" style="width: 140px; height: auto; margin-bottom: 16px; filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.15)); border-radius: 50%; border: 3px solid rgba(255, 255, 255, 0.1);">
+            <span style="color: var(--color-accent); font-size: 14px; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase;">สำนักงานสาธารณสุขอำเภอตาลสุม</span>
+            <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 8px 0;">ระบบคัดกรอง NCD Portal</h1>
         </div>
 
         <div class="card-dark" style="margin-bottom: 0;">

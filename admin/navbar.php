@@ -5,7 +5,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
 $is_super_admin = !isset($admin_hoscode) || empty($admin_hoscode);
 ?>
 <div class="admin-navbar no-print">
-    <a href="index.php" class="admin-logo">NCDs Prevention Portal - Tansum</a>
+    <a href="index.php" class="admin-logo" style="display: flex; align-items: center; gap: 10px;">
+        <img src="../assets/icon.png" alt="Logo" style="height: 35px; width: 35px; border-radius: 50%; border: 1.5px solid rgba(255, 255, 255, 0.2);">
+        <span>NCDs Prevention Portal</span>
+    </a>
     <div class="admin-nav-links">
         <a href="index.php" class="<?= $current_page == 'index.php' ? 'active' : '' ?>" data-tooltip="แดชบอร์ด">
             <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
