@@ -155,8 +155,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($exists) {
                 // Patient exists (matched by hoscode and pid, preserve real names/CID)
                 $realCid = $exists['cid'];
-                $lat = $exists['latitude'] ?: ($source['latitude'] ?? null) ?: ($latMin + mt_rand() / mt_getrandmax() * ($latMax - $latMin));
-                $lng = $exists['longitude'] ?: ($source['longitude'] ?? null) ?: ($lngMin + mt_rand() / mt_getrandmax() * ($lngMax - $lngMin));
+                $lat = $exists['latitude'] ?: ($source['latitude'] ?? null);
+                $lng = $exists['longitude'] ?: ($source['longitude'] ?? null);
 
                 // If suspect was already activated as target by admin, preserve that status
                 if ($exists['need_screen_dm'] == 1) {
@@ -188,8 +188,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $updated++;
             } else {
                 // Insert as new record using staging details (CID might be masked but serves as fallback)
-                $lat = ($source['latitude'] ?? null) ?: ($latMin + mt_rand() / mt_getrandmax() * ($latMax - $latMin));
-                $lng = ($source['longitude'] ?? null) ?: ($lngMin + mt_rand() / mt_getrandmax() * ($lngMax - $lngMin));
+                $lat = ($source['latitude'] ?? null);
+                $lng = ($source['longitude'] ?? null);
 
                 $insertStmt = $pdo->prepare("
                     INSERT INTO target_population 

@@ -124,11 +124,25 @@ $filter_tambon = $_GET['tambon'] ?? '';
 $filter_moo = $_GET['moo'] ?? '';
 $filter_risk = $_GET['risk'] ?? '';
 $filter_disease = $_GET['disease'] ?? '';
-$filter_source = $_GET['source'] ?? 'screened'; // 'screened' (VHV Result) or 'baseline' (HDC Target)
+$filter_source = $_GET['source'] ?? 'screened'; // 'screened', 'baseline', 'unscreened', 'vhv_list', 'summary_stats', 'summary_hoscode'
+$filter_gender = $_GET['gender'] ?? '';
+$filter_age = $_GET['age'] ?? '';
 
 // Force sub-admin to see only their hoscode
 if ($admin_hoscode !== null) {
     $filter_hoscode = $admin_hoscode;
+}
+
+function appendDemographicFilters(&$sql, $alias = 'p') {
+    global $filter_gender, $filter_age;
+    if ($filter_gender === '1' || $filter_gender === '2') {
+        $sql .= " AND $alias.sex = " . intval($filter_gender);
+    }
+    if ($filter_age === '35-59') {
+        $sql .= " AND (TIMESTAMPDIFF(YEAR, $alias.birth, CURDATE()) BETWEEN 35 AND 59)";
+    } elseif ($filter_age === '60+') {
+        $sql .= " AND (TIMESTAMPDIFF(YEAR, $alias.birth, CURDATE()) >= 60)";
+    }
 }
 
 // Build SQL Query
@@ -182,7 +196,54 @@ if ($filter_source === 'screened') {
         }
     }
 
+    appendDemographicFilters($sql, 'p');
     $sql .= " ORDER BY p.moo, LENGTH(p.house_no), p.house_no, s.created_at DESC";
+
+} elseif ($filter_source === 'unscreened') {
+    // Query targets that have no completed screenings
+    $sql = "
+        SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.sub_district_code, p.hoscode,
+               p.health_status_origin as risk, p.need_screen_dm, p.need_screen_ht
+        FROM target_population p
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed'
+        WHERE a.assignment_id IS NULL
+    ";
+
+    if ($filter_hoscode) {
+        $hoscodes = [$filter_hoscode];
+        $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
+        $sql .= " AND p.hoscode IN ($inPlaceholders)";
+        $params = array_merge($params, $hoscodes);
+    }
+
+    if ($filter_tambon) {
+        $sql .= " AND p.sub_district_code = ?";
+        $params[] = $filter_tambon;
+    }
+
+    if ($filter_moo) {
+        $sql .= " AND p.moo = ?";
+        $params[] = $filter_moo;
+    }
+
+    if ($filter_disease === 'DM') {
+        $sql .= " AND p.need_screen_dm = 1";
+    } elseif ($filter_disease === 'HT') {
+        $sql .= " AND p.need_screen_ht = 1";
+    }
+
+    if ($filter_risk) {
+        if ($filter_risk === 'high') {
+            $sql .= " AND p.health_status_origin IN ('HIGH_RISK', 'BOTH', 'BOTH_HIGH')";
+        } elseif ($filter_risk === 'risk') {
+            $sql .= " AND p.health_status_origin IN ('DM_ONLY', 'HT_ONLY', 'BOTH')";
+        } elseif ($filter_risk === 'normal') {
+            $sql .= " AND p.health_status_origin = 'NORMAL'";
+        }
+    }
+
+    appendDemographicFilters($sql, 'p');
+    $sql .= " ORDER BY p.moo, LENGTH(p.house_no), p.house_no";
 
 } elseif ($filter_source === 'baseline') {
     // Query HDC Baseline Targets
@@ -226,6 +287,7 @@ if ($filter_source === 'screened') {
         }
     }
 
+    appendDemographicFilters($sql, 'p');
     $sql .= " ORDER BY p.moo, LENGTH(p.house_no), p.house_no";
 
 } elseif ($filter_source === 'vhv_list') {
@@ -311,8 +373,56 @@ if ($filter_source === 'screened') {
         $params[] = $filter_moo;
     }
 
+    appendDemographicFilters($sql, 'p');
     $sql .= " GROUP BY p.hoscode, p.moo";
     $sql .= " ORDER BY p.hoscode, p.moo";
+
+} elseif ($filter_source === 'summary_hoscode') {
+    // Query Hoscode-level Target and Screening Summary
+    $sql = "
+        SELECT p.hoscode,
+               COUNT(p.cid) as total_targets,
+               SUM(CASE WHEN p.need_screen_dm = 1 THEN 1 ELSE 0 END) as targets_dm,
+               SUM(CASE WHEN p.need_screen_ht = 1 THEN 1 ELSE 0 END) as targets_ht,
+               SUM(CASE WHEN EXISTS (
+                   SELECT 1 FROM task_assignments a 
+                   WHERE a.target_cid = p.cid AND a.assignment_status = 'completed'
+               ) THEN 1 ELSE 0 END) as completed_screenings,
+               SUM(CASE WHEN EXISTS (
+                   SELECT 1 FROM task_assignments a 
+                   JOIN screening_results s ON s.assignment_id = a.assignment_id
+                   WHERE a.target_cid = p.cid AND a.assignment_status = 'completed'
+                     AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126)
+               ) THEN 1 ELSE 0 END) as high_risk_count,
+               SUM(CASE WHEN EXISTS (
+                   SELECT 1 FROM task_assignments a 
+                   JOIN screening_results s ON s.assignment_id = a.assignment_id
+                   WHERE a.target_cid = p.cid AND a.assignment_status = 'completed'
+                     AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126)
+                     AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125))
+               ) THEN 1 ELSE 0 END) as moderate_risk_count,
+               SUM(CASE WHEN EXISTS (
+                   SELECT 1 FROM task_assignments a 
+                   JOIN screening_results s ON s.assignment_id = a.assignment_id
+                   WHERE a.target_cid = p.cid AND a.assignment_status = 'completed'
+                     AND s.sys_bp1 < 120 AND s.dia_bp1 < 80 AND (s.dtx_value < 100 OR s.dtx_value IS NULL) AND (s.cv_risk_score < 10 OR s.cv_risk_score IS NULL)
+               ) THEN 1 ELSE 0 END) as normal_risk_count
+        FROM target_population p
+        WHERE 1=1
+    ";
+
+    if ($filter_hoscode) {
+        $hoscodes = [$filter_hoscode];
+    } else {
+        $hoscodes = ['10957', '03751', '03752', '03753', '03754', '03755', '03756', '03757'];
+    }
+    $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
+    $sql .= " AND p.hoscode IN ($inPlaceholders)";
+    $params = array_merge($params, $hoscodes);
+
+    appendDemographicFilters($sql, 'p');
+    $sql .= " GROUP BY p.hoscode";
+    $sql .= " ORDER BY p.hoscode";
 }
 
 $reportData = [];
@@ -402,6 +512,28 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                 $row['need_screen_ht'] ? 'ต้องการ' : 'ไม่ต้อง'
             ]);
         }
+    } elseif ($filter_source === 'unscreened') {
+        fputcsv($output, ['ลำดับ', 'เลขบัตรประชาชน', 'ชื่อ-นามสกุล', 'บ้านเลขที่', 'หมู่', 'บ้าน', 'ตำบล', 'รพ.สต.', 'สถานะความเสี่ยงตั้งต้น', 'คัดกรองเบาหวาน', 'คัดกรองความดัน']);
+        foreach ($reportData as $row) {
+            $logical_tambon_code = $hoscode_villages[$row['hoscode']]['tambon'] ?? $row['sub_district_code'];
+            $tambonName = str_replace('ตำบล', '', $tambons[$logical_tambon_code] ?? $logical_tambon_code);
+            $hosName = $hc_names[$row['hoscode']] ?? $row['hoscode'];
+            $village_only = $hoscode_villages[$row['hoscode']]['villages'][intval($row['moo'])] ?? get_village_only_name($logical_tambon_code, $row['moo']);
+
+            fputcsv($output, [
+                $no++,
+                "'" . $row['cid'],
+                $row['first_name'] . ' ' . $row['last_name'],
+                $row['house_no'],
+                $row['moo'],
+                $village_only,
+                $tambonName,
+                $hosName,
+                $row['risk'] ?: 'ปกติ',
+                $row['need_screen_dm'] ? 'ต้องการ' : 'ไม่ต้อง',
+                $row['need_screen_ht'] ? 'ต้องการ' : 'ไม่ต้อง'
+            ]);
+        }
     } elseif ($filter_source === 'vhv_list') {
         fputcsv($output, ['ลำดับ', 'ชื่อ-นามสกุล อสม.', 'สังกัด รพ.สต.', 'หมู่บ้านรับผิดชอบ', 'จำนวนเป้าหมายที่มอบหมาย', 'คัดกรองสำเร็จ', 'ค้างดำเนินการ', 'ข้ามชั่วคราว', 'ร้อยละความสำเร็จ', 'สถานะการอนุมัติ']);
         foreach ($reportData as $row) {
@@ -452,9 +584,28 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                 $row['high_risk_count']
             ]);
         }
+    } elseif ($filter_source === 'summary_hoscode') {
+        fputcsv($output, ['ลำดับ', 'รพ.สต.', 'เป้าหมายทั้งหมด', 'เป้าหมาย DM', 'เป้าหมาย HT', 'คัดกรองเสร็จสิ้น', 'ร้อยละความครอบคลุม', 'กลุ่มปกติ', 'กลุ่มเสี่ยง', 'กลุ่มเสี่ยงสูง']);
+        foreach ($reportData as $row) {
+            $hosName = $hc_names[$row['hoscode']] ?? $row['hoscode'];
+            $rate = $row['total_targets'] > 0 ? round(($row['completed_screenings'] / $row['total_targets']) * 100, 1) : 0;
+
+            fputcsv($output, [
+                $no++,
+                $hosName,
+                $row['total_targets'],
+                $row['targets_dm'],
+                $row['targets_ht'],
+                $row['completed_screenings'],
+                $rate . '%',
+                $row['normal_risk_count'],
+                $row['moderate_risk_count'],
+                $row['high_risk_count']
+            ]);
+        }
     }
     fclose($output);
-    exit();
+    exit;
 }
 ?>
 <!DOCTYPE html>
@@ -659,6 +810,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                 echo 'รายงานทำเนียบ อสม. และสถิติผลงานการคัดกรองโรคไม่ติดต่อเรื้อรัง (NCDs)';
             } elseif ($filter_source === 'summary_stats') {
                 echo 'รายงานสรุปสถิติจำนวนเป้าหมายและผลคัดกรอง NCDs รายหมู่บ้าน';
+            } elseif ($filter_source === 'summary_hoscode') {
+                echo 'รายงานสรุปสถิติภาพรวมระดับ รพ.สต.';
+            } elseif ($filter_source === 'unscreened') {
+                echo 'รายชื่อผู้ที่ยังไม่ได้รับการคัดกรอง (Pending)';
             } else {
                 echo 'รายงานรายชื่อกลุ่มเป้าหมายคัดกรองโรคไม่ติดต่อเรื้อรัง (NCDs)';
             }
@@ -669,7 +824,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
         <p
             style="font-family: 'Sarabun', 'TH Sarabun New', 'TH Sarabun PSK', sans-serif; font-size: 13px; margin: 8px 0 0 0; font-weight: normal; color: #333;">
             <strong>เงื่อนไขรายงาน:</strong> แหล่งข้อมูล =
-            <?= $filter_source == 'screened' ? 'ผลการคัดกรองล่าสุด' : ($filter_source == 'baseline' ? 'เป้าหมายตั้งต้น' : ($filter_source == 'vhv_list' ? 'ทำเนียบ อสม.' : 'สรุปเชิงสถิติรายหมู่บ้าน')) ?>
+            <?= $filter_source == 'screened' ? 'ผลการคัดกรองล่าสุด' : ($filter_source == 'baseline' ? 'เป้าหมายตั้งต้น' : ($filter_source == 'unscreened' ? 'ผู้ตกหล่น' : ($filter_source == 'summary_hoscode' ? 'สรุปภาพรวม รพ.สต.' : ($filter_source == 'vhv_list' ? 'ทำเนียบ อสม.' : 'สรุปเชิงสถิติรายหมู่บ้าน')))) ?>
             |
             หน่วยบริการ = <?= $filter_hoscode ? ($hc_names[$filter_hoscode] ?? $filter_hoscode) : 'ทุกแห่ง' ?> |
             หมู่ = <?= $filter_moo ? 'หมู่ที่ ' . $filter_moo : 'ทุกหมู่' ?> |
@@ -707,10 +862,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                                 (แยกตามผลการคัดกรองล่าสุด)</option>
                             <option value="baseline" <?= $filter_source === 'baseline' ? 'selected' : '' ?>>รายชื่อรายบุคคล
                                 (แยกตามเป้าหมายคัดกรองตั้งต้น HDC)</option>
+                            <option value="unscreened" <?= $filter_source === 'unscreened' ? 'selected' : '' ?>>รายชื่อผู้ที่ยังไม่ได้รับการคัดกรอง
+                                (Pending/Unscreened)</option>
                             <option value="vhv_list" <?= $filter_source === 'vhv_list' ? 'selected' : '' ?>>ทำเนียบ อสม.
                                 และสถิติผลงาน (VHV Directory & Performance)</option>
                             <option value="summary_stats" <?= $filter_source === 'summary_stats' ? 'selected' : '' ?>>
                                 รายงานสรุปสถิติจำนวนเป้าหมายและผลคัดกรองรายหมู่บ้าน</option>
+                            <option value="summary_hoscode" <?= $filter_source === 'summary_hoscode' ? 'selected' : '' ?>>
+                                รายงานสรุปสถิติภาพรวมระดับ รพ.สต.</option>
                         </select>
                     </div>
 
@@ -758,6 +917,26 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                                 Risk)</option>
                             <option value="normal" <?= $filter_risk == 'normal' ? 'selected' : '' ?>>🟢 กลุ่มปกติ (Normal)
                             </option>
+                        </select>
+                    </div>
+
+                    <!-- Gender selection -->
+                    <div class="form-group">
+                        <label>เพศ</label>
+                        <select name="gender" class="form-select">
+                            <option value="">-- ทุกเพศ --</option>
+                            <option value="1" <?= $filter_gender === '1' ? 'selected' : '' ?>>ชาย (Male)</option>
+                            <option value="2" <?= $filter_gender === '2' ? 'selected' : '' ?>>หญิง (Female)</option>
+                        </select>
+                    </div>
+
+                    <!-- Age selection -->
+                    <div class="form-group">
+                        <label>ช่วงอายุ</label>
+                        <select name="age" class="form-select">
+                            <option value="">-- ทุกช่วงอายุ --</option>
+                            <option value="35-59" <?= $filter_age === '35-59' ? 'selected' : '' ?>>35-59 ปี (วัยทำงาน)</option>
+                            <option value="60+" <?= $filter_age === '60+' ? 'selected' : '' ?>>60 ปีขึ้นไป (ผู้สูงอายุ)</option>
                         </select>
                     </div>
                 </div>
@@ -842,6 +1021,20 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                                     <th>ตรวจ DM</th>
                                     <th>ตรวจ HT</th>
                                 </tr>
+                            <?php elseif ($filter_source === 'unscreened'): ?>
+                                <tr>
+                                    <th style="width: 50px;">ลำดับ</th>
+                                    <th>เลขบัตรประชาชน</th>
+                                    <th>ชื่อ-นามสกุล</th>
+                                    <th>บ้านเลขที่</th>
+                                    <th>หมู่</th>
+                                    <th>บ้าน</th>
+                                    <th>ตำบล</th>
+                                    <th>รพ.สต.</th>
+                                    <th>ความเสี่ยงตั้งต้น HDC</th>
+                                    <th>ตรวจ DM</th>
+                                    <th>ตรวจ HT</th>
+                                </tr>
                             <?php elseif ($filter_source === 'vhv_list'): ?>
                                 <tr>
                                     <th style="width: 50px;">ลำดับ</th>
@@ -862,6 +1055,19 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                                     <th>หมู่</th>
                                     <th>บ้าน</th>
                                     <th>ตำบล</th>
+                                    <th>เป้าหมายทั้งหมด</th>
+                                    <th>เป้าหมาย DM</th>
+                                    <th>เป้าหมาย HT</th>
+                                    <th>คัดกรองเสร็จ</th>
+                                    <th>ร้อยละความครอบคลุม</th>
+                                    <th>กลุ่มปกติ (เขียว)</th>
+                                    <th>กลุ่มเสี่ยง (เหลือง)</th>
+                                    <th>กลุ่มเสี่ยงสูง (แดง)</th>
+                                </tr>
+                            <?php elseif ($filter_source === 'summary_hoscode'): ?>
+                                <tr>
+                                    <th style="width: 50px;">ลำดับ</th>
+                                    <th>หน่วยบริการ / รพ.สต.</th>
                                     <th>เป้าหมายทั้งหมด</th>
                                     <th>เป้าหมาย DM</th>
                                     <th>เป้าหมาย HT</th>
@@ -979,6 +1185,42 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                                             <td><?= $row['need_screen_dm'] ? '🟢 ตรวจ' : '⚪ -' ?></td>
                                             <td><?= $row['need_screen_ht'] ? '🟢 ตรวจ' : '⚪ -' ?></td>
                                         </tr>
+                                    <?php elseif ($filter_source === 'unscreened'): ?>
+                                        <?php
+                                        $logical_tambon_code = $hoscode_villages[$row['hoscode']]['tambon'] ?? $row['sub_district_code'];
+                                        $tambonName = str_replace('ตำบล', '', $tambons[$logical_tambon_code] ?? $logical_tambon_code);
+                                        $village_only = $hoscode_villages[$row['hoscode']]['villages'][intval($row['moo'])] ?? get_village_only_name($logical_tambon_code, $row['moo']);
+                                        ?>
+                                        <tr>
+                                            <td style="text-align: center;"><?= $no++ ?></td>
+                                            <td><?= htmlspecialchars((strpos($row['cid'], '*') === false) ? $row['cid'] : (substr($row['cid'], 0, 4) . '-XXXXX-' . substr($row['cid'], -3))) ?>
+                                            </td>
+                                            <td><strong
+                                                    style="color: var(--text-primary);"><?= htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) ?></strong>
+                                            </td>
+                                            <td><?= htmlspecialchars($row['house_no']) ?></td>
+                                            <td style="text-align: center;"><?= htmlspecialchars($row['moo']) ?></td>
+                                            <td><?= htmlspecialchars($village_only) ?></td>
+                                            <td><?= htmlspecialchars($tambonName) ?>
+                                            </td>
+                                            <td><span
+                                                    style="font-size: 11px; color: var(--text-muted);"><?= htmlspecialchars($hc_names[$row['hoscode']] ?? $row['hoscode']) ?></span>
+                                            </td>
+                                            <td>
+                                                <?php
+                                                $riskVal = $row['risk'];
+                                                $class = 'color: var(--text-primary);';
+                                                if (strpos($riskVal, 'HIGH') !== false) {
+                                                    $class = 'color: var(--color-red); font-weight: bold;';
+                                                } elseif ($riskVal !== 'NORMAL' && $riskVal !== '') {
+                                                    $class = 'color: var(--color-yellow); font-weight: bold;';
+                                                }
+                                                ?>
+                                                <span style="<?= $class ?>"><?= htmlspecialchars($riskVal ?: 'ปกติ') ?></span>
+                                            </td>
+                                            <td><?= $row['need_screen_dm'] ? '🟢 ตรวจ' : '⚪ -' ?></td>
+                                            <td><?= $row['need_screen_ht'] ? '🟢 ตรวจ' : '⚪ -' ?></td>
+                                        </tr>
                                     <?php elseif ($filter_source === 'vhv_list'): ?>
                                         <?php
                                         $vhid_sub = substr($row['vhid_code'] ?? '', 0, 6);
@@ -1028,6 +1270,30 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                                                     style="color: var(--text-primary);"><?= htmlspecialchars($village_only) ?></strong>
                                             </td>
                                             <td><?= htmlspecialchars($tambonName) ?>
+                                            </td>
+                                            <td style="text-align: center; font-weight: bold;">
+                                                <?= number_format($row['total_targets']) ?></td>
+                                            <td style="text-align: center;"><?= number_format($row['targets_dm']) ?></td>
+                                            <td style="text-align: center;"><?= number_format($row['targets_ht']) ?></td>
+                                            <td style="text-align: center; color: var(--color-green); font-weight: bold;">
+                                                <?= number_format($row['completed_screenings']) ?></td>
+                                            <td style="text-align: center; font-weight: bold; color: var(--color-primary);">
+                                                <?= $rate ?>%</td>
+                                            <td style="text-align: center; color: var(--color-green); font-weight: bold;">
+                                                <?= number_format($row['normal_risk_count']) ?></td>
+                                            <td style="text-align: center; color: var(--color-yellow); font-weight: bold;">
+                                                <?= number_format($row['moderate_risk_count']) ?></td>
+                                            <td style="text-align: center; color: var(--color-red); font-weight: bold;">
+                                                <?= number_format($row['high_risk_count']) ?></td>
+                                        </tr>
+                                    <?php elseif ($filter_source === 'summary_hoscode'): ?>
+                                        <?php
+                                        $rate = $row['total_targets'] > 0 ? round(($row['completed_screenings'] / $row['total_targets']) * 100, 1) : 0;
+                                        ?>
+                                        <tr>
+                                            <td style="text-align: center;"><?= $no++ ?></td>
+                                            <td><span
+                                                    style="font-size: 13px; color: var(--text-primary); font-weight: bold;"><?= htmlspecialchars($hc_names[$row['hoscode']] ?? $row['hoscode']) ?></span>
                                             </td>
                                             <td style="text-align: center; font-weight: bold;">
                                                 <?= number_format($row['total_targets']) ?></td>

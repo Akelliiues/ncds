@@ -178,6 +178,16 @@ try {
             $approvalStatus === 'approved' ? date('Y-m-d H:i:s') : null
         ]);
 
+        // 5. Auto-update house coordinates from VHV's GPS if valid
+        if ($lat != 0 && $lng != 0) {
+            $updateCoordStmt = $pdo->prepare("
+                UPDATE target_population 
+                SET latitude = ?, longitude = ?, updated_at = NOW()
+                WHERE hid = ?
+            ");
+            $updateCoordStmt->execute([$lat, $lng, $hid]);
+        }
+
         $pdo->commit();
 
         // 4. LINE flex notifications check

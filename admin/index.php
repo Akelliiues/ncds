@@ -1401,11 +1401,25 @@ if ($admin_hoscode) {
             var riskLabels = { high: '🔴 เสี่ยงสูง', moderate: '🟡 เสี่ยงปานกลาง', normal: '🟢 ปกติ' };
 
             // ============== MAP INIT ==============
-            var map = L.map('map').setView([15.4294, 104.9922], 12);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            var streetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
                 maxZoom: 20
-            }).addTo(map);
+            });
+            var satelliteLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+                attribution: '&copy; Google Maps',
+                maxZoom: 20
+            });
+            var baseMaps = {
+                "แผนที่ถนน (Street)": streetLayer,
+                "แผนที่ดาวเทียม (Satellite)": satelliteLayer
+            };
+
+            var map = L.map('map', {
+                center: [15.4294, 104.9922],
+                zoom: 12,
+                layers: [streetLayer]
+            });
+            L.control.layers(baseMaps).addTo(map);
 
             // ============== MARKERS & LAYERS ==============
             var markers = [];
@@ -1413,26 +1427,42 @@ if ($admin_hoscode) {
             var currentRiskFilter = 'all';
             var currentHosFilter = 'all';
 
-            function classifyPopupHTML(t) {
-                var riskLabel = riskLabels[t.risk];
-                var villageName = t.house_no ? 'บ้านเลขที่ ' + t.house_no : '';
-                var html = '<div style="color: black; font-size: 13px; min-width: 200px;">';
-                html += '<strong>' + villageName + ' หมู่ที่ ' + t.moo + '</strong><br>';
-                html += '<span>' + (t.first_name || '') + ' ' + (t.last_name || '') + '</span><br>';
-                html += '<span style="font-weight: bold;">' + riskLabel + '</span><br>';
+            function classifyPopupGroupHTML(groupData) {
+                // Determine group risk (highest risk in the house)
+                var hasHigh = groupData.some(function(t) { return t.risk === 'high'; });
+                var hasMod = groupData.some(function(t) { return t.risk === 'moderate'; });
+                var groupRisk = hasHigh ? 'high' : (hasMod ? 'moderate' : 'normal');
+                var groupColor = riskColors[groupRisk];
+                
+                var firstT = groupData[0];
+                var villageName = firstT.house_no ? 'บ้านเลขที่ ' + firstT.house_no : '';
+                
+                var html = '<div style="color: black; font-size: 13px; min-width: 250px; max-height: 300px; overflow-y: auto;">';
+                html += '<div style="position: sticky; top: 0; background: white; padding-bottom: 5px; border-bottom: 1px solid #ccc; margin-bottom: 8px;">';
+                html += '<strong>' + villageName + ' หมู่ที่ ' + firstT.moo + '</strong><br>';
+                html += '<span style="color: #888; font-size: 11px;">รพ.สต.: ' + (hcNames[firstT.hoscode] || firstT.hoscode) + '</span><br>';
+                html += '<span>สมาชิกเป้าหมาย: <strong style="color: ' + groupColor + '">' + groupData.length + ' คน</strong></span>';
+                html += '</div>';
 
-                if (t.sys_bp1 !== null) {
-                    var bpColor = (parseInt(t.sys_bp1) >= 140 || parseInt(t.dia_bp1) >= 90) ? 'red' : 'green';
-                    html += 'ความดัน: <span style="color: ' + bpColor + '; font-weight: bold;">' + t.sys_bp1 + '/' + t.dia_bp1 + '</span> mmHg<br>';
-                    var dtxColor = (parseFloat(t.dtx_value) >= 126) ? 'red' : 'green';
-                    html += 'น้ำตาล: <span style="color: ' + dtxColor + '; font-weight: bold;">' + (t.dtx_value || 'N/A') + '</span> mg/dL<br>';
-                    html += 'CV Risk: <span style="font-weight: bold;">' + (t.cv_risk_score || 0) + '%</span>';
-                } else {
-                    html += '<span style="color: #888;">ยังไม่ได้รับการคัดกรอง</span><br>';
-                    html += 'ประวัติ HDC: ' + (t.health_status_origin || '-');
-                }
+                groupData.forEach(function(t, index) {
+                    var riskLabel = riskLabels[t.risk];
+                    html += '<div style="margin-bottom: 10px; padding: 5px; background: #f9f9f9; border-radius: 4px;">';
+                    html += '<strong>' + (t.first_name || '') + ' ' + (t.last_name || '') + '</strong><br>';
+                    html += '<span style="font-weight: bold; font-size: 12px;">สถานะ: ' + riskLabel + '</span><br>';
+                    
+                    if (t.sys_bp1 !== null) {
+                        var bpColor = (parseInt(t.sys_bp1) >= 140 || parseInt(t.dia_bp1) >= 90) ? 'red' : 'green';
+                        html += 'ความดัน: <span style="color: ' + bpColor + '; font-weight: bold;">' + t.sys_bp1 + '/' + t.dia_bp1 + '</span> mmHg<br>';
+                        var dtxColor = (parseFloat(t.dtx_value) >= 126) ? 'red' : 'green';
+                        html += 'น้ำตาล: <span style="color: ' + dtxColor + '; font-weight: bold;">' + (t.dtx_value || 'N/A') + '</span> mg/dL<br>';
+                        html += 'CV Risk: <span style="font-weight: bold;">' + (t.cv_risk_score || 0) + '%</span>';
+                    } else {
+                        html += '<span style="color: #888;">ยังไม่ได้รับการคัดกรอง</span><br>';
+                        html += 'ประวัติ HDC: ' + (t.health_status_origin || '-');
+                    }
+                    html += '</div>';
+                });
 
-                html += '<br><span style="color: #888; font-size: 11px;">รพ.สต.: ' + (hcNames[t.hoscode] || t.hoscode) + '</span>';
                 html += '</div>';
                 return html;
             }
@@ -1445,6 +1475,9 @@ if ($admin_hoscode) {
 
                 var heatPoints = [];
                 var visibleCount = 0;
+                
+                // Group data by coordinates
+                var groupedData = {};
 
                 allMapData.forEach(function (t) {
                     if (!t.latitude || !t.longitude) return;
@@ -1456,26 +1489,50 @@ if ($admin_hoscode) {
                     if (!passRisk || !passHos) return;
 
                     visibleCount++;
-                    var lat = parseFloat(t.latitude);
-                    var lng = parseFloat(t.longitude);
-
-                    var color = riskColors[t.risk];
-                    var radius = t.risk === 'high' ? 7 : (t.risk === 'moderate' ? 5 : 4);
-                    var opacity = t.risk === 'high' ? 0.9 : 0.7;
+                    var lat = parseFloat(t.latitude).toFixed(6);
+                    var lng = parseFloat(t.longitude).toFixed(6);
+                    var key = lat + ',' + lng;
+                    
+                    if (!groupedData[key]) {
+                        groupedData[key] = [];
+                    }
+                    groupedData[key].push(t);
+                    
+                    // Heatmap intensity for this individual
                     var intensity = t.risk === 'high' ? 1.0 : (t.risk === 'moderate' ? 0.6 : 0.3);
+                    heatPoints.push([parseFloat(t.latitude), parseFloat(t.longitude), intensity]);
+                });
 
-                    heatPoints.push([lat, lng, intensity]);
+                // Create markers for each group
+                Object.keys(groupedData).forEach(function(key) {
+                    var group = groupedData[key];
+                    var parts = key.split(',');
+                    var lat = parseFloat(parts[0]);
+                    var lng = parseFloat(parts[1]);
+                    
+                    // Determine highest risk in group for marker color
+                    var hasHigh = group.some(function(t) { return t.risk === 'high'; });
+                    var hasMod = group.some(function(t) { return t.risk === 'moderate'; });
+                    var groupRisk = hasHigh ? 'high' : (hasMod ? 'moderate' : 'normal');
+                    
+                    var color = riskColors[groupRisk];
+                    var radius = groupRisk === 'high' ? 7 : (groupRisk === 'moderate' ? 5 : 4);
+                    // Make it slightly larger if multiple people
+                    if (group.length > 1) {
+                        radius += 1.5;
+                    }
+                    var opacity = groupRisk === 'high' ? 0.9 : 0.7;
 
                     var marker = L.circleMarker([lat, lng], {
                         radius: radius,
                         fillColor: color,
-                        color: '#fff',
-                        weight: 1,
+                        color: group.length > 1 ? '#000' : '#fff', // Black border if multiple people
+                        weight: group.length > 1 ? 2 : 1,
                         opacity: 1,
                         fillOpacity: opacity
-                    }).addTo(map).bindPopup(classifyPopupHTML(t));
+                    }).addTo(map).bindPopup(classifyPopupGroupHTML(group));
 
-                    markers.push({ marker: marker, data: t });
+                    markers.push({ marker: marker, data: group });
                 });
 
                 // Update counter
