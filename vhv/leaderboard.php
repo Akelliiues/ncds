@@ -180,26 +180,33 @@ $topFifty = array_slice($allLeaders, 0, 50);
                 }
                 ?>
                 <?php
-                // Display trophy or custom badge in rank area
+                // Display trophy or medal or badge in rank area
                 $trophyHtml = '';
                 if ($rankNum === 1) {
-                    $trophyHtml = '<span style="font-size: 28px; filter: drop-shadow(0 2px 4px rgba(251, 191, 36, 0.4));">🏆</span>';
+                    $trophyHtml = '<span style="font-size: 32px; filter: drop-shadow(0 4px 8px rgba(251, 191, 36, 0.45));">🏆</span>';
                 } elseif ($rankNum === 2) {
-                    $trophyHtml = '<span style="font-size: 26px; filter: drop-shadow(0 2px 4px rgba(156, 163, 175, 0.4));">🥈</span>';
+                    $trophyHtml = '<span style="font-size: 30px; filter: drop-shadow(0 4px 8px rgba(156, 163, 175, 0.45));">🥈</span>'; // Silver Trophy
                 } elseif ($rankNum === 3) {
-                    $trophyHtml = '<span style="font-size: 26px; filter: drop-shadow(0 2px 4px rgba(217, 119, 6, 0.4));">🥉</span>';
+                    $trophyHtml = '<span style="font-size: 30px; filter: drop-shadow(0 4px 8px rgba(217, 119, 6, 0.45));">🥉</span>'; // Bronze Trophy
+                } elseif ($rankNum >= 4 && $rankNum <= 10) {
+                    $trophyHtml = '<span style="font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));">🏅</span>'; // Medal
                 } else {
-                    $trophyHtml = '<span style="font-size: 16px; font-weight: 800; color: var(--text-secondary); background: var(--bg-main); width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; box-shadow: var(--neumorph-inset);">#' . $rankNum . '</span>';
+                    $trophyHtml = '<span style="font-size: 14px; font-weight: 800; color: var(--text-secondary); background: var(--bg-main); width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; box-shadow: var(--neumorph-inset);">#' . $rankNum . '</span>';
                 }
                 ?>
                 <div class="leaderboard-row"
-                    style="<?= $leader['vhv_id'] === $currentVhvId ? 'box-shadow: var(--neumorph-inset); background-color: var(--bg-darker);' : '' ?> display: flex; align-items: center; padding: 16px; border-radius: var(--border-radius); background: var(--bg-card); box-shadow: var(--neumorph-flat); margin-bottom: 16px;">
+                    style="<?= $leader['vhv_id'] === $currentVhvId ? 'box-shadow: var(--neumorph-inset); background-color: var(--bg-darker);' : '' ?> display: flex; align-items: center; padding: 18px 16px; border-radius: var(--border-radius); background: var(--bg-card); box-shadow: var(--neumorph-flat); margin-bottom: 16px; position: relative; overflow: hidden;">
                     
-                    <div style="width: 50px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0;">
+                    <!-- Faded background watermark rank number -->
+                    <div style="position: absolute; right: 80px; bottom: -20px; font-size: 80px; font-weight: 900; color: rgba(13, 44, 84, 0.04); pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif;">
+                        <?= $rankNum ?>
+                    </div>
+
+                    <div style="width: 55px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; position: relative; z-index: 2;">
                         <?= $trophyHtml ?>
                     </div>
 
-                    <div class="leader-info">
+                    <div class="leader-info" style="position: relative; z-index: 2;">
                         <strong
                             style="color: var(--text-primary); font-size: 16px;"><?= htmlspecialchars($leader['vhv_name']) ?></strong>
                         <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">
@@ -222,7 +229,7 @@ $topFifty = array_slice($allLeaders, 0, 50);
                         <?php endif; ?>
                     </div>
 
-                    <div class="leader-score" style="flex-shrink: 0;">
+                    <div class="leader-score" style="flex-shrink: 0; position: relative; z-index: 2;">
                         <div style="font-size: 20px; color: var(--color-accent);"><?= $points ?></div>
                         <span style="font-size: 12px; color: var(--text-muted);">แต้ม</span>
                         <?= $shinyBadge ?>
