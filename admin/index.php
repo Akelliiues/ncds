@@ -31,7 +31,7 @@ if ($admin_hoscode) {
     $hoscodes = [$admin_hoscode];
     $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
 
-    $total_targets = $pdo->prepare("SELECT COUNT(*) FROM target_population WHERE hoscode IN ($inPlaceholders)");
+    $total_targets = $pdo->prepare("SELECT COUNT(*) FROM target_population WHERE hoscode IN ($inPlaceholders) AND (need_screen_dm = 1 OR need_screen_ht = 1)");
     $total_targets->execute($hoscodes);
     $total_targets_val = $total_targets->fetchColumn();
 
@@ -94,7 +94,7 @@ if ($admin_hoscode) {
     ];
 
     // Card 1 Detail: Targets per village (moo)
-    $mooQuery = $pdo->prepare("SELECT hoscode, moo, COUNT(*) as count FROM target_population WHERE hoscode IN ($inPlaceholders) GROUP BY hoscode, moo ORDER BY moo");
+    $mooQuery = $pdo->prepare("SELECT hoscode, moo, COUNT(*) as count FROM target_population WHERE hoscode IN ($inPlaceholders) AND (need_screen_dm = 1 OR need_screen_ht = 1) GROUP BY hoscode, moo ORDER BY moo");
     $mooQuery->execute($hoscodes);
     $targetsDetail = $mooQuery->fetchAll(PDO::FETCH_ASSOC);
     foreach ($targetsDetail as &$row) {
@@ -185,7 +185,7 @@ if ($admin_hoscode) {
                SUM(CASE WHEN a.assignment_status = 'completed' THEN 1 ELSE 0 END) as screened
         FROM target_population p
         LEFT JOIN task_assignments a ON p.cid = a.target_cid
-        WHERE p.hoscode IN ($inPlaceholders)
+        WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY p.hoscode, p.sub_district_code, p.moo
         ORDER BY p.moo
     ");
@@ -205,7 +205,7 @@ if ($admin_hoscode) {
         FROM target_population p
         LEFT JOIN task_assignments a ON p.cid = a.target_cid
         LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
-        WHERE p.hoscode IN ($inPlaceholders)
+        WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY p.hoscode, p.sub_district_code, p.moo
         ORDER BY p.moo
     ");
@@ -233,16 +233,27 @@ if ($admin_hoscode) {
     $chartDiseaseData = $chartDiseaseStmt->fetch(PDO::FETCH_ASSOC);
 
     $chartTrendStmt = $pdo->prepare("
-        SELECT DATE(s.created_at) as screen_date, COUNT(*) as daily_count
-        FROM screening_results s
-        JOIN task_assignments a ON s.assignment_id = a.assignment_id AND a.assignment_status = 'completed'
-        JOIN target_population p ON a.target_cid = p.cid
-        WHERE p.hoscode IN ($inPlaceholders)
-          AND s.created_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
-        GROUP BY DATE(s.created_at)
+        SELECT DATE(created_at) as screen_date, COUNT(*) as daily_count
+        FROM (
+            SELECT s.created_at
+            FROM screening_results s
+            JOIN task_assignments a ON s.assignment_id = a.assignment_id AND a.assignment_status = 'completed'
+            JOIN target_population p ON a.target_cid = p.cid
+            WHERE p.hoscode IN ($inPlaceholders)
+              AND s.created_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+            UNION ALL
+            SELECT f.completed_at as created_at
+            FROM dpac_followups f
+            JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
+            JOIN target_population p ON e.cid = p.cid
+            WHERE f.status = 'completed'
+              AND p.hoscode IN ($inPlaceholders)
+              AND f.completed_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+        ) as combined
+        GROUP BY DATE(created_at)
         ORDER BY screen_date ASC
     ");
-    $chartTrendStmt->execute($hoscodes);
+    $chartTrendStmt->execute(array_merge($hoscodes, $hoscodes));
     $chartTrendData = $chartTrendStmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Skipped Reasons Data
@@ -273,7 +284,7 @@ if ($admin_hoscode) {
 
     $metricsStmt = $pdo->prepare("
         SELECT 
-            (SELECT COUNT(*) FROM target_population WHERE hoscode IN ($inPlaceholdersSa)) as total_targets,
+            (SELECT COUNT(*) FROM target_population WHERE hoscode IN ($inPlaceholdersSa) AND (need_screen_dm = 1 OR need_screen_ht = 1)) as total_targets,
             (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'completed' AND p.hoscode IN ($inPlaceholdersSa)) as screened_count,
             (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'pending' AND p.hoscode IN ($inPlaceholdersSa)) as pending_count,
             (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholdersSa)) as skipped_count,
@@ -315,7 +326,7 @@ if ($admin_hoscode) {
     $groupDetail = $groupDetailStmtSa->fetchAll(PDO::FETCH_ASSOC);
 
     // Card 1 Detail: Targets per hoscode for super admin
-    $targetsDetailStmt = $pdo->prepare("SELECT hoscode, COUNT(*) as count FROM target_population WHERE hoscode IN ($inPlaceholdersSa) GROUP BY hoscode ORDER BY hoscode");
+    $targetsDetailStmt = $pdo->prepare("SELECT hoscode, COUNT(*) as count FROM target_population WHERE hoscode IN ($inPlaceholdersSa) AND (need_screen_dm = 1 OR need_screen_ht = 1) GROUP BY hoscode ORDER BY hoscode");
     $targetsDetailStmt->execute($valid_hoscodes);
     $targetsDetail = $targetsDetailStmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -400,7 +411,7 @@ if ($admin_hoscode) {
                SUM(CASE WHEN a.assignment_status = 'completed' THEN 1 ELSE 0 END) as screened
         FROM target_population p
         LEFT JOIN task_assignments a ON p.cid = a.target_cid
-        WHERE p.hoscode IN ($inPlaceholdersSa)
+        WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY p.hoscode
     ");
     $chartCoverageStmt->execute($valid_hoscodes);
@@ -415,7 +426,7 @@ if ($admin_hoscode) {
         FROM target_population p
         LEFT JOIN task_assignments a ON p.cid = a.target_cid
         LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
-        WHERE p.hoscode IN ($inPlaceholdersSa)
+        WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY p.hoscode
     ");
     $chartRiskStmt->execute($valid_hoscodes);
@@ -438,16 +449,27 @@ if ($admin_hoscode) {
     $chartDiseaseData = $chartDiseaseStmt->fetch(PDO::FETCH_ASSOC);
 
     $chartTrendStmt = $pdo->prepare("
-        SELECT DATE(s.created_at) as screen_date, COUNT(*) as daily_count
-        FROM screening_results s
-        JOIN task_assignments a ON s.assignment_id = a.assignment_id AND a.assignment_status = 'completed'
-        JOIN target_population p ON a.target_cid = p.cid
-        WHERE s.created_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
-          AND p.hoscode IN ($inPlaceholdersSa)
-        GROUP BY DATE(s.created_at)
+        SELECT DATE(created_at) as screen_date, COUNT(*) as daily_count
+        FROM (
+            SELECT s.created_at
+            FROM screening_results s
+            JOIN task_assignments a ON s.assignment_id = a.assignment_id AND a.assignment_status = 'completed'
+            JOIN target_population p ON a.target_cid = p.cid
+            WHERE s.created_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+              AND p.hoscode IN ($inPlaceholdersSa)
+            UNION ALL
+            SELECT f.completed_at as created_at
+            FROM dpac_followups f
+            JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
+            JOIN target_population p ON e.cid = p.cid
+            WHERE f.status = 'completed'
+              AND f.completed_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+              AND p.hoscode IN ($inPlaceholdersSa)
+        ) as combined
+        GROUP BY DATE(created_at)
         ORDER BY screen_date ASC
     ");
-    $chartTrendStmt->execute($valid_hoscodes);
+    $chartTrendStmt->execute(array_merge($valid_hoscodes, $valid_hoscodes));
     $chartTrendData = $chartTrendStmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Skipped Reasons Data
@@ -496,100 +518,7 @@ if ($admin_hoscode) {
 </head>
 
 <body class="admin-body dashboard-page">
-    <div class="admin-navbar">
-        <a href="index.php" class="admin-logo">NCDs Prevention Portal - Tansum</a>
-        <div class="admin-nav-links">
-            <a href="index.php" class="<?= basename($_SERVER['PHP_SELF']) == 'index.php' ? 'active' : '' ?>"
-                data-tooltip="แดชบอร์ด">
-                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path
-                        d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z">
-                    </path>
-                </svg>
-            </a>
-            <?php if (!$admin_hoscode): ?>
-                <a href="import_hdc.php" class="<?= basename($_SERVER['PHP_SELF']) == 'import_hdc.php' ? 'active' : '' ?>"
-                    data-tooltip="นำเข้าข้อมูล HDC">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-                    </svg>
-                </a>
-                <a href="process_etl.php" class="<?= basename($_SERVER['PHP_SELF']) == 'process_etl.php' ? 'active' : '' ?>"
-                    data-tooltip="ประมวลผล ETL">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5"></path>
-                    </svg>
-                </a>
-                <a href="db_manager.php" class="<?= basename($_SERVER['PHP_SELF']) == 'db_manager.php' ? 'active' : '' ?>"
-                    data-tooltip="จัดการฐานข้อมูลระบบ">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path
-                            d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4">
-                        </path>
-                    </svg>
-                </a>
-            <?php endif; ?>
-            <a href="hdc_list.php" class="<?= basename($_SERVER['PHP_SELF']) == 'hdc_list.php' ? 'active' : '' ?>"
-                data-tooltip="คัดกรองความเสี่ยง HDC">
-                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path
-                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
-                    </path>
-                </svg>
-            </a>
-            <a href="dpac_manager.php"
-                class="<?= basename($_SERVER['PHP_SELF']) == 'dpac_manager.php' ? 'active' : '' ?>"
-                data-tooltip="จัดการโครงการ DPAC">
-                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-            </a>
-            <a href="assignment.php" class="<?= basename($_SERVER['PHP_SELF']) == 'assignment.php' ? 'active' : '' ?>"
-                data-tooltip="มอบหมายงาน อสม.">
-                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z">
-                    </path>
-                </svg>
-            </a>
-            <a href="print_qr.php" class="<?= basename($_SERVER['PHP_SELF']) == 'print_qr.php' ? 'active' : '' ?>"
-                data-tooltip="พิมพ์ QR Code บ้าน">
-                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path
-                        d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z">
-                    </path>
-                </svg>
-            </a>
-            <a href="vhv_approval.php"
-                class="<?= basename($_SERVER['PHP_SELF']) == 'vhv_approval.php' ? 'active' : '' ?>"
-                data-tooltip="จัดการผู้ใช้ อสม.">
-                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path
-                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
-                    </path>
-                </svg>
-            </a>
-            <a href="profile.php" class="<?= basename($_SERVER['PHP_SELF']) == 'profile.php' ? 'active' : '' ?>"
-                data-tooltip="ข้อมูลส่วนตัว / เปลี่ยนรหัสผ่าน">
-                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                </svg>
-            </a>
-            <a href="reports.php" class="<?= basename($_SERVER['PHP_SELF']) == 'reports.php' ? 'active' : '' ?>"
-                data-tooltip="รายงานและการพิมพ์">
-                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path
-                        d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                    </path>
-                </svg>
-            </a>
-            <a href="../logout.php" data-tooltip="ออกจากระบบ" style="color: var(--color-red) !important;">
-                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
-                    </path>
-                </svg>
-            </a>
-        </div>
-    </div>
+    <?php include 'navbar.php'; ?>
 
     <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
         <h2 style="margin-bottom: 4px;">ภาพรวมความคุ้มครองและพิกัดกลุ่มเสี่ยง (Dashboard)</h2>
@@ -600,58 +529,86 @@ if ($admin_hoscode) {
 
         <!-- Target Group Summary -->
         <div style="margin-bottom: 12px;">
-            <h3 style="color: var(--color-accent); margin-bottom: 8px; font-size: 16px; display: flex; align-items: center; gap: 8px;">
-                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <h3
+                style="color: var(--color-accent); margin-bottom: 8px; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path
+                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z">
+                    </path>
+                </svg>
                 กลุ่มเป้าหมายการคัดกรอง
-                <span style="font-size: 13px; font-weight: normal; color: var(--text-secondary);">(รวมทั้งหมด <?= number_format($metrics['total_targets']) ?> ราย)</span>
+                <span style="font-size: 13px; font-weight: normal; color: var(--text-secondary);">(รวมทั้งหมด
+                    <?= number_format($metrics['total_targets']) ?> ราย)</span>
             </h3>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; margin-bottom: 30px;">
+        <div
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; margin-bottom: 30px;">
             <!-- กลุ่มเสี่ยง DM -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #f97316; position: relative; overflow: hidden;" onclick="showCardModal('targets')">
-                <div style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(249, 115, 22, 0.08);"></div>
+            <div class="card-dark"
+                style="cursor: pointer; border-left: 4px solid #f97316; position: relative; overflow: hidden;"
+                onclick="showCardModal('targets')">
+                <div
+                    style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(249, 115, 22, 0.08);">
+                </div>
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                     <span style="font-size: 22px;">🟠</span>
-                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">เสี่ยง (เบาหวาน)</span>
+                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">เสี่ยง
+                        (เบาหวาน)</span>
                 </div>
-                <div class="stat-val" style="color: #f97316;"><?= number_format($metrics['group_dm']) ?> <span style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
+                <div class="stat-val" style="color: #f97316;"><?= number_format($metrics['group_dm']) ?> <span
+                        style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
                 <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
                     เฉพาะเบาหวาน — คัดกรองซ้ำ
                 </div>
                 <div style="margin-top: 6px; font-size: 12px; color: #f97316; font-weight: bold;">
-                    <?= $metrics['total_targets'] > 0 ? round(($metrics['group_dm'] / $metrics['total_targets']) * 100, 1) : 0 ?>% ของเป้าหมาย
+                    <?= $metrics['total_targets'] > 0 ? round(($metrics['group_dm'] / $metrics['total_targets']) * 100, 1) : 0 ?>%
+                    ของเป้าหมาย
                 </div>
             </div>
 
             <!-- กลุ่มเสี่ยง HT -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #06b6d4; position: relative; overflow: hidden;" onclick="showCardModal('targets')">
-                <div style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(6, 182, 212, 0.08);"></div>
+            <div class="card-dark"
+                style="cursor: pointer; border-left: 4px solid #06b6d4; position: relative; overflow: hidden;"
+                onclick="showCardModal('targets')">
+                <div
+                    style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(6, 182, 212, 0.08);">
+                </div>
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                     <span style="font-size: 22px;">🔵</span>
-                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">เสี่ยง (ความดัน)</span>
+                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">เสี่ยง
+                        (ความดัน)</span>
                 </div>
-                <div class="stat-val" style="color: #06b6d4;"><?= number_format($metrics['group_ht']) ?> <span style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
+                <div class="stat-val" style="color: #06b6d4;"><?= number_format($metrics['group_ht']) ?> <span
+                        style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
                 <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
                     เฉพาะความดัน — คัดกรองซ้ำ
                 </div>
                 <div style="margin-top: 6px; font-size: 12px; color: #06b6d4; font-weight: bold;">
-                    <?= $metrics['total_targets'] > 0 ? round(($metrics['group_ht'] / $metrics['total_targets']) * 100, 1) : 0 ?>% ของเป้าหมาย
+                    <?= $metrics['total_targets'] > 0 ? round(($metrics['group_ht'] / $metrics['total_targets']) * 100, 1) : 0 ?>%
+                    ของเป้าหมาย
                 </div>
             </div>
 
             <!-- กลุ่มเสี่ยง Both/High Risk -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-red); position: relative; overflow: hidden;" onclick="showCardModal('targets')">
-                <div style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(239, 68, 68, 0.08);"></div>
+            <div class="card-dark"
+                style="cursor: pointer; border-left: 4px solid var(--color-red); position: relative; overflow: hidden;"
+                onclick="showCardModal('targets')">
+                <div
+                    style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(239, 68, 68, 0.08);">
+                </div>
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                     <span style="font-size: 22px;">🔴</span>
-                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">เสี่ยง (เบาหวาน+ความดัน)</span>
+                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">เสี่ยง
+                        (เบาหวาน+ความดัน)</span>
                 </div>
-                <div class="stat-val" style="color: var(--color-red);"><?= number_format($metrics['group_both']) ?> <span style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
+                <div class="stat-val" style="color: var(--color-red);"><?= number_format($metrics['group_both']) ?>
+                    <span style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
                 <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
                     เสี่ยงทั้งคู่/สูง — คัดกรองซ้ำ
                 </div>
                 <div style="margin-top: 6px; font-size: 12px; color: var(--color-red); font-weight: bold;">
-                    <?= $metrics['total_targets'] > 0 ? round(($metrics['group_both'] / $metrics['total_targets']) * 100, 1) : 0 ?>% ของเป้าหมาย
+                    <?= $metrics['total_targets'] > 0 ? round(($metrics['group_both'] / $metrics['total_targets']) * 100, 1) : 0 ?>%
+                    ของเป้าหมาย
                 </div>
             </div>
 
@@ -664,7 +621,8 @@ if ($admin_hoscode) {
                 <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">คัดกรองเสร็จสิ้น</span>
                 <div class="stat-val" style="color: var(--color-green);">
                     <?= number_format($metrics['screened_count']) ?> <span
-                        style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
+                        style="font-size: 16px; color: var(--text-secondary);">ราย</span>
+                </div>
                 <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);">
                     คิดเป็น
                     <?= $metrics['total_targets'] > 0 ? round(($metrics['screened_count'] / $metrics['total_targets']) * 100, 1) : 0 ?>%
@@ -673,10 +631,12 @@ if ($admin_hoscode) {
             </div>
 
             <div class="card-dark" style="cursor: pointer;" onclick="showCardModal('pending')">
-                <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">รอดำเนินการ (Pending)</span>
+                <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">รอดำเนินการ
+                    (Pending)</span>
                 <div class="stat-val" style="color: var(--color-primary);">
                     <?= number_format($metrics['pending_count']) ?> <span
-                        style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
+                        style="font-size: 16px; color: var(--text-secondary);">ราย</span>
+                </div>
                 <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);">
                     มอบหมายแล้ว รอ อสม. ดำเนินการ
                 </div>
@@ -687,7 +647,8 @@ if ($admin_hoscode) {
                     (Skipped)</span>
                 <div class="stat-val" style="color: var(--color-yellow);">
                     <?= number_format($metrics['skipped_count']) ?> <span
-                        style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
+                        style="font-size: 16px; color: var(--text-secondary);">ราย</span>
+                </div>
                 <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);">
                     พักไว้เพื่อสแกนตรวจสอบซ้ำภายหลัง (คลิกดูรายละเอียด)
                 </div>
@@ -698,7 +659,8 @@ if ($admin_hoscode) {
                     อสม.</span>
                 <div class="stat-val" style="color: var(--color-primary);">
                     <?= number_format($metrics['total_points'] ?? 0) ?> <span
-                        style="font-size: 16px; color: var(--text-secondary);">แต้ม</span></div>
+                        style="font-size: 16px; color: var(--text-secondary);">แต้ม</span>
+                </div>
                 <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);">
                     จาก อสม. ผู้ปฏิบัติงานทั้งหมด <?= $metrics['total_vhvs'] ?> คน (คลิกดูบอร์ดคะแนน)
                 </div>
@@ -708,18 +670,48 @@ if ($admin_hoscode) {
         <!-- Analytics Dashboard Section -->
 
         <!-- Top Analytics Row -->
-        <div class="grid-cols-3" style="margin-bottom: 30px; gap: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));">
+        <div class="grid-cols-4"
+            style="margin-bottom: 30px; gap: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));">
             <!-- Overall Progress (Radial) -->
             <div class="card-dark">
-                <h3 style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; font-size: 15px;">
-                    คืบหน้าการดำเนินการภาพรวม
+                <h3
+                    style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; font-size: 15px;">
+                    Overall Progress
                 </h3>
                 <div id="chart-overall-progress" style="display: flex; justify-content: center;"></div>
             </div>
 
+            <!-- Total vs Screened Pie Chart (NEW) -->
+            <div class="card-dark">
+                <h3
+                    style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; font-size: 15px;">
+                    สัดส่วนคัดกรอง / เป้าหมาย
+                </h3>
+                <div id="chart-total-pie"></div>
+            </div>
+
+            <!-- Cockpit Radar Chart (NEW) -->
+            <div class="card-dark">
+                <h3
+                    style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; font-size: 15px;">
+                    มิติกลุ่มเป้าหมาย (Cockpit)
+                </h3>
+                <div id="chart-cockpit-radar"></div>
+            </div>
+
+            <!-- Screened Risk Pie Chart (NEW) -->
+            <div class="card-dark">
+                <h3
+                    style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; font-size: 15px;">
+                    สัดส่วนผลการคัดกรองแยกตามระดับความเสี่ยง
+                </h3>
+                <div id="chart-screened-risk-pie"></div>
+            </div>
+
             <!-- Skipped Reasons (Donut) -->
             <div class="card-dark">
-                <h3 style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; font-size: 15px;">
+                <h3
+                    style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; font-size: 15px;">
                     สาเหตุการข้ามเคส (เคสไม่สมบูรณ์)
                 </h3>
                 <div id="chart-skipped"></div>
@@ -727,7 +719,8 @@ if ($admin_hoscode) {
 
             <!-- DPAC Enrollments (Donut) -->
             <div class="card-dark">
-                <h3 style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; font-size: 15px;">
+                <h3
+                    style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; font-size: 15px;">
                     กลุ่มเสี่ยงเข้าร่วมโครงการปรับเปลี่ยนพฤติกรรม
                 </h3>
                 <div id="chart-dpac"></div>
@@ -989,46 +982,51 @@ if ($admin_hoscode) {
             const covScreened = coverageRaw.map(d => parseInt(d.screened));
 
             // Coverage Chart
-            var optionsCoverage = {
-                series: [{
-                    name: 'เป้าหมายทั้งหมด',
-                    data: covTotal
-                }, {
-                    name: 'คัดกรองแล้ว',
-                    data: covScreened
-                }],
-                chart: {
-                    type: 'bar',
-                    height: 350,
-                    background: 'transparent',
-                    toolbar: { show: false }
-                },
-                theme: { mode: 'dark' },
-                colors: ['#4b5563', '#22c55e'],
-                legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
-                plotOptions: {
-                    bar: {
-                        horizontal: false,
-                        columnWidth: '55%',
-                        borderRadius: 4
+            const hasCoverageData = covTotal.reduce((a, b) => a + b, 0);
+            if (hasCoverageData > 0) {
+                var optionsCoverage = {
+                    series: [{
+                        name: 'เป้าหมายทั้งหมด',
+                        data: covTotal
+                    }, {
+                        name: 'คัดกรองแล้ว',
+                        data: covScreened
+                    }],
+                    chart: {
+                        type: 'bar',
+                        height: 350,
+                        background: 'transparent',
+                        toolbar: { show: false }
                     },
-                },
-                dataLabels: { enabled: false },
-                xaxis: {
-                    categories: covCategories,
-                    labels: { style: { colors: '#9ca3af' } }
-                },
-                yaxis: {
-                    labels: { style: { colors: '#9ca3af' } }
-                },
-                tooltip: { theme: 'dark' }
-            };
-            new ApexCharts(document.querySelector("#chart-coverage"), optionsCoverage).render();
+                    theme: { mode: 'dark' },
+                    colors: ['#4b5563', '#22c55e'],
+                    legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
+                    plotOptions: {
+                        bar: {
+                            horizontal: false,
+                            columnWidth: '55%',
+                            borderRadius: 4
+                        },
+                    },
+                    dataLabels: { enabled: false },
+                    xaxis: {
+                        categories: covCategories,
+                        labels: { style: { colors: '#9ca3af' } }
+                    },
+                    yaxis: {
+                        labels: { style: { colors: '#9ca3af' } }
+                    },
+                    tooltip: { theme: 'dark' }
+                };
+                new ApexCharts(document.querySelector("#chart-coverage"), optionsCoverage).render();
+            } else {
+                document.querySelector("#chart-coverage").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 100px; font-size: 14px;">ยังไม่มีข้อมูลความครอบคลุมการคัดกรอง</div>';
+            }
 
             // Risk Data
             const riskRaw = <?= json_encode($chartRiskData) ?>;
-            
-            const riskCategories = isRegularAdmin 
+
+            const riskCategories = isRegularAdmin
                 ? coverageRaw.map(d => d.village_name || "หมู่ " + d.moo)
                 : [...new Set(coverageRaw.map(d => d.hoscode))].map(hc => hcNamesChart[hc] || hc);
 
@@ -1057,40 +1055,45 @@ if ($admin_hoscode) {
             }
 
             // Risk Chart (100% Stacked)
-            var optionsRisk = {
-                series: [{
-                    name: 'เสี่ยงปานกลาง',
-                    data: riskModerate
-                }, {
-                    name: 'เสี่ยงสูง',
-                    data: riskHigh
-                }, {
-                    name: 'ยังไม่คัดกรอง',
-                    data: riskUnscreened
-                }],
-                chart: {
-                    type: 'bar',
-                    height: 350,
-                    stacked: true,
-                    stackType: '100%',
-                    background: 'transparent',
-                    toolbar: { show: false }
-                },
-                theme: { mode: 'dark' },
-                colors: ['#f59e0b', '#ef4444', '#4b5563'],
-                legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
-                plotOptions: { bar: { borderRadius: 2 } },
-                xaxis: {
-                    categories: riskCategories,
-                    labels: { style: { colors: '#9ca3af' } }
-                },
-                yaxis: {
-                    labels: { style: { colors: '#9ca3af' } }
-                },
-                tooltip: { theme: 'dark' },
-                fill: { opacity: 1 }
-            };
-            new ApexCharts(document.querySelector("#chart-risk"), optionsRisk).render();
+            const hasRiskData = riskNormal.reduce((a, b) => a + b, 0) + riskModerate.reduce((a, b) => a + b, 0) + riskHigh.reduce((a, b) => a + b, 0) + riskUnscreened.reduce((a, b) => a + b, 0);
+            if (hasRiskData > 0) {
+                var optionsRisk = {
+                    series: [{
+                        name: 'เสี่ยงปานกลาง',
+                        data: riskModerate
+                    }, {
+                        name: 'เสี่ยงสูง',
+                        data: riskHigh
+                    }, {
+                        name: 'ยังไม่คัดกรอง',
+                        data: riskUnscreened
+                    }],
+                    chart: {
+                        type: 'bar',
+                        height: 350,
+                        stacked: true,
+                        stackType: '100%',
+                        background: 'transparent',
+                        toolbar: { show: false }
+                    },
+                    theme: { mode: 'dark' },
+                    colors: ['#f59e0b', '#ef4444', '#4b5563'],
+                    legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
+                    plotOptions: { bar: { borderRadius: 2 } },
+                    xaxis: {
+                        categories: riskCategories,
+                        labels: { style: { colors: '#9ca3af' } }
+                    },
+                    yaxis: {
+                        labels: { style: { colors: '#9ca3af' } }
+                    },
+                    tooltip: { theme: 'dark' },
+                    fill: { opacity: 1 }
+                };
+                new ApexCharts(document.querySelector("#chart-risk"), optionsRisk).render();
+            } else {
+                document.querySelector("#chart-risk").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 100px; font-size: 14px;">ยังไม่มีข้อมูลระดับความเสี่ยงประชากร</div>';
+            }
 
             // Disease Data
             const diseaseRaw = <?= json_encode($chartDiseaseData) ?>;
@@ -1102,30 +1105,35 @@ if ($admin_hoscode) {
             ];
 
             // Disease Chart (Donut)
-            var optionsDisease = {
-                series: diseaseSeries,
-                chart: {
-                    type: 'donut',
-                    height: 350,
-                    background: 'transparent'
-                },
-                theme: { mode: 'dark' },
-                labels: ['กลุ่มเสี่ยง', 'ป่วย/สงสัยเบาหวาน (DM)', 'ป่วย/สงสัยความดัน (HT)', 'ป่วย/สงสัยทั้ง HT และ DM'],
-                colors: ['#f59e0b', '#8b5cf6', '#3b82f6', '#ec4899'],
-                stroke: { show: false },
-                legend: {
-                    position: 'bottom',
-                    labels: { colors: '#9ca3af' }
-                },
-                dataLabels: {
-                    enabled: true,
-                    formatter: function (val) {
-                        return Math.round(val) + "%"
-                    }
-                },
-                tooltip: { theme: 'dark' }
-            };
-            new ApexCharts(document.querySelector("#chart-disease"), optionsDisease).render();
+            const totalDiseaseCount = diseaseSeries.reduce((a, b) => a + b, 0);
+            if (totalDiseaseCount > 0) {
+                var optionsDisease = {
+                    series: diseaseSeries,
+                    chart: {
+                        type: 'donut',
+                        height: 350,
+                        background: 'transparent'
+                    },
+                    theme: { mode: 'dark' },
+                    labels: ['กลุ่มเสี่ยง', 'ป่วย/สงสัยเบาหวาน (DM)', 'ป่วย/สงสัยความดัน (HT)', 'ป่วย/สงสัยทั้ง HT และ DM'],
+                    colors: ['#f59e0b', '#8b5cf6', '#3b82f6', '#ec4899'],
+                    stroke: { show: false },
+                    legend: {
+                        position: 'bottom',
+                        labels: { colors: '#9ca3af' }
+                    },
+                    dataLabels: {
+                        enabled: true,
+                        formatter: function (val) {
+                            return Math.round(val) + "%"
+                        }
+                    },
+                    tooltip: { theme: 'dark' }
+                };
+                new ApexCharts(document.querySelector("#chart-disease"), optionsDisease).render();
+            } else {
+                document.querySelector("#chart-disease").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 100px; font-size: 14px;">ยังไม่มีข้อมูลผลการคัดกรองแยกกลุ่มโรค</div>';
+            }
 
             // Trend Data
             const trendRaw = <?= json_encode($chartTrendData) ?>;
@@ -1133,49 +1141,53 @@ if ($admin_hoscode) {
             const trendCounts = trendRaw.map(d => parseInt(d.daily_count));
 
             // Trend Chart (Area)
-            var optionsTrend = {
-                series: [{
-                    name: 'จำนวนคัดกรอง',
-                    data: trendCounts
-                }],
-                chart: {
-                    type: 'area',
-                    height: 350,
-                    background: 'transparent',
-                    toolbar: { show: false }
-                },
-                theme: { mode: 'dark' },
-                colors: ['#0ea5e9'],
-                legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
-                dataLabels: { enabled: false },
-                stroke: { curve: 'smooth', width: 2 },
-                xaxis: {
-                    categories: trendCategories,
-                    labels: {
-                        style: { colors: '#9ca3af' },
-                        formatter: function (val) {
-                            if (!val) return '';
-                            const parts = val.split('-');
-                            if (parts.length < 3) return val;
-                            return parts[2] + '/' + parts[1]; // DD/MM format
+            if (trendRaw && trendRaw.length > 0) {
+                var optionsTrend = {
+                    series: [{
+                        name: 'จำนวนคัดกรอง',
+                        data: trendCounts
+                    }],
+                    chart: {
+                        type: 'area',
+                        height: 350,
+                        background: 'transparent',
+                        toolbar: { show: false }
+                    },
+                    theme: { mode: 'dark' },
+                    colors: ['#0ea5e9'],
+                    legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
+                    dataLabels: { enabled: true },
+                    stroke: { curve: 'smooth', width: 2 },
+                    xaxis: {
+                        categories: trendCategories,
+                        labels: {
+                            style: { colors: '#9ca3af' },
+                            formatter: function (val) {
+                                if (!val) return '';
+                                const parts = val.split('-');
+                                if (parts.length < 3) return val;
+                                return parts[2] + '/' + parts[1]; // DD/MM format
+                            }
+                        }
+                    },
+                    yaxis: {
+                        labels: { style: { colors: '#9ca3af' } }
+                    },
+                    tooltip: { theme: 'dark' },
+                    fill: {
+                        type: 'gradient',
+                        gradient: {
+                            shadeIntensity: 1,
+                            opacityFrom: 0.7,
+                            opacityTo: 0.1,
+                            stops: [0, 90, 100]
                         }
                     }
-                },
-                yaxis: {
-                    labels: { style: { colors: '#9ca3af' } }
-                },
-                tooltip: { theme: 'dark' },
-                fill: {
-                    type: 'gradient',
-                    gradient: {
-                        shadeIntensity: 1,
-                        opacityFrom: 0.7,
-                        opacityTo: 0.1,
-                        stops: [0, 90, 100]
-                    }
-                }
-            };
-            new ApexCharts(document.querySelector("#chart-trend"), optionsTrend).render();
+                };
+                new ApexCharts(document.querySelector("#chart-trend"), optionsTrend).render();
+            } else {
+                document.querySelector("#chart-trend").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 100px; font-size: 14px;">ยังไม่มีข้อมูลแนวโน้มการคัดกรองรายวัน</div>';
+            }
 
             // Overall Progress Chart (Horizontal Bar Leaderboard)
             const totalTargetsCount = <?= intval($metrics['total_targets']) ?>;
@@ -1183,7 +1195,7 @@ if ($admin_hoscode) {
             const progressPercent = totalTargetsCount > 0 ? Math.round((totalScreenedCount / totalTargetsCount) * 100) : 0;
 
             const progressData = [];
-            
+
             // Calculate per village or per hoscode
             coverageRaw.forEach(d => {
                 const targets = parseInt(d.total_targets);
@@ -1198,7 +1210,7 @@ if ($admin_hoscode) {
 
             // Sort by percentage descending
             progressData.sort((a, b) => b.y - a.y);
-            
+
             // Push overall first (always at the top)
             progressData.unshift({
                 x: isRegularAdmin ? 'ภาพรวมหน่วยบริการ' : 'ภาพรวมทั้งอำเภอ',
@@ -1206,41 +1218,70 @@ if ($admin_hoscode) {
                 fillColor: '#0ea5e9' // Distinct color for overall
             });
 
-            var optionsProgress = {
-                series: [{
-                    name: 'ความคืบหน้า (%)',
-                    data: progressData
-                }],
-                chart: {
-                    height: 350,
-                    type: 'bar',
-                    background: 'transparent',
-                    toolbar: { show: false }
-                },
-                theme: { mode: 'dark' },
-                plotOptions: {
-                    bar: {
-                        horizontal: true,
-                        borderRadius: 4,
-                        dataLabels: { position: 'top' }
-                    }
-                },
-                dataLabels: {
-                    enabled: true,
-                    offsetX: 20,
-                    style: { colors: ['#9ca3af'] },
-                    formatter: function(val) { return val + "%" }
-                },
-                xaxis: {
-                    max: 100,
-                    labels: { style: { colors: '#9ca3af' }, formatter: function(val) { return val + "%" } }
-                },
-                yaxis: {
-                    labels: { style: { colors: '#9ca3af', fontSize: '12px', fontWeight: 'bold' } }
-                },
-                tooltip: { theme: 'dark' }
-            };
-            new ApexCharts(document.querySelector("#chart-overall-progress"), optionsProgress).render();
+            if (coverageRaw && coverageRaw.length > 0) {
+                var optionsProgress = {
+                    series: [{
+                        name: 'ความคืบหน้า (%)',
+                        data: progressData
+                    }],
+                    chart: {
+                        height: 350,
+                        type: 'bar',
+                        background: 'transparent',
+                        toolbar: { show: false }
+                    },
+                    theme: { mode: 'dark' },
+                    plotOptions: {
+                        bar: {
+                            horizontal: true,
+                            borderRadius: 4,
+                            dataLabels: { position: 'top' }
+                        }
+                    },
+                    dataLabels: {
+                        enabled: true,
+                        offsetX: 20,
+                        style: { colors: ['#9ca3af'] },
+                        formatter: function (val) { return val + "%" }
+                    },
+                    xaxis: {
+                        max: 100,
+                        labels: { style: { colors: '#9ca3af' }, formatter: function (val) { return val + "%" } }
+                    },
+                    yaxis: {
+                        labels: { style: { colors: '#9ca3af', fontSize: '12px', fontWeight: 'bold' } }
+                    },
+                    tooltip: { theme: 'dark' }
+                };
+                new ApexCharts(document.querySelector("#chart-overall-progress"), optionsProgress).render();
+            } else {
+                document.querySelector("#chart-overall-progress").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 100px; font-size: 14px;">ยังไม่มีข้อมูลความคืบหน้า</div>';
+            }
+
+            // Screened Risk Distribution Data (Pie Chart)
+            const screenedDetailRaw = <?= json_encode($screenedDetail) ?>;
+            const screenedRiskSeries = [
+                parseInt(screenedDetailRaw?.normal || 0),
+                parseInt(screenedDetailRaw?.risk || 0),
+                parseInt(screenedDetailRaw?.high_risk || 0)
+            ];
+            const totalScreenedRisk = screenedRiskSeries.reduce((a, b) => a + b, 0);
+
+            if (totalScreenedRisk > 0) {
+                var optionsScreenedRisk = {
+                    series: screenedRiskSeries,
+                    labels: ['ปกติ (เสี่ยงต่ำ)', 'เสี่ยงปานกลาง', 'เสี่ยงสูง (สงสัยป่วย)'],
+                    chart: { type: 'pie', height: 280, background: 'transparent' },
+                    theme: { mode: 'dark' },
+                    colors: ['#22c55e', '#f59e0b', '#ef4444'],
+                    stroke: { show: false },
+                    legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
+                    dataLabels: { enabled: true, formatter: function (val) { return Math.round(val) + "%" } }
+                };
+                new ApexCharts(document.querySelector("#chart-screened-risk-pie"), optionsScreenedRisk).render();
+            } else {
+                document.querySelector("#chart-screened-risk-pie").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 100px; font-size: 14px;">ยังไม่มีข้อมูลผลการคัดกรองแยกตามระดับความเสี่ยง</div>';
+            }
 
             // Skipped Reasons Chart
             const skippedRaw = <?= json_encode($chartSkippedData) ?>;
@@ -1253,7 +1294,7 @@ if ($admin_hoscode) {
                     colors: ['#f59e0b', '#ef4444', '#8b5cf6', '#0ea5e9', '#64748b'],
                     stroke: { show: false },
                     legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
-                    dataLabels: { enabled: true, formatter: function(val) { return Math.round(val) + "%" } }
+                    dataLabels: { enabled: true, formatter: function (val) { return Math.round(val) + "%" } }
                 };
                 new ApexCharts(document.querySelector("#chart-skipped"), optionsSkipped).render();
             } else {
@@ -1271,12 +1312,61 @@ if ($admin_hoscode) {
                     colors: ['#22d3ee', '#c084fc', '#f43f5e', '#a8a29e'],
                     stroke: { show: false },
                     legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
-                    dataLabels: { enabled: true, formatter: function(val) { return Math.round(val) + "%" } }
+                    dataLabels: { enabled: true, formatter: function (val) { return Math.round(val) + "%" } }
                 };
                 new ApexCharts(document.querySelector("#chart-dpac"), optionsDpac).render();
             } else {
                 document.querySelector("#chart-dpac").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 50px;">ไม่มีข้อมูลผู้เข้าร่วมโครงการ</div>';
             }
+
+            // Total vs Screened Pie Chart
+            var optionsTotalPie = {
+                series: [
+                    <?= intval($metrics['screened_count']) ?>,
+                    Math.max(0, <?= intval($metrics['total_targets']) ?> - <?= intval($metrics['screened_count']) ?>)
+                ],
+                labels: ['คัดกรองแล้ว', 'ยังไม่คัดกรอง'],
+                chart: { type: 'pie', height: 280, background: 'transparent' },
+                theme: { mode: 'dark' },
+                colors: ['#22c55e', '#4b5563'],
+                stroke: { show: false },
+                legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
+                dataLabels: { enabled: true, formatter: function (val) { return Math.round(val) + "%" } }
+            };
+            if (<?= intval($metrics['total_targets']) ?> > 0) {
+                new ApexCharts(document.querySelector("#chart-total-pie"), optionsTotalPie).render();
+            } else {
+                document.querySelector("#chart-total-pie").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 50px;">ไม่มีข้อมูล</div>';
+            }
+
+            // Cockpit Radar Chart
+            var optionsRadar = {
+                series: [{
+                    name: 'จำนวนประชากร',
+                    data: [
+                        <?= intval($metrics['group_dm'] ?? 0) ?>,
+                        <?= intval($metrics['group_ht'] ?? 0) ?>,
+                        <?= intval($metrics['group_both'] ?? 0) ?>,
+                        <?= intval($metrics['group_suspected'] ?? 0) ?>,
+                        <?= intval($metrics['group_risk'] ?? 0) ?>,
+                        <?= intval($metrics['group_normal'] ?? 0) ?>
+                    ]
+                }],
+                chart: {
+                    height: 280,
+                    type: 'radar',
+                    background: 'transparent',
+                    toolbar: { show: false }
+                },
+                theme: { mode: 'dark' },
+                labels: ['เสี่ยงเบาหวาน', 'เสี่ยงความดัน', 'เสี่ยงคู่', 'สงสัยป่วยใหม่', 'กลุ่มเสี่ยงรวม', 'กลุ่มปกติ'],
+                stroke: { width: 2, colors: ['#0ea5e9'] },
+                fill: { opacity: 0.2, colors: ['#0ea5e9'] },
+                markers: { size: 4, colors: ['#fff'], strokeColors: '#0ea5e9', strokeWidth: 2 },
+                yaxis: { show: false },
+                legend: { show: false }
+            };
+            new ApexCharts(document.querySelector("#chart-cockpit-radar"), optionsRadar).render();
 
         </script>
 
@@ -1697,21 +1787,21 @@ if ($admin_hoscode) {
                     html += '<h4 style="margin-top: 20px; color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">แยกตามพื้นที่</h4>';
                     html += '<table class="admin-table"><thead><tr><th>พื้นที่</th><th style="text-align: right;">จำนวน (ราย)</th></tr></thead><tbody>';
                     <?php if (!$admin_hoscode): ?>
-                    if (targetsDetail.length === 0) {
-                        html += '<tr><td colspan="2" style="text-align: center;">ไม่มีข้อมูล</td></tr>';
-                    } else {
-                        targetsDetail.forEach(function (row) {
-                            html += '<tr><td>' + (hcNamesChart[row.hoscode] || row.hoscode) + '</td><td style="text-align: right; font-weight: bold;">' + Number(row.count).toLocaleString() + ' ราย</td></tr>';
-                        });
-                    }
+                        if (targetsDetail.length === 0) {
+                            html += '<tr><td colspan="2" style="text-align: center;">ไม่มีข้อมูล</td></tr>';
+                        } else {
+                            targetsDetail.forEach(function (row) {
+                                html += '<tr><td>' + (hcNamesChart[row.hoscode] || row.hoscode) + '</td><td style="text-align: right; font-weight: bold;">' + Number(row.count).toLocaleString() + ' ราย</td></tr>';
+                            });
+                        }
                     <?php else: ?>
-                    if (targetsDetail.length === 0) {
-                        html += '<tr><td colspan="2" style="text-align: center;">ไม่มีข้อมูล</td></tr>';
-                    } else {
-                        targetsDetail.forEach(function (row) {
-                            html += '<tr><td>' + (row.village_name || ('หมู่ที่ ' + row.moo)) + '</td><td style="text-align: right; font-weight: bold;">' + Number(row.count).toLocaleString() + ' ราย</td></tr>';
-                        });
-                    }
+                        if (targetsDetail.length === 0) {
+                            html += '<tr><td colspan="2" style="text-align: center;">ไม่มีข้อมูล</td></tr>';
+                        } else {
+                            targetsDetail.forEach(function (row) {
+                                html += '<tr><td>' + (row.village_name || ('หมู่ที่ ' + row.moo)) + '</td><td style="text-align: right; font-weight: bold;">' + Number(row.count).toLocaleString() + ' ราย</td></tr>';
+                            });
+                        }
                     <?php endif; ?>
                     html += '</tbody></table>';
                 } else if (type === 'screened') {

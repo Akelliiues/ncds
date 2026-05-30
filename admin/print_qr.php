@@ -27,6 +27,7 @@ $admin_title = $admin_hoscode ? ($hc_names[$admin_hoscode] ?? 'รพ.สต.') 
 
 $filter_hoscode = $_GET['hoscode'] ?? ($admin_hoscode ?: '');
 $filter_moo = $_GET['moo'] ?? '';
+$filter_target = $_GET['target'] ?? '';
 
 // Build Query
 $sql = "
@@ -49,6 +50,13 @@ if ($filter_hoscode) {
 if ($filter_moo) {
     $sql .= " AND moo = ?";
     $params[] = $filter_moo;
+}
+if ($filter_target === 'dm') {
+    $sql .= " AND health_status_origin = 'DM_ONLY' AND (need_screen_dm = 1 OR need_screen_ht = 1)";
+} elseif ($filter_target === 'ht') {
+    $sql .= " AND health_status_origin = 'HT_ONLY' AND (need_screen_dm = 1 OR need_screen_ht = 1)";
+} elseif ($filter_target === 'both') {
+    $sql .= " AND health_status_origin IN ('BOTH', 'HIGH_RISK') AND (need_screen_dm = 1 OR need_screen_ht = 1)";
 }
 
 $sql .= " ORDER BY CAST(moo AS UNSIGNED) ASC, CAST(house_no AS UNSIGNED) ASC";
@@ -181,6 +189,17 @@ function maskName($firstName, $lastName) {
                             <?php for ($i = 1; $i <= 15; $i++): ?>
                                 <option value="<?= $i ?>" <?= $filter_moo == $i ? 'selected' : '' ?>>หมู่ที่ <?= $i ?></option>
                             <?php endfor; ?>
+                        </select>
+                    </div>
+
+                    <!-- Target Group selection -->
+                    <div class="form-group">
+                        <label>กลุ่มเป้าหมาย</label>
+                        <select name="target" id="target" class="form-select">
+                            <option value="">-- ทั้งหมด --</option>
+                            <option value="dm" <?= $filter_target === 'dm' ? 'selected' : '' ?>>เสี่ยงเบาหวาน (DM)</option>
+                            <option value="ht" <?= $filter_target === 'ht' ? 'selected' : '' ?>>เสี่ยงความดัน (HT)</option>
+                            <option value="both" <?= $filter_target === 'both' ? 'selected' : '' ?>>เสี่ยงเบาหวานและความดัน (DM & HT)</option>
                         </select>
                     </div>
 

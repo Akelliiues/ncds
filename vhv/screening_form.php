@@ -155,6 +155,28 @@ if (!empty($hid)) {
             align-items: center !important;
             justify-content: center !important;
         }
+        .btn-advice-chip {
+            background-color: var(--bg-card);
+            color: var(--text-primary);
+            border: none;
+            padding: 12px 16px;
+            border-radius: var(--border-radius);
+            text-align: left;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            transition: all var(--transition-speed);
+            box-shadow: var(--neumorph-flat);
+        }
+        .btn-advice-chip.selected {
+            background-color: var(--bg-darker) !important;
+            color: var(--color-green) !important;
+            box-shadow: var(--neumorph-inset) !important;
+        }
     </style>
 </head>
 <body class="vhv-accessibility">
@@ -412,6 +434,33 @@ if (!empty($hid)) {
                         <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">ประเมินความเสี่ยงโรคหัวใจและหลอดเลือด (Thai CV Risk)</span>
                         <div id="cv-risk-display" style="font-size: 40px; font-weight: 800; color: var(--color-green); margin: 8px 0;">0.00%</div>
                         <div id="cv-risk-status" style="font-size: 15px; color: var(--text-secondary);">ความเสี่ยงต่ำมาก</div>
+                    </div>
+
+                    <!-- VHV Advice Given (Preset Selection) -->
+                    <div style="margin-bottom: 24px;">
+                        <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 6px;">💡 คำแนะนำโดย อสม.</label>
+                        <textarea name="advice_given" id="advice_given" class="input-large" style="height: 80px; resize: none; width: 100%; font-size: 15px; background-color: var(--bg-darker); border: 2px solid var(--border-color); color: var(--text-primary); border-radius: var(--border-radius); padding: 10px;" readonly placeholder="กรุณาคลิกเลือกคำแนะนำจากปุ่มด้านล่าง (ไม่ต้องพิมพ์)..."></textarea>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+                            <button type="button" class="btn-advice-chip" onclick="toggleAdviceChip('ลดของหวาน/เครื่องดื่มน้ำอัดลม', this)">
+                                <span class="chip-status">⚪</span> ลดของหวาน/เครื่องดื่มน้ำอัดลม
+                            </button>
+                            <button type="button" class="btn-advice-chip" onclick="toggleAdviceChip('เลี่ยงเค็ม/ปลาร้า/บะหมี่กึ่งสำเร็จรูป', this)">
+                                <span class="chip-status">⚪</span> เลี่ยงเค็ม/ปลาร้า/บะหมี่กึ่งสำเร็จรูป
+                            </button>
+                            <button type="button" class="btn-advice-chip" onclick="toggleAdviceChip('เลี่ยงอาหารมัน/ของทอด/ของหวานจัด', this)">
+                                <span class="chip-status">⚪</span> เลี่ยงอาหารมัน/ของทอด/ของหวานจัด
+                            </button>
+                            <button type="button" class="btn-advice-chip" onclick="toggleAdviceChip('ออกกำลังกายอย่างน้อย 30 นาที/วัน', this)">
+                                <span class="chip-status">⚪</span> ออกกำลังกายอย่างน้อย 30 นาที/วัน
+                            </button>
+                            <button type="button" class="btn-advice-chip" onclick="toggleAdviceChip('พักผ่อนให้เพียงพอ/ผ่อนคลายความเครียด', this)">
+                                <span class="chip-status">⚪</span> พักผ่อนให้เพียงพอ/ผ่อนคลายความเครียด
+                            </button>
+                            <button type="button" class="btn-advice-chip" onclick="toggleAdviceChip('งดสูบบุหรี่และงดเครื่องดื่มแอลกอฮอล์', this)">
+                                <span class="chip-status">⚪</span> งดสูบบุหรี่และงดเครื่องดื่มแอลกอฮอล์
+                            </button>
+                        </div>
                     </div>
 
                     <div style="display: flex; gap: 12px; margin-top: 30px;">
@@ -1064,6 +1113,24 @@ if (!empty($hid)) {
             .catch(err => {
                 alert("เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย");
             });
+        }
+
+        function toggleAdviceChip(text, btn) {
+            btn.classList.toggle('selected');
+            const indicator = btn.querySelector('.chip-status');
+            if (btn.classList.contains('selected')) {
+                indicator.textContent = '✅';
+            } else {
+                indicator.textContent = '⚪';
+            }
+            
+            const selected = [];
+            document.querySelectorAll('.btn-advice-chip.selected').forEach(chip => {
+                const chipText = chip.textContent.replace('✅', '').replace('⚪', '').trim();
+                selected.push(chipText);
+            });
+            
+            document.getElementById('advice_given').value = selected.join(', ');
         }
     </script>
 </body>

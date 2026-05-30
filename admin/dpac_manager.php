@@ -10,6 +10,18 @@ require_once __DIR__ . '/../config/db.php';
 $message = '';
 $budgetYear = 2026;
 
+// Hospital list
+$hc_names = [
+    '10957' => 'โรงพยาบาลตาลสุม',
+    '03751' => 'รพ.สต.ดอนพันชาด',
+    '03752' => 'รพ.สต.บ้านสำโรง',
+    '03753' => 'รพ.สต.บ้านจิกเทิง',
+    '03754' => 'รพ.สต.บ้านหนองกุงใหญ่',
+    '03755' => 'รพ.สต.นาคาย',
+    '03756' => 'รพ.สต.คำหนามแท่ง',
+    '03757' => 'รพ.สต.คำหว้า'
+];
+
 // Handle Assignment
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'assign_dpac') {
     $enrollmentIds = $_POST['enrollments'] ?? [];
@@ -43,6 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
 // Fetch Enrolled Participants
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
+$filter_hoscode = $_GET['hoscode'] ?? ($admin_hoscode ?: '');
+$filter_vhid = $_GET['vhid'] ?? '';
 
 $enrolled_query = "
     SELECT e.enrollment_id, e.risk_type, e.enrolled_at, e.assigned_vhv_id, 
@@ -57,12 +71,19 @@ $enrolled_query = "
 ";
 $params = [$budgetYear];
 
-if ($admin_hoscode) {
-    $hoscodes = [$admin_hoscode];
-    $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
-    $enrolled_query .= " AND p.hoscode IN ($inPlaceholders)";
-    $params = array_merge($params, $hoscodes);
+if ($filter_hoscode) {
+    $enrolled_query .= " AND p.hoscode = ?";
+    $params[] = $filter_hoscode;
 }
+
+if ($filter_vhid) {
+    $tambon = substr($filter_vhid, 0, 6);
+    $moo = intval(substr($filter_vhid, 6, 2));
+    $enrolled_query .= " AND p.sub_district_code = ? AND p.moo = ?";
+    $params[] = $tambon;
+    $params[] = $moo;
+}
+
 $enrolled_query .= " ORDER BY p.moo, p.house_no";
 
 $stmt = $pdo->prepare($enrolled_query);
@@ -73,14 +94,18 @@ $enrollments = $stmt->fetchAll();
 $vhv_query = "SELECT vhv_id, vhv_name, vhid_code FROM vhv_users";
 $vhv_params = [];
 
-if ($admin_hoscode) {
-    $hoscodes = [$admin_hoscode];
-    $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
-    $vhv_query .= " WHERE approved = 1 AND hoscode IN ($inPlaceholders)";
-    $vhv_params = $hoscodes;
+if ($filter_hoscode) {
+    $vhv_query .= " WHERE approved = 1 AND hoscode = ?";
+    $vhv_params[] = $filter_hoscode;
 } else {
     $vhv_query .= " WHERE approved = 1";
 }
+
+if ($filter_vhid) {
+    $vhv_query .= " AND vhid_code = ?";
+    $vhv_params[] = $filter_vhid;
+}
+
 $vhv_query .= " ORDER BY vhv_name";
 
 $vhvStmt = $pdo->prepare($vhv_query);
@@ -132,6 +157,28 @@ function get_vhv_responsibility_desc($vhid_code) {
     
     return "รหัสพื้นที่: {$vhid_code}";
 }
+
+// Generate village options
+$village_options = [];
+if (!empty($filter_hoscode)) {
+    $h = $filter_hoscode;
+    if (isset($hoscode_villages[$h])) {
+        $tcode = $hoscode_villages[$h]['tambon'];
+        foreach ($hoscode_villages[$h]['villages'] as $moo => $name) {
+            $vcode = $tcode . sprintf('%02d', $moo);
+            $village_options[$vcode] = "หมู่ {$moo} {$name}";
+        }
+    }
+} else {
+    foreach ($hoscode_villages as $h => $info) {
+        $tcode = $info['tambon'];
+        foreach ($info['villages'] as $moo => $name) {
+            $vcode = $tcode . sprintf('%02d', $moo);
+            $village_options[$vcode] = "หมู่ {$moo} {$name} (" . ($hc_names[$h] ?? $h) . ")";
+        }
+    }
+    ksort($village_options);
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -154,6 +201,46 @@ function get_vhv_responsibility_desc($vhid_code) {
             </div>
         <?php endif; ?>
 
+        <!-- Filters Section -->
+        <div class="card-dark" style="margin-bottom: 25px;">
+            <form method="GET" action="dpac_manager.php" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                
+                <div style="flex: 1; min-width: 200px;">
+                    <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--text-secondary);">หน่วยบริการ / รพ.สต.</label>
+                    <?php if ($admin_hoscode !== null): ?>
+                        <input type="text" class="form-select" value="<?= htmlspecialchars($hc_names[$admin_hoscode] ?? '') ?>" readonly style="background-color: rgba(0, 0, 0, 0.1); cursor: not-allowed; color: var(--text-muted);">
+                        <input type="hidden" name="hoscode" value="<?= htmlspecialchars($admin_hoscode) ?>">
+                    <?php else: ?>
+                        <select name="hoscode" class="form-select" onchange="this.form.submit()">
+                            <option value="">-- ทุกแห่ง (ทั้งหมด) --</option>
+                            <?php foreach ($hc_names ?? [] as $code => $name): ?>
+                                <option value="<?= $code ?>" <?= ($filter_hoscode == $code) ? 'selected' : '' ?>><?= htmlspecialchars($name) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    <?php endif; ?>
+                </div>
+
+                <div style="flex: 1; min-width: 200px;">
+                    <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--text-secondary);">หมู่บ้าน</label>
+                    <select name="vhid" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- ทุกหมู่บ้าน --</option>
+                        <?php foreach ($village_options as $val => $lbl): ?>
+                            <option value="<?= htmlspecialchars($val) ?>" <?= $filter_vhid == $val ? 'selected' : '' ?>><?= htmlspecialchars($lbl) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div>
+                    <button type="submit" class="btn-primary" style="height: 42px; padding: 0 20px; border-radius: var(--border-radius); font-weight: bold; cursor: pointer; border: none; background: var(--color-accent); color: white;">
+                        ค้นหา
+                    </button>
+                    <a href="dpac_manager.php" class="btn-primary" style="height: 42px; padding: 0 15px; border-radius: var(--border-radius); font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; background: rgba(13, 44, 84, 0.1); color: var(--text-primary); border: 1px solid var(--border-color); box-sizing: border-box; margin-left: 5px;">
+                        ล้างค่า
+                    </a>
+                </div>
+            </form>
+        </div>
+
         <form method="post">
             <input type="hidden" name="action" value="assign_dpac">
             
@@ -161,30 +248,6 @@ function get_vhv_responsibility_desc($vhid_code) {
                 <h3 style="color: var(--color-green); margin-bottom: 15px;">มอบหมายงานติดตามรอบใหม่</h3>
                 <div style="display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap;">
                     
-                    <?php if ($admin_hoscode): ?>
-                        <?php
-                        // Fetch villages under responsibility of this hoscode
-                        $villages_stmt = $pdo->prepare("SELECT DISTINCT moo, sub_district_code FROM target_population WHERE hoscode = ? ORDER BY moo");
-                        $villages_stmt->execute([$admin_hoscode]);
-                        $resp_villages = $villages_stmt->fetchAll(PDO::FETCH_ASSOC);
-                        ?>
-                        <div style="flex: 1; min-width: 200px;">
-                            <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--text-secondary);">กรองตามหมู่บ้าน:</label>
-                            <select id="filter_village" class="form-select" onchange="filterVhvByVillage()">
-                                <option value="">-- แสดงหมู่บ้านทั้งหมด --</option>
-                                <?php foreach ($resp_villages as $rv): ?>
-                                    <?php 
-                                    $village_name = get_village_only_name($rv['sub_district_code'], $rv['moo']);
-                                    $vhid_prefix = substr($rv['sub_district_code'], 0, 6) . sprintf("%02d", $rv['moo']);
-                                    ?>
-                                    <option value="<?= htmlspecialchars($vhid_prefix) ?>">
-                                        หมู่ <?= htmlspecialchars($rv['moo']) ?> <?= htmlspecialchars($village_name) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                    <?php endif; ?>
-
                     <div style="flex: 1; min-width: 250px;">
                         <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--text-secondary);">เลือก อสม. ที่รับผิดชอบ:</label>
                         <select name="vhv_id" id="vhv_select" class="form-select" required>
@@ -261,34 +324,6 @@ function get_vhv_responsibility_desc($vhid_code) {
         document.getElementById('selectAll').addEventListener('change', function(e) {
             document.querySelectorAll('input[name="enrollments[]"]').forEach(cb => cb.checked = e.target.checked);
         });
-
-        function filterVhvByVillage() {
-            const filterVal = document.getElementById('filter_village').value;
-            const vhvSelect = document.getElementById('vhv_select');
-            if (!vhvSelect) return;
-            const options = vhvSelect.querySelectorAll('option');
-            
-            options.forEach(opt => {
-                if (opt.value === "") {
-                    // Keep the default option visible
-                    opt.style.display = "";
-                    return;
-                }
-                
-                const prefix = opt.getAttribute('data-vhid-prefix') || '';
-                if (filterVal === "" || prefix === filterVal) {
-                    opt.style.display = "";
-                } else {
-                    opt.style.display = "none";
-                }
-            });
-            
-            // Reset the selection to default if the currently selected one is hidden
-            const selectedOpt = vhvSelect.options[vhvSelect.selectedIndex];
-            if (selectedOpt && selectedOpt.style.display === "none") {
-                vhvSelect.value = "";
-            }
-        }
     </script>
 </body>
 </html>

@@ -32,17 +32,18 @@ try {
             FROM target_population p
             LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026
             LEFT JOIN vhv_users v ON a.vhv_id = v.vhv_id
-            WHERE p.vhid_code = ?
+            WHERE (p.vhid_code = ? OR (p.moo = ? AND p.hoscode = ?))
         ";
         
         // Filter by target group
         if ($group === 'suspect') {
             $query .= " AND p.health_status_origin = 'SUSPECT' AND p.need_screen_dm = 0 AND p.need_screen_ht = 0";
         } else {
-            $query .= " AND (p.health_status_origin IN ('HIGH_RISK', 'BOTH', 'DM_ONLY', 'HT_ONLY') OR (p.health_status_origin = 'SUSPECT' AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)))";
+            $query .= " AND (p.health_status_origin IN ('HIGH_RISK', 'BOTH', 'DM_ONLY', 'HT_ONLY', 'MANUAL') OR (p.health_status_origin = 'SUSPECT' AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)))";
         }
         
-        $params = [$vhid];
+        $hoscodeParam = $_GET['hoscode'] ?? '';
+        $params = [$vhid, $moo, $hoscodeParam];
         if ($admin_hoscode) {
             $hoscodes = [$admin_hoscode];
             if ($admin_hoscode === '10957') {
@@ -62,9 +63,10 @@ try {
             SELECT v.vhv_id, v.vhv_name, 
                    (SELECT COUNT(*) FROM task_assignments a WHERE a.vhv_id = v.vhv_id AND a.budget_year = 2026) as task_count
             FROM vhv_users v
-            WHERE v.vhid_code = ? AND v.approved = 1
+            WHERE (v.vhid_code = ? OR (v.moo = ? AND v.hoscode = ?)) AND v.approved = 1
         ";
-        $params = [$vhid];
+        $hoscodeParam = $_GET['hoscode'] ?? '';
+        $params = [$vhid, $moo, $hoscodeParam];
         if ($admin_hoscode) {
             $hoscodes = [$admin_hoscode];
             if ($admin_hoscode === '10957') {

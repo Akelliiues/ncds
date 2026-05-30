@@ -183,11 +183,12 @@ if ($filter_source === 'screened') {
     $sql .= " ORDER BY p.moo, LENGTH(p.house_no), p.house_no";
     
 } elseif ($filter_source === 'vhv_list') {
-    // Query VHV Users and their stats
     $sql = "
         SELECT v.vhv_name, v.hoscode, v.vhv_moo, v.approved, v.vhid_code,
                (SELECT COUNT(*) FROM task_assignments a WHERE a.vhv_id = v.vhv_id) as assigned_targets,
-               (SELECT COUNT(*) FROM task_assignments a WHERE a.vhv_id = v.vhv_id AND a.assignment_status = 'completed') as completed_screenings
+               (SELECT COUNT(*) FROM task_assignments a WHERE a.vhv_id = v.vhv_id AND a.assignment_status = 'completed') as completed_screenings,
+               (SELECT COUNT(*) FROM task_assignments a WHERE a.vhv_id = v.vhv_id AND a.assignment_status = 'pending') as pending_screenings,
+               (SELECT COUNT(*) FROM task_assignments a WHERE a.vhv_id = v.vhv_id AND a.assignment_status = 'skipped') as skipped_screenings
         FROM vhv_users v
         WHERE 1=1
     ";
@@ -354,7 +355,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
             ]);
         }
     } elseif ($filter_source === 'vhv_list') {
-        fputcsv($output, ['ลำดับ', 'ชื่อ-นามสกุล อสม.', 'สังกัด รพ.สต.', 'หมู่บ้านรับผิดชอบ', 'จำนวนเป้าหมายที่มอบหมาย', 'คัดกรองสำเร็จ', 'ร้อยละความสำเร็จ', 'สถานะการอนุมัติ']);
+        fputcsv($output, ['ลำดับ', 'ชื่อ-นามสกุล อสม.', 'สังกัด รพ.สต.', 'หมู่บ้านรับผิดชอบ', 'จำนวนเป้าหมายที่มอบหมาย', 'คัดกรองสำเร็จ', 'ค้างดำเนินการ', 'ข้ามชั่วคราว', 'ร้อยละความสำเร็จ', 'สถานะการอนุมัติ']);
         foreach ($reportData as $row) {
             $hosName = $hc_names[$row['hoscode']] ?? $row['hoscode'];
             $vhid_sub = substr($row['vhid_code'] ?? '', 0, 6);
@@ -371,6 +372,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                 $village_full,
                 $row['assigned_targets'],
                 $row['completed_screenings'],
+                $row['pending_screenings'],
+                $row['skipped_screenings'],
                 $rate . '%',
                 $status
             ]);
@@ -728,7 +731,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                                     <th>สังกัด รพ.สต.</th>
                                     <th>หมู่บ้านรับผิดชอบ</th>
                                     <th>จำนวนเป้าหมาย</th>
-                                    <th>คัดกรองสำเร็จ</th>
+                                    <th>สำเร็จ (ราย)</th>
+                                    <th>ค้าง (ราย)</th>
+                                    <th>ข้าม (ราย)</th>
                                     <th>ร้อยละความสำเร็จ</th>
                                     <th>สถานะสิทธิ์</th>
                                 </tr>
@@ -755,7 +760,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                                     <?php 
                                     $colspan = 12;
                                     if ($filter_source === 'baseline') $colspan = 10;
-                                    elseif ($filter_source === 'vhv_list') $colspan = 9;
+                                    elseif ($filter_source === 'vhv_list') $colspan = 10;
                                     elseif ($filter_source === 'summary_stats') $colspan = 12;
                                     ?>
                                     <td colspan="<?= $colspan ?>" style="text-align: center; color: var(--text-secondary); padding: 24px;">ไม่พบรายการที่ตรงกับเงื่อนไขตัวกรอง</td>
@@ -844,6 +849,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                                             <td><?= htmlspecialchars($village_full) ?></td>
                                             <td style="text-align: center;"><?= number_format($row['assigned_targets']) ?></td>
                                             <td style="text-align: center; color: var(--color-green); font-weight: bold;"><?= number_format($row['completed_screenings']) ?></td>
+                                            <td style="text-align: center; color: var(--color-primary); font-weight: bold;"><?= number_format($row['pending_screenings']) ?></td>
+                                            <td style="text-align: center; color: var(--color-yellow); font-weight: bold;"><?= number_format($row['skipped_screenings']) ?></td>
                                             <td style="text-align: center; font-weight: bold;"><?= $rate ?>%</td>
                                             <td style="text-align: center;">
                                                 <?php if ($row['approved']): ?>

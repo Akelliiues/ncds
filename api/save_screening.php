@@ -125,6 +125,7 @@ try {
         $smoking = $_POST['smoking_risk'] ?? 'green';
         $alcohol = $_POST['alcohol_risk'] ?? 'green';
         $cvRiskScore = (float)($_POST['cv_risk_score'] ?? 0);
+        $adviceGiven = $_POST['advice_given'] ?? '';
 
         // 0. Delete any previous skipped entry to prevent duplicate rows for this assignment
         $delStmt = $pdo->prepare("DELETE FROM screening_results WHERE assignment_id = ?");
@@ -133,14 +134,14 @@ try {
         // 1. Insert into screening_results
         $screenStmt = $pdo->prepare("
             INSERT INTO screening_results 
-            (assignment_id, sys_bp1, dia_bp1, sys_bp2, dia_bp2, dtx_value, dtx_type, weight, height, waist, bmi, diet_risk, exercise_risk, stress_risk, smoking_risk, alcohol_risk, cv_risk_score, screening_lat, screening_lng)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (assignment_id, sys_bp1, dia_bp1, sys_bp2, dia_bp2, dtx_value, dtx_type, weight, height, waist, bmi, diet_risk, exercise_risk, stress_risk, smoking_risk, alcohol_risk, cv_risk_score, screening_lat, screening_lng, advice_given)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $screenStmt->execute([
             $assignmentId, $sys1, $dia1, $sys2, $dia2, $dtx, $dtxType,
             $weight, $height, $waist, round($bmi, 2),
             $diet, $exercise, $stress, $smoking, $alcohol, $cvRiskScore,
-            $lat, $lng
+            $lat, $lng, $adviceGiven
         ]);
         $screeningId = $pdo->lastInsertId();
 

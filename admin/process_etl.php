@@ -147,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Check if patient already exists in target_population by hoscode and pid (stable unique keys)
             $exists = false;
             if ($hoscode && $pid) {
-                $checkStmt = $pdo->prepare("SELECT cid, first_name, last_name, house_no, moo, sub_district_code, vhid_code, latitude, longitude, need_screen_dm, need_screen_ht FROM target_population WHERE LPAD(hoscode, 5, '0') = LPAD(?, 5, '0') AND pid = ?");
+                $checkStmt = $pdo->prepare("SELECT cid, first_name, last_name, house_no, moo, sub_district_code, vhid_code, latitude, longitude, need_screen_dm, need_screen_ht FROM target_population WHERE LPAD(hoscode, 5, '0') = LPAD(?, 5, '0') AND TRIM(LEADING '0' FROM pid) = TRIM(LEADING '0' FROM ?)");
                 $checkStmt->execute([$hoscode, $pid]);
                 $exists = $checkStmt->fetch();
             }

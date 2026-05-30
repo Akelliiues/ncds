@@ -21,32 +21,35 @@ $isHlCoach = $_SESSION['is_hl_coach'] ?? false;
 // Grouped by status
 $pendingTasks = [];
 $completedTasks = [];
+$completedDpacTasks = [];
 $dpacTasks = [];
 $subVhvs = [];
 $db_error = '';
 
 try {
     $pendingStmt = $pdo->prepare("
-        SELECT a.assignment_id, a.assignment_status, p.cid, p.hid, p.first_name, p.last_name, p.house_no, p.moo, p.need_screen_dm, p.need_screen_ht, p.health_status_origin,
-               s.skipped_reason
+        SELECT a.assignment_id, a.assignment_status, p.cid, p.hid, p.first_name, p.last_name, p.house_no, p.moo, p.need_screen_dm, p.need_screen_ht, p.health_status_origin
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
-        LEFT JOIN (
-            SELECT assignment_id, skipped_reason 
-            FROM screening_results 
-            WHERE skipped_reason IS NOT NULL
-        ) s ON a.assignment_id = s.assignment_id
-        WHERE a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('pending', 'skipped')
+        WHERE a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status = 'pending'
         ORDER BY LENGTH(p.house_no), p.house_no
     ");
     $pendingStmt->execute([$vhvId]);
     $pendingTasks = $pendingStmt->fetchAll();
 
     $completedStmt = $pdo->prepare("
-        SELECT a.assignment_id, a.assignment_status, p.cid, p.first_name, p.last_name, p.house_no, p.moo
+        SELECT a.assignment_id, a.assignment_status, p.cid, p.hid, p.first_name, p.last_name, p.house_no, p.moo, p.sex, p.birth,
+               sr.sys_bp1, sr.dia_bp1, sr.sys_bp2, sr.dia_bp2, sr.dtx_value, sr.dtx_type,
+               sr.weight, sr.height, sr.waist, sr.bmi, sr.diet_risk, sr.exercise_risk,
+               sr.stress_risk, sr.smoking_risk, sr.alcohol_risk, sr.cv_risk_score,
+               sr.skipped_reason, sr.advice_given,
+               ht.sbp as base_sbp, ht.dbp as base_dbp, dm.bslevel as base_bslevel
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status = 'completed'
+        LEFT JOIN screening_results sr ON a.assignment_id = sr.assignment_id
+        LEFT JOIN staging_hdc_ht ht ON p.cid = ht.cid
+        LEFT JOIN staging_hdc_dm dm ON p.cid = dm.cid
+        WHERE a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('completed', 'skipped')
         ORDER BY a.assigned_at DESC
     ");
     $completedStmt->execute([$vhvId]);
@@ -65,6 +68,23 @@ try {
     $dpacStmt->execute([$vhvId]);
     $dpacTasks = $dpacStmt->fetchAll();
 
+    // Fetch completed DPAC followups
+    $completedDpacStmt = $pdo->prepare("
+        SELECT f.followup_id, f.round_number, f.completed_at, e.risk_type,
+               f.weight, f.height, f.waist, f.bp_sys, f.bp_dia, f.fbs, f.health_risk_level, f.advice_given,
+               p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.sex, p.birth,
+               ht.sbp as base_sbp, ht.dbp as base_dbp, dm.bslevel as base_bslevel
+        FROM dpac_followups f
+        JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
+        JOIN target_population p ON e.cid = p.cid
+        LEFT JOIN staging_hdc_ht ht ON p.cid = ht.cid
+        LEFT JOIN staging_hdc_dm dm ON p.cid = dm.cid
+        WHERE f.vhv_id = ? AND f.status = 'completed'
+        ORDER BY f.completed_at DESC
+    ");
+    $completedDpacStmt->execute([$vhvId]);
+    $completedDpacTasks = $completedDpacStmt->fetchAll();
+
     // If leader, fetch other VHVs in the same village for password reset
     if ($isLeader) {
         $subStmt = $pdo->prepare("SELECT vhv_id, vhv_name FROM vhv_users WHERE vhid_code = ? AND vhv_id != ?");
@@ -80,7 +100,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>อสม. นครตาลสุม - รายการงานคัดกรอง</title>
+    <title>NCDs by อสม.อำเภอตาลสุม</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="manifest" href="manifest.json">
     <style>
@@ -199,7 +219,7 @@ try {
                 DPAC (<?= count($dpacTasks) ?>)
             </button>
             <button class="tab-btn" onclick="switchTab('completed-list', this)">
-                เสร็จสิ้น/ข้าม (<?= count($completedTasks) ?>)
+                เสร็จสิ้น/ข้าม (<?= count($completedTasks) + count($completedDpacTasks) ?>)
             </button>
         </div>
 
@@ -219,16 +239,11 @@ try {
                                 สิทธิ์การคัดกรอง: 
                                 <?php if ($pt['need_screen_dm']): ?>
                                     <span style="color: var(--color-accent);">DM</span>
-                                <?php endif; ?>
+                                  <?php endif; ?>
                                 <?php if ($pt['need_screen_ht']): ?>
                                     <span style="color: var(--color-primary); margin-left: 5px;">HT</span>
                                 <?php endif; ?>
                             </p>
-                            <?php if ($pt['assignment_status'] === 'skipped'): ?>
-                                <p style="font-size: 13px; margin-top: 6px; color: var(--color-yellow); font-weight: bold; background: rgba(245,158,11,0.1); padding: 4px 8px; border-radius: 4px; display: inline-block;">
-                                    ⚠️ ข้ามชั่วคราว: <?= htmlspecialchars($pt['skipped_reason'] ?: 'ไม่อยู่บ้าน') ?> (รอคัดกรองใหม่)
-                                </p>
-                            <?php endif; ?>
                         </div>
                         <div>
                             <svg width="24" height="24" fill="none" stroke="var(--border-color)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"></path></svg>
@@ -240,22 +255,53 @@ try {
 
         <!-- Completed Tasks List -->
         <div id="completed-list" class="tab-content" style="display: none;">
-            <?php if (empty($completedTasks)): ?>
+            <?php if (empty($completedTasks) && empty($completedDpacTasks)): ?>
                 <div style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
                     ยังไม่มีประวัติการคัดกรองที่บันทึก
                 </div>
             <?php else: ?>
                 <?php foreach ($completedTasks as $ct): ?>
-                    <div class="task-card" style="opacity: 0.8;">
+                    <?php if ($ct['assignment_status'] === 'completed'): ?>
+                        <div class="task-card" onclick="showScreeningDetail(<?= htmlspecialchars(json_encode($ct, JSON_UNESCAPED_UNICODE)) ?>)" style="opacity: 0.9;">
+                    <?php else: ?>
+                        <div class="task-card" onclick="openTestModal('<?= htmlspecialchars($ct['house_no']) ?>', '<?= htmlspecialchars($ct['hid'] ?? '') ?>', '<?= htmlspecialchars($ct['cid']) ?>')" style="opacity: 0.9;">
+                    <?php endif; ?>
                         <div class="task-info">
                             <h4>บ้านเลขที่ <?= htmlspecialchars($ct['house_no']) ?></h4>
                             <p>ผู้รับคัดกรอง: <?= htmlspecialchars($ct['first_name'] . ' ' . $ct['last_name']) ?></p>
+                            <?php if ($ct['assignment_status'] === 'completed'): ?>
+                                <p style="color: var(--color-green); font-size: 13px; font-weight: bold;">
+                                    ✅ คัดกรองสำเร็จเรียบร้อย (คลิกเพื่อดูรายละเอียด)
+                                </p>
+                            <?php else: ?>
+                                <p style="color: var(--color-yellow); font-size: 13px; font-weight: bold;">
+                                    ⚠️ ข้ามชั่วคราว: <?= htmlspecialchars($ct['skipped_reason'] ?: 'ไม่อยู่บ้าน') ?> (คลิกเพื่อแก้ไข/คัดกรองใหม่)
+                                </p>
+                            <?php endif; ?>
+                        </div>
+                        <div>
+                            <?php if ($ct['assignment_status'] === 'completed'): ?>
+                                <span class="badge" style="background-color: rgba(16,185,129,0.2); color: var(--color-green); box-shadow: none;">สำเร็จ</span>
+                            <?php else: ?>
+                                <span class="badge" style="background-color: rgba(245,158,11,0.2); color: var(--color-yellow); box-shadow: none;">ข้าม</span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+                <?php foreach ($completedDpacTasks as $cdt): ?>
+                    <div class="task-card" onclick="showDpacDetail(<?= htmlspecialchars(json_encode($cdt, JSON_UNESCAPED_UNICODE)) ?>)" style="opacity: 0.9; border-left: 4px solid #b91c1c; cursor: pointer;">
+                        <div class="task-info">
+                            <h4>บ้านเลขที่ <?= htmlspecialchars($cdt['house_no']) ?></h4>
+                            <p>ผู้รับการติดตาม: <?= htmlspecialchars($cdt['first_name'] . ' ' . $cdt['last_name']) ?></p>
                             <p style="color: var(--color-green); font-size: 13px; font-weight: bold;">
-                                ✅ คัดกรองสำเร็จเรียบร้อย
+                                ✅ ติดตาม DPAC รอบที่ <?= $cdt['round_number'] ?> สำเร็จเรียบร้อย (คลิกเพื่อดูรายละเอียด)
+                            </p>
+                            <p style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                                วันที่ติดตาม: <?= htmlspecialchars($cdt['completed_at']) ?>
                             </p>
                         </div>
                         <div>
-                            <span class="badge" style="background-color: rgba(16,185,129,0.2); color: var(--color-green);">เสร็จสิ้น</span>
+                            <span class="badge" style="background-color: rgba(16,185,129,0.2); color: var(--color-green); box-shadow: none;">สำเร็จ (DPAC)</span>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -395,6 +441,204 @@ try {
                 resDiv.innerText = 'เกิดข้อผิดพลาดทางเทคนิค';
             });
         }
+
+        function openHistoryDetailModal() {
+            document.getElementById('history-detail-modal').style.display = 'flex';
+        }
+        function closeHistoryDetailModal() {
+            document.getElementById('history-detail-modal').style.display = 'none';
+        }
+
+        function showScreeningDetail(data) {
+            document.getElementById('modal-type-title').innerText = '📊 รายละเอียดผลการคัดกรอง';
+            
+            let infoHtml = `
+                <strong style="color: var(--text-primary); font-size: 16px;">${data.first_name} ${data.last_name}</strong>
+                <p style="margin: 4px 0 0; font-size: 14px; color: var(--text-secondary);">บ้านเลขที่ ${data.house_no} หมู่ที่ ${data.moo}</p>
+                <p style="margin: 4px 0 0; font-size: 12px; color: var(--text-muted);">วันที่คัดกรอง: ${data.completed_at || '-'}</p>
+            `;
+            document.getElementById('modal-resident-info').innerHTML = infoHtml;
+            
+            let bpText = `${data.sys_bp1}/${data.dia_bp1}`;
+            if (data.sys_bp2) bpText += ` (ครั้งที่ 2: ${data.sys_bp2}/${data.dia_bp2})`;
+            
+            let dtxText = data.dtx_value ? `${data.dtx_value} mg/dL (${data.dtx_type === 'fpg' ? 'งดอาหาร (FPG)' : 'ไม่ได้งด (RPG)'})` : 'ไม่ได้ตรวจ';
+            
+            let measHtml = `
+                <h4 style="margin: 0 0 8px 0; color: var(--color-accent); font-size: 15px;">📏 ผลการวัดร่างกาย</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 14px; color: var(--text-primary);">
+                    <div>น้ำหนัก: <strong>${data.weight || '-'} กก.</strong></div>
+                    <div>ส่วนสูง: <strong>${data.height || '-'} ซม.</strong></div>
+                    <div>รอบเอว: <strong>${data.waist || '-'} นิ้ว</strong></div>
+                    <div>BMI: <strong>${data.bmi || '-'}</strong></div>
+                </div>
+                <div style="margin-top: 10px; font-size: 14px; color: var(--text-primary);">
+                    <div>ความดันโลหิต: <strong>${bpText} mmHg</strong></div>
+                    <div>ระดับน้ำตาล (DTX): <strong>${dtxText}</strong></div>
+                    <div style="margin-top: 4px;">Thai CV Risk: <strong style="color: var(--color-primary);">${data.cv_risk_score || '0'}%</strong></div>
+                </div>
+            `;
+            document.getElementById('modal-measurements').innerHTML = measHtml;
+            
+            let compHtml = '<h4 style="margin: 12px 0 8px 0; color: var(--color-accent); font-size: 15px; border-top: 1px solid var(--border-color); padding-top: 12px;">🔄 เปรียบเทียบกับค่าตั้งต้น</h4>';
+            let improvements = 0;
+            let worsenings = 0;
+            let comparedAny = false;
+            
+            if (data.sys_bp1 && data.base_sbp) {
+                comparedAny = true;
+                let diff = data.sys_bp1 - data.base_sbp;
+                let diffText = diff > 0 ? `📈 เพิ่มขึ้น +${diff}` : (diff < 0 ? `📉 ลดลง ${diff}` : 'คงเดิม');
+                let status = diff < 0 ? '🟢 ดีขึ้น' : (diff > 0 ? '🔴 แย่ลง' : '⚪ คงที่');
+                if (diff < 0) improvements++;
+                if (diff > 0) worsenings++;
+                compHtml += `<div style="font-size: 13.5px; margin-bottom: 6px; color: var(--text-primary);">ตัวบนความดัน (SYS): ${data.base_sbp} -> ${data.sys_bp1} mmHg (${diffText}) | <strong>${status}</strong></div>`;
+            }
+            
+            if (data.dtx_value && data.base_bslevel) {
+                comparedAny = true;
+                let diff = data.dtx_value - data.base_bslevel;
+                let diffText = diff > 0 ? `📈 เพิ่มขึ้น +${diff}` : (diff < 0 ? `📉 ลดลง ${diff}` : 'คงเดิม');
+                let status = diff < 0 ? '🟢 ดีขึ้น' : (diff > 0 ? '🔴 แย่ลง' : '⚪ คงที่');
+                if (diff < 0) improvements++;
+                if (diff > 0) worsenings++;
+                compHtml += `<div style="font-size: 13.5px; margin-bottom: 6px; color: var(--text-primary);">ระดับน้ำตาล: ${data.base_bslevel} -> ${data.dtx_value} mg/dL (${diffText}) | <strong>${status}</strong></div>`;
+            }
+            
+            if (!comparedAny) {
+                compHtml += `<div style="font-size: 13.5px; margin-bottom: 6px; color: var(--text-muted); font-style: italic;">ไม่มีข้อมูลค่าตั้งต้นสำหรับการเปรียบเทียบ</div>`;
+            }
+            
+            let summaryText = '⚪ ทรงตัว (ไม่มีการเปลี่ยนแปลงมีนัยสำคัญ)';
+            let summaryColor = 'var(--text-secondary)';
+            if (improvements > worsenings) {
+                summaryText = '🟢 ดีขึ้น (การควบคุมสุขภาพดีขึ้น)';
+                summaryColor = 'var(--color-green)';
+            } else if (worsenings > improvements) {
+                summaryText = '🔴 แย่ลง (ควรระมัดระวังและปรับเปลี่ยนพฤติกรรม)';
+                summaryColor = 'var(--color-red)';
+            }
+            
+            compHtml += `
+                <div style="margin-top: 12px; padding: 10px; background-color: var(--bg-darker); border-radius: 8px; text-align: center; font-weight: bold; color: ${summaryColor}; font-size: 15px; border: 1px solid var(--border-color);">
+                    สรุปผลการประเมิน: ${summaryText}
+                </div>
+            `;
+            document.getElementById('modal-comparison').innerHTML = compHtml;
+            
+            document.getElementById('modal-advice').innerHTML = `
+                <strong style="color: var(--color-green); font-size: 14px; display: block; margin-bottom: 4px;">💡 คำแนะนำโดย อสม.:</strong>
+                <p style="margin: 0; font-size: 14px; color: var(--text-primary); line-height: 1.5; font-weight: 700;">${data.advice_given || 'ไม่ระบุ/ไม่มีคำแนะนำเพิ่มเติม'}</p>
+            `;
+            
+            openHistoryDetailModal();
+        }
+
+        function showDpacDetail(data) {
+            document.getElementById('modal-type-title').innerText = `📈 ติดตาม DPAC (รอบที่ ${data.round_number})`;
+            
+            let infoHtml = `
+                <strong style="color: var(--text-primary); font-size: 16px;">${data.first_name} ${data.last_name}</strong>
+                <p style="margin: 4px 0 0; font-size: 14px; color: var(--text-secondary);">บ้านเลขที่ ${data.house_no} หมู่ที่ ${data.moo}</p>
+                <p style="margin: 4px 0 0; font-size: 12px; color: var(--text-muted);">วันที่ติดตาม: ${data.completed_at || '-'}</p>
+            `;
+            document.getElementById('modal-resident-info').innerHTML = infoHtml;
+            
+            let bpText = data.bp_sys ? `${data.bp_sys}/${data.bp_dia}` : 'ไม่ได้วัด';
+            let fbsText = data.fbs ? `${data.fbs} mg/dL` : 'ไม่ได้ตรวจ';
+            
+            let measHtml = `
+                <h4 style="margin: 0 0 8px 0; color: var(--color-accent); font-size: 15px;">📏 ผลการติดตามร่างกาย</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 14px; color: var(--text-primary);">
+                    <div>น้ำหนัก: <strong>${data.weight || '-'} กก.</strong></div>
+                    <div>ส่วนสูง: <strong>${data.height || '-'} ซม.</strong></div>
+                    <div>รอบเอว: <strong>${data.waist || '-'} นิ้ว</strong></div>
+                </div>
+                <div style="margin-top: 10px; font-size: 14px; color: var(--text-primary);">
+                    <div>ความดันโลหิต: <strong>${bpText} mmHg</strong></div>
+                    <div>ระดับน้ำตาล (FBS): <strong>${fbsText}</strong></div>
+                    <div style="margin-top: 4px;">ผลการประเมิน: <strong style="color: var(--color-primary);">${data.health_risk_level || '-'}</strong></div>
+                </div>
+            `;
+            document.getElementById('modal-measurements').innerHTML = measHtml;
+            
+            let compHtml = '<h4 style="margin: 12px 0 8px 0; color: var(--color-accent); font-size: 15px; border-top: 1px solid var(--border-color); padding-top: 12px;">🔄 เปรียบเทียบกับค่าตั้งต้น</h4>';
+            let improvements = 0;
+            let worsenings = 0;
+            let comparedAny = false;
+            
+            if (data.bp_sys && data.base_sbp) {
+                comparedAny = true;
+                let diff = data.bp_sys - data.base_sbp;
+                let diffText = diff > 0 ? `📈 เพิ่มขึ้น +${diff}` : (diff < 0 ? `📉 ลดลง ${diff}` : 'คงเดิม');
+                let status = diff < 0 ? '🟢 ดีขึ้น' : (diff > 0 ? '🔴 แย่ลง' : '⚪ คงที่');
+                if (diff < 0) improvements++;
+                if (diff > 0) worsenings++;
+                compHtml += `<div style="font-size: 13.5px; margin-bottom: 6px; color: var(--text-primary);">ตัวบนความดัน (SYS): ${data.base_sbp} -> ${data.bp_sys} mmHg (${diffText}) | <strong>${status}</strong></div>`;
+            }
+            
+            if (data.fbs && data.base_bslevel) {
+                comparedAny = true;
+                let diff = data.fbs - data.base_bslevel;
+                let diffText = diff > 0 ? `📈 เพิ่มขึ้น +${diff}` : (diff < 0 ? `📉 ลดลง ${diff}` : 'คงเดิม');
+                let status = diff < 0 ? '🟢 ดีขึ้น' : (diff > 0 ? '🔴 แย่ลง' : '⚪ คงที่');
+                if (diff < 0) improvements++;
+                if (diff > 0) worsenings++;
+                compHtml += `<div style="font-size: 13.5px; margin-bottom: 6px; color: var(--text-primary);">ระดับน้ำตาล: ${data.base_bslevel} -> ${data.fbs} mg/dL (${diffText}) | <strong>${status}</strong></div>`;
+            }
+            
+            if (!comparedAny) {
+                compHtml += `<div style="font-size: 13.5px; margin-bottom: 6px; color: var(--text-muted); font-style: italic;">ไม่มีข้อมูลค่าตั้งต้นสำหรับการเปรียบเทียบ</div>`;
+            }
+            
+            let summaryText = '⚪ ทรงตัว (ไม่มีการเปลี่ยนแปลงมีนัยสำคัญ)';
+            let summaryColor = 'var(--text-secondary)';
+            if (improvements > worsenings) {
+                summaryText = '🟢 ดีขึ้น (การควบคุมสุขภาพดีขึ้น)';
+                summaryColor = 'var(--color-green)';
+            } else if (worsenings > improvements) {
+                summaryText = '🔴 แย่ลง (ควรระมัดระวังและปรับเปลี่ยนพฤทีพรรม)';
+                summaryColor = 'var(--color-red)';
+            }
+            
+            compHtml += `
+                <div style="margin-top: 12px; padding: 10px; background-color: var(--bg-darker); border-radius: 8px; text-align: center; font-weight: bold; color: ${summaryColor}; font-size: 15px; border: 1px solid var(--border-color);">
+                    สรุปผลการประเมิน: ${summaryText}
+                </div>
+            `;
+            document.getElementById('modal-comparison').innerHTML = compHtml;
+            
+            document.getElementById('modal-advice').innerHTML = `
+                <strong style="color: var(--color-green); font-size: 14px; display: block; margin-bottom: 4px;">💡 คำแนะนำโดย อสม.:</strong>
+                <p style="margin: 0; font-size: 14px; color: var(--text-primary); line-height: 1.5; font-weight: 700;">${data.advice_given || 'ไม่ระบุ/ไม่มีคำแนะนำเพิ่มเติม'}</p>
+            `;
+            
+            openHistoryDetailModal();
+        }
     </script>
+
+    <!-- History Detail Modal Overlay -->
+    <div id="history-detail-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(13, 44, 84, 0.4); backdrop-filter: blur(5px); z-index: 9999; align-items: center; justify-content: center;">
+        <div class="card-dark" style="width: 90%; max-width: 460px; max-height: 90vh; overflow-y: auto; background: var(--bg-main); box-shadow: var(--neumorph-flat); border-radius: 28px; padding: 24px; color: var(--text-primary);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1.5px solid var(--border-color); padding-bottom: 12px;">
+                <h3 id="modal-type-title" style="color: var(--color-accent); font-size: 20px; font-weight: 800; margin: 0;">รายละเอียด</h3>
+                <button type="button" onclick="closeHistoryDetailModal()" style="background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; font-weight: bold; line-height: 1;">✕</button>
+            </div>
+            
+            <div id="modal-resident-info" style="margin-bottom: 16px; background-color: var(--bg-darker); padding: 14px; border-radius: var(--border-radius); border: 1px solid var(--border-color);">
+            </div>
+
+            <div id="modal-measurements" style="margin-bottom: 16px; background-color: var(--bg-card); padding: 14px; border-radius: var(--border-radius); border: 1px solid var(--border-color);">
+            </div>
+
+            <div id="modal-comparison" style="margin-bottom: 16px; background-color: var(--bg-card); padding: 14px; border-radius: var(--border-radius); border: 1px solid var(--border-color);">
+            </div>
+
+            <div id="modal-advice" style="margin-bottom: 24px; background: rgba(16, 185, 129, 0.1); border-left: 4px solid var(--color-green); padding: 14px; border-radius: var(--border-radius);">
+            </div>
+
+            <button type="button" onclick="closeHistoryDetailModal()" class="btn-giant btn-giant-primary" style="margin: 0; width: 100%; border-radius: var(--border-radius);">ปิดหน้าต่าง</button>
+        </div>
+    </div>
 </body>
 </html>

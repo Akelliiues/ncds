@@ -11,19 +11,24 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 ?>
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Assignment - SSOTansum NCD</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
-        body { background-color: var(--bg-main); }
+        body {
+            background-color: var(--bg-main);
+        }
+
         .grid-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
             margin-top: 20px;
         }
+
         .filter-card {
             background-color: var(--bg-card);
             border-radius: var(--border-radius);
@@ -31,6 +36,7 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
             box-shadow: var(--neumorph-flat);
             margin-bottom: 20px;
         }
+
         .list-card {
             background-color: var(--bg-card);
             border-radius: var(--border-radius);
@@ -40,12 +46,14 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
             display: flex;
             flex-direction: column;
         }
+
         .list-body {
             flex: 1;
             overflow-y: auto;
             margin-top: 10px;
             padding-right: 5px;
         }
+
         .item-row {
             background-color: var(--bg-main);
             border-radius: 12px;
@@ -57,43 +65,92 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
             align-items: center;
             transition: all var(--transition-speed);
         }
+
         .item-row:hover {
             transform: translateY(-2px);
         }
-        .item-info h4 { margin: 0 0 4px 0; color: var(--text-primary); font-size: 16px; }
-        .item-info p { margin: 0; color: var(--text-secondary); font-size: 13px; }
-        
+
+        .item-info h4 {
+            margin: 0 0 4px 0;
+            color: var(--text-primary);
+            font-size: 16px;
+        }
+
+        .item-info p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
         .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(13, 44, 84, 0.4); backdrop-filter: blur(4px);
-            z-index: 2000; display: none; align-items: center; justify-content: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(13, 44, 84, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
         }
+
         .modal-content {
-            background: var(--bg-main); border-radius: 20px; padding: 24px;
-            width: 90%; max-width: 500px; box-shadow: var(--neumorph-flat);
-        }
-        .row-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-        .form-label { display: block; margin-bottom: 6px; font-weight: bold; color: var(--text-secondary); font-size: 14px;}
-        
-        /* Custom Checkbox */
-        .target-checkbox {
-            width: 24px; height: 24px; cursor: pointer;
-            accent-color: var(--color-accent);
-        }
-        
-        .assign-btn {
-            background: var(--color-green); color: white; border: none;
-            padding: 8px 16px; border-radius: 20px; font-weight: bold; cursor: pointer;
+            background: var(--bg-main);
+            border-radius: 20px;
+            padding: 24px;
+            width: 90%;
+            max-width: 500px;
             box-shadow: var(--neumorph-flat);
         }
-        .assign-btn:hover { background: #059669; }
+
+        .row-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* Custom Checkbox */
+        .target-checkbox {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            accent-color: var(--color-accent);
+        }
+
+        .assign-btn {
+            background: var(--color-green);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: var(--neumorph-flat);
+        }
+
+        .assign-btn:hover {
+            background: #059669;
+        }
     </style>
 </head>
+
 <body class="admin-body">
     <?php include 'navbar.php'; ?>
 
     <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
-        <h2 style="color: var(--color-accent); margin-bottom: 20px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px;">
+        <h2
+            style="color: var(--color-accent); margin-bottom: 20px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px;">
             ระบบมอบหมายงานคัดกรอง (Smart Assignment Manager)
         </h2>
 
@@ -129,20 +186,25 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
         </div>
 
         <!-- Target Group Tabs -->
-        <div class="tabs" style="display: flex; gap: 8px; margin: 20px 0; background-color: var(--bg-card); padding: 6px; border-radius: 16px; box-shadow: var(--neumorph-inset); width: fit-content; flex-wrap: wrap;">
-            <button onclick="switchTargetGroup('main')" id="tab-group-main" class="tab active" style="border: none; background: none; font-size: 15px; font-weight: 800; padding: 10px 20px; cursor: pointer; border-radius: 12px; transition: all var(--transition-speed); color: var(--text-secondary);">
+        <div class="tabs"
+            style="display: flex; gap: 8px; margin: 20px 0; background-color: var(--bg-card); padding: 6px; border-radius: 16px; box-shadow: var(--neumorph-inset); width: fit-content; flex-wrap: wrap;">
+            <button onclick="switchTargetGroup('main')" id="tab-group-main" class="tab active"
+                style="border: none; background: none; font-size: 15px; font-weight: 800; padding: 10px 20px; cursor: pointer; border-radius: 12px; transition: all var(--transition-speed); color: var(--text-secondary);">
                 📋 กลุ่มเป้าหมายหลัก (Risk 1-2)
             </button>
-            <button onclick="switchTargetGroup('suspect')" id="tab-group-suspect" class="tab" style="border: none; background: none; font-size: 15px; font-weight: 800; padding: 10px 20px; cursor: pointer; border-radius: 12px; transition: all var(--transition-speed); color: var(--text-secondary);">
+            <button onclick="switchTargetGroup('suspect')" id="tab-group-suspect" class="tab"
+                style="border: none; background: none; font-size: 15px; font-weight: 800; padding: 10px 20px; cursor: pointer; border-radius: 12px; transition: all var(--transition-speed); color: var(--text-secondary);">
                 🔵 กลุ่มป่วย/สงสัยป่วย (Risk 3) [สำรอง]
             </button>
         </div>
 
         <style>
             .tabs .tab.active {
-                background-color: var(--color-primary);
-                color: white !important;
-                box-shadow: var(--neumorph-flat);
+                background-color: #0d2c54 !important;
+                /* Force Navy Blue */
+                color: #ffffff !important;
+                box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.4), inset -3px -3px 6px rgba(255, 255, 255, 0.1) !important;
+                font-weight: 800;
             }
         </style>
 
@@ -150,21 +212,26 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
         <div class="grid-container">
             <!-- Left: Targets -->
             <div class="list-card">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
                     <div>
                         <h3 style="margin: 0; color: var(--text-primary);">รายชื่อประชากรเป้าหมาย</h3>
                         <span style="font-size: 12px; color: var(--text-muted);" id="target-count">พบ 0 ราย</span>
                     </div>
-                    <button onclick="openManualModal()" class="numpad-btn btn-action" style="margin: 0; padding: 8px 16px; border-radius: 20px; font-size: 14px; width: auto; height: auto;">
+                    <button onclick="openManualModal()" class="numpad-btn btn-action"
+                        style="margin: 0; padding: 8px 16px; border-radius: 20px; font-size: 14px; width: auto; height: auto;">
                         + เพิ่มแมนนวล
                     </button>
                 </div>
-                
+
                 <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 14px;">
-                        <input type="checkbox" id="select-all" class="target-checkbox" onchange="toggleSelectAll()"> เลือกทั้งหมด
+                    <label
+                        style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 14px;">
+                        <input type="checkbox" id="select-all" class="target-checkbox" onchange="toggleSelectAll()">
+                        เลือกทั้งหมด
                     </label>
-                    <span id="selected-count" style="font-weight: bold; color: var(--color-accent); font-size: 14px;">เลือก 0 คน</span>
+                    <span id="selected-count"
+                        style="font-weight: bold; color: var(--color-accent); font-size: 14px;">เลือก 0 คน</span>
                 </div>
 
                 <div class="list-body" id="target-list">
@@ -178,7 +245,7 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
                     <h3 style="margin: 0; color: var(--text-primary);">รายชื่อ อสม. ในพื้นที่</h3>
                     <span style="font-size: 12px; color: var(--text-muted);" id="vhv-count">พบ 0 ราย</span>
                 </div>
-                
+
                 <div style="margin-top: 12px; font-size: 14px; color: var(--text-secondary);">
                     <p>👉 เลือกประชากรทางซ้ายมือ และกดปุ่ม <b>"มอบหมาย"</b> ที่ อสม. ด้านล่างนี้</p>
                 </div>
@@ -192,12 +259,15 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
             <div class="list-card" id="suspect-activation-card" style="display: none;">
                 <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
                     <h3 style="margin: 0; color: var(--color-accent);">จัดการรายชื่อกลุ่มป่วย/สงสัยป่วย</h3>
-                    <span style="font-size: 12px; color: var(--text-muted);">ระบุผู้ใช้เป็นกลุ่มเป้าหมายคัดกรองหลัก</span>
+                    <span
+                        style="font-size: 12px; color: var(--text-muted);">ระบุผู้ใช้เป็นกลุ่มเป้าหมายคัดกรองหลัก</span>
                 </div>
-                
-                <div style="margin-top: 20px; font-size: 14px; color: var(--text-secondary); line-height: 1.6; flex: 1;">
+
+                <div
+                    style="margin-top: 20px; font-size: 14px; color: var(--text-secondary); line-height: 1.6; flex: 1;">
                     <p style="margin-bottom: 12px;">👉 <b>ขั้นตอนดำเนินการ:</b></p>
-                    <ol style="padding-left: 20px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px;">
+                    <ol
+                        style="padding-left: 20px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px;">
                         <li>เลือกประชากรป่วย/สงสัยป่วยฝั่งซ้ายมือ</li>
                         <li>กดปุ่ม <b>"ยืนยันระบุเป็นกลุ่มเป้าหมายหลัก"</b> ด้านล่างนี้</li>
                         <li>ระบบจะย้ายรายชื่อเข้าสู่กลุ่มคัดกรอง และ อสม. จะเห็นงานเพื่อไปดำเนินการได้ทันที</li>
@@ -205,7 +275,8 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
                 </div>
 
                 <div>
-                    <button onclick="activateSuspects()" class="btn-primary" style="width: 100%; height: 50px; font-size: 16px; font-weight: bold; border-radius: var(--border-radius); border: none; background: var(--color-green); color: white; cursor: pointer; box-shadow: var(--neumorph-flat);">
+                    <button onclick="activateSuspects()" class="btn-primary"
+                        style="width: 100%; height: 50px; font-size: 16px; font-weight: bold; border-radius: var(--border-radius); border: none; background: var(--color-green); color: white; cursor: pointer; box-shadow: var(--neumorph-flat);">
                         💾 ยืนยันระบุเป็นกลุ่มเป้าหมายหลัก
                     </button>
                 </div>
@@ -216,7 +287,9 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
     <!-- Manual Add Target Modal -->
     <div class="modal-overlay" id="manual-modal">
         <div class="modal-content">
-            <h3 style="color: var(--color-accent); margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">เพิ่มประชากรเป้าหมาย (แมนนวล)</h3>
+            <h3
+                style="color: var(--color-accent); margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+                เพิ่มประชากรเป้าหมาย (แมนนวล)</h3>
             <form id="manual-form" onsubmit="saveManualTarget(event)">
                 <div class="form-group">
                     <label class="form-label">เลขบัตรประชาชน (13 หลัก)</label>
@@ -259,8 +332,10 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
                     </div>
                 </div>
                 <div style="display: flex; gap: 12px; margin-top: 20px;">
-                    <button type="button" onclick="closeManualModal()" class="btn-giant btn-giant-secondary" style="flex: 1; margin: 0;">ยกเลิก</button>
-                    <button type="submit" class="btn-giant btn-giant-primary" style="flex: 1; margin: 0;">บันทึกเพิ่มรายชื่อ</button>
+                    <button type="button" onclick="closeManualModal()" class="btn-giant btn-giant-secondary"
+                        style="flex: 1; margin: 0;">ยกเลิก</button>
+                    <button type="submit" class="btn-giant btn-giant-primary"
+                        style="flex: 1; margin: 0;">บันทึกเพิ่มรายชื่อ</button>
                 </div>
             </form>
         </div>
@@ -270,7 +345,7 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
     <script>
         // Data logic from register.php
         const tambonData = {
-            "341801": { 
+            "341801": {
                 hasSubUnits: true,
                 subUnits: {
                     "10957": {
@@ -282,7 +357,8 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
                             { moo: 5, name: "บ้านนามน (เขตเทศบาล)" },
                             { moo: 10, name: "บ้านนามน (เขตเทศบาล)" },
                             { moo: 11, name: "บ้านตาลสุม (เขตเทศบาล)" },
-                            { moo: 12, name: "บ้านคำไม้ตาย" }
+                            { moo: 12, name: "บ้านคำไม้ตาย" },
+                            { moo: 13, name: "บ้านปากเซ" }
                         ]
                     },
                     "03751": {
@@ -293,7 +369,6 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
                             { moo: 7, name: "บ้านปากห้วย" },
                             { moo: 8, name: "บ้านโนนค้อ" },
                             { moo: 9, name: "บ้านแก่งกบ" },
-                            { moo: 13, name: "บ้านปากเซ" },
                             { moo: 14, name: "บ้านโนนสวรรค์" },
                             { moo: 15, name: "บ้านทุ่งเจริญ" }
                         ]
@@ -343,7 +418,7 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
                     { moo: 8, name: "บ้านสร้างหว้าพัฒนา" }
                 ]
             },
-            "341805": { 
+            "341805": {
                 hasSubUnits: true,
                 subUnits: {
                     "03755": {
@@ -390,13 +465,13 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
             const hContainer = document.getElementById('hoscode_container');
             const hSelect = document.getElementById('hoscode');
             const mSelect = document.getElementById('moo');
-            
+
             hSelect.innerHTML = '<option value="">-- เลือกหน่วยบริการ --</option>';
             mSelect.innerHTML = '<option value="">-- เลือกพื้นที่ก่อน --</option>';
             hContainer.style.display = 'none';
-            
+
             if (!tCode) { fetchData(); return; }
-            
+
             const tInfo = tambonData[tCode];
             if (tInfo.hasSubUnits) {
                 hContainer.style.display = 'block';
@@ -434,19 +509,19 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 
         function switchTargetGroup(group) {
             currentTargetGroup = group;
-            
+
             // Toggle active tab class
             document.getElementById('tab-group-main').classList.toggle('active', group === 'main');
             document.getElementById('tab-group-suspect').classList.toggle('active', group === 'suspect');
-            
+
             // Toggle side cards
             document.getElementById('vhv-card').style.display = group === 'main' ? 'flex' : 'none';
             document.getElementById('suspect-activation-card').style.display = group === 'suspect' ? 'flex' : 'none';
-            
+
             // Reset selections
             document.getElementById('select-all').checked = false;
             updateSelectedCount();
-            
+
             fetchData();
         }
 
@@ -454,7 +529,7 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
             const tambon = document.getElementById('tambon').value;
             const moo = document.getElementById('moo').value;
             let hoscode = '';
-            
+
             if (!tambon || !moo) {
                 document.getElementById('target-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">กรุณาเลือกหมู่บ้าน</div>';
                 document.getElementById('vhv-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">กรุณาเลือกหมู่บ้าน</div>';
@@ -472,7 +547,7 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
             const vhidCode = tambon + moo.padStart(2, '0');
 
             // Fetch Targets
-            fetch(`../api/get_assignment_data.php?type=targets&moo=${moo}&vhid=${vhidCode}&group=${currentTargetGroup}`)
+            fetch(`../api/get_assignment_data.php?type=targets&moo=${moo}&vhid=${vhidCode}&hoscode=${hoscode}&group=${currentTargetGroup}`)
                 .then(r => r.json())
                 .then(data => {
                     currentTargets = data;
@@ -480,7 +555,7 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
                 });
 
             // Fetch VHVs
-            fetch(`../api/get_assignment_data.php?type=vhvs&moo=${moo}&vhid=${vhidCode}`)
+            fetch(`../api/get_assignment_data.php?type=vhvs&moo=${moo}&vhid=${vhidCode}&hoscode=${hoscode}`)
                 .then(r => r.json())
                 .then(data => {
                     renderVhvs(data);
@@ -491,7 +566,7 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
             const list = document.getElementById('target-list');
             document.getElementById('target-count').innerText = `พบ ${currentTargets.length} ราย`;
             updateSelectedCount();
-            
+
             if (currentTargets.length === 0) {
                 list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">ไม่พบประชากรเป้าหมายในพื้นที่นี้</div>';
                 return;
@@ -500,7 +575,7 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
             let html = '';
             currentTargets.forEach(t => {
                 const assignedText = t.assigned_vhv ? `<span style="color: var(--color-green); font-size: 12px; font-weight: bold;">(มอบหมายแล้ว: ${t.assigned_vhv})</span>` : '<span style="color: var(--color-yellow); font-size: 12px; font-weight: bold;">(ยังไม่มอบหมาย)</span>';
-                
+
                 html += `
                     <div class="item-row">
                         <div style="display: flex; align-items: center; gap: 12px;">
@@ -521,7 +596,7 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
         function renderVhvs(vhvs) {
             const list = document.getElementById('vhv-list');
             document.getElementById('vhv-count').innerText = `พบ ${vhvs.length} ราย`;
-            
+
             if (vhvs.length === 0) {
                 list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">ไม่พบ อสม. ในพื้นที่นี้</div>';
                 return;
@@ -562,22 +637,22 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
                 return;
             }
 
-            if(confirm(`ยืนยันมอบหมายงาน ${cids.length} ราย ให้ อสม. ท่านนี้?`)) {
+            if (confirm(`ยืนยันมอบหมายงาน ${cids.length} ราย ให้ อสม. ท่านนี้?`)) {
                 fetch('../api/assign_tasks.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ vhv_id: vhvId, target_cids: cids })
                 })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        alert("มอบหมายงานสำเร็จ!");
-                        fetchData(); // Refresh lists
-                    } else {
-                        alert("เกิดข้อผิดพลาด: " + data.message);
-                    }
-                })
-                .catch(err => alert("เกิดข้อผิดพลาดในการเชื่อมต่อ"));
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert("มอบหมายงานสำเร็จ!");
+                            fetchData(); // Refresh lists
+                        } else {
+                            alert("เกิดข้อผิดพลาด: " + data.message);
+                        }
+                    })
+                    .catch(err => alert("เกิดข้อผิดพลาดในการเชื่อมต่อ"));
             }
         }
 
@@ -594,16 +669,16 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ cids: cids })
                 })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        alert(data.message);
-                        fetchData(); // Refresh lists
-                    } else {
-                        alert("เกิดข้อผิดพลาด: " + data.message);
-                    }
-                })
-                .catch(err => alert("เกิดข้อผิดพลาดในการเชื่อมต่อ"));
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert(data.message);
+                            fetchData(); // Refresh lists
+                        } else {
+                            alert("เกิดข้อผิดพลาด: " + data.message);
+                        }
+                    })
+                    .catch(err => alert("เกิดข้อผิดพลาดในการเชื่อมต่อ"));
             }
         }
 
@@ -620,7 +695,7 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 
         function saveManualTarget(e) {
             e.preventDefault();
-            
+
             const tambon = document.getElementById('tambon').value;
             const moo = document.getElementById('moo').value;
             let hoscode = '';
@@ -651,17 +726,17 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             })
-            .then(r => r.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    alert("บันทึกข้อมูลสำเร็จ");
-                    closeManualModal();
-                    fetchData(); // Refresh target list
-                } else {
-                    alert("ข้อผิดพลาด: " + data.message);
-                }
-            })
-            .catch(err => alert("เกิดข้อผิดพลาดในการเชื่อมต่อ"));
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert("บันทึกข้อมูลสำเร็จ");
+                        closeManualModal();
+                        fetchData(); // Refresh target list
+                    } else {
+                        alert("ข้อผิดพลาด: " + data.message);
+                    }
+                })
+                .catch(err => alert("เกิดข้อผิดพลาดในการเชื่อมต่อ"));
         }
 
         // Sub-admin automatic scoping
@@ -670,7 +745,7 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
             if (loggedAdminHoscode) {
                 let targetTambon = "";
                 let targetSubUnit = "";
-                
+
                 // Find matching tambon for the logged in hoscode
                 for (let t in tambonData) {
                     if (tambonData[t].hasSubUnits) {
@@ -686,14 +761,14 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
                         }
                     }
                 }
-                
+
                 if (targetTambon) {
                     const tSelect = document.getElementById('tambon');
                     tSelect.value = targetTambon;
                     tSelect.style.pointerEvents = 'none';
                     tSelect.style.backgroundColor = 'var(--bg-darker)';
                     onTambonChange();
-                    
+
                     if (targetSubUnit) {
                         const hSelect = document.getElementById('hoscode');
                         hSelect.value = targetSubUnit;
@@ -706,4 +781,5 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
         });
     </script>
 </body>
+
 </html>

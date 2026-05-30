@@ -49,25 +49,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $healthRisk = $_POST['health_risk_level'] ?? '';
     $advice = $_POST['advice_given'] ?? '';
 
-    $updateStmt = $pdo->prepare("
-        UPDATE dpac_followups 
-        SET status = 'completed', completed_at = CURRENT_TIMESTAMP,
-            weight = ?, height = ?, waist = ?,
-            fbs = ?, bp_sys = ?, bp_dia = ?,
-            health_risk_level = ?, advice_given = ?
-        WHERE followup_id = ? AND vhv_id = ?
-    ");
-    
-    if ($updateStmt->execute([$weight, $height, $waist, $fbs, $sbp, $dbp, $healthRisk, $advice, $fid, $vhvId])) {
-        echo "<script>alert('บันทึกผลการติดตามสำเร็จ!'); window.location.href='index.php';</script>";
+    $pdo->beginTransaction();
+    try {
+        $updateStmt = $pdo->prepare("
+            UPDATE dpac_followups 
+            SET status = 'completed', completed_at = CURRENT_TIMESTAMP,
+                weight = ?, height = ?, waist = ?,
+                fbs = ?, bp_sys = ?, bp_dia = ?,
+                health_risk_level = ?, advice_given = ?
+            WHERE followup_id = ? AND vhv_id = ?
+        ");
+        $updateStmt->execute([$weight, $height, $waist, $fbs, $sbp, $dbp, $healthRisk, $advice, $fid, $vhvId]);
+
+        // Insert reward point (+1 point) for DPAC followup completion
+        $checkReward = $pdo->prepare("SELECT COUNT(*) FROM vhv_rewards WHERE vhv_id = ? AND followup_id = ?");
+        $checkReward->execute([$vhvId, $fid]);
+        if ($checkReward->fetchColumn() == 0) {
+            $rewardStmt = $pdo->prepare("
+                INSERT INTO vhv_rewards (vhv_id, followup_id, points_earned, approval_status, approved_at)
+                VALUES (?, ?, 1, 'approved', CURRENT_TIMESTAMP)
+            ");
+            $rewardStmt->execute([$vhvId, $fid]);
+        }
+
+        $pdo->commit();
+        echo "<script>alert('บันทึกผลการติดตามสำเร็จ! อสม. ได้รับ +1 คะแนนสะสม'); window.location.href='index.php';</script>";
         exit();
-    } else {
-        $error = "เกิดข้อผิดพลาดในการบันทึกข้อมูล";
+    } catch (\Exception $e) {
+        $pdo->rollBack();
+        $error = "เกิดข้อผิดพลาดในการบันทึกข้อมูล: " . $e->getMessage();
     }
 }
 ?>
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -81,6 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-bottom: 20px;
             box-shadow: var(--neumorph-flat);
         }
+
         .advice-box {
             background-color: #eff6ff;
             border-left: 4px solid #3b82f6;
@@ -88,21 +105,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 8px;
             margin-bottom: 20px;
         }
+
         .advice-box h4 {
             color: #1e40af;
             margin-top: 0;
             margin-bottom: 10px;
             font-size: 16px;
         }
+
         .advice-box ul {
             margin: 0;
             padding-left: 20px;
             color: #334155;
             font-size: 14px;
         }
+
         .advice-box li {
             margin-bottom: 5px;
         }
+
         .risk-eval {
             font-size: 18px;
             font-weight: 800;
@@ -112,17 +133,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-top: 10px;
             transition: all 0.3s ease;
         }
-        .risk-eval.normal { background-color: #dcfce7; color: #166534; }
-        .risk-eval.risk { background-color: #fef9c3; color: #854d0e; }
-        .risk-eval.high { background-color: #fee2e2; color: #991b1b; }
-        .risk-eval.default { background-color: var(--bg-main); color: var(--text-secondary); }
+
+        .risk-eval.normal {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+
+        .risk-eval.risk {
+            background-color: #fef9c3;
+            color: #854d0e;
+        }
+
+        .risk-eval.high {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .risk-eval.default {
+            background-color: var(--bg-main);
+            color: var(--text-secondary);
+        }
+
+        .btn-advice-chip {
+            background-color: var(--bg-card);
+            color: var(--text-primary);
+            border: none;
+            padding: 12px 16px;
+            border-radius: var(--border-radius);
+            text-align: left;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            transition: all var(--transition-speed);
+            box-shadow: var(--neumorph-flat);
+            margin-bottom: 8px;
+        }
+
+        .btn-advice-chip.selected {
+            background-color: var(--bg-darker) !important;
+            color: var(--color-green) !important;
+            box-shadow: var(--neumorph-inset) !important;
+        }
     </style>
 </head>
+
 <body class="vhv-accessibility">
     <div class="mobile-wrapper">
         <div class="header-nav">
             <button class="back-btn" onclick="window.location.href='index.php'">
-                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"></path></svg>
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M15 19l-7-7 7-7"></path>
+                </svg>
                 กลับ
             </button>
             <h2 style="font-size: 18px;">ติดตามกลุ่มเสี่ยง DPAC</h2>
@@ -131,9 +196,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div style="padding: 20px;">
             <div class="form-section" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white;">
                 <h3 style="margin-top: 0; color: #38bdf8;">รอบติดตามที่ <?= $task['round_number'] ?></h3>
-                <p style="margin: 5px 0;"><strong>ชื่อ-สกุล:</strong> <?= htmlspecialchars($task['first_name'] . ' ' . $task['last_name']) ?></p>
-                <p style="margin: 5px 0;"><strong>ที่อยู่:</strong> บ้านเลขที่ <?= htmlspecialchars($task['house_no']) ?> หมู่ <?= htmlspecialchars($task['moo']) ?></p>
-                <p style="margin: 5px 0; color: #fbbf24; font-weight: bold;">⚠️ กลุ่มเสี่ยง: <?= $task['risk_type'] ?></p>
+                <p style="margin: 5px 0;"><strong>ชื่อ-สกุล:</strong>
+                    <?= htmlspecialchars($task['first_name'] . ' ' . $task['last_name']) ?></p>
+                <p style="margin: 5px 0;"><strong>ที่อยู่:</strong> บ้านเลขที่
+                    <?= htmlspecialchars($task['house_no']) ?> หมู่ <?= htmlspecialchars($task['moo']) ?>
+                </p>
+                <p style="margin: 5px 0; color: #fbbf24; font-weight: bold;">⚠️ กลุ่มเสี่ยง: <?= $task['risk_type'] ?>
+                </p>
             </div>
 
             <?php if (isset($error)): ?>
@@ -163,11 +232,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <!-- ข้อมูลเฉพาะโรค -->
                 <div class="form-section">
                     <h3 style="color: var(--color-accent); margin-top: 0;">2. ตรวจวัดค่าความเสี่ยง</h3>
-                    
+
                     <?php if ($isDM): ?>
                         <div style="margin-top: 15px;">
                             <label class="form-label">ระดับน้ำตาลในเลือด (FBS) (mg/dL)</label>
-                            <input type="number" name="fbs" id="fbs" class="form-input-text" oninput="calculateRisk()" required placeholder="ตัวอย่าง: 110">
+                            <input type="number" name="fbs" id="fbs" class="form-input-text" oninput="calculateRisk()"
+                                required placeholder="ตัวอย่าง: 110">
                         </div>
                     <?php endif; ?>
 
@@ -175,11 +245,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="row-grid" style="margin-top: 15px;">
                             <div>
                                 <label class="form-label">ความดันตัวบน (SYS)</label>
-                                <input type="number" name="bp_sys" id="bp_sys" class="form-input-text" oninput="calculateRisk()" required placeholder="ตัวอย่าง: 130">
+                                <input type="number" name="bp_sys" id="bp_sys" class="form-input-text"
+                                    oninput="calculateRisk()" required placeholder="ตัวอย่าง: 130">
                             </div>
                             <div>
                                 <label class="form-label">ความดันตัวล่าง (DIA)</label>
-                                <input type="number" name="bp_dia" id="bp_dia" class="form-input-text" oninput="calculateRisk()" required placeholder="ตัวอย่าง: 85">
+                                <input type="number" name="bp_dia" id="bp_dia" class="form-input-text"
+                                    oninput="calculateRisk()" required placeholder="ตัวอย่าง: 85">
                             </div>
                         </div>
                     <?php endif; ?>
@@ -196,7 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <!-- การให้คำแนะนำ (อิงตามโรค) -->
                 <div class="form-section">
                     <h3 style="color: var(--color-accent); margin-top: 0;">3. การให้คำแนะนำ</h3>
-                    
+
                     <div class="advice-box">
                         <h4>💡 แนวทางการให้คำแนะนำ (อสม. อ่านให้ฟัง)</h4>
                         <ul>
@@ -214,11 +286,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </ul>
                     </div>
 
-                    <label class="form-label">สรุปคำแนะนำที่ อสม. แจ้งแก่กลุ่มเสี่ยง (บันทึกย่อ)</label>
-                    <textarea name="advice_given" class="form-input-text" style="height: 100px; resize: none;" required placeholder="เช่น แนะนำให้ลดเค็ม และผู้ป่วยรับปากว่าจะงดเติมน้ำปลา..."></textarea>
+                    <label class="form-label">สรุปคำแนะนำ</label>
+                    <textarea name="advice_given" id="advice_given" class="form-input-text"
+                        style="height: 80px; resize: none; background-color: var(--bg-darker); border: 2px solid var(--border-color); color: var(--text-primary); cursor: default;"
+                        readonly required placeholder="กรุณาคลิกเลือกคำแนะนำด้านล่าง..."></textarea>
+
+                    <div
+                        style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px; margin-bottom: 15px;">
+                        <?php if ($isDM): ?>
+                            <button type="button" class="btn-advice-chip"
+                                onclick="toggleAdviceChip('ลดของหวาน/เครื่องดื่มน้ำอัดลม/ชาไข่มุก', this)">
+                                <span class="chip-status">⚪</span> ลดของหวาน/เครื่องดื่มน้ำอัดลม/ชาไข่มุก
+                            </button>
+                            <button type="button" class="btn-advice-chip"
+                                onclick="toggleAdviceChip('เลี่ยงผลไม้หวานจัด เช่น ทุเรียน/มะม่วงสุก', this)">
+                                <span class="chip-status">⚪</span> เลี่ยงผลไม้หวานจัด เช่น ทุเรียน/มะม่วงสุก
+                            </button>
+                        <?php endif; ?>
+                        <?php if ($isHT): ?>
+                            <button type="button" class="btn-advice-chip"
+                                onclick="toggleAdviceChip('เลี่ยงเค็ม/ปลาร้า/บะหมี่กึ่งสำเร็จรูป/ลดการเติมน้ำปลา', this)">
+                                <span class="chip-status">⚪</span> เลี่ยงเค็ม/ปลาร้า/บะหมี่กึ่งสำเร็จรูป/ลดการเติมน้ำปลา
+                            </button>
+                            <button type="button" class="btn-advice-chip"
+                                onclick="toggleAdviceChip('ผ่อนคลายความเครียด/พักผ่อนให้เพียงพอ', this)">
+                                <span class="chip-status">⚪</span> ผ่อนคลายความเครียด/พักผ่อนให้เพียงพอ
+                            </button>
+                        <?php endif; ?>
+                        <button type="button" class="btn-advice-chip"
+                            onclick="toggleAdviceChip('ออกกำลังกายอย่างน้อย 30 นาที/วัน', this)">
+                            <span class="chip-status">⚪</span> ออกกำลังกายอย่างน้อย 30 นาที/วัน
+                        </button>
+                        <button type="button" class="btn-advice-chip"
+                            onclick="toggleAdviceChip('งดสูบบุหรี่และงดเครื่องดื่มแอลกอฮอล์', this)">
+                            <span class="chip-status">⚪</span> งดสูบบุหรี่และงดเครื่องดื่มแอลกอฮอล์
+                        </button>
+                    </div>
                 </div>
 
-                <button type="submit" class="btn-giant btn-giant-primary" style="margin-bottom: 40px;">บันทึกผลการติดตาม DPAC</button>
+                <button type="submit" class="btn-giant btn-giant-primary" style="margin-bottom: 40px;">บันทึกผลการติดตาม
+                    DPAC</button>
             </form>
         </div>
     </div>
@@ -280,13 +387,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        document.getElementById('dpacForm').onsubmit = function(e) {
+        document.getElementById('dpacForm').onsubmit = function (e) {
             const risk = document.getElementById('health_risk_level').value;
             if (!risk) {
                 e.preventDefault();
                 alert('กรุณากรอกข้อมูลเพื่อประเมินความเสี่ยงให้ครบถ้วน');
             }
         };
+
+        function toggleAdviceChip(text, btn) {
+            btn.classList.toggle('selected');
+            const indicator = btn.querySelector('.chip-status');
+            if (btn.classList.contains('selected')) {
+                indicator.textContent = '✅';
+            } else {
+                indicator.textContent = '⚪';
+            }
+
+            const selected = [];
+            document.querySelectorAll('.btn-advice-chip.selected').forEach(chip => {
+                const chipText = chip.textContent.replace('✅', '').replace('⚪', '').trim();
+                selected.push(chipText);
+            });
+
+            document.getElementById('advice_given').value = selected.join(', ');
+        }
     </script>
 </body>
+
 </html>

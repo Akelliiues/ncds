@@ -453,7 +453,7 @@ if (isset($_POST['action_confirm'])) {
                 ");
             } else {
                 // Type: person
-                $stmtCheckPerson = $pdo->prepare("SELECT * FROM target_population WHERE cid = ? OR (LPAD(hoscode, 5, '0') = LPAD(?, 5, '0') AND pid = ?)");
+                $stmtCheckPerson = $pdo->prepare("SELECT * FROM target_population WHERE cid = ? OR (LPAD(hoscode, 5, '0') = LPAD(?, 5, '0') AND TRIM(LEADING '0' FROM pid) = TRIM(LEADING '0' FROM ?))");
                 $stmtUpdatePersonCid = $pdo->prepare("UPDATE target_population SET cid = ?, hid = ?, pid = ?, first_name = ?, last_name = ?, sex = ?, birth = ?, house_no = ?, moo = ?, sub_district_code = ?, vhid_code = ?, hoscode = ?, updated_at = NOW() WHERE cid = ?");
                 $stmtUpdatePersonSimple = $pdo->prepare("UPDATE target_population SET hid = ?, pid = ?, first_name = ?, last_name = ?, sex = ?, birth = ?, house_no = ?, moo = ?, sub_district_code = ?, vhid_code = ?, hoscode = ?, updated_at = NOW() WHERE cid = ?");
                 $stmtInsertPerson = $pdo->prepare("INSERT INTO target_population (cid, hid, pid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE hid=VALUES(hid), pid=VALUES(pid), first_name=VALUES(first_name), last_name=VALUES(last_name), sex=VALUES(sex), birth=VALUES(birth), house_no=VALUES(house_no), moo=VALUES(moo), sub_district_code=VALUES(sub_district_code), vhid_code=VALUES(vhid_code), hoscode=VALUES(hoscode), updated_at=NOW()");
