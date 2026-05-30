@@ -177,7 +177,7 @@ try {
 
         <!-- VHV Info Header -->
         <div class="vhv-header" style="display: flex; align-items: center; gap: 16px; padding: 20px 16px;">
-            <img src="../assets/icon.png" alt="NCDs Prevention Logo" style="width: 60px; height: 60px; border-radius: 50%; box-shadow: var(--neumorph-inset); border: 2px solid rgba(255, 255, 255, 0.1);">
+            <img src="../assets/icon.png" alt="NCDs Prevention Logo" style="width: 60px; height: 60px;">
             <div style="flex-grow: 1;">
                 <h3 style="color: var(--color-accent); margin: 0; font-size: 14px; font-weight: 800; letter-spacing: 0.5px;">อสม. ประจำบ้าน ตาลสุม</h3>
                 <h2 style="color: var(--text-primary); margin: 4px 0; font-size: 20px; font-weight: 800;"><?= htmlspecialchars($vhvName) ?></h2>
