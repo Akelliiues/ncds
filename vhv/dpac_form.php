@@ -421,12 +421,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div style="margin-top: 15px;">
                         <label class="form-label">รอบเอว</label>
                         <div class="unit-toggle-group" id="waistUnitGroup">
-                            <button type="button" class="unit-toggle-btn active" id="btnCm" onclick="switchWaistUnit('cm')">ซม.</button>
-                            <button type="button" class="unit-toggle-btn" id="btnInch" onclick="switchWaistUnit('inch')">นิ้ว</button>
+                            <button type="button" class="unit-toggle-btn" id="btnCm" onclick="switchWaistUnit('cm')">ซม.</button>
+                            <button type="button" class="unit-toggle-btn active" id="btnInch" onclick="switchWaistUnit('inch')">นิ้ว</button>
                         </div>
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <input type="number" step="0.1" id="waist" class="form-input-text" required placeholder="ซม.">
-                            <span id="waistUnit" style="font-weight: 800; color: var(--text-secondary); white-space: nowrap; min-width: 32px;">ซม.</span>
+                            <input type="number" step="0.1" id="waist" class="form-input-text" required placeholder="นิ้ว">
+                            <span id="waistUnit" style="font-weight: 800; color: var(--text-secondary); white-space: nowrap; min-width: 32px;">นิ้ว</span>
                         </div>
                         <div class="waist-convert-hint" id="waistHint"></div>
                     </div>
@@ -662,7 +662,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const isHT = <?= $isHT ? 'true' : 'false' ?>;
 
         // Waist unit toggle logic
-        let waistUnit = 'cm';
+        let waistUnit = 'inch';
         function switchWaistUnit(unit) {
             const input = document.getElementById('waist');
             const hint = document.getElementById('waistHint');
