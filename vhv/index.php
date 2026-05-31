@@ -141,10 +141,36 @@ try {
             box-shadow: var(--neumorph-flat);
             cursor: pointer;
             transition: all var(--transition-speed);
+            position: relative;
+            overflow: hidden;
         }
         .task-card:active {
             box-shadow: var(--neumorph-inset);
             transform: scale(0.98);
+        }
+        .task-card-watermark {
+            position: absolute;
+            right: 42px;
+            bottom: -35px;
+            font-size: 110px;
+            font-weight: 900;
+            color: rgba(185, 28, 28, 0.05);
+            pointer-events: none;
+            user-select: none;
+            font-family: 'Outfit', sans-serif;
+            z-index: 1;
+            line-height: 1;
+        }
+        .task-info {
+            position: relative;
+            z-index: 2;
+            min-width: 0;
+            flex: 1;
+        }
+        .task-card > div:last-child {
+            position: relative;
+            z-index: 2;
+            flex-shrink: 0;
         }
         .task-info h4 {
             margin: 0 0 6px 0;
@@ -293,6 +319,7 @@ try {
                 <?php endforeach; ?>
                 <?php foreach ($completedDpacTasks as $cdt): ?>
                     <div class="task-card" onclick="showDpacDetail(<?= htmlspecialchars(json_encode($cdt, JSON_UNESCAPED_UNICODE)) ?>)" style="opacity: 0.9; border-left: 4px solid #b91c1c; cursor: pointer;">
+                        <div class="task-card-watermark"><?= $cdt['round_number'] ?></div>
                         <div class="task-info">
                             <h4>บ้านเลขที่ <?= htmlspecialchars($cdt['house_no']) ?></h4>
                             <p>ผู้รับการติดตาม: <?= htmlspecialchars($cdt['first_name'] . ' ' . $cdt['last_name']) ?></p>
@@ -320,6 +347,7 @@ try {
             <?php else: ?>
                 <?php foreach ($dpacTasks as $dt): ?>
                     <div class="task-card" onclick="window.location.href='dpac_form.php?fid=<?= $dt['followup_id'] ?>'" style="border-left: 4px solid #b91c1c;">
+                        <div class="task-card-watermark"><?= $dt['round_number'] ?></div>
                         <div class="task-info">
                             <h4>บ้านเลขที่ <?= htmlspecialchars($dt['house_no']) ?></h4>
                             <p><?= htmlspecialchars($dt['first_name'] . ' ' . $dt['last_name']) ?></p>
