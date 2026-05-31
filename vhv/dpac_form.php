@@ -164,22 +164,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         /* ── Advice visual card grid ────────────────────────── */
         .advice-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
             margin-bottom: 14px;
         }
-        @media (max-width: 480px) { .advice-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 600px) { .advice-grid { grid-template-columns: repeat(3, 1fr); } }
 
         .advice-card {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            gap: 8px;
+            gap: 12px;
             background-color: var(--bg-card);
             border: 2px solid transparent;
-            border-radius: 18px;
-            padding: 14px 10px 12px;
+            border-radius: 24px;
+            padding: 20px 12px 18px;
             cursor: pointer;
             box-shadow: var(--neumorph-flat);
             transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
@@ -198,8 +198,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .advice-card.selected .advice-card-label { color: var(--color-green); }
 
         .advice-icon-wrap {
-            width: 54px;
-            height: 54px;
+            width: 76px;
+            height: 76px;
             border-radius: 50%;
             background: var(--bg-darker);
             display: flex;
@@ -209,21 +209,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flex-shrink: 0;
         }
         .advice-icon-wrap svg {
-            width: 30px;
-            height: 30px;
+            width: 48px;
+            height: 48px;
         }
         .advice-card-label {
-            font-size: 12px;
+            font-size: 15px;
             font-weight: 800;
             color: var(--text-secondary);
-            line-height: 1.3;
+            line-height: 1.4;
             transition: color 0.2s;
         }
         .advice-card-check {
             position: absolute;
-            top: 7px;
-            right: 9px;
-            font-size: 14px;
+            top: 10px;
+            right: 12px;
+            font-size: 18px;
             opacity: 0;
             transition: opacity 0.2s;
         }
