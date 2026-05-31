@@ -49,9 +49,9 @@ $presetHid = $_GET['hid'] ?? ''; // Support fallback if loaded with query parame
             <div id="reader" style="width: 100%; border: none; border-radius: var(--border-radius); overflow: hidden; background-color: var(--bg-darker); box-shadow: var(--neumorph-inset);"></div>
             
             <div class="card-dark" style="margin-top: 20px; text-align: center;">
-                <p style="color: var(--text-secondary); font-size: 15px; margin: 0 0 12px 0;">หากไม่สามารถใช้กล้องสแกนได้ สามารถกรอกรหัสบ้าน (HID) ด้วยตนเอง:</p>
+                <p style="color: var(--text-secondary); font-size: 15px; margin: 0 0 12px 0;">หากไม่สามารถใช้กล้องสแกนได้ สามารถกรอกรหัสบ้าน (HID) หรือเลขบัตรประชาชน (CID) ด้วยตนเอง:</p>
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" id="manual-hid" class="input-large" style="height: 50px; font-size: 18px; flex-grow: 1;" placeholder="รหัสบ้าน HID 15 หลัก" value="<?= htmlspecialchars($presetHid) ?>" inputmode="numeric">
+                    <input type="text" id="manual-hid" class="input-large" style="height: 50px; font-size: 18px; flex-grow: 1;" placeholder="กรอกรหัสบ้าน HID หรือเลขบัตรประชาชน" value="<?= htmlspecialchars($presetHid) ?>" inputmode="numeric">
                     <button onclick="checkManualHid()" class="numpad-btn btn-action" style="height: 50px; width: 90px; margin-top: 0; font-size: 16px; border-radius: var(--border-radius);">ตรวจสอบ</button>
                 </div>
             </div>
@@ -164,7 +164,11 @@ $presetHid = $_GET['hid'] ?? ''; // Support fallback if loaded with query parame
             .then(data => {
                 if (data.status === 'success') {
                     // Valid assignment, redirect to screening form
-                    window.location.href = 'screening_form.php?hid=' + encodeURIComponent(hid);
+                    if (/^\d{13}$/.test(hid)) {
+                        window.location.href = 'screening_form.php?cid=' + encodeURIComponent(hid);
+                    } else {
+                        window.location.href = 'screening_form.php?hid=' + encodeURIComponent(hid);
+                    }
                 } else {
                     // Invalid/Cross-District Lock, show lock screen overlay
                     document.getElementById('scanner-area').style.display = 'none';

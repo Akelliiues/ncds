@@ -233,7 +233,11 @@ function maskName($firstName, $lastName) {
                             
                             <div class="qr-code-img" id="qr-<?= htmlspecialchars($person['cid']) ?>"></div>
                             
-                            <div style="font-size: 11px; margin-top: 5px; color: #777;">HID: <?= htmlspecialchars($person['hid']) ?></div>
+                            <?php if (!empty($person['hid']) && $person['hid'] !== '000000000000000'): ?>
+                                <div style="font-size: 11px; margin-top: 5px; color: #777;">HID: <?= htmlspecialchars($person['hid']) ?></div>
+                            <?php else: ?>
+                                <div style="font-size: 10px; margin-top: 5px; color: #f59e0b; font-weight: bold;">CID: <?= htmlspecialchars(substr($person['cid'], 0, 4) . '***' . substr($person['cid'], -4)) ?> (Manual Import)</div>
+                            <?php endif; ?>
 
                             <!-- Message of Care -->
                             <div style="border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-top: 10px; font-size: 11px; font-style: italic; color: #0284c7; font-weight: bold; line-height: 1.4;">
@@ -319,8 +323,12 @@ function maskName($firstName, $lastName) {
             // Generate QR Codes
             <?php if ($filter_hoscode && count($people) > 0): ?>
                 <?php foreach ($people as $person): ?>
+                    <?php 
+                    // Fallback to CID if JHCIS HID is empty or placeholder (000000000000000)
+                    $qrText = (!empty($person['hid']) && $person['hid'] !== '000000000000000') ? $person['hid'] : $person['cid'];
+                    ?>
                     new QRCode(document.getElementById("qr-<?= $person['cid'] ?>"), {
-                        text: "<?= $person['hid'] ?>",
+                        text: "<?= $qrText ?>",
                         width: 150,
                         height: 150,
                         colorDark : "#000000",

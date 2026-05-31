@@ -25,28 +25,46 @@ $lng = (float)($_POST['lng'] ?? 0);
 if (empty($hid)) {
     echo json_encode([
         'status' => 'error',
-        'message' => 'ไม่พบข้อมูลรหัสบ้าน (HID)'
+        'message' => 'ไม่พบข้อมูลรหัสบ้าน (HID) หรือรหัสบุคคล'
     ]);
     exit();
 }
 
 try {
-    // 1. Check if there are assignments for this VHV mapping to targets in this house
-    $stmt = $pdo->prepare("
-        SELECT a.assignment_id, p.vhid_code, p.hoscode, p.first_name, p.last_name
-        FROM task_assignments a
-        JOIN target_population p ON a.target_cid = p.cid
-        WHERE p.hid = ? AND a.vhv_id = ? AND a.budget_year = 2026
-    ");
-    $stmt->execute([$hid, $vhvId]);
-    $assignments = $assignments = $stmt->fetchAll();
+    // Check if input is a 13-digit CID or raw HID
+    $isCid = preg_match('/^\d{13}$/', $hid);
 
-    // 2. PDPA Cross-District Lock:
-    // If no assignments found for this house AND VHV, OR if the house belongs to another village/hoscode
-    // Check if the house exists in the system at all to verify village code
-    $houseStmt = $pdo->prepare("SELECT vhid_code, hoscode FROM target_population WHERE hid = ? LIMIT 1");
-    $houseStmt->execute([$hid]);
-    $houseInfo = $houseStmt->fetch();
+    if ($isCid) {
+        // 1. Check assignments mapping to this specific CID
+        $stmt = $pdo->prepare("
+            SELECT a.assignment_id, p.vhid_code, p.hoscode, p.first_name, p.last_name
+            FROM task_assignments a
+            JOIN target_population p ON a.target_cid = p.cid
+            WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = 2026
+        ");
+        $stmt->execute([$hid, $vhvId]);
+        $assignments = $stmt->fetchAll();
+
+        // 2. PDPA Cross-District Lock:
+        $houseStmt = $pdo->prepare("SELECT vhid_code, hoscode FROM target_population WHERE cid = ? LIMIT 1");
+        $houseStmt->execute([$hid]);
+        $houseInfo = $houseStmt->fetch();
+    } else {
+        // 1. Check assignments mapping to targets in JHCIS house
+        $stmt = $pdo->prepare("
+            SELECT a.assignment_id, p.vhid_code, p.hoscode, p.first_name, p.last_name
+            FROM task_assignments a
+            JOIN target_population p ON a.target_cid = p.cid
+            WHERE p.hid = ? AND a.vhv_id = ? AND a.budget_year = 2026
+        ");
+        $stmt->execute([$hid, $vhvId]);
+        $assignments = $stmt->fetchAll();
+
+        // 2. PDPA Cross-District Lock:
+        $houseStmt = $pdo->prepare("SELECT vhid_code, hoscode FROM target_population WHERE hid = ? LIMIT 1");
+        $houseStmt->execute([$hid]);
+        $houseInfo = $houseStmt->fetch();
+    }
 
     $isAuthorized = true;
     
