@@ -20,9 +20,9 @@ function getPositiveTitle($rank)
     if ($rank === 1)
         return '🏆 สุดยอดขุนพลสาธารณสุขตาลสุม';
     if ($rank === 2)
-        return '🥈 ยอดอัศวินสุขภาพชุมชน';
+        return '🏆 ยอดอัศวินสุขภาพชุมชน';
     if ($rank === 3)
-        return '🥉 ดาวรุ่งแห่งความห่วงใย';
+        return '🏆 ดาวรุ่งแห่งความห่วงใย';
     if ($rank === 4)
         return '✨ ผู้พิทักษ์หัวใจไร้โรค';
     if ($rank === 5)
@@ -96,6 +96,31 @@ $topFifty = array_slice($allLeaders, 0, 50);
             font-weight: bold;
             margin-left: 6px;
         }
+
+        /* Trophy & Award Icon Hover Effect */
+        .trophy-icon {
+            display: inline-block;
+            cursor: default;
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.35s ease;
+            transform-origin: center bottom;
+        }
+        .trophy-icon:hover {
+            transform: scale(1.45) rotate(-12deg);
+            filter: drop-shadow(0 6px 18px rgba(251, 191, 36, 0.7)) brightness(1.1);
+        }
+        /* Silver trophy hover */
+        .trophy-icon.silver:hover {
+            filter: drop-shadow(0 6px 18px rgba(156, 163, 175, 0.8)) brightness(1.12);
+        }
+        /* Bronze trophy hover */
+        .trophy-icon.bronze:hover {
+            filter: drop-shadow(0 6px 18px rgba(180, 100, 30, 0.75)) brightness(1.1);
+        }
+        /* Medal rank 4-10 hover */
+        .trophy-icon.medal:hover {
+            transform: scale(1.35) rotate(10deg);
+            filter: drop-shadow(0 4px 12px rgba(99, 102, 241, 0.5)) brightness(1.08);
+        }
     </style>
 </head>
 
@@ -162,10 +187,10 @@ $topFifty = array_slice($allLeaders, 0, 50);
                     $badgeText = '🥇';
                 } elseif ($rankNum === 2) {
                     $rankClass = 'badge-silver';
-                    $badgeText = '🥈';
+                    $badgeText = '🏆';
                 } elseif ($rankNum === 3) {
                     $rankClass = 'badge-bronze';
-                    $badgeText = '🥉';
+                    $badgeText = '🏆';
                 } else {
                     $rankClass = 'badge-custom';
                     $badgeText = '🎖️';
@@ -183,13 +208,13 @@ $topFifty = array_slice($allLeaders, 0, 50);
                 // Display trophy or medal or badge in rank area
                 $trophyHtml = '';
                 if ($rankNum === 1) {
-                    $trophyHtml = '<span style="font-size: 32px; filter: drop-shadow(0 4px 8px rgba(251, 191, 36, 0.45));">🏆</span>';
+                    $trophyHtml = '<span class="trophy-icon" title="อันดับ 1" style="font-size: 32px; filter: drop-shadow(0 4px 8px rgba(251, 191, 36, 0.55));">🏆</span>';
                 } elseif ($rankNum === 2) {
-                    $trophyHtml = '<span style="font-size: 30px; filter: drop-shadow(0 4px 8px rgba(156, 163, 175, 0.45));">🥈</span>'; // Silver Trophy
+                    $trophyHtml = '<span class="trophy-icon silver" title="อันดับ 2" style="font-size: 30px; filter: drop-shadow(0 4px 8px rgba(156, 163, 175, 0.55)) sepia(0.3) hue-rotate(180deg) saturate(0.3) brightness(1.5);">🏆</span>'; // Silver Trophy cup
                 } elseif ($rankNum === 3) {
-                    $trophyHtml = '<span style="font-size: 30px; filter: drop-shadow(0 4px 8px rgba(217, 119, 6, 0.45));">🥉</span>'; // Bronze Trophy
+                    $trophyHtml = '<span class="trophy-icon bronze" title="อันดับ 3" style="font-size: 30px; filter: drop-shadow(0 4px 8px rgba(180, 100, 30, 0.55)) sepia(1) saturate(2) hue-rotate(5deg) brightness(0.85);">🏆</span>'; // Bronze Trophy cup
                 } elseif ($rankNum >= 4 && $rankNum <= 10) {
-                    $trophyHtml = '<span style="font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));">🏅</span>'; // Medal
+                    $trophyHtml = '<span class="trophy-icon medal" title="อันดับ ' . $rankNum . '" style="font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));">🏅</span>'; // Medal
                 } else {
                     $trophyHtml = '<span style="font-size: 14px; font-weight: 800; color: var(--text-secondary); background: var(--bg-main); width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; box-shadow: var(--neumorph-inset);">#' . $rankNum . '</span>';
                 }
