@@ -204,7 +204,9 @@ try {
 
         <!-- VHV Info Header -->
         <div class="vhv-header" style="display: flex; align-items: center; gap: 16px; padding: 20px 16px;">
-            <img src="../assets/icon.png" alt="NCDs Prevention Logo" style="width: 60px; height: 60px;">
+            <a href="../about.php" title="เกี่ยวกับระบบและผู้พัฒนา">
+                <img src="../assets/icon.png" alt="NCDs Prevention Logo" style="width: 60px; height: 60px; border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
+            </a>
             <div style="flex-grow: 1;">
                 <h3 style="color: var(--color-accent); margin: 0; font-size: 14px; font-weight: 800; letter-spacing: 0.5px;">อสม. ประจำบ้าน ตาลสุม</h3>
                 <h2 style="color: var(--text-primary); margin: 4px 0; font-size: 20px; font-weight: 800;"><?= htmlspecialchars($vhvName) ?></h2>

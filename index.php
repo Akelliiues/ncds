@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (\Throwable $e) {
         $db_error = $e->getMessage();
     }
-    
+
     $username = trim($_POST['username'] ?? '');
     $password = trim($_POST['password'] ?? '');
 
@@ -89,9 +89,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $_SESSION['vhv_moo'] = $user['vhv_moo'];
                             $_SESSION['vhid_code'] = $user['vhid_code'];
                             $_SESSION['hoscode'] = $user['hoscode'];
-                            $_SESSION['is_leader'] = (bool)$user['is_leader'];
-                            $_SESSION['is_hl_coach'] = (bool)$user['is_hl_coach'];
-                            
+                            $_SESSION['is_leader'] = (bool) $user['is_leader'];
+                            $_SESSION['is_hl_coach'] = (bool) $user['is_hl_coach'];
+
                             header("Location: vhv/index.php");
                             exit();
                         }
@@ -108,10 +108,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เข้าสู่ระบบ NCDs ตาลสุม - Unified Portal</title>
+    <title>เข้าสู่ระบบ NCDs ตาลสุม - คัดกรอง ดูแล ป้องกันเพื่อสุขภาพที่ดีอย่างยั่งยืน</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <link rel="manifest" href="vhv/manifest.json">
     <style>
@@ -125,21 +126,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             justify-content: center;
             min-height: 100vh;
         }
+
         .login-container {
             width: 100%;
             max-width: 440px;
             padding: 20px;
         }
+
         .login-brand {
             text-align: center;
             margin-bottom: 24px;
         }
+
         .login-brand h1 {
             font-size: 28px;
             font-weight: 800;
             color: var(--text-primary);
             margin: 8px 0;
         }
+
         .login-brand span {
             color: var(--color-accent);
             font-size: 14px;
@@ -149,32 +154,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     </style>
 </head>
+
 <body class="vhv-accessibility">
     <div class="login-container">
-        <div class="login-brand" style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 24px;">
-            <img src="assets/icon.png" alt="NCDs Prevention Logo" style="width: 160px; height: auto; margin-bottom: 16px; filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.15));">
-            <span style="color: var(--color-accent); font-size: 14px; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase;">สำนักงานสาธารณสุขอำเภอตาลสุม</span>
-            <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 8px 0;">ระบบคัดกรอง NCD Portal</h1>
+        <div class="login-brand"
+            style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 24px;">
+            <img src="assets/icon.png" alt="NCDs Prevention Logo"
+                style="width: 160px; height: auto; margin-bottom: 16px; filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.15));">
+            <span
+                style="color: var(--color-accent); font-size: 14px; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase;">สำนักงานสาธารณสุขอำเภอตาลสุม</span>
+            <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 8px 0;">ระบบคัดกรอง NCD
+                Portal</h1>
         </div>
 
         <div class="card-dark" style="margin-bottom: 0;">
-            <h3 style="text-align: center; margin-bottom: 24px; color: var(--color-accent); font-weight: 800;">ลงชื่อเข้าใช้งานระบบ</h3>
-            
+            <h3 style="text-align: center; margin-bottom: 24px; color: var(--color-accent); font-weight: 800;">
+                ลงชื่อเข้าใช้งานระบบ</h3>
+
             <?php if (!empty($error)): ?>
-                <div style="background-color: rgba(239, 68, 68, 0.15); border: 2px solid var(--color-red); color: var(--color-red); padding: 12px; border-radius: var(--border-radius); margin-bottom: 20px; font-size: 15px; text-align: center; font-weight: bold;">
+                <div
+                    style="background-color: rgba(239, 68, 68, 0.15); border: 2px solid var(--color-red); color: var(--color-red); padding: 12px; border-radius: var(--border-radius); margin-bottom: 20px; font-size: 15px; text-align: center; font-weight: bold;">
                     <?= htmlspecialchars($error) ?>
                 </div>
             <?php endif; ?>
 
             <form action="" method="POST">
                 <div style="margin-bottom: 20px;">
-                    <label for="username" style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-weight: 600;">ชื่อผู้ใช้ หรือ รหัส อสม.</label>
-                    <input type="text" name="username" id="username" class="input-large" placeholder="ชื่อผู้ใช้งาน / รหัส อสม. 10 หลัก" required autocomplete="username">
+                    <label for="username"
+                        style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-weight: 600;">ชื่อผู้ใช้
+                        หรือ รหัส อสม.</label>
+                    <input type="text" name="username" id="username" class="input-large"
+                        placeholder="ชื่อผู้ใช้งาน / รหัส อสม. 10 หลัก" required autocomplete="username">
                 </div>
 
                 <div style="margin-bottom: 30px;">
-                    <label for="password" style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-weight: 600;">รหัสผ่าน</label>
-                    <input type="password" name="password" id="password" class="input-large" placeholder="รหัสผ่านเข้าใช้งาน" required autocomplete="current-password">
+                    <label for="password"
+                        style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-weight: 600;">รหัสผ่าน</label>
+                    <input type="password" name="password" id="password" class="input-large"
+                        placeholder="รหัสผ่านเข้าใช้งาน" required autocomplete="current-password">
                 </div>
 
                 <button type="submit" class="btn-giant btn-giant-primary" style="margin-bottom: 16px;">
@@ -182,7 +199,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </button>
             </form>
             <div style="text-align: center;">
-                <a href="vhv/register.php" style="color: var(--color-accent); text-decoration: none; font-weight: bold; font-size: 15px; display: inline-block; margin-top: 8px;">
+                <a href="vhv/register.php"
+                    style="color: var(--color-accent); text-decoration: none; font-weight: bold; font-size: 15px; display: inline-block; margin-top: 8px;">
                     📝 ลงทะเบียน อสม. ใหม่
                 </a>
             </div>
@@ -190,8 +208,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div style="text-align: center; margin-top: 30px; color: var(--text-muted); font-size: 13px;">
             ระบบจัดการคัดกรองโรคเรื้อรังเชิงรุก NCDs 2026<br>
-            อำเภอตาลสุม จังหวัดอุบลราชธานี
+            อำเภอตาลสุม จังหวัดอุบลราชธานี<br>
+            <a href="about.php" style="color: var(--color-accent); text-decoration: none; font-weight: bold; font-size: 13px; display: inline-block; margin-top: 10px;">
+                ℹ️ เกี่ยวกับระบบและผู้พัฒนา
+            </a>
         </div>
     </div>
 </body>
+
 </html>
