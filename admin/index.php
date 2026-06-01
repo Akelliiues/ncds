@@ -836,7 +836,8 @@ if ($admin_hoscode) {
                 <table class="admin-table">
                     <thead>
                         <tr>
-                            <th>เลขที่</th>
+                            <th>ประเภทกิจกรรม</th>
+                            <th>บ้านเลขที่</th>
                             <th>หมู่บ้าน</th>
                             <th>หมู่</th>
                             <th>ความดันโลหิต</th>
@@ -853,69 +854,130 @@ if ($admin_hoscode) {
                             $hoscodes = [$admin_hoscode];
                             $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
                             $recentScreenQuery = $pdo->prepare("
-                                SELECT p.house_no, p.moo, p.sub_district_code, s.sys_bp1, s.dia_bp1, s.dtx_value, s.bmi, s.cv_risk_score, v.vhv_name, s.screening_lat, s.screening_lng, r.approval_status
-                                FROM screening_results s
-                                JOIN task_assignments a ON s.assignment_id = a.assignment_id
-                                JOIN target_population p ON a.target_cid = p.cid
-                                JOIN vhv_users v ON a.vhv_id = v.vhv_id
-                                LEFT JOIN vhv_rewards r ON s.screening_id = r.screening_id
+                                SELECT p.house_no, p.moo, p.sub_district_code, p.hoscode,
+                                       combined.sys_bp, combined.dia_bp, combined.dtx_value, 
+                                       combined.bmi, combined.cv_risk_score, v.vhv_name, 
+                                       combined.screening_lat, combined.screening_lng, combined.activity_type, combined.created_at
+                                FROM (
+                                    SELECT a.vhv_id, a.target_cid,
+                                           s.sys_bp1 AS sys_bp, s.dia_bp1 AS dia_bp, s.dtx_value, s.bmi, s.cv_risk_score, 
+                                           s.screening_lat, s.screening_lng, 'คัดกรองแรก' AS activity_type, s.created_at
+                                    FROM screening_results s
+                                    JOIN task_assignments a ON s.assignment_id = a.assignment_id
+                                    
+                                    UNION ALL
+                                    
+                                    SELECT f.vhv_id, e.cid AS target_cid,
+                                           f.bp_sys AS sys_bp, f.bp_dia AS dia_bp, f.fbs AS dtx_value,
+                                           CASE WHEN f.height > 0 THEN ROUND(f.weight / ((f.height/100) * (f.height/100)), 2) ELSE 0.00 END AS bmi,
+                                           NULL AS cv_risk_score,
+                                           NULL AS screening_lat, NULL AS screening_lng,
+                                           CONCAT('ติดตาม DPAC รอบ ', f.round_number) AS activity_type, f.completed_at AS created_at
+                                    FROM dpac_followups f
+                                    JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
+                                    WHERE f.status = 'completed'
+                                ) AS combined
+                                JOIN target_population p ON combined.target_cid = p.cid
+                                JOIN vhv_users v ON combined.vhv_id = v.vhv_id
                                 WHERE p.hoscode IN ($inPlaceholders)
-                                ORDER BY s.created_at DESC LIMIT 10
+                                ORDER BY combined.created_at DESC LIMIT 10
                             ");
                             $recentScreenQuery->execute($hoscodes);
                             $recentScreens = $recentScreenQuery->fetchAll();
                         } else {
                             $recentScreenQuery = $pdo->query("
-                                SELECT p.house_no, p.moo, p.sub_district_code, s.sys_bp1, s.dia_bp1, s.dtx_value, s.bmi, s.cv_risk_score, v.vhv_name, s.screening_lat, s.screening_lng, r.approval_status
-                                FROM screening_results s
-                                JOIN task_assignments a ON s.assignment_id = a.assignment_id
-                                JOIN target_population p ON a.target_cid = p.cid
-                                JOIN vhv_users v ON a.vhv_id = v.vhv_id
-                                LEFT JOIN vhv_rewards r ON s.screening_id = r.screening_id
-                                ORDER BY s.created_at DESC LIMIT 10
+                                SELECT p.house_no, p.moo, p.sub_district_code, p.hoscode,
+                                       combined.sys_bp, combined.dia_bp, combined.dtx_value, 
+                                       combined.bmi, combined.cv_risk_score, v.vhv_name, 
+                                       combined.screening_lat, combined.screening_lng, combined.activity_type, combined.created_at
+                                FROM (
+                                    SELECT a.vhv_id, a.target_cid,
+                                           s.sys_bp1 AS sys_bp, s.dia_bp1 AS dia_bp, s.dtx_value, s.bmi, s.cv_risk_score, 
+                                           s.screening_lat, s.screening_lng, 'คัดกรองแรก' AS activity_type, s.created_at
+                                    FROM screening_results s
+                                    JOIN task_assignments a ON s.assignment_id = a.assignment_id
+                                    
+                                    UNION ALL
+                                    
+                                    SELECT f.vhv_id, e.cid AS target_cid,
+                                           f.bp_sys AS sys_bp, f.bp_dia AS dia_bp, f.fbs AS dtx_value,
+                                           CASE WHEN f.height > 0 THEN ROUND(f.weight / ((f.height/100) * (f.height/100)), 2) ELSE 0.00 END AS bmi,
+                                           NULL AS cv_risk_score,
+                                           NULL AS screening_lat, NULL AS screening_lng,
+                                           CONCAT('ติดตาม DPAC รอบ ', f.round_number) AS activity_type, f.completed_at AS created_at
+                                    FROM dpac_followups f
+                                    JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
+                                    WHERE f.status = 'completed'
+                                ) AS combined
+                                JOIN target_population p ON combined.target_cid = p.cid
+                                JOIN vhv_users v ON combined.vhv_id = v.vhv_id
+                                ORDER BY combined.created_at DESC LIMIT 10
                             ");
                             $recentScreens = $recentScreenQuery->fetchAll();
                         }
                         if (empty($recentScreens)):
                             ?>
                             <tr>
-                                <td colspan="9" style="text-align: center; color: var(--text-secondary); padding: 24px;">
+                                <td colspan="10" style="text-align: center; color: var(--text-secondary); padding: 24px;">
                                     ยังไม่มีข้อมูลผลการคัดกรองในระบบ</td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($recentScreens as $rs): ?>
                                 <tr>
+                                    <td>
+                                        <?php if (strpos($rs['activity_type'], 'ติดตาม DPAC') !== false): ?>
+                                            <span style="display: inline-block; background-color: rgba(6, 182, 212, 0.15); color: #06b6d4; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; border: 1px solid rgba(6, 182, 212, 0.3); white-space: nowrap;">
+                                                🔄 <?= htmlspecialchars($rs['activity_type']) ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span style="display: inline-block; background-color: rgba(34, 197, 94, 0.15); color: #22c55e; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; border: 1px solid rgba(34, 197, 94, 0.3); white-space: nowrap;">
+                                                📋 <?= htmlspecialchars($rs['activity_type']) ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= htmlspecialchars($rs['house_no']) ?></td>
-                                    <td><?= htmlspecialchars(get_village_only_name($rs['sub_district_code'], $rs['moo'])) ?>
+                                    <td><?= htmlspecialchars(get_village_display_name_by_hoscode($rs['hoscode'], $rs['moo'])) ?>
                                     </td>
                                     <td>หมู่ที่ <?= $rs['moo'] ?></td>
                                     <td>
-                                        <?php if ($rs['sys_bp1'] >= 140 || $rs['dia_bp1'] >= 90): ?>
+                                        <?php if ($rs['sys_bp'] >= 140 || $rs['dia_bp'] >= 90): ?>
                                             <span
-                                                style="color: var(--color-red); font-weight: bold;"><?= $rs['sys_bp1'] ?>/<?= $rs['dia_bp1'] ?></span>
+                                                style="color: var(--color-red); font-weight: bold;"><?= $rs['sys_bp'] ?>/<?= $rs['dia_bp'] ?></span>
                                         <?php else: ?>
-                                            <?= $rs['sys_bp1'] ?>/<?= $rs['dia_bp1'] ?>
+                                            <?= $rs['sys_bp'] ?>/<?= $rs['dia_bp'] ?>
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <?php if ($rs['dtx_value'] >= 126): ?>
-                                            <span style="color: var(--color-red); font-weight: bold;"><?= $rs['dtx_value'] ?></span>
+                                        <?php if ($rs['dtx_value'] !== null): ?>
+                                            <?php if ($rs['dtx_value'] >= 126): ?>
+                                                <span style="color: var(--color-red); font-weight: bold;"><?= $rs['dtx_value'] ?></span>
+                                            <?php else: ?>
+                                                <?= $rs['dtx_value'] ?>
+                                            <?php endif; ?>
                                         <?php else: ?>
-                                            <?= $rs['dtx_value'] ?? '-' ?>
+                                            -
                                         <?php endif; ?>
                                     </td>
-                                    <td><?= $rs['bmi'] ?></td>
+                                    <td><?= $rs['bmi'] ?: '-' ?></td>
                                     <td>
-                                        <?php if ($rs['cv_risk_score'] >= 10): ?>
-                                            <span
-                                                style="background-color: rgba(239, 68, 68, 0.2); color: var(--color-red); padding: 4px 8px; border-radius: 4px; font-weight: bold;"><?= $rs['cv_risk_score'] ?>%</span>
+                                        <?php if ($rs['cv_risk_score'] !== null): ?>
+                                            <?php if ($rs['cv_risk_score'] >= 10): ?>
+                                                <span
+                                                    style="background-color: rgba(239, 68, 68, 0.2); color: var(--color-red); padding: 4px 8px; border-radius: 4px; font-weight: bold;"><?= $rs['cv_risk_score'] ?>%</span>
+                                            <?php else: ?>
+                                                <?= $rs['cv_risk_score'] ?>%
+                                            <?php endif; ?>
                                         <?php else: ?>
-                                            <?= $rs['cv_risk_score'] ?>%
+                                            -
                                         <?php endif; ?>
                                     </td>
                                     <td><?= htmlspecialchars($rs['vhv_name']) ?></td>
                                     <td style="font-size: 13px; color: var(--text-secondary);">
-                                        <?= round($rs['screening_lat'], 5) ?>, <?= round($rs['screening_lng'], 5) ?>
+                                        <?php if ($rs['screening_lat'] && $rs['screening_lng']): ?>
+                                            <?= round($rs['screening_lat'], 5) ?>, <?= round($rs['screening_lng'], 5) ?>
+                                        <?php else: ?>
+                                            -
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
