@@ -837,7 +837,7 @@ if ($admin_hoscode) {
                     <thead>
                         <tr>
                             <th>ประเภทกิจกรรม</th>
-                            <th>บ้านเลขที่</th>
+                            <th>เลขที่</th>
                             <th>หมู่บ้าน</th>
                             <th>หมู่</th>
                             <th>ความดันโลหิต</th>
@@ -943,9 +943,14 @@ if ($admin_hoscode) {
                                         </div>
                                     </td>
                                     <td><?= htmlspecialchars($rs['house_no']) ?></td>
-                                    <td><?= htmlspecialchars(get_village_display_name_by_hoscode($rs['hoscode'], $rs['moo'])) ?>
+                                    <td>
+                                        <?php
+                                        $logical_tambon = $hoscode_villages[$rs['hoscode']]['tambon'] ?? $rs['sub_district_code'] ?? null;
+                                        $village_only = $hoscode_villages[$rs['hoscode']]['villages'][intval($rs['moo'])] ?? get_village_only_name($logical_tambon, $rs['moo']);
+                                        echo htmlspecialchars($village_only);
+                                        ?>
                                     </td>
-                                    <td>หมู่ที่ <?= $rs['moo'] ?></td>
+                                    <td><?= htmlspecialchars($rs['moo']) ?></td>
                                     <td>
                                         <?php if ($rs['sys_bp'] >= 140 || $rs['dia_bp'] >= 90): ?>
                                             <span
