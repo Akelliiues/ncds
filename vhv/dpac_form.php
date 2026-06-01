@@ -44,7 +44,6 @@ if (!$isShell) {
     $isDM = in_array($riskType, ['DM', 'BOTH']);
     $isHT = in_array($riskType, ['HT', 'BOTH']);
 }
-?>
 
 // Save Data
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
