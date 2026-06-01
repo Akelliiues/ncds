@@ -106,8 +106,10 @@ if ($admin_hoscode) {
     $screenedDetailQuery = $pdo->prepare("
         SELECT 
             SUM(CASE WHEN s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126 THEN 1 ELSE 0 END) as high_risk,
-            SUM(CASE WHEN (s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125) THEN 1 ELSE 0 END) as risk,
-            SUM(CASE WHEN s.sys_bp1 < 120 AND s.dia_bp1 < 80 AND s.dtx_value < 100 THEN 1 ELSE 0 END) as normal
+            SUM(CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) 
+                      AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as risk,
+            SUM(CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) 
+                      AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as normal
         FROM screening_results s
         JOIN task_assignments a ON s.assignment_id = a.assignment_id
         JOIN target_population p ON a.target_cid = p.cid
@@ -199,8 +201,8 @@ if ($admin_hoscode) {
     $chartRiskStmt = $pdo->prepare("
         SELECT p.hoscode, MAX(p.sub_district_code) as sub_district_code, p.moo,
                SUM(CASE WHEN a.assignment_status = 'completed' AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN 1 ELSE 0 END) as high_risk,
-               SUM(CASE WHEN a.assignment_status = 'completed' AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as moderate_risk,
-               SUM(CASE WHEN a.assignment_status = 'completed' AND (s.sys_bp1 < 120 AND s.dia_bp1 < 80 AND (s.dtx_value < 100 OR s.dtx_value IS NULL) AND (s.cv_risk_score < 10 OR s.cv_risk_score IS NULL)) THEN 1 ELSE 0 END) as normal,
+               SUM(CASE WHEN a.assignment_status = 'completed' AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as moderate_risk,
+               SUM(CASE WHEN a.assignment_status = 'completed' AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as normal,
                SUM(CASE WHEN a.assignment_status IS NULL OR a.assignment_status != 'completed' THEN 1 ELSE 0 END) as unscreened
         FROM target_population p
         LEFT JOIN task_assignments a ON p.cid = a.target_cid
@@ -334,8 +336,10 @@ if ($admin_hoscode) {
     $screenedDetailStmt = $pdo->prepare("
         SELECT 
             SUM(CASE WHEN s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126 THEN 1 ELSE 0 END) as high_risk,
-            SUM(CASE WHEN (s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125) THEN 1 ELSE 0 END) as risk,
-            SUM(CASE WHEN s.sys_bp1 < 120 AND s.dia_bp1 < 80 AND s.dtx_value < 100 THEN 1 ELSE 0 END) as normal
+            SUM(CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) 
+                      AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as risk,
+            SUM(CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) 
+                      AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as normal
         FROM screening_results s
         JOIN task_assignments a ON s.assignment_id = a.assignment_id
         JOIN target_population p ON a.target_cid = p.cid
@@ -420,8 +424,8 @@ if ($admin_hoscode) {
     $chartRiskStmt = $pdo->prepare("
         SELECT p.hoscode,
                SUM(CASE WHEN a.assignment_status = 'completed' AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN 1 ELSE 0 END) as high_risk,
-               SUM(CASE WHEN a.assignment_status = 'completed' AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as moderate_risk,
-               SUM(CASE WHEN a.assignment_status = 'completed' AND (s.sys_bp1 < 120 AND s.dia_bp1 < 80 AND s.dtx_value < 100) THEN 1 ELSE 0 END) as normal,
+               SUM(CASE WHEN a.assignment_status = 'completed' AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as moderate_risk,
+               SUM(CASE WHEN a.assignment_status = 'completed' AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as normal,
                SUM(CASE WHEN a.assignment_status IS NULL OR a.assignment_status != 'completed' THEN 1 ELSE 0 END) as unscreened
         FROM target_population p
         LEFT JOIN task_assignments a ON p.cid = a.target_cid
@@ -1467,7 +1471,7 @@ if ($admin_hoscode) {
                 return html;
             }
 
-            function buildMarkers() {
+            function buildMarkers(adjustView) {
                 // Clear existing
                 markers.forEach(function (m) { map.removeLayer(m.marker); });
                 markers = [];
@@ -1478,6 +1482,7 @@ if ($admin_hoscode) {
                 
                 // Group data by coordinates
                 var groupedData = {};
+                var bounds = [];
 
                 allMapData.forEach(function (t) {
                     if (!t.latitude || !t.longitude) return;
@@ -1501,6 +1506,7 @@ if ($admin_hoscode) {
                     // Heatmap intensity for this individual
                     var intensity = t.risk === 'high' ? 1.0 : (t.risk === 'moderate' ? 0.6 : 0.3);
                     heatPoints.push([parseFloat(t.latitude), parseFloat(t.longitude), intensity]);
+                    bounds.push([parseFloat(t.latitude), parseFloat(t.longitude)]);
                 });
 
                 // Create markers for each group
@@ -1547,6 +1553,44 @@ if ($admin_hoscode) {
                         gradient: { 0.2: '#22c55e', 0.4: '#a3e635', 0.6: '#f59e0b', 0.8: '#f97316', 1.0: '#ef4444' }
                     }).addTo(map);
                 }
+
+                // Adjust map view to fit all filtered points
+                if (adjustView) {
+                    if (bounds.length > 0) {
+                        // Calculate centroid (average coordinates) of all visible points
+                        var latSum = 0;
+                        var lngSum = 0;
+                        bounds.forEach(function (c) {
+                            latSum += c[0];
+                            lngSum += c[1];
+                        });
+                        var centerLat = latSum / bounds.length;
+                        var centerLng = lngSum / bounds.length;
+
+                        // Calculate optimal zoom level based on boundary box
+                        var latLngBounds = L.latLngBounds(bounds);
+                        var targetZoom = map.getBoundsZoom(latLngBounds);
+
+                        // Cap the zoom levels to keep it looking professional
+                        if (!isFinite(targetZoom) || targetZoom > 15) {
+                            targetZoom = 15;
+                        } else if (targetZoom < 11) {
+                            targetZoom = 11;
+                        }
+
+                        // Smoothly fly to the centroid of all filtered markers
+                        map.flyTo([centerLat, centerLng], targetZoom, {
+                            animate: true,
+                            duration: 1.5
+                        });
+                    } else {
+                        // Default fallback to Tal Sum center
+                        map.flyTo([15.4294, 104.9922], 12, {
+                            animate: true,
+                            duration: 1.5
+                        });
+                    }
+                }
             }
 
             // ============== FILTER FUNCTIONS ==============
@@ -1577,7 +1621,7 @@ if ($admin_hoscode) {
                     activeBtn.style.color = 'white';
                 }
 
-                buildMarkers();
+                buildMarkers(true);
             }
 
             function toggleHosFilter(hoscode) {
@@ -1597,7 +1641,7 @@ if ($admin_hoscode) {
                 activeBtn.style.color = 'var(--bg-card)';
                 activeBtn.style.borderColor = 'var(--color-accent)';
 
-                buildMarkers();
+                buildMarkers(true);
             }
 
             // ============== COORDINATE EDITING ==============
@@ -1742,7 +1786,7 @@ if ($admin_hoscode) {
                                 opt.textContent = opt.textContent.replace('❌', '✅');
                             }
 
-                            buildMarkers();
+                            buildMarkers(false);
 
                             if (editMarker) { map.removeLayer(editMarker); editMarker = null; }
                             pendingCoord = null;
@@ -1762,7 +1806,7 @@ if ($admin_hoscode) {
             }
 
             // ============== INIT ==============
-            buildMarkers();
+            buildMarkers(true);
         </script>
 
         <style>
