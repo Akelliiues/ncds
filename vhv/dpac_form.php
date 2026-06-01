@@ -730,12 +730,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button type="submit" class="btn-giant btn-giant-primary" style="margin-bottom: 40px;">บันทึกผลการติดตาม
                     DPAC</button>
             </form>
+
+            <!-- Critical Value Alert Modal Overlay -->
+            <div id="critical-alert-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); z-index: 5000; align-items: center; justify-content: center; padding: 16px;">
+                <div class="card-dark" style="width: 90%; max-width: 480px; background: #0f172a; border: 2px solid var(--color-red); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); border-radius: 24px; padding: 24px; color: var(--text-primary); text-align: left; animation: fadeIn 0.3s ease;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                        <div style="display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%; background: rgba(239, 68, 68, 0.2); color: var(--color-red); font-size: 24px; flex-shrink: 0;">
+                            🚨
+                        </div>
+                        <div>
+                            <h3 style="color: var(--color-red); margin: 0; font-size: 20px; font-weight: 800;">ตรวจพบสัญญาณชีพสูงวิกฤต!</h3>
+                            <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 13px;">(Critical Value Alert)</p>
+                        </div>
+                    </div>
+                    
+                    <div id="critical-alert-values" style="background: rgba(239, 68, 68, 0.1); border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; border-left: 4px solid var(--color-red); font-size: 15px; font-weight: bold; color: white;">
+                        <!-- Will be populated dynamically -->
+                    </div>
+
+                    <div style="margin-bottom: 24px;">
+                        <h4 style="color: var(--text-primary); font-size: 15px; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                            📋 คำแนะนำการปฐมพยาบาลเบื้องต้น:
+                        </h4>
+                        <div id="critical-alert-advice" style="font-size: 14px; line-height: 1.6; color: var(--text-secondary); display: flex; flex-direction: column; gap: 12px; max-height: 250px; overflow-y: auto; padding-right: 8px;">
+                            <!-- Will be populated dynamically -->
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 12px;">
+                        <button type="button" onclick="closeCriticalModal()" class="btn-giant btn-giant-secondary" style="flex: 1; height: 50px; font-size: 16px; margin-bottom: 0; border-radius: 12px; border: 1px solid var(--border-color); color: var(--text-primary); cursor: pointer; background: transparent;">
+                            ✕ ปิดเพื่อแก้ไขค่า
+                        </button>
+                        <button type="button" id="btn-confirm-critical-save" class="btn-giant btn-giant-danger" style="flex: 1; height: 50px; font-size: 16px; margin-bottom: 0; border-radius: 12px; background: var(--color-red); color: white; border: none; font-weight: bold; cursor: pointer;">
+                            ✅ ยืนยันบันทึกข้อมูล
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         const isDM = <?= $isDM ? 'true' : 'false' ?>;
         const isHT = <?= $isHT ? 'true' : 'false' ?>;
+
+        let isCriticalAcknowledged = false;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const fbsInput = document.getElementById('fbs');
+            const sbpInput = document.getElementById('bp_sys');
+            const dbpInput = document.getElementById('bp_dia');
+            [fbsInput, sbpInput, dbpInput].forEach(el => {
+                if (el) {
+                    el.addEventListener('input', function() {
+                        isCriticalAcknowledged = false;
+                    });
+                }
+            });
+        });
 
         // Waist unit toggle logic
         let waistUnit = 'inch';
@@ -867,6 +919,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!risk) {
                 e.preventDefault();
                 alert('กรุณากรอกข้อมูลเพื่อประเมินความเสี่ยงให้ครบถ้วน');
+                return;
+            }
+
+            if (!checkCriticalValues()) {
+                e.preventDefault();
                 return;
             }
 
@@ -1024,6 +1081,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             badge.textContent = sentences.length + ' รายการ';
             badge.style.display = 'inline';
         }
+
+        function showCriticalModal(sbp, dbp, dtx, hasCriticalBp, hasCriticalDtx) {
+            const valuesDiv = document.getElementById('critical-alert-values');
+            const adviceDiv = document.getElementById('critical-alert-advice');
+            
+            let valHtml = '';
+            let adviceHtml = '';
+
+            if (hasCriticalBp) {
+                valHtml += `❤️ ความดันโลหิตสูงวิกฤต: ${sbp}/${dbp} mmHg<br>`;
+                adviceHtml += `
+                    <div>
+                        <strong style="color: white; display: block; margin-bottom: 4px;">🩸 ภาวะความดันโลหิตสูงวิกฤต (Hypertensive Crisis):</strong>
+                        1. <strong>จัดท่าทาง:</strong> ให้นั่งพักในท่าที่สบาย เอนหลังได้ ในที่สงบ อากาศถ่ายเทสะดวก พัก 15 นาที แล้วค่อยวัดซ้ำ<br>
+                        2. <strong>ห้ามออกกำลังกาย:</strong> งดการทำกิจกรรมเคลื่อนไไหลร่างกายรุนแรง ห้ามดื่มน้ำเย็นจัด ชา กาแฟ หรือสูบบุหรี่<br>
+                        3. <strong>สังเกตอาการอันตราย:</strong> หากมีอาการปวดศีรษะรุนแรง ตาพร่ามัว เจ็บแน่นหน้าอก หายใจหอบเหนื่อย ปากเบี้ยว หน้าเบี้ยว หรือแขนขาอ่อนแรง <strong>ให้รีบแจ้งเจ้าหน้าที่ รพ.สต. หรือโทรสายด่วน 1669 ส่งโรงพยาบาลทันที!</strong>
+                    </div>
+                `;
+            }
+
+            if (hasCriticalDtx) {
+                valHtml += `🍭 ระดับน้ำตาลในเลือดสูงวิกฤต: ${dtx} mg/dL<br>`;
+                adviceHtml += `
+                    <div>
+                        <strong style="color: white; display: block; margin-bottom: 4px;">🍬 ภาวะระดับน้ำตาลในเลือดสูงวิกฤต (Severe Hyperglycemia):</strong>
+                        1. <strong>ดื่มน้ำสะอาด:</strong> ให้ดื่มน้ำเปล่าปริมาณมากๆ เพื่อช่วยขับน้ำตาลส่วนเกินออกจากร่างกายผ่านทางปัสสาวะ (หลีกเลี่ยงน้ำหวานหรือแอลกอฮอล์)<br>
+                        2. <strong>สังเกตอาการขาดน้ำ/คีโตนคั่ง:</strong> เช่น กระหายน้ำรุนแรง ปัสสาวะบ่อย ซึมลง สับสน มึนงง อ่อนเพลียมาก คลื่นไส้ อาเจียน หายใจหอบลึก หรือลมหายใจมีกลิ่นคล้ายผลไม้<br>
+                        3. <strong>ส่งแพทย์ด่วน:</strong> หากมีอาการซึมลง สับสน หรืออาเจียน <strong>ให้รีบนำส่งสถานพยาบาลหรือโทร 1669 ทันที!</strong>
+                    </div>
+                `;
+            }
+
+            valuesDiv.innerHTML = valHtml;
+            adviceDiv.innerHTML = adviceHtml;
+            
+            document.getElementById('critical-alert-modal').style.display = 'flex';
+        }
+
+        function closeCriticalModal() {
+            document.getElementById('critical-alert-modal').style.display = 'none';
+        }
+
+        function checkCriticalValues() {
+            if (isCriticalAcknowledged) {
+                return true;
+            }
+
+            const fbsInput = document.getElementById('fbs');
+            const sbpInput = document.getElementById('bp_sys');
+            const dbpInput = document.getElementById('bp_dia');
+
+            let sbp = sbpInput ? parseInt(sbpInput.value) || 0 : 0;
+            let dbp = dbpInput ? parseInt(dbpInput.value) || 0 : 0;
+            let dtx = fbsInput ? parseInt(fbsInput.value) || 0 : 0;
+
+            let hasCriticalBp = sbp >= 180 || dbp >= 110;
+            let hasCriticalDtx = dtx >= 300;
+
+            if (hasCriticalBp || hasCriticalDtx) {
+                showCriticalModal(sbp, dbp, dtx, hasCriticalBp, hasCriticalDtx);
+                return false;
+            }
+
+            return true;
+        }
+
+        document.getElementById('btn-confirm-critical-save').onclick = function() {
+            isCriticalAcknowledged = true;
+            closeCriticalModal();
+            const btn = document.querySelector('#dpacForm button[type="submit"]') || document.querySelector('#dpacForm input[type="submit"]');
+            if (btn) {
+                btn.click();
+            } else {
+                document.getElementById('dpacForm').submit();
+            }
+        };
     </script>
 </body>
 
