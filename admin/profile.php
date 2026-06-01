@@ -20,6 +20,13 @@ try {
     $stmt = $pdo->prepare("SELECT * FROM admin_users WHERE username = ?");
     $stmt->execute([$username]);
     $admin = $stmt->fetch();
+    if (!$admin) {
+        $admin = [
+            'admin_name' => 'ผู้มาเยือน (Visitor)',
+            'username' => 'visitor',
+            'hoscode' => null
+        ];
+    }
 } catch (\Throwable $e) {
     $error = "ไม่สามารถเชื่อมต่อฐานข้อมูลได้: " . $e->getMessage();
 }
