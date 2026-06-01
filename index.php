@@ -48,7 +48,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Fallback checks (if database query didn't match or failed)
         if (!$is_admin) {
-            if (strtolower($username) === 'admin' && $password === 'Prevention2026') {
+            if (strtolower($username) === 'visitor' && $password === 'Visitor2026') {
+                $_SESSION['admin_logged_in'] = true;
+                $_SESSION['admin_username'] = 'visitor';
+                $_SESSION['admin_hoscode'] = null; // แอดมินหลัก (เข้าดูได้ทุก รพ.สต.)
+                $_SESSION['is_visitor'] = true;
+                header("Location: admin/index.php");
+                exit();
+            } elseif (strtolower($username) === 'admin' && $password === 'Prevention2026') {
                 $is_admin = true;
             } elseif (preg_match('/^admin(\d{5})$/', strtolower($username), $matches) && $password === 'Prevention2026') {
                 $is_admin = true;

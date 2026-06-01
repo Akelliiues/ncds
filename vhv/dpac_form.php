@@ -23,7 +23,7 @@ $isHT = false;
 
 if (!$isShell) {
     require_once __DIR__ . '/../config/db.php';
-    
+
     // Fetch Followup Data
     $stmt = $pdo->prepare("
         SELECT f.*, e.risk_type, p.cid, p.first_name, p.last_name, p.house_no, p.moo
@@ -189,21 +189,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding: 12px 6px 10px;
             cursor: pointer;
             box-shadow: var(--neumorph-flat);
-            transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
             text-align: center;
             position: relative;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
             min-height: 124px;
         }
-        .advice-card:active { transform: scale(0.95); }
+
+        .advice-card:active {
+            transform: scale(0.95);
+        }
+
         .advice-card.selected {
             border-color: var(--color-green);
-            background-color: rgba(16,185,129,0.07);
-            box-shadow: var(--neumorph-inset), 0 0 0 2px rgba(16,185,129,0.25);
+            background-color: rgba(16, 185, 129, 0.07);
+            box-shadow: var(--neumorph-inset), 0 0 0 2px rgba(16, 185, 129, 0.25);
         }
-        .advice-card.selected .advice-icon-wrap { background: rgba(16,185,129,0.15); }
-        .advice-card.selected .advice-card-label { color: var(--color-green); }
+
+        .advice-card.selected .advice-icon-wrap {
+            background: rgba(16, 185, 129, 0.15);
+        }
+
+        .advice-card.selected .advice-card-label {
+            color: var(--color-green);
+        }
 
         .advice-icon-wrap {
             width: 58px;
@@ -216,10 +226,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             transition: background 0.2s;
             flex-shrink: 0;
         }
+
         .advice-icon-wrap svg {
             width: 36px;
             height: 36px;
         }
+
         .advice-card-label {
             font-size: 12.5px;
             font-weight: 800;
@@ -227,6 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             line-height: 1.3;
             transition: color 0.2s;
         }
+
         .advice-card-check {
             position: absolute;
             top: 6px;
@@ -235,7 +248,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             opacity: 0;
             transition: opacity 0.2s;
         }
-        .advice-card.selected .advice-card-check { opacity: 1; }
+
+        .advice-card.selected .advice-card-check {
+            opacity: 1;
+        }
 
         /* ── Advice summary box ─────────────────────────────── */
         .advice-summary-box {
@@ -251,11 +267,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-left: 4px solid var(--color-accent);
             transition: all 0.3s ease;
         }
+
         .advice-summary-placeholder {
             color: var(--text-muted);
             font-style: italic;
             font-size: 13px;
         }
+
         .advice-summary-count {
             font-size: 12px;
             font-weight: 800;
@@ -265,14 +283,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         /* Watermark round number */
         @keyframes floatNum {
-            0%, 100% { transform: translateY(0px) scale(1); opacity: 0.07; }
-            50%       { transform: translateY(-6px) scale(1.03); opacity: 0.11; }
+
+            0%,
+            100% {
+                transform: translateY(0px) scale(1);
+                opacity: 0.07;
+            }
+
+            50% {
+                transform: translateY(-6px) scale(1.03);
+                opacity: 0.11;
+            }
         }
+
         @keyframes shimmerNum {
-            0%   { text-shadow: 0 0 40px rgba(56,189,248,0); }
-            50%  { text-shadow: 0 0 80px rgba(56,189,248,0.25), 0 0 120px rgba(56,189,248,0.1); }
-            100% { text-shadow: 0 0 40px rgba(56,189,248,0); }
+            0% {
+                text-shadow: 0 0 40px rgba(56, 189, 248, 0);
+            }
+
+            50% {
+                text-shadow: 0 0 80px rgba(56, 189, 248, 0.25), 0 0 120px rgba(56, 189, 248, 0.1);
+            }
+
+            100% {
+                text-shadow: 0 0 40px rgba(56, 189, 248, 0);
+            }
         }
+
         .round-watermark {
             position: absolute;
             right: -10px;
@@ -288,12 +325,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             animation: floatNum 4s ease-in-out infinite, shimmerNum 4s ease-in-out infinite;
             font-family: 'Outfit', sans-serif;
         }
+
         .round-badge {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: rgba(56,189,248,0.15);
-            border: 1px solid rgba(56,189,248,0.3);
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.3);
             border-radius: 50px;
             padding: 4px 12px;
             font-size: 13px;
@@ -302,6 +340,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-bottom: 10px;
             letter-spacing: 0.5px;
         }
+
         .round-badge::before {
             content: '';
             width: 6px;
@@ -312,10 +351,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             display: inline-block;
             animation: pulse 2s infinite;
         }
+
         @keyframes pulse {
-            0%, 100% { opacity: 1; box-shadow: 0 0 6px #38bdf8; }
-            50%       { opacity: 0.5; box-shadow: 0 0 12px #38bdf8; }
+
+            0%,
+            100% {
+                opacity: 1;
+                box-shadow: 0 0 6px #38bdf8;
+            }
+
+            50% {
+                opacity: 0.5;
+                box-shadow: 0 0 12px #38bdf8;
+            }
         }
+
         /* Back button themed */
         .btn-back-themed {
             display: inline-flex;
@@ -333,10 +383,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             transition: all var(--transition-speed);
             text-decoration: none;
         }
+
         .btn-back-themed:active {
             box-shadow: var(--neumorph-inset);
             transform: scale(0.97);
         }
+
         .btn-back-themed svg {
             flex-shrink: 0;
         }
@@ -352,6 +404,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             width: fit-content;
             margin-bottom: 10px;
         }
+
         .unit-toggle-btn {
             padding: 8px 20px;
             border: none;
@@ -364,11 +417,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             transition: all 0.2s ease;
             font-family: var(--font-base);
         }
+
         .unit-toggle-btn.active {
             background-color: var(--color-primary);
             color: #fff;
-            box-shadow: 2px 2px 6px rgba(13,44,84,0.3);
+            box-shadow: 2px 2px 6px rgba(13, 44, 84, 0.3);
         }
+
         .waist-convert-hint {
             font-size: 13px;
             color: var(--text-muted);
@@ -392,18 +447,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div style="padding: 20px;">
-            <div class="form-section" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; position: relative; overflow: hidden;">
+            <div class="form-section"
+                style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; position: relative; overflow: hidden;">
                 <!-- Watermark round number -->
                 <span class="round-watermark" id="dpac-watermark"><?= $isShell ? '' : $task['round_number'] ?></span>
 
                 <div class="round-badge" id="dpac-round-badge">รอบที่ <?= $isShell ? '' : $task['round_number'] ?></div>
-                <h3 style="margin-top: 0; color: #38bdf8; font-size: 20px;" id="dpac-round-title">รอบติดตามที่ <?= $isShell ? '' : $task['round_number'] ?></h3>
+                <h3 style="margin-top: 0; color: #38bdf8; font-size: 20px;" id="dpac-round-title">รอบติดตามที่
+                    <?= $isShell ? '' : $task['round_number'] ?></h3>
                 <p style="margin: 5px 0;"><strong>ชื่อ-สกุล:</strong>
-                    <span id="dpac-name"><?= $isShell ? '' : htmlspecialchars($task['first_name'] . ' ' . $task['last_name']) ?></span></p>
-                <p style="margin: 5px 0;"><strong>ที่อยู่:</strong> บ้านเลขที่
-                    <span id="dpac-house-moo"><?= $isShell ? '' : htmlspecialchars($task['house_no']) . ' หมู่ ' . htmlspecialchars($task['moo']) ?></span>
+                    <span
+                        id="dpac-name"><?= $isShell ? '' : htmlspecialchars($task['first_name'] . ' ' . $task['last_name']) ?></span>
                 </p>
-                <p style="margin: 5px 0; color: #fbbf24; font-weight: bold;">⚠️ กลุ่มเสี่ยง: <span id="dpac-risk-type"><?= $isShell ? '' : $task['risk_type'] ?></span>
+                <p style="margin: 5px 0;"><strong>ที่อยู่:</strong> บ้านเลขที่
+                    <span
+                        id="dpac-house-moo"><?= $isShell ? '' : htmlspecialchars($task['house_no']) . ' หมู่ ' . htmlspecialchars($task['moo']) ?></span>
+                </p>
+                <p style="margin: 5px 0; color: #fbbf24; font-weight: bold;">⚠️ กลุ่มเสี่ยง: <span
+                        id="dpac-risk-type"><?= $isShell ? '' : $task['risk_type'] ?></span>
                 </p>
             </div>
 
@@ -429,12 +490,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div style="margin-top: 15px;">
                         <label class="form-label">รอบเอว</label>
                         <div class="unit-toggle-group" id="waistUnitGroup">
-                            <button type="button" class="unit-toggle-btn" id="btnCm" onclick="switchWaistUnit('cm')">ซม.</button>
-                            <button type="button" class="unit-toggle-btn active" id="btnInch" onclick="switchWaistUnit('inch')">นิ้ว</button>
+                            <button type="button" class="unit-toggle-btn" id="btnCm"
+                                onclick="switchWaistUnit('cm')">ซม.</button>
+                            <button type="button" class="unit-toggle-btn active" id="btnInch"
+                                onclick="switchWaistUnit('inch')">นิ้ว</button>
                         </div>
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <input type="number" step="0.1" id="waist" class="form-input-text" required placeholder="นิ้ว">
-                            <span id="waistUnit" style="font-weight: 800; color: var(--text-secondary); white-space: nowrap; min-width: 32px;">นิ้ว</span>
+                            <input type="number" step="0.1" id="waist" class="form-input-text" required
+                                placeholder="นิ้ว">
+                            <span id="waistUnit"
+                                style="font-weight: 800; color: var(--text-secondary); white-space: nowrap; min-width: 32px;">นิ้ว</span>
                         </div>
                         <div class="waist-convert-hint" id="waistHint"></div>
                     </div>
@@ -450,7 +515,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?= $isDM ? 'required' : '' ?> placeholder="ตัวอย่าง: 110">
                     </div>
 
-                    <div class="row-grid" style="margin-top: 15px; display: <?= $isHT ? 'block' : 'none' ?>;" id="section-ht-fields">
+                    <div class="row-grid" style="margin-top: 15px; display: <?= $isHT ? 'block' : 'none' ?>;"
+                        id="section-ht-fields">
                         <div>
                             <label class="form-label">ความดันตัวบน (SYS)</label>
                             <input type="number" name="bp_sys" id="bp_sys" class="form-input-text"
@@ -475,7 +541,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <!-- การให้คำแนะนำ (อิงตามโรค) -->
                 <div class="form-section">
                     <h3 style="color: var(--color-accent); margin-top: 0;">3. การให้คำแนะนำ</h3>
-                    <p style="font-size: 13px; color: var(--text-muted); margin: -4px 0 16px;">แตะเลือกคำแนะนำที่ให้กับผู้รับบริการ — ระบบจะรวบรวมเป็นคำแนะนำให้อัตโนมัติ</p>
 
                     <!-- Icon Card Grid -->
                     <div class="advice-grid" id="adviceGrid">
@@ -638,22 +703,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         // Loop through visible items
                         foreach ($toRender as $key => $item):
-                        ?>
-                        <button type="button" class="advice-card" data-key="<?= $key ?>"
-                            data-text="<?= htmlspecialchars($item['text']) ?>"
-                            onclick="toggleCard(this)">
-                            <span class="advice-card-check">✅</span>
-                            <div class="advice-icon-wrap">
-                                <?= $item['icon'] ?>
-                            </div>
-                            <span class="advice-card-label"><?= $item['label'] ?></span>
-                        </button>
+                            ?>
+                            <button type="button" class="advice-card" data-key="<?= $key ?>"
+                                data-text="<?= htmlspecialchars($item['text']) ?>" onclick="toggleCard(this)">
+                                <span class="advice-card-check">✅</span>
+                                <div class="advice-icon-wrap">
+                                    <?= $item['icon'] ?>
+                                </div>
+                                <span class="advice-card-label"><?= $item['label'] ?></span>
+                            </button>
                         <?php endforeach; ?>
                     </div>
                     <!-- /advice-grid -->
 
                     <!-- Auto-compiled summary -->
-                    <label class="form-label" style="margin-top: 4px;">คำแนะนำที่ให้ในรอบนี้ <span id="adviceCountBadge" style="display:none; background:var(--color-green); color:#fff; font-size:11px; padding:1px 8px; border-radius:50px; margin-left:6px;">0 รายการ</span></label>
+                    <label class="form-label" style="margin-top: 4px;">คำแนะนำที่ให้ในรอบนี้ <span id="adviceCountBadge"
+                            style="display:none; background:var(--color-green); color:#fff; font-size:11px; padding:1px 8px; border-radius:50px; margin-left:6px;">0
+                            รายการ</span></label>
                     <div class="advice-summary-box" id="adviceSummaryDisplay">
                         <span class="advice-summary-placeholder">ยังไม่ได้เลือกคำแนะนำ — แตะการ์ดด้านบนเพื่อเริ่ม</span>
                     </div>
@@ -707,7 +773,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        document.getElementById('waist').addEventListener('input', function() {
+        document.getElementById('waist').addEventListener('input', function () {
             const val = parseFloat(this.value);
             const hint = document.getElementById('waistHint');
             const hidden = document.getElementById('waistCmHidden');
@@ -779,18 +845,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         function updateLocalDpacTask(followupId) {
             const pending = JSON.parse(localStorage.getItem('vhv_dpac_tasks') || '[]');
             const completed = JSON.parse(localStorage.getItem('vhv_completed_dpac_tasks') || '[]');
-            
+
             const idx = pending.findIndex(t => String(t.followup_id) === String(followupId));
             if (idx !== -1) {
                 const task = pending[idx];
                 task.status = 'completed';
                 task.completed_at = new Date().toISOString().replace('T', ' ').split('.')[0];
-                
+
                 // Remove from pending
                 pending.splice(idx, 1);
                 // Push to completed
                 completed.push(task);
-                
+
                 localStorage.setItem('vhv_dpac_tasks', JSON.stringify(pending));
                 localStorage.setItem('vhv_completed_dpac_tasks', JSON.stringify(completed));
             }
@@ -803,10 +869,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 alert('กรุณากรอกข้อมูลเพื่อประเมินความเสี่ยงให้ครบถ้วน');
                 return;
             }
-            
+
             if (!navigator.onLine) {
                 e.preventDefault();
-                
+
                 // Serialize form data for offline sync queue
                 const weight = document.getElementById('weight').value;
                 const height = document.getElementById('height').value;
@@ -816,14 +882,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 const bp_dia = document.getElementById('bp_dia') ? document.getElementById('bp_dia').value : null;
                 const healthRisk = document.getElementById('health_risk_level').value;
                 const advice = document.getElementById('advice_given').value;
-                
+
                 // Get URL parameter for followup ID
                 const urlParams = new URLSearchParams(window.location.search);
                 const fidVal = urlParams.get('fid');
-                
+
                 // Get resident name from title or DOM
                 const residentName = document.getElementById('dpac-name').innerText;
-                
+
                 const data = {
                     'action': 'save_dpac',
                     'followup_id': fidVal,
@@ -839,14 +905,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     '_type': 'dpac',
                     '_residentName': residentName
                 };
-                
+
                 const queue = JSON.parse(localStorage.getItem('offline_submissions') || '[]');
                 queue.push(data);
                 localStorage.setItem('offline_submissions', JSON.stringify(queue));
-                
+
                 // Update local task cache
                 updateLocalDpacTask(fidVal);
-                
+
                 showToast("บันทึกผลการติดตาม DPAC ในเครื่องเรียบร้อยแล้ว (โหมดออฟไลน์)", "warning");
                 setTimeout(() => {
                     window.location.href = 'index.php';
@@ -857,26 +923,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Shell mode and offline parameters check
         document.addEventListener('DOMContentLoaded', () => {
             const isShell = <?= $isShell ? 'true' : 'false' ?>;
-            
+
             if (isShell || !navigator.onLine) {
                 const urlParams = new URLSearchParams(window.location.search);
                 const fidVal = urlParams.get('fid');
-                
+
                 if (!fidVal) {
                     alert("ไม่พบรหัสติดตาม");
                     window.location.href = 'index.php';
                     return;
                 }
-                
+
                 const dpacTasks = JSON.parse(localStorage.getItem('vhv_dpac_tasks') || '[]');
                 const task = dpacTasks.find(t => String(t.followup_id) === String(fidVal));
-                
+
                 if (!task) {
                     alert("ไม่พบงาน หรือถูกดำเนินการไปแล้ว");
                     window.location.href = 'index.php';
                     return;
                 }
-                
+
                 // Update UI details
                 document.getElementById('dpac-watermark').innerText = task.round_number;
                 document.getElementById('dpac-round-badge').innerText = `รอบที่ ${task.round_number}`;
@@ -884,31 +950,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 document.getElementById('dpac-name').innerText = `${task.first_name} ${task.last_name}`;
                 document.getElementById('dpac-house-moo').innerText = `${task.house_no} หมู่ ${task.moo}`;
                 document.getElementById('dpac-risk-type').innerText = task.risk_type;
-                
+
                 // Set risk type variables
                 const riskType = task.risk_type;
                 window.isDM = ['DM', 'BOTH'].includes(riskType);
                 window.isHT = ['HT', 'BOTH'].includes(riskType);
-                
+
                 // Show/hide fields
                 document.getElementById('section-dm-fields').style.display = window.isDM ? 'block' : 'none';
                 if (window.isDM) document.getElementById('fbs').required = true;
-                
+
                 document.getElementById('section-ht-fields').style.display = window.isHT ? 'block' : 'none';
                 if (window.isHT) {
                     document.getElementById('bp_sys').required = true;
                     document.getElementById('bp_dia').required = true;
                 }
-                
+
                 // Filter advice cards in UI
                 const bothKeys = ['sweet', 'fruit', 'salt', 'relax', 'exercise', 'veg', 'doctor', 'oil', 'medicine'];
                 const dmSubsetKeys = ['sweet', 'fruit', 'exercise', 'smoke', 'water', 'veg', 'doctor', 'oil', 'medicine'];
                 const htSubsetKeys = ['salt', 'relax', 'exercise', 'smoke', 'water', 'veg', 'doctor', 'oil', 'medicine'];
-                
+
                 document.querySelectorAll('.advice-card').forEach(card => {
                     const key = card.getAttribute('data-key');
                     let show = false;
-                    
+
                     if (riskType === 'BOTH') {
                         show = bothKeys.includes(key);
                     } else if (riskType === 'DM') {
@@ -916,7 +982,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } else if (riskType === 'HT') {
                         show = htSubsetKeys.includes(key);
                     }
-                    
+
                     card.style.display = show ? 'flex' : 'none';
                 });
             }
@@ -952,7 +1018,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             hidden.value = fullText;
 
             // Display as bullet list
-            const items = sentences.map((s, i) => `<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:${i < sentences.length-1 ? '8' : '0'}px;"><span style="color:var(--color-green);font-size:14px;margin-top:1px;flex-shrink:0;">✅</span><span>${s}</span></div>`).join('');
+            const items = sentences.map((s, i) => `<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:${i < sentences.length - 1 ? '8' : '0'}px;"><span style="color:var(--color-green);font-size:14px;margin-top:1px;flex-shrink:0;">✅</span><span>${s}</span></div>`).join('');
             display.innerHTML = `<div class="advice-summary-count">${sentences.length} คำแนะนำที่เลือก:</div>` + items;
 
             badge.textContent = sentences.length + ' รายการ';

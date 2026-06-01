@@ -4,10 +4,32 @@ $current_page = basename($_SERVER['PHP_SELF']);
 // Determine if super admin
 $is_super_admin = !isset($admin_hoscode) || empty($admin_hoscode);
 ?>
+<?php if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true): ?>
+    <div class="no-print" style="background: linear-gradient(90deg, #f59e0b, #d97706); color: white; text-align: center; padding: 10px 20px; font-weight: 800; font-size: 14px; letter-spacing: 0.5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 0 0 12px 12px; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; animation: slideDown 0.5s ease;">
+        <span>👁️ <strong>ระบบอยู่ในโหมดผู้มาเยือน (Visitor Mode - Read Only)</strong> : คุณสามารถเรียกดูสถิติและข้อมูลต่างๆ ได้ครบถ้วน แต่จะไม่สามารถเพิ่ม แก้ไข ลบข้อมูล หรือประมวลผลระบบได้</span>
+    </div>
+    <style>
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        /* Disable submit and action buttons visually for visitor */
+        button[type="submit"], input[type="submit"], .btn-danger, .btn-action, .btn-save, .admin-btn-action, form button, .button-action, button.numpad-btn {
+            opacity: 0.65;
+            cursor: not-allowed !important;
+            pointer-events: none !important;
+        }
+    </style>
+<?php endif; ?>
 <div class="admin-navbar no-print">
     <a href="index.php" class="admin-logo" style="display: flex; align-items: center; gap: 10px;">
         <img src="../assets/icon.png" alt="Logo" style="height: 35px; width: 35px;">
         <span>NCDs Prevention Portal</span>
+        <?php if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true): ?>
+            <span style="background-color: rgba(245, 158, 11, 0.15); color: #d97706; border: 1.5px solid rgba(217, 119, 6, 0.4); padding: 4px 10px; border-radius: 50px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; box-shadow: inset 1px 1px 3px rgba(0,0,0,0.05); margin-left: 5px;">
+                👁️ โหมดผู้มาเยือน
+            </span>
+        <?php endif; ?>
     </a>
     <div class="admin-nav-links">
         <a href="index.php" class="<?= $current_page == 'index.php' ? 'active' : '' ?>" data-tooltip="แดชบอร์ด">

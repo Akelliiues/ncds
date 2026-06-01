@@ -127,6 +127,7 @@ $options = [
 
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
+    $pdo->setAttribute(PDO::ATTR_STATEMENT_CLASS, ['VisitorMaskPDOStatement', [$pdo]]);
 } catch (\PDOException $e) {
     throw new \PDOException($e->getMessage(), (int) $e->getCode());
 }
@@ -687,4 +688,147 @@ if (!function_exists('get_village_display_name_by_hoscode')) {
         return "หมู่ " . $moo_val;
     }
 }
+
+// ==========================================
+// Visitor Mode: Data Masking & Security Interceptor
+// ==========================================
+
+if (!function_exists('maskRowData')) {
+    function maskRowData(&$row)
+    {
+        if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
+            if ($row === null) return;
+            
+            $nameKeys = ['first_name', 'last_name', 'vhv_name', 'admin_name'];
+            $cidKeys = ['cid', 'target_cid', 'vhv_id'];
+            $telKeys = ['tel', 'telephone', 'phone_number'];
+            
+            if (is_array($row)) {
+                foreach ($row as $key => $val) {
+                    if ($val === null || $val === '') continue;
+                    
+                    if (in_array($key, $nameKeys)) {
+                        $valStr = trim((string)$val);
+                        $len = mb_strlen($valStr);
+                        if ($len <= 2) {
+                            $row[$key] = mb_substr($valStr, 0, 1) . '*';
+                        } else {
+                            $row[$key] = mb_substr($valStr, 0, 2) . str_repeat('*', min(4, $len - 2));
+                        }
+                    } elseif (in_array($key, $cidKeys)) {
+                        $valStr = trim((string)$val);
+                        if (strlen($valStr) === 13) {
+                            $row[$key] = substr($valStr, 0, 3) . '-XXXX-XXXX-' . substr($valStr, -2);
+                        } else {
+                            $row[$key] = substr($valStr, 0, min(3, strlen($valStr))) . str_repeat('X', min(5, max(0, strlen($valStr) - 5))) . substr($valStr, -2);
+                        }
+                    } elseif (in_array($key, $telKeys)) {
+                        $valStr = trim((string)$val);
+                        if (strlen($valStr) >= 9) {
+                            $row[$key] = substr($valStr, 0, 3) . '-XXX-' . substr($valStr, -3);
+                        } else {
+                            $row[$key] = substr($valStr, 0, 3) . 'XXX';
+                        }
+                    }
+                }
+            } elseif (is_object($row)) {
+                foreach ($nameKeys as $key) {
+                    if (isset($row->$key) && $row->$key !== null && $row->$key !== '') {
+                        $valStr = trim((string)$row->$key);
+                        $len = mb_strlen($valStr);
+                        if ($len <= 2) {
+                            $row->$key = mb_substr($valStr, 0, 1) . '*';
+                        } else {
+                            $row->$key = mb_substr($valStr, 0, 2) . str_repeat('*', min(4, $len - 2));
+                        }
+                    }
+                }
+                foreach ($cidKeys as $key) {
+                    if (isset($row->$key) && $row->$key !== null && $row->$key !== '') {
+                        $valStr = trim((string)$row->$key);
+                        if (strlen($valStr) === 13) {
+                            $row->$key = substr($valStr, 0, 3) . '-XXXX-XXXX-' . substr($valStr, -2);
+                        } else {
+                            $row->$key = substr($valStr, 0, min(3, strlen($valStr))) . str_repeat('X', min(5, max(0, strlen($valStr) - 5))) . substr($valStr, -2);
+                        }
+                    }
+                }
+                foreach ($telKeys as $key) {
+                    if (isset($row->$key) && $row->$key !== null && $row->$key !== '') {
+                        $valStr = trim((string)$row->$key);
+                        if (strlen($valStr) >= 9) {
+                            $row->$key = substr($valStr, 0, 3) . '-XXX-' . substr($valStr, -3);
+                        } else {
+                            $row->$key = substr($valStr, 0, 3) . 'XXX';
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+if (!class_exists('VisitorMaskPDOStatement')) {
+    class VisitorMaskPDOStatement extends PDOStatement
+    {
+        protected $pdo;
+        protected function __construct($pdo)
+        {
+            $this->pdo = $pdo;
+        }
+
+        public function fetch($mode = null, $cursorOrientation = null, $cursorOffset = null)
+        {
+            if ($mode === null) {
+                $row = parent::fetch();
+            } else {
+                $row = parent::fetch($mode, $cursorOrientation, $cursorOffset);
+            }
+            if ($row !== false && $row !== null) {
+                maskRowData($row);
+            }
+            return $row;
+        }
+
+        public function fetchAll($mode = null, ...$args)
+        {
+            if ($mode === null) {
+                $rows = parent::fetchAll();
+            } else {
+                $rows = parent::fetchAll($mode, ...$args);
+            }
+            if (is_array($rows)) {
+                foreach ($rows as &$row) {
+                    maskRowData($row);
+                }
+            }
+            return $rows;
+        }
+    }
+}
+
+// Visitor Security Interceptor: Block DB Modification Requests (POST or GET destructive parameters)
+if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['reset']) || (isset($_GET['action']) && in_array($_GET['action'], ['delete', 'reset', 'clear', 'remove', 'seed', 'approve', 'reject', 'disapprove']))) {
+        // Check if AJAX request (JSON format expected)
+        $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') || 
+                  (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+        
+        if ($isAjax) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'ผู้มาเยือน (Visitor) ไม่สามารถเพิ่ม แก้ไข หรือลบข้อมูลได้'
+            ], JSON_UNESCAPED_UNICODE);
+            exit();
+        } else {
+            echo "<script>
+                alert('ผู้มาเยือน (Visitor) ไม่สามารถเพิ่ม แก้ไข หรือลบข้อมูลได้');
+                window.history.back();
+            </script>";
+            exit();
+        }
+    }
+}
+
 
