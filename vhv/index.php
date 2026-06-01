@@ -103,6 +103,7 @@ try {
     <title>NCDs by อสม.อำเภอตาลสุม</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="manifest" href="manifest.json">
+    <script src="../assets/js/app.js"></script>
     <style>
         .tabs {
             display: flex;
@@ -260,7 +261,7 @@ try {
                 </div>
             <?php else: ?>
                 <?php foreach ($pendingTasks as $pt): ?>
-                    <div class="task-card" onclick="openTestModal('<?= htmlspecialchars($pt['house_no']) ?>', '<?= htmlspecialchars($pt['hid'] ?? '') ?>', '<?= htmlspecialchars($pt['cid']) ?>')">
+                    <div class="task-card" data-assignment-id="<?= $pt['assignment_id'] ?>" data-hid="<?= htmlspecialchars($pt['hid'] ?? '') ?>" data-cid="<?= htmlspecialchars($pt['cid']) ?>" onclick="openTestModal('<?= htmlspecialchars($pt['house_no']) ?>', '<?= htmlspecialchars($pt['hid'] ?? '') ?>', '<?= htmlspecialchars($pt['cid']) ?>')">
                         <div class="task-info">
                             <h4>บ้านเลขที่ <?= htmlspecialchars($pt['house_no']) ?></h4>
                             <p>ผู้รับคัดกรอง: <?= htmlspecialchars($pt['first_name'] . ' ' . $pt['last_name']) ?></p>
@@ -291,9 +292,9 @@ try {
             <?php else: ?>
                 <?php foreach ($completedTasks as $ct): ?>
                     <?php if ($ct['assignment_status'] === 'completed'): ?>
-                        <div class="task-card" onclick="showScreeningDetail(<?= htmlspecialchars(json_encode($ct, JSON_UNESCAPED_UNICODE)) ?>)" style="opacity: 0.9;">
+                        <div class="task-card" data-assignment-id="<?= $ct['assignment_id'] ?>" onclick="showScreeningDetail(<?= htmlspecialchars(json_encode($ct, JSON_UNESCAPED_UNICODE)) ?>)" style="opacity: 0.9;">
                     <?php else: ?>
-                        <div class="task-card" onclick="openTestModal('<?= htmlspecialchars($ct['house_no']) ?>', '<?= htmlspecialchars($ct['hid'] ?? '') ?>', '<?= htmlspecialchars($ct['cid']) ?>')" style="opacity: 0.9;">
+                        <div class="task-card" data-assignment-id="<?= $ct['assignment_id'] ?>" data-hid="<?= htmlspecialchars($ct['hid'] ?? '') ?>" data-cid="<?= htmlspecialchars($ct['cid']) ?>" onclick="openTestModal('<?= htmlspecialchars($ct['house_no']) ?>', '<?= htmlspecialchars($ct['hid'] ?? '') ?>', '<?= htmlspecialchars($ct['cid']) ?>')" style="opacity: 0.9;">
                     <?php endif; ?>
                         <div class="task-info">
                             <h4>บ้านเลขที่ <?= htmlspecialchars($ct['house_no']) ?></h4>
@@ -346,7 +347,7 @@ try {
                 </div>
             <?php else: ?>
                 <?php foreach ($dpacTasks as $dt): ?>
-                    <div class="task-card" onclick="window.location.href='dpac_form.php?fid=<?= $dt['followup_id'] ?>'" style="border-left: 4px solid #b91c1c;">
+                    <div class="task-card" data-followup-id="<?= $dt['followup_id'] ?>" onclick="window.location.href='dpac_form.php?fid=<?= $dt['followup_id'] ?>'" style="border-left: 4px solid #b91c1c;">
                         <div class="task-card-watermark"><?= $dt['round_number'] ?></div>
                         <div class="task-info">
                             <h4>บ้านเลขที่ <?= htmlspecialchars($dt['house_no']) ?></h4>
@@ -671,5 +672,121 @@ try {
             <button type="button" onclick="closeHistoryDetailModal()" class="btn-giant btn-giant-primary" style="margin: 0; width: 100%; border-radius: var(--border-radius);">ปิดหน้าต่าง</button>
         </div>
     </div>
+
+    <script>
+        // Store dashboard data in localStorage for offline availability
+        if (navigator.onLine) {
+            localStorage.setItem('vhv_pending_tasks', JSON.stringify(<?= json_encode($pendingTasks, JSON_UNESCAPED_UNICODE) ?>));
+            localStorage.setItem('vhv_completed_tasks', JSON.stringify(<?= json_encode($completedTasks, JSON_UNESCAPED_UNICODE) ?>));
+            localStorage.setItem('vhv_dpac_tasks', JSON.stringify(<?= json_encode($dpacTasks, JSON_UNESCAPED_UNICODE) ?>));
+            localStorage.setItem('vhv_completed_dpac_tasks', JSON.stringify(<?= json_encode($completedDpacTasks, JSON_UNESCAPED_UNICODE) ?>));
+        }
+
+        // Apply offline state modifications to UI dynamically
+        document.addEventListener('DOMContentLoaded', () => {
+            const queue = JSON.parse(localStorage.getItem('offline_submissions') || '[]');
+            if (queue.length === 0) return;
+
+            let pendingCountAdjust = 0;
+            let dpacCountAdjust = 0;
+            let completedCountAdjust = 0;
+
+            queue.forEach(item => {
+                if (item._type === 'screening' || item._type === 'skip_case') {
+                    // Find the pending task card
+                    const card = document.querySelector(`.task-card[data-assignment-id="${item.assignment_id}"]`);
+                    if (card) {
+                        pendingCountAdjust--;
+                        completedCountAdjust++;
+                        
+                        // We modify the card UI
+                        card.removeAttribute('onclick');
+                        const infoDiv = card.querySelector('.task-info');
+                        const badgeDiv = card.querySelector('div:last-child');
+                        
+                        if (item._type === 'screening') {
+                            infoDiv.innerHTML = `
+                                <h4>${infoDiv.querySelector('h4').innerHTML}</h4>
+                                <p>${infoDiv.querySelector('p').innerHTML}</p>
+                                <p style="color: var(--color-yellow); font-size: 13px; font-weight: bold;">
+                                    ⏳ บันทึกแล้ว (รอส่งข้อมูลเข้าระบบ)
+                                </p>
+                            `;
+                            badgeDiv.innerHTML = '<span class="badge" style="background-color: rgba(245,158,11,0.2); color: var(--color-yellow); box-shadow: none;">รอส่งข้อมูล</span>';
+                        } else {
+                            infoDiv.innerHTML = `
+                                <h4>${infoDiv.querySelector('h4').innerHTML}</h4>
+                                <p>${infoDiv.querySelector('p').innerHTML}</p>
+                                <p style="color: var(--color-yellow); font-size: 13px; font-weight: bold;">
+                                    ⏳ ข้ามเคสแล้ว (รอส่งข้อมูลเข้าระบบ)
+                                </p>
+                            `;
+                            badgeDiv.innerHTML = '<span class="badge" style="background-color: rgba(245,158,11,0.2); color: var(--color-yellow); box-shadow: none;">รอส่งข้อมูล</span>';
+                        }
+                        
+                        // Move card to Completed list
+                        const completedList = document.getElementById('completed-list');
+                        const emptyNotice = completedList.querySelector('div[style*="text-align: center"]');
+                        if (emptyNotice) emptyNotice.remove();
+                        completedList.appendChild(card);
+                    }
+                } else if (item._type === 'dpac') {
+                    // Find the pending DPAC task card
+                    const card = document.querySelector(`.task-card[data-followup-id="${item.followup_id}"]`);
+                    if (card) {
+                        dpacCountAdjust--;
+                        completedCountAdjust++;
+                        
+                        card.removeAttribute('onclick');
+                        const infoDiv = card.querySelector('.task-info');
+                        const badgeDiv = card.querySelector('div:last-child');
+                        
+                        infoDiv.innerHTML = `
+                            <h4>${infoDiv.querySelector('h4').innerHTML}</h4>
+                            <p>${infoDiv.querySelector('p').innerHTML}</p>
+                            <p style="color: var(--color-yellow); font-size: 13px; font-weight: bold;">
+                                ⏳ ติดตาม DPAC แล้ว (รอส่งข้อมูลเข้าระบบ)
+                            </p>
+                        `;
+                        badgeDiv.innerHTML = '<span class="badge" style="background-color: rgba(245,158,11,0.2); color: var(--color-yellow); box-shadow: none;">รอส่งข้อมูล</span>';
+                        
+                        // Move card to Completed list
+                        const completedList = document.getElementById('completed-list');
+                        const emptyNotice = completedList.querySelector('div[style*="text-align: center"]');
+                        if (emptyNotice) emptyNotice.remove();
+                        completedList.appendChild(card);
+                    }
+                }
+            });
+
+            // Adjust tab counts dynamically
+            const tabs = document.querySelectorAll('.tab-btn');
+            if (tabs.length === 3) {
+                // Pending Tab
+                const pendingTab = tabs[0];
+                const pendingMatch = pendingTab.textContent.match(/\((\d+)\)/);
+                if (pendingMatch) {
+                    const current = parseInt(pendingMatch[1]);
+                    pendingTab.textContent = `งานค้าง (${current + pendingCountAdjust})`;
+                }
+                
+                // DPAC Tab
+                const dpacTab = tabs[1];
+                const dpacMatch = dpacTab.textContent.match(/\((\d+)\)/);
+                if (dpacMatch) {
+                    const current = parseInt(dpacMatch[1]);
+                    dpacTab.textContent = `DPAC (${current + dpacCountAdjust})`;
+                }
+
+                // Completed Tab
+                const completedTab = tabs[2];
+                const completedMatch = completedTab.textContent.match(/\((\d+)\)/);
+                if (completedMatch) {
+                    const current = parseInt(completedMatch[1]);
+                    completedTab.textContent = `เสร็จสิ้น/ข้าม (${current + completedCountAdjust})`;
+                }
+            }
+        });
+    </script>
 </body>
 </html>

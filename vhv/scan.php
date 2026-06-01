@@ -148,7 +148,34 @@ $presetHid = $_GET['hid'] ?? ''; // Support fallback if loaded with query parame
         }
 
         function validateHouseAssignment(hid, lat, lng) {
-            // Send to check_qrcode API
+            if (!navigator.onLine) {
+                // Offline verification: check local cache
+                const pending = JSON.parse(localStorage.getItem('vhv_pending_tasks') || '[]');
+                const completed = JSON.parse(localStorage.getItem('vhv_completed_tasks') || '[]');
+                const dpac = JSON.parse(localStorage.getItem('vhv_dpac_tasks') || '[]');
+                const completedDpac = JSON.parse(localStorage.getItem('vhv_completed_dpac_tasks') || '[]');
+                
+                const allTasks = [...pending, ...completed, ...dpac, ...completedDpac];
+                const match = allTasks.find(t => 
+                    String(t.hid) === String(hid) || 
+                    String(t.cid) === String(hid)
+                );
+                
+                if (match) {
+                    if (/^\d{13}$/.test(hid)) {
+                        window.location.href = 'screening_form.php?cid=' + encodeURIComponent(hid);
+                    } else {
+                        window.location.href = 'screening_form.php?hid=' + encodeURIComponent(hid);
+                    }
+                } else {
+                    document.getElementById('scanner-area').style.display = 'none';
+                    document.getElementById('pdpa-lock-screen').style.display = 'block';
+                    document.getElementById('locked-hid').innerText = hid;
+                }
+                return;
+            }
+
+            // Send to check_qrcode API (online)
             fetch('../api/check_qrcode.php', {
                 method: 'POST',
                 headers: {

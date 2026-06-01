@@ -7,36 +7,44 @@ if (!isset($_SESSION['vhv_id'])) {
     exit();
 }
 
-require_once __DIR__ . '/../config/db.php';
-
+$isShell = isset($_GET['shell']) && $_GET['shell'] === 'true';
 $fid = $_GET['fid'] ?? '';
 
-if (empty($fid)) {
+if (!$isShell && empty($fid)) {
     header("Location: index.php");
     exit();
 }
 
 $vhvId = $_SESSION['vhv_id'];
+$task = null;
+$riskType = '';
+$isDM = false;
+$isHT = false;
 
-// Fetch Followup Data
-$stmt = $pdo->prepare("
-    SELECT f.*, e.risk_type, p.cid, p.first_name, p.last_name, p.house_no, p.moo
-    FROM dpac_followups f
-    JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
-    JOIN target_population p ON e.cid = p.cid
-    WHERE f.followup_id = ? AND f.vhv_id = ? AND f.status = 'pending'
-");
-$stmt->execute([$fid, $vhvId]);
-$task = $stmt->fetch();
+if (!$isShell) {
+    require_once __DIR__ . '/../config/db.php';
+    
+    // Fetch Followup Data
+    $stmt = $pdo->prepare("
+        SELECT f.*, e.risk_type, p.cid, p.first_name, p.last_name, p.house_no, p.moo
+        FROM dpac_followups f
+        JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
+        JOIN target_population p ON e.cid = p.cid
+        WHERE f.followup_id = ? AND f.vhv_id = ? AND f.status = 'pending'
+    ");
+    $stmt->execute([$fid, $vhvId]);
+    $task = $stmt->fetch();
 
-if (!$task) {
-    echo "<script>alert('ไม่พบงาน หรือถูกดำเนินการไปแล้ว'); window.location.href='index.php';</script>";
-    exit();
+    if (!$task) {
+        echo "<script>alert('ไม่พบงาน หรือถูกดำเนินการไปแล้ว'); window.location.href='index.php';</script>";
+        exit();
+    }
+
+    $riskType = $task['risk_type'];
+    $isDM = in_array($riskType, ['DM', 'BOTH']);
+    $isHT = in_array($riskType, ['HT', 'BOTH']);
 }
-
-$riskType = $task['risk_type'];
-$isDM = in_array($riskType, ['DM', 'BOTH']);
-$isHT = in_array($riskType, ['HT', 'BOTH']);
+?>
 
 // Save Data
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -89,6 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>แบบฟอร์มติดตาม DPAC - อสม.</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+    <script src="../assets/js/app.js"></script>
     <style>
         /* Row grid 2-column layout */
         .row-grid {
@@ -386,16 +395,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div style="padding: 20px;">
             <div class="form-section" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; position: relative; overflow: hidden;">
                 <!-- Watermark round number -->
-                <span class="round-watermark"><?= $task['round_number'] ?></span>
+                <span class="round-watermark" id="dpac-watermark"><?= $isShell ? '' : $task['round_number'] ?></span>
 
-                <div class="round-badge">รอบที่ <?= $task['round_number'] ?></div>
-                <h3 style="margin-top: 0; color: #38bdf8; font-size: 20px;">รอบติดตามที่ <?= $task['round_number'] ?></h3>
+                <div class="round-badge" id="dpac-round-badge">รอบที่ <?= $isShell ? '' : $task['round_number'] ?></div>
+                <h3 style="margin-top: 0; color: #38bdf8; font-size: 20px;" id="dpac-round-title">รอบติดตามที่ <?= $isShell ? '' : $task['round_number'] ?></h3>
                 <p style="margin: 5px 0;"><strong>ชื่อ-สกุล:</strong>
-                    <?= htmlspecialchars($task['first_name'] . ' ' . $task['last_name']) ?></p>
+                    <span id="dpac-name"><?= $isShell ? '' : htmlspecialchars($task['first_name'] . ' ' . $task['last_name']) ?></span></p>
                 <p style="margin: 5px 0;"><strong>ที่อยู่:</strong> บ้านเลขที่
-                    <?= htmlspecialchars($task['house_no']) ?> หมู่ <?= htmlspecialchars($task['moo']) ?>
+                    <span id="dpac-house-moo"><?= $isShell ? '' : htmlspecialchars($task['house_no']) . ' หมู่ ' . htmlspecialchars($task['moo']) ?></span>
                 </p>
-                <p style="margin: 5px 0; color: #fbbf24; font-weight: bold;">⚠️ กลุ่มเสี่ยง: <?= $task['risk_type'] ?>
+                <p style="margin: 5px 0; color: #fbbf24; font-weight: bold;">⚠️ กลุ่มเสี่ยง: <span id="dpac-risk-type"><?= $isShell ? '' : $task['risk_type'] ?></span>
                 </p>
             </div>
 
@@ -436,28 +445,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-section">
                     <h3 style="color: var(--color-accent); margin-top: 0;">2. ตรวจวัดค่าความเสี่ยง</h3>
 
-                    <?php if ($isDM): ?>
-                        <div style="margin-top: 15px;">
-                            <label class="form-label">ระดับน้ำตาลในเลือด (FBS) (mg/dL)</label>
-                            <input type="number" name="fbs" id="fbs" class="form-input-text" oninput="calculateRisk()"
-                                required placeholder="ตัวอย่าง: 110">
-                        </div>
-                    <?php endif; ?>
+                    <div style="margin-top: 15px; display: <?= $isDM ? 'block' : 'none' ?>;" id="section-dm-fields">
+                        <label class="form-label">ระดับน้ำตาลในเลือด (FBS) (mg/dL)</label>
+                        <input type="number" name="fbs" id="fbs" class="form-input-text" oninput="calculateRisk()"
+                            <?= $isDM ? 'required' : '' ?> placeholder="ตัวอย่าง: 110">
+                    </div>
 
-                    <?php if ($isHT): ?>
-                        <div class="row-grid" style="margin-top: 15px;">
-                            <div>
-                                <label class="form-label">ความดันตัวบน (SYS)</label>
-                                <input type="number" name="bp_sys" id="bp_sys" class="form-input-text"
-                                    oninput="calculateRisk()" required placeholder="ตัวอย่าง: 130">
-                            </div>
-                            <div>
-                                <label class="form-label">ความดันตัวล่าง (DIA)</label>
-                                <input type="number" name="bp_dia" id="bp_dia" class="form-input-text"
-                                    oninput="calculateRisk()" required placeholder="ตัวอย่าง: 85">
-                            </div>
+                    <div class="row-grid" style="margin-top: 15px; display: <?= $isHT ? 'block' : 'none' ?>;" id="section-ht-fields">
+                        <div>
+                            <label class="form-label">ความดันตัวบน (SYS)</label>
+                            <input type="number" name="bp_sys" id="bp_sys" class="form-input-text"
+                                oninput="calculateRisk()" <?= $isHT ? 'required' : '' ?> placeholder="ตัวอย่าง: 130">
                         </div>
-                    <?php endif; ?>
+                        <div>
+                            <label class="form-label">ความดันตัวล่าง (DIA)</label>
+                            <input type="number" name="bp_dia" id="bp_dia" class="form-input-text"
+                                oninput="calculateRisk()" <?= $isHT ? 'required' : '' ?> placeholder="ตัวอย่าง: 85">
+                        </div>
+                    </div>
 
                     <div style="margin-top: 25px;">
                         <label class="form-label">ผลการประเมิน Health Risk ประจำรอบนี้</label>
@@ -610,23 +615,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         // Build final visible list
                         $toRender = [];
-
-                        if ($riskType === 'BOTH') {
-                            // BOTH: 2 DM + 2 HT + 5 General = 9 items
-                            $toRender = array_merge($dmItems, $htItems);
-                            $toRender['exercise'] = $generalItems['exercise'];
-                            $toRender['veg'] = $generalItems['veg'];
-                            $toRender['doctor'] = $generalItems['doctor'];
-                            $toRender['oil'] = $generalItems['oil'];
-                            $toRender['medicine'] = $generalItems['medicine'];
-                        } elseif ($riskType === 'DM') {
-                            // DM: 2 DM + 7 General = 9 items
-                            $toRender = $dmItems;
-                            $toRender = array_merge($toRender, $generalItems);
+                        if ($isShell) {
+                            $toRender = array_merge($dmItems, $htItems, $generalItems);
                         } else {
-                            // HT: 2 HT + 7 General = 9 items
-                            $toRender = $htItems;
-                            $toRender = array_merge($toRender, $generalItems);
+                            if ($riskType === 'BOTH') {
+                                // BOTH: 2 DM + 2 HT + 5 General = 9 items
+                                $toRender = array_merge($dmItems, $htItems);
+                                $toRender['exercise'] = $generalItems['exercise'];
+                                $toRender['veg'] = $generalItems['veg'];
+                                $toRender['doctor'] = $generalItems['doctor'];
+                                $toRender['oil'] = $generalItems['oil'];
+                                $toRender['medicine'] = $generalItems['medicine'];
+                            } elseif ($riskType === 'DM') {
+                                // DM: 2 DM + 7 General = 9 items
+                                $toRender = $dmItems;
+                                $toRender = array_merge($toRender, $generalItems);
+                            } else {
+                                // HT: 2 HT + 7 General = 9 items
+                                $toRender = $htItems;
+                                $toRender = array_merge($toRender, $generalItems);
+                            }
                         }
 
                         // Loop through visible items
@@ -769,6 +777,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        function updateLocalDpacTask(followupId) {
+            const pending = JSON.parse(localStorage.getItem('vhv_dpac_tasks') || '[]');
+            const completed = JSON.parse(localStorage.getItem('vhv_completed_dpac_tasks') || '[]');
+            
+            const idx = pending.findIndex(t => String(t.followup_id) === String(followupId));
+            if (idx !== -1) {
+                const task = pending[idx];
+                task.status = 'completed';
+                task.completed_at = new Date().toISOString().replace('T', ' ').split('.')[0];
+                
+                // Remove from pending
+                pending.splice(idx, 1);
+                // Push to completed
+                completed.push(task);
+                
+                localStorage.setItem('vhv_dpac_tasks', JSON.stringify(pending));
+                localStorage.setItem('vhv_completed_dpac_tasks', JSON.stringify(completed));
+            }
+        }
+
         document.getElementById('dpacForm').onsubmit = function (e) {
             const risk = document.getElementById('health_risk_level').value;
             if (!risk) {
@@ -776,8 +804,124 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 alert('กรุณากรอกข้อมูลเพื่อประเมินความเสี่ยงให้ครบถ้วน');
                 return;
             }
-            // waistCmHidden always holds the cm value and has name="waist"
+            
+            if (!navigator.onLine) {
+                e.preventDefault();
+                
+                // Serialize form data for offline sync queue
+                const weight = document.getElementById('weight').value;
+                const height = document.getElementById('height').value;
+                const waist = document.getElementById('waistCmHidden').value;
+                const fbs = document.getElementById('fbs') ? document.getElementById('fbs').value : null;
+                const bp_sys = document.getElementById('bp_sys') ? document.getElementById('bp_sys').value : null;
+                const bp_dia = document.getElementById('bp_dia') ? document.getElementById('bp_dia').value : null;
+                const healthRisk = document.getElementById('health_risk_level').value;
+                const advice = document.getElementById('advice_given').value;
+                
+                // Get URL parameter for followup ID
+                const urlParams = new URLSearchParams(window.location.search);
+                const fidVal = urlParams.get('fid');
+                
+                // Get resident name from title or DOM
+                const residentName = document.getElementById('dpac-name').innerText;
+                
+                const data = {
+                    'action': 'save_dpac',
+                    'followup_id': fidVal,
+                    'weight': weight,
+                    'height': height,
+                    'waist': waist,
+                    'fbs': fbs,
+                    'bp_sys': bp_sys,
+                    'bp_dia': bp_dia,
+                    'health_risk_level': healthRisk,
+                    'advice_given': advice,
+                    '_timestamp': Date.now(),
+                    '_type': 'dpac',
+                    '_residentName': residentName
+                };
+                
+                const queue = JSON.parse(localStorage.getItem('offline_submissions') || '[]');
+                queue.push(data);
+                localStorage.setItem('offline_submissions', JSON.stringify(queue));
+                
+                // Update local task cache
+                updateLocalDpacTask(fidVal);
+                
+                showToast("บันทึกผลการติดตาม DPAC ในเครื่องเรียบร้อยแล้ว (โหมดออฟไลน์)", "warning");
+                setTimeout(() => {
+                    window.location.href = 'index.php';
+                }, 1500);
+            }
         };
+
+        // Shell mode and offline parameters check
+        document.addEventListener('DOMContentLoaded', () => {
+            const isShell = <?= $isShell ? 'true' : 'false' ?>;
+            
+            if (isShell || !navigator.onLine) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const fidVal = urlParams.get('fid');
+                
+                if (!fidVal) {
+                    alert("ไม่พบรหัสติดตาม");
+                    window.location.href = 'index.php';
+                    return;
+                }
+                
+                const dpacTasks = JSON.parse(localStorage.getItem('vhv_dpac_tasks') || '[]');
+                const task = dpacTasks.find(t => String(t.followup_id) === String(fidVal));
+                
+                if (!task) {
+                    alert("ไม่พบงาน หรือถูกดำเนินการไปแล้ว");
+                    window.location.href = 'index.php';
+                    return;
+                }
+                
+                // Update UI details
+                document.getElementById('dpac-watermark').innerText = task.round_number;
+                document.getElementById('dpac-round-badge').innerText = `รอบที่ ${task.round_number}`;
+                document.getElementById('dpac-round-title').innerText = `รอบติดตามที่ ${task.round_number}`;
+                document.getElementById('dpac-name').innerText = `${task.first_name} ${task.last_name}`;
+                document.getElementById('dpac-house-moo').innerText = `${task.house_no} หมู่ ${task.moo}`;
+                document.getElementById('dpac-risk-type').innerText = task.risk_type;
+                
+                // Set risk type variables
+                const riskType = task.risk_type;
+                window.isDM = ['DM', 'BOTH'].includes(riskType);
+                window.isHT = ['HT', 'BOTH'].includes(riskType);
+                
+                // Show/hide fields
+                document.getElementById('section-dm-fields').style.display = window.isDM ? 'block' : 'none';
+                if (window.isDM) document.getElementById('fbs').required = true;
+                
+                document.getElementById('section-ht-fields').style.display = window.isHT ? 'block' : 'none';
+                if (window.isHT) {
+                    document.getElementById('bp_sys').required = true;
+                    document.getElementById('bp_dia').required = true;
+                }
+                
+                // Filter advice cards in UI
+                const bothKeys = ['sweet', 'fruit', 'salt', 'relax', 'exercise', 'veg', 'doctor', 'oil', 'medicine'];
+                const dmSubsetKeys = ['sweet', 'fruit', 'exercise', 'smoke', 'water', 'veg', 'doctor', 'oil', 'medicine'];
+                const htSubsetKeys = ['salt', 'relax', 'exercise', 'smoke', 'water', 'veg', 'doctor', 'oil', 'medicine'];
+                
+                document.querySelectorAll('.advice-card').forEach(card => {
+                    const key = card.getAttribute('data-key');
+                    let show = false;
+                    
+                    if (riskType === 'BOTH') {
+                        show = bothKeys.includes(key);
+                    } else if (riskType === 'DM') {
+                        show = dmSubsetKeys.includes(key);
+                    } else if (riskType === 'HT') {
+                        show = htSubsetKeys.includes(key);
+                    }
+                    
+                    card.style.display = show ? 'flex' : 'none';
+                });
+            }
+        });
 
         // ── Advice card toggle ────────────────────────────────────
         function toggleCard(card) {

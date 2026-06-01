@@ -7,58 +7,62 @@ if (!isset($_SESSION['vhv_id'])) {
     exit();
 }
 
-require_once __DIR__ . '/../config/db.php';
-
+$isShell = isset($_GET['shell']) && $_GET['shell'] === 'true';
 $hid = $_GET['hid'] ?? '';
 $cid = $_GET['cid'] ?? '';
 
-if (empty($hid) && empty($cid)) {
+if (!$isShell && empty($hid) && empty($cid)) {
     header("Location: scan.php");
     exit();
 }
 
 $vhvId = $_SESSION['vhv_id'];
+$residents = [];
+$history = [];
 
-// Fetch residents based on hid or cid
-if (!empty($hid)) {
-    $residentsStmt = $pdo->prepare("
-        SELECT p.*, a.assignment_id
-        FROM task_assignments a
-        JOIN target_population p ON a.target_cid = p.cid
-        WHERE p.hid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('pending', 'skipped')
-    ");
-    $residentsStmt->execute([$hid, $vhvId]);
-    $residents = $residentsStmt->fetchAll();
-
-    if (empty($residents)) {
-        $historyStmt = $pdo->prepare("
-            SELECT p.*, a.assignment_status
+if (!$isShell) {
+    require_once __DIR__ . '/../config/db.php';
+    // Fetch residents based on hid or cid
+    if (!empty($hid)) {
+        $residentsStmt = $pdo->prepare("
+            SELECT p.*, a.assignment_id
             FROM task_assignments a
             JOIN target_population p ON a.target_cid = p.cid
-            WHERE p.hid = ? AND a.vhv_id = ? AND a.budget_year = 2026
+            WHERE p.hid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('pending', 'skipped')
         ");
-        $historyStmt->execute([$hid, $vhvId]);
-        $history = $historyStmt->fetchAll();
-    }
-} else {
-    $residentsStmt = $pdo->prepare("
-        SELECT p.*, a.assignment_id
-        FROM task_assignments a
-        JOIN target_population p ON a.target_cid = p.cid
-        WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('pending', 'skipped')
-    ");
-    $residentsStmt->execute([$cid, $vhvId]);
-    $residents = $residentsStmt->fetchAll();
+        $residentsStmt->execute([$hid, $vhvId]);
+        $residents = $residentsStmt->fetchAll();
 
-    if (empty($residents)) {
-        $historyStmt = $pdo->prepare("
-            SELECT p.*, a.assignment_status
+        if (empty($residents)) {
+            $historyStmt = $pdo->prepare("
+                SELECT p.*, a.assignment_status
+                FROM task_assignments a
+                JOIN target_population p ON a.target_cid = p.cid
+                WHERE p.hid = ? AND a.vhv_id = ? AND a.budget_year = 2026
+            ");
+            $historyStmt->execute([$hid, $vhvId]);
+            $history = $historyStmt->fetchAll();
+        }
+    } else {
+        $residentsStmt = $pdo->prepare("
+            SELECT p.*, a.assignment_id
             FROM task_assignments a
             JOIN target_population p ON a.target_cid = p.cid
-            WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = 2026
+            WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('pending', 'skipped')
         ");
-        $historyStmt->execute([$cid, $vhvId]);
-        $history = $historyStmt->fetchAll();
+        $residentsStmt->execute([$cid, $vhvId]);
+        $residents = $residentsStmt->fetchAll();
+
+        if (empty($residents)) {
+            $historyStmt = $pdo->prepare("
+                SELECT p.*, a.assignment_status
+                FROM task_assignments a
+                JOIN target_population p ON a.target_cid = p.cid
+                WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = 2026
+            ");
+            $historyStmt->execute([$cid, $vhvId]);
+            $history = $historyStmt->fetchAll();
+        }
     }
 }
 ?>
@@ -186,7 +190,7 @@ if (!empty($hid)) {
             <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 14px;">รหัสบ้าน HID: <?= htmlspecialchars($hid) ?></p>
         </div>
 
-        <?php if (empty($residents)): ?>
+        <?php if (empty($residents) && !$isShell): ?>
             <div class="card-dark" style="text-align: center; padding: 40px 20px;">
                 <span style="font-size: 48px; display: block; margin-bottom: 16px;">✅</span>
                 <h3 style="color: var(--color-green); font-size: 22px; margin-bottom: 8px;">คัดกรองเรียบร้อยแล้ว</h3>
@@ -202,25 +206,30 @@ if (!empty($hid)) {
                 <!-- STEP 1: Select Resident -->
                 <div id="step-resident" class="step-section active">
                     <span class="form-label-big">1. เลือกบุคคลที่ต้องการคัดกรอง</span>
-                    <?php foreach ($residents as $r): ?>
-                        <div class="resident-card" onclick="selectResident(<?= $r['assignment_id'] ?>, '<?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?>', '<?= $r['sex'] ?>', '<?= $r['birth'] ?>', <?= $r['need_screen_dm'] ? 'true' : 'false' ?>, <?= $r['need_screen_ht'] ? 'true' : 'false' ?>, <?= (float)($r['latitude'] ?? 0) ?>, <?= (float)($r['longitude'] ?? 0) ?>, this)">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <strong style="font-size: 18px; color: var(--text-primary);"><?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?></strong>
-                                    <p style="margin: 4px 0 0 0; font-size: 14px; color: var(--text-secondary);">
-                                        เพศ: <?= $r['sex'] == '1' ? 'ชาย' : 'หญิง' ?> • อายุ: <?= date_diff(date_create($r['birth']), date_create('today'))->y ?> ปี
-                                    </p>
-                                    <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-muted);">
-                                        สิทธิ์การตรวจ: 
-                                        <?= $r['need_screen_dm'] ? '<span style="color:var(--color-accent)">เบาหวาน</span>' : '<s>เบาหวาน (ตรวจแล้ว/ป่วยแล้ว)</s>' ?>
-                                        •
-                                        <?= $r['need_screen_ht'] ? '<span style="color:var(--color-primary)">ความดัน</span>' : '<s>ความดัน (ตรวจแล้ว/ป่วยแล้ว)</s>' ?>
-                                    </p>
+                    
+                    <div id="residents-container">
+                    <?php if (!$isShell): ?>
+                        <?php foreach ($residents as $r): ?>
+                            <div class="resident-card" onclick="selectResident(<?= $r['assignment_id'] ?>, '<?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?>', '<?= $r['sex'] ?>', '<?= $r['birth'] ?>', <?= $r['need_screen_dm'] ? 'true' : 'false' ?>, <?= $r['need_screen_ht'] ? 'true' : 'false' ?>, <?= (float)($r['latitude'] ?? 0) ?>, <?= (float)($r['longitude'] ?? 0) ?>, this)">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong style="font-size: 18px; color: var(--text-primary);"><?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?></strong>
+                                        <p style="margin: 4px 0 0 0; font-size: 14px; color: var(--text-secondary);">
+                                            เพศ: <?= $r['sex'] == '1' ? 'ชาย' : 'หญิง' ?> • อายุ: <?= date_diff(date_create($r['birth']), date_create('today'))->y ?> ปี
+                                        </p>
+                                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-muted);">
+                                            สิทธิ์การตรวจ: 
+                                            <?= $r['need_screen_dm'] ? '<span style="color:var(--color-accent)">เบาหวาน</span>' : '<s>เบาหวาน (ตรวจแล้ว/ป่วยแล้ว)</s>' ?>
+                                            •
+                                            <?= $r['need_screen_ht'] ? '<span style="color:var(--color-primary)">ความดัน</span>' : '<s>ความดัน (ตรวจแล้ว/ป่วยแล้ว)</s>' ?>
+                                        </p>
+                                    </div>
+                                    <span style="font-size: 24px; color: var(--border-color);" class="select-indicator">⚪</span>
                                 </div>
-                                <span style="font-size: 24px; color: var(--border-color);" class="select-indicator">⚪</span>
                             </div>
-                        </div>
-                    <?php endforeach; ?>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                    </div>
                     
                     <button type="button" onclick="nextStep('step-vital')" class="btn-giant btn-giant-primary" id="btn-next-resident" style="margin-top: 20px; display: none;">
                         ถัดไป (คัดกรองร่างกาย) →
@@ -610,7 +619,140 @@ if (!empty($hid)) {
         let homeLat = 0;
         let homeLng = 0;
 
+        function updateLocalTask(assignmentId, newStatus, skippedReason = '') {
+            const pending = JSON.parse(localStorage.getItem('vhv_pending_tasks') || '[]');
+            const completed = JSON.parse(localStorage.getItem('vhv_completed_tasks') || '[]');
+            
+            const idx = pending.findIndex(t => String(t.assignment_id) === String(assignmentId));
+            if (idx !== -1) {
+                const task = pending[idx];
+                task.assignment_status = newStatus;
+                if (newStatus === 'skipped') {
+                    task.skipped_reason = skippedReason;
+                }
+                
+                // Remove from pending
+                pending.splice(idx, 1);
+                
+                // Push to completed
+                completed.push(task);
+                
+                localStorage.setItem('vhv_pending_tasks', JSON.stringify(pending));
+                localStorage.setItem('vhv_completed_tasks', JSON.stringify(completed));
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", function() {
+            const isShell = <?= $isShell ? 'true' : 'false' ?>;
+            
+            // Offline/Shell initialization
+            if (isShell || !navigator.onLine) {
+                // Get URL search parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                const hidVal = urlParams.get('hid');
+                const cidVal = urlParams.get('cid');
+                
+                // Update title and hid details in UI
+                if (hidVal) {
+                    document.querySelector('.vhv-header h3').innerText = `แบบคัดกรอง บ้านเลขที่ (ออฟไลน์)`;
+                    document.querySelector('.vhv-header p').innerText = `รหัสบ้าน HID: ${hidVal}`;
+                } else if (cidVal) {
+                    document.querySelector('.vhv-header h3').innerText = `แบบคัดกรอง บุคคล (ออฟไลน์)`;
+                    document.querySelector('.vhv-header p').innerText = `รหัสประจำตัว CID: ${cidVal}`;
+                }
+                
+                // Load tasks from localStorage
+                const pending = JSON.parse(localStorage.getItem('vhv_pending_tasks') || '[]');
+                const completed = JSON.parse(localStorage.getItem('vhv_completed_tasks') || '[]');
+                
+                // Find matching residents
+                let matchedResidents = [];
+                if (hidVal) {
+                    matchedResidents = pending.filter(t => String(t.hid) === String(hidVal));
+                } else if (cidVal) {
+                    matchedResidents = pending.filter(t => String(t.cid) === String(cidVal));
+                }
+                
+                const container = document.getElementById('residents-container');
+                container.innerHTML = ''; // Clear skeleton
+                
+                if (matchedResidents.length === 0) {
+                    // Check if already completed
+                    let completedMatch = [];
+                    if (hidVal) {
+                        completedMatch = completed.filter(t => String(t.hid) === String(hidVal));
+                    } else if (cidVal) {
+                        completedMatch = completed.filter(t => String(t.cid) === String(cidVal));
+                    }
+                    
+                    if (completedMatch.length > 0) {
+                        container.innerHTML = `
+                            <div class="card-dark" style="text-align: center; padding: 40px 20px;">
+                                <span style="font-size: 48px; display: block; margin-bottom: 16px;">✅</span>
+                                <h3 style="color: var(--color-green); font-size: 22px; margin-bottom: 8px;">คัดกรองเรียบร้อยแล้ว</h3>
+                                <p style="color: var(--text-secondary); margin-bottom: 24px;">สมาชิกทั้งหมดในบ้านเลขที่นี้ได้รับการคัดกรองเสร็จสิ้นเรียบร้อยแล้วในรอบปีงบประมาณนี้</p>
+                                <a href="index.php" class="btn-giant btn-giant-primary">กลับหน้าหลัก</a>
+                            </div>
+                        `;
+                        // Hide next/skip buttons
+                        document.querySelector('button[onclick="openSkipModal()"]').style.display = 'none';
+                        return;
+                    } else {
+                        container.innerHTML = `
+                            <div style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
+                                ⚠️ ไม่พบข้อมูลผู้รับคัดกรองออฟไลน์สำหรับรหัสนี้
+                            </div>
+                        `;
+                        return;
+                    }
+                }
+                
+                // Render matched resident cards
+                matchedResidents.forEach(r => {
+                    const birthDate = new Date(r.birth);
+                    const age = new Date().getFullYear() - birthDate.getFullYear();
+                    
+                    const card = document.createElement('div');
+                    card.className = 'resident-card';
+                    card.onclick = function() {
+                        selectResident(
+                            r.assignment_id, 
+                            `${r.first_name} ${r.last_name}`, 
+                            r.sex, 
+                            r.birth, 
+                            r.need_screen_dm == 1, 
+                            r.need_screen_ht == 1, 
+                            parseFloat(r.latitude || 0), 
+                            parseFloat(r.longitude || 0), 
+                            card
+                        );
+                    };
+                    
+                    card.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="font-size: 18px; color: var(--text-primary);">${r.first_name} ${r.last_name}</strong>
+                                <p style="margin: 4px 0 0 0; font-size: 14px; color: var(--text-secondary);">
+                                    เพศ: ${r.sex == '1' ? 'ชาย' : 'หญิง'} • อายุ: ${age} ปี
+                                </p>
+                                <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-muted);">
+                                    สิทธิ์การตรวจ: 
+                                    ${r.need_screen_dm == 1 ? '<span style="color:var(--color-accent)">เบาหวาน</span>' : '<s>เบาหวาน (ตรวจแล้ว/ป่วยแล้ว)</s>'}
+                                    •
+                                    ${r.need_screen_ht == 1 ? '<span style="color:var(--color-primary)">ความดัน</span>' : '<s>ความดัน (ตรวจแล้ว/ป่วยแล้ว)</s>'}
+                                </p>
+                            </div>
+                            <span style="font-size: 24px; color: var(--border-color);" class="select-indicator">⚪</span>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+                
+                if (matchedResidents[0]) {
+                    document.querySelector('.vhv-header h3').innerText = `แบบคัดกรอง บ้านเลขที่ ${matchedResidents[0].house_no} (ออฟไลน์)`;
+                }
+            }
+
             // Get current location coordinates asynchronously
             getCurrentLocation().then(coords => {
                 gpsLocation.lat = coords.lat;
@@ -1048,6 +1190,30 @@ if (!empty($hid)) {
             formData.append('action', 'save_screening');
             formData.append('cv_risk_score', parseFloat(document.getElementById('cv-risk-display').innerText));
 
+            // Check if offline
+            if (!navigator.onLine) {
+                const serialized = {};
+                formData.forEach((value, key) => {
+                    serialized[key] = value;
+                });
+                serialized.cv_risk_score = parseFloat(document.getElementById('cv-risk-display').innerText);
+                serialized._timestamp = Date.now();
+                serialized._type = 'screening';
+                serialized._residentName = selectedResident.name;
+                
+                const queue = JSON.parse(localStorage.getItem('offline_submissions') || '[]');
+                queue.push(serialized);
+                localStorage.setItem('offline_submissions', JSON.stringify(queue));
+                
+                updateLocalTask(selectedResident.assignmentId, 'completed');
+                
+                showToast("บันทึกข้อมูลคัดกรองในเครื่องเรียบร้อยแล้ว (โหมดออฟไลน์)", "warning");
+                setTimeout(() => {
+                    window.location.href = 'index.php';
+                }, 1500);
+                return;
+            }
+
             // Send to save_screening endpoint
             fetch('../api/save_screening.php', {
                 method: 'POST',
@@ -1059,7 +1225,7 @@ if (!empty($hid)) {
                     if (data.is_hl_coach) {
                         showHlCoachModal(data.hl_risk_level);
                     } else {
-                        alert("บันทึกการคัดกรองและส่งการ์ดประเมินไปยังครอบครัวทาง LINE เรียบร้อยแล้ว! อสม. ได้รับ +1 คะแนนสะสม");
+                        alert("บันทึกการคัดกรองเรียบร้อยแล้ว! อสม. ได้รับ +1 คะแนนสะสม");
                         window.location.href = 'index.php';
                     }
                 } else {
@@ -1087,6 +1253,31 @@ if (!empty($hid)) {
         function submitSkipCase() {
             const reason = document.getElementById('skip_reason').value;
             const assignId = document.getElementById('assignment_id').value;
+
+            if (!navigator.onLine) {
+                const data = {
+                    'action': 'skip_case',
+                    'assignment_id': assignId,
+                    'skipped_reason': reason,
+                    'lat': gpsLocation.lat,
+                    'lng': gpsLocation.lng,
+                    '_timestamp': Date.now(),
+                    '_type': 'skip_case',
+                    '_residentName': selectedResident.name
+                };
+                
+                const queue = JSON.parse(localStorage.getItem('offline_submissions') || '[]');
+                queue.push(data);
+                localStorage.setItem('offline_submissions', JSON.stringify(queue));
+                
+                updateLocalTask(assignId, 'skipped', reason);
+                
+                showToast("บันทึกการข้ามเคสในเครื่องเรียบร้อยแล้ว (โหมดออฟไลน์)", "warning");
+                setTimeout(() => {
+                    window.location.href = 'index.php';
+                }, 1500);
+                return;
+            }
 
             fetch('../api/save_screening.php', {
                 method: 'POST',
