@@ -926,14 +926,21 @@ if ($admin_hoscode) {
                                 <tr>
                                     <td>
                                         <?php if (strpos($rs['activity_type'], 'ติดตาม DPAC') !== false): ?>
-                                            <span style="display: inline-block; background-color: rgba(6, 182, 212, 0.15); color: #06b6d4; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; border: 1px solid rgba(6, 182, 212, 0.3); white-space: nowrap;">
+                                            <span style="display: inline-block; background-color: rgba(6, 182, 212, 0.15); color: #06b6d4; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; border: 1px solid rgba(6, 182, 212, 0.3); white-space: nowrap; margin-bottom: 4px;">
                                                 🔄 <?= htmlspecialchars($rs['activity_type']) ?>
                                             </span>
                                         <?php else: ?>
-                                            <span style="display: inline-block; background-color: rgba(34, 197, 94, 0.15); color: #22c55e; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; border: 1px solid rgba(34, 197, 94, 0.3); white-space: nowrap;">
+                                            <span style="display: inline-block; background-color: rgba(34, 197, 94, 0.15); color: #22c55e; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; border: 1px solid rgba(34, 197, 94, 0.3); white-space: nowrap; margin-bottom: 4px;">
                                                 📋 <?= htmlspecialchars($rs['activity_type']) ?>
                                             </span>
                                         <?php endif; ?>
+                                        <?php 
+                                        $timestamp = strtotime($rs['created_at']);
+                                        $date_thai = date('d/m/', $timestamp) . (date('Y', $timestamp) + 543) . ' ' . date('H:i', $timestamp);
+                                        ?>
+                                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; white-space: nowrap;">
+                                            📅 <?= $date_thai ?> น.
+                                        </div>
                                     </td>
                                     <td><?= htmlspecialchars($rs['house_no']) ?></td>
                                     <td><?= htmlspecialchars(get_village_display_name_by_hoscode($rs['hoscode'], $rs['moo'])) ?>
