@@ -575,9 +575,8 @@ $mapInitialZoom = $coordCount > 0 ? 13 : 12;
         const markers = {};
         const map = L.map('temporal-map').setView([<?= $mapCenterLat ?>, <?= $mapCenterLng ?>], <?= $mapInitialZoom ?>);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            subdomains: 'abcd',
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             maxZoom: 20
         }).addTo(map);
 
@@ -607,8 +606,8 @@ $mapInitialZoom = $coordCount > 0 ? 13 : 12;
             }).addTo(map);
             
             marker.bindPopup(`
-                <div style="font-family: var(--font-sans); color: #fff;">
-                    <strong style="color: var(--color-accent);">${t.first_name} ${t.last_name}</strong><br>
+                <div style="font-family: var(--font-sans); color: #1e293b; font-size: 13px;">
+                    <strong style="color: #0ea5e9;">${t.first_name} ${t.last_name}</strong><br>
                     🏠 บ้านเลขที่: ${t.house_no} หมู่: ${t.moo}<br>
                     <span id="pop-status-${t.cid}">สถานะ: โหลดข้อมูล...</span>
                 </div>
@@ -652,8 +651,8 @@ $mapInitialZoom = $coordCount > 0 ? 13 : 12;
                 if (marker) {
                     marker.setStyle({ fillColor: colors[status] });
                     marker.getPopup().setContent(`
-                        <div style="font-family: var(--font-sans); color: #fff;">
-                            <strong style="color: var(--color-accent);">${t.first_name} ${t.last_name}</strong><br>
+                        <div style="font-family: var(--font-sans); color: #1e293b; font-size: 13px;">
+                            <strong style="color: #0ea5e9;">${t.first_name} ${t.last_name}</strong><br>
                             🏠 บ้านเลขที่: ${t.house_no} หมู่: ${t.moo}<br>
                             <span>สถานะ: ${labels[status]}</span>
                         </div>
