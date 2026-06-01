@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Fallback checks (if database query didn't match or failed)
         if (!$is_admin) {
-            if (strtolower($username) === 'visitor' && $password === 'Visitor2026') {
+            if (strtolower($username) === 'visitor' && $password === '123456') {
                 $_SESSION['admin_logged_in'] = true;
                 $_SESSION['admin_username'] = 'visitor';
                 $_SESSION['admin_hoscode'] = null; // แอดมินหลัก (เข้าดูได้ทุก รพ.สต.)
