@@ -181,6 +181,76 @@ if (!$isShell) {
             color: var(--color-green) !important;
             box-shadow: var(--neumorph-inset) !important;
         }
+        .advice-image-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 10px;
+        }
+        @media (max-width: 576px) {
+            .advice-image-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+        }
+        @media (max-width: 380px) {
+            .advice-image-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 6px;
+            }
+        }
+        .advice-image-card {
+            position: relative;
+            background-color: var(--bg-card);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            cursor: pointer;
+            box-shadow: var(--neumorph-flat);
+            border: 3px solid transparent;
+            transition: all var(--transition-speed);
+            aspect-ratio: 1 / 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .advice-image-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+        .advice-image-card:hover img {
+            transform: scale(1.04);
+        }
+        .advice-image-card.selected {
+            border-color: var(--color-green);
+            box-shadow: var(--neumorph-inset), 0 0 12px rgba(16, 185, 129, 0.4);
+        }
+        .advice-image-card .checkmark-overlay {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background-color: var(--color-green);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            z-index: 2;
+        }
+        .advice-image-card.selected .checkmark-overlay {
+            opacity: 1;
+            transform: scale(1);
+        }
     </style>
 </head>
 <body class="vhv-accessibility">
@@ -450,25 +520,43 @@ if (!$isShell) {
                         <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 6px;">💡 คำแนะนำโดย อสม.</label>
                         <textarea name="advice_given" id="advice_given" class="input-large" style="height: 80px; resize: none; width: 100%; font-size: 15px; background-color: var(--bg-darker); border: 2px solid var(--border-color); color: var(--text-primary); border-radius: var(--border-radius); padding: 10px;" readonly placeholder="กรุณาคลิกเลือกคำแนะนำจากปุ่มด้านล่าง (ไม่ต้องพิมพ์)..."></textarea>
                         
-                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
-                            <button type="button" class="btn-advice-chip" onclick="toggleAdviceChip('ลดของหวาน/เครื่องดื่มน้ำอัดลม', this)">
-                                <span class="chip-status">⚪</span> ลดของหวาน/เครื่องดื่มน้ำอัดลม
-                            </button>
-                            <button type="button" class="btn-advice-chip" onclick="toggleAdviceChip('เลี่ยงเค็ม/ปลาร้า/บะหมี่กึ่งสำเร็จรูป', this)">
-                                <span class="chip-status">⚪</span> เลี่ยงเค็ม/ปลาร้า/บะหมี่กึ่งสำเร็จรูป
-                            </button>
-                            <button type="button" class="btn-advice-chip" onclick="toggleAdviceChip('เลี่ยงอาหารมัน/ของทอด/ของหวานจัด', this)">
-                                <span class="chip-status">⚪</span> เลี่ยงอาหารมัน/ของทอด/ของหวานจัด
-                            </button>
-                            <button type="button" class="btn-advice-chip" onclick="toggleAdviceChip('ออกกำลังกายอย่างน้อย 30 นาที/วัน', this)">
-                                <span class="chip-status">⚪</span> ออกกำลังกายอย่างน้อย 30 นาที/วัน
-                            </button>
-                            <button type="button" class="btn-advice-chip" onclick="toggleAdviceChip('พักผ่อนให้เพียงพอ/ผ่อนคลายความเครียด', this)">
-                                <span class="chip-status">⚪</span> พักผ่อนให้เพียงพอ/ผ่อนคลายความเครียด
-                            </button>
-                            <button type="button" class="btn-advice-chip" onclick="toggleAdviceChip('งดสูบบุหรี่และงดเครื่องดื่มแอลกอฮอล์', this)">
-                                <span class="chip-status">⚪</span> งดสูบบุหรี่และงดเครื่องดื่มแอลกอฮอล์
-                            </button>
+                        <div class="advice-image-grid">
+                            <div class="advice-image-card" data-text="ลดเค็ม งดซอส/ปลาร้า" onclick="toggleAdviceCard(this)">
+                                <div class="checkmark-overlay">✓</div>
+                                <img src="../assets/img/advice/reduce_salt.jpg" alt="ลดเค็ม งดซอส/ปลาร้า" loading="lazy">
+                            </div>
+                            <div class="advice-image-card" data-text="ผ่อนคลาย พักผ่อนให้พอ" onclick="toggleAdviceCard(this)">
+                                <div class="checkmark-overlay">✓</div>
+                                <img src="../assets/img/advice/relax.jpg" alt="ผ่อนคลาย พักผ่อนให้พอ" loading="lazy">
+                            </div>
+                            <div class="advice-image-card" data-text="ออกกำลังกาย 30 นาที/วัน" onclick="toggleAdviceCard(this)">
+                                <div class="checkmark-overlay">✓</div>
+                                <img src="../assets/img/advice/exercise.jpg" alt="ออกกำลังกาย 30 นาที/วัน" loading="lazy">
+                            </div>
+                            <div class="advice-image-card" data-text="งดบุหรี่ & แอลกอฮอล์" onclick="toggleAdviceCard(this)">
+                                <div class="checkmark-overlay">✓</div>
+                                <img src="../assets/img/advice/no_smoking_alcohol.jpg" alt="งดบุหรี่ & แอลกอฮอล์" loading="lazy">
+                            </div>
+                            <div class="advice-image-card" data-text="ดื่มน้ำเปล่า 6-8 แก้ว/วัน" onclick="toggleAdviceCard(this)">
+                                <div class="checkmark-overlay">✓</div>
+                                <img src="../assets/img/advice/drink_water.jpg" alt="ดื่มน้ำเปล่า 6-8 แก้ว/วัน" loading="lazy">
+                            </div>
+                            <div class="advice-image-card" data-text="เพิ่มผักใบเขียว ธัญพืช" onclick="toggleAdviceCard(this)">
+                                <div class="checkmark-overlay">✓</div>
+                                <img src="../assets/img/advice/more_veggies.jpg" alt="เพิ่มผักใบเขียว ธัญพืช" loading="lazy">
+                            </div>
+                            <div class="advice-image-card" data-text="พบแพทย์ตามนัดสม่ำเสมอ" onclick="toggleAdviceCard(this)">
+                                <div class="checkmark-overlay">✓</div>
+                                <img src="../assets/img/advice/meet_doctor.jpg" alt="พบแพทย์ตามนัดสม่ำเสมอ" loading="lazy">
+                            </div>
+                            <div class="advice-image-card" data-text="เลี่ยงของมัน ของทอด" onclick="toggleAdviceCard(this)">
+                                <div class="checkmark-overlay">✓</div>
+                                <img src="../assets/img/advice/avoid_fried.jpg" alt="เลี่ยงของมัน ของทอด" loading="lazy">
+                            </div>
+                            <div class="advice-image-card" data-text="ทานยาต่อเนื่องตามแพทย์สั่ง" onclick="toggleAdviceCard(this)">
+                                <div class="checkmark-overlay">✓</div>
+                                <img src="../assets/img/advice/take_medicine.jpg" alt="ทานยาต่อเนื่องตามแพทย์สั่ง" loading="lazy">
+                            </div>
                         </div>
                     </div>
 
@@ -1429,19 +1517,12 @@ if (!$isShell) {
             });
         }
 
-        function toggleAdviceChip(text, btn) {
-            btn.classList.toggle('selected');
-            const indicator = btn.querySelector('.chip-status');
-            if (btn.classList.contains('selected')) {
-                indicator.textContent = '✅';
-            } else {
-                indicator.textContent = '⚪';
-            }
+        function toggleAdviceCard(card) {
+            card.classList.toggle('selected');
             
             const selected = [];
-            document.querySelectorAll('.btn-advice-chip.selected').forEach(chip => {
-                const chipText = chip.textContent.replace('✅', '').replace('⚪', '').trim();
-                selected.push(chipText);
+            document.querySelectorAll('.advice-image-card.selected').forEach(activeCard => {
+                selected.push(activeCard.getAttribute('data-text'));
             });
             
             document.getElementById('advice_given').value = selected.join(', ');
