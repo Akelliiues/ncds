@@ -263,8 +263,12 @@ session_start();
                 </div>
                 <div class="info-row">
                     <div class="info-label">ผู้พัฒนา:</div>
-                    <div class="info-value">นายบุญธรรม พันธ์ใหญ่<br><span
-                            style="font-size: 13px; color: var(--text-secondary); font-weight: normal;">นักวิชาการคอมพิวเตอร์<br>สำนักงานสาธารณสุขอำเภอตาลสุม</span>
+                    <div class="info-value" style="display: flex; align-items: center; gap: 12px;">
+                        <img src="assets/developer.jpg" alt="นายบุญธรรม พันธ์ใหญ่" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); box-shadow: var(--neumorph-flat); flex-shrink: 0;">
+                        <div>
+                            นายบุญธรรม พันธ์ใหญ่<br>
+                            <span style="font-size: 12.5px; color: var(--text-secondary); font-weight: normal;">นักวิชาการคอมพิวเตอร์<br>สำนักงานสาธารณสุขอำเภอตาลสุม</span>
+                        </div>
                     </div>
                 </div>
                 <div class="info-row">
