@@ -2,7 +2,7 @@
 // admin/navbar.php
 $current_page = basename($_SERVER['PHP_SELF']);
 // Determine if super admin
-$is_super_admin = !isset($admin_hoscode) || empty($admin_hoscode);
+$is_super_admin = (!isset($admin_hoscode) || empty($admin_hoscode)) && (isset($_SESSION['admin_username']) && $_SESSION['admin_username'] !== 'adminsso');
 
 $is_core_active = in_array($current_page, ['index.php', 'profile.php']);
 $is_targets_active = in_array($current_page, ['target_manager.php', 'hdc_list.php', 'dpac_manager.php']);

@@ -8,9 +8,10 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 }
 
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
+$admin_username = $_SESSION['admin_username'] ?? '';
 
-// Only allow super admin (admin_hoscode is null)
-if ($admin_hoscode !== null) {
+// Only allow super admin (admin_hoscode is null and username is not adminsso)
+if ($admin_hoscode !== null || $admin_username === 'adminsso') {
     die("<div style='padding: 20px; color: red; text-align: center;'><h2>เข้าถึงถูกปฏิเสธ (Access Denied)</h2><p>ฟังก์ชันนี้สงวนไว้สำหรับสิทธิ์การดูแลระดับอำเภอ (Super Admin) เท่านั้น</p><a href='index.php'>กลับหน้าหลัก</a></div>");
 }
 

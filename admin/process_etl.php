@@ -8,7 +8,8 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 }
 
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
-if ($admin_hoscode !== null) {
+$admin_username = $_SESSION['admin_username'] ?? '';
+if ($admin_hoscode !== null || $admin_username === 'adminsso') {
     header("Location: index.php");
     exit();
 }

@@ -429,6 +429,15 @@ try {
             $stmt->execute(['admin' . $hcode, $defaultPasswordHash, $hcode, 'แอดมิน ' . $name]);
         }
     }
+
+    // Seed adminsso if not exists
+    $checkSso = $pdo->prepare("SELECT COUNT(*) FROM `admin_users` WHERE username = ?");
+    $checkSso->execute(['adminsso']);
+    if ($checkSso->fetchColumn() == 0) {
+        $ssoPasswordHash = password_hash('123456', PASSWORD_DEFAULT);
+        $insertSso = $pdo->prepare("INSERT INTO `admin_users` (username, password_hash, hoscode, admin_name) VALUES (?, ?, ?, ?)");
+        $insertSso->execute(['adminsso', $ssoPasswordHash, null, 'ผู้รับผิดชอบงานระดับอำเภอ']);
+    }
 } catch (\PDOException $e) {
     // Fail silently
 }
