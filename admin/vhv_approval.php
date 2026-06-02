@@ -24,7 +24,7 @@ $hc_names = [
     '03757' => 'รพ.สต.คำหว้า'
 ];
 
-$admin_title = $admin_hoscode ? ($hc_names[$admin_hoscode] ?? 'รพ.สต.') : 'แอดมินหลัก (ทุก รพ.สต.)';
+$admin_title = $admin_hoscode ? ($hc_names[$admin_hoscode] ?? 'รพ.สต.') : (($_SESSION['admin_username'] ?? '') === 'adminsso' ? 'ผู้รับผิดชอบระดับอำเภอ' : 'แอดมินหลัก (ทุก รพ.สต.)');
 
 function get_village_full_name($vhid_code, $moo) {
     $tambon = substr($vhid_code, 0, 6);
