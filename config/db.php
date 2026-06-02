@@ -373,6 +373,20 @@ try {
         $pdo->exec("ALTER TABLE `vhv_rewards` ADD COLUMN `followup_id` INT NULL AFTER `screening_id`");
     }
 
+    // Modify points_earned in vhv_rewards to DECIMAL(4,2) to support decimal points like 0.25, 0.75
+    $pdo->exec("ALTER TABLE `vhv_rewards` MODIFY COLUMN `points_earned` DECIMAL(4,2) DEFAULT 1.00");
+
+    // Add skip_count and skipped_reason columns to dpac_followups if not exists
+    $checkSkipCount = $pdo->query("SHOW COLUMNS FROM `dpac_followups` LIKE 'skip_count'");
+    if ($checkSkipCount->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `dpac_followups` ADD COLUMN `skip_count` INT NOT NULL DEFAULT 0 AFTER `status`");
+    }
+
+    $checkSkippedReason = $pdo->query("SHOW COLUMNS FROM `dpac_followups` LIKE 'skipped_reason'");
+    if ($checkSkippedReason->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `dpac_followups` ADD COLUMN `skipped_reason` VARCHAR(255) DEFAULT NULL AFTER `skip_count`");
+    }
+
     // Retroactively backfill missing rewards for completed screenings
     $pdo->exec("
         INSERT INTO vhv_rewards (vhv_id, screening_id, points_earned, approval_status, approved_at, created_at)

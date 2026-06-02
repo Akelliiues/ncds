@@ -57,7 +57,7 @@ try {
 
     // Fetch DPAC followups
     $dpacStmt = $pdo->prepare("
-        SELECT f.followup_id, f.round_number, f.status, e.risk_type,
+        SELECT f.followup_id, f.round_number, f.status, f.skip_count, e.risk_type,
                p.cid, p.hid, p.first_name, p.last_name, p.house_no, p.moo
         FROM dpac_followups f
         JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
@@ -354,8 +354,13 @@ try {
                         <div class="task-info">
                             <h4>บ้านเลขที่ <?= htmlspecialchars($dt['house_no']) ?></h4>
                             <p><?= htmlspecialchars($dt['first_name'] . ' ' . $dt['last_name']) ?></p>
-                            <p style="font-size: 13px; color: #b91c1c; font-weight: bold; margin-top: 4px;">
-                                📌 รอบติดตามที่ <?= $dt['round_number'] ?> (เสี่ยง <?= $dt['risk_type'] ?>)
+                            <p style="font-size: 13px; color: #b91c1c; font-weight: bold; margin-top: 4px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+                                <span>📌 รอบติดตามที่ <?= $dt['round_number'] ?> (เสี่ยง <?= $dt['risk_type'] ?>)</span>
+                                <?php if (($dt['skip_count'] ?? 0) > 0): ?>
+                                    <span style="display: inline-block; background-color: #eab308; color: #0f172a; font-size: 11px; padding: 1px 8px; border-radius: 50px; font-weight: 800; border: 1px solid rgba(234, 179, 8, 0.4);">
+                                        ⚠️ ข้ามแล้ว <?= $dt['skip_count'] ?>/3 ครั้ง
+                                    </span>
+                                <?php endif; ?>
                             </p>
                         </div>
                         <div>
@@ -757,6 +762,28 @@ try {
                         const emptyNotice = completedList.querySelector('div[style*="text-align: center"]');
                         if (emptyNotice) emptyNotice.remove();
                         completedList.appendChild(card);
+                    }
+                } else if (item._type === 'skip_dpac_case') {
+                    // Find the pending DPAC task card
+                    const card = document.querySelector(`.task-card[data-followup-id="${item.followup_id}"]`);
+                    if (card) {
+                        const infoDiv = card.querySelector('.task-info');
+                        if (infoDiv) {
+                            const pTag = infoDiv.querySelector('p[style*="display: flex"]');
+                            if (pTag) {
+                                // Add or update warning badge in UI
+                                let badge = pTag.querySelector('span[style*="background-color: #eab308"]');
+                                if (badge) {
+                                    badge.innerHTML = `⏳ ข้ามชั่วคราว (รอส่งข้อมูล)`;
+                                } else {
+                                    pTag.innerHTML += `
+                                        <span style="display: inline-block; background-color: #eab308; color: #0f172a; font-size: 11px; padding: 1px 8px; border-radius: 50px; font-weight: 800; border: 1px solid rgba(234, 179, 8, 0.4);">
+                                            ⏳ ข้ามชั่วคราว (รอส่งข้อมูล)
+                                        </span>
+                                    `;
+                                }
+                            }
+                        }
                     }
                 }
             });

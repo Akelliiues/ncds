@@ -452,7 +452,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <!-- Watermark round number -->
                 <span class="round-watermark" id="dpac-watermark"><?= $isShell ? '' : $task['round_number'] ?></span>
 
-                <div class="round-badge" id="dpac-round-badge">รอบที่ <?= $isShell ? '' : $task['round_number'] ?></div>
+                <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
+                    <div class="round-badge" id="dpac-round-badge" style="margin-bottom: 0;">รอบที่ <?= $isShell ? '' : $task['round_number'] ?></div>
+                    <div class="round-badge" id="dpac-skip-badge" style="display: <?= (!$isShell && isset($task['skip_count']) && $task['skip_count'] > 0) ? 'inline-flex' : 'none' ?>; background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.3); color: #facc15; margin-bottom: 0;">
+                        ข้ามแล้ว <span id="dpac-skip-count"><?= $isShell ? '0' : intval($task['skip_count'] ?? 0) ?></span>/3 ครั้ง
+                    </div>
+                </div>
                 <h3 style="margin-top: 0; color: #38bdf8; font-size: 20px;" id="dpac-round-title">รอบติดตามที่
                     <?= $isShell ? '' : $task['round_number'] ?></h3>
                 <p style="margin: 5px 0;"><strong>ชื่อ-สกุล:</strong>
@@ -727,8 +732,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 </div>
 
-                <button type="submit" class="btn-giant btn-giant-primary" style="margin-bottom: 40px;">บันทึกผลการติดตาม
-                    DPAC</button>
+                <?php
+                $skipCount = $isShell ? 0 : intval($task['skip_count'] ?? 0);
+                $disableSkip = $skipCount >= 3;
+                ?>
+                <div style="display: flex; gap: 14px; margin-bottom: 40px; flex-wrap: wrap;">
+                    <button type="submit" class="btn-giant btn-giant-primary" style="margin-bottom: 0; flex: 2; min-width: 200px;">บันทึกผลการติดตาม DPAC</button>
+                    <button type="button" id="btn-skip-case" onclick="openSkipModal()" class="btn-giant" style="margin-bottom: 0; flex: 1; min-width: 120px; background: var(--bg-card); color: #f59e0b; border: 2px solid #d97706; font-weight: bold; border-radius: 50px; <?= $disableSkip ? 'display: none;' : '' ?>">
+                        ⚠️ ข้ามเคส (ไม่พบตัว)
+                    </button>
+                </div>
+                <div id="skip-disabled-msg" style="display: <?= $disableSkip ? 'block' : 'none' ?>; margin-top: -30px; margin-bottom: 40px; text-align: center; color: #ef4444; font-size: 14px; font-weight: bold;">
+                    * ข้ามเคสครบ 3 ครั้งแล้ว ต้องบันทึกผลติดตามจริงเท่านั้น
+                </div>
             </form>
 
             <!-- Critical Value Alert Modal Overlay -->
@@ -763,6 +779,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </button>
                         <button type="button" id="btn-confirm-critical-save" class="btn-giant btn-giant-danger" style="flex: 1; height: 50px; font-size: 16px; margin-bottom: 0; border-radius: 12px; background: var(--color-red); color: white; border: none; font-weight: bold; cursor: pointer;">
                             ✅ ยืนยันบันทึกข้อมูล
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skip Case Modal Overlay -->
+            <div id="skip-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); z-index: 5000; align-items: center; justify-content: center; padding: 16px;">
+                <div class="card-dark" style="width: 90%; max-width: 440px; background: #0f172a; border: 2px solid #d97706; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); border-radius: 24px; padding: 24px; color: var(--text-primary); text-align: left; animation: fadeIn 0.3s ease;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                        <div style="display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%; background: rgba(217, 119, 6, 0.2); color: #f59e0b; font-size: 24px; flex-shrink: 0;">
+                            ⚠️
+                        </div>
+                        <div>
+                            <h3 style="color: #f59e0b; margin: 0; font-size: 20px; font-weight: 800;">ข้ามเคสติดตามชั่วคราว</h3>
+                            <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 13px;">อสม. ได้รับ +0.25 แต้มความพยายาม</p>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--text-secondary);">ระบุสาเหตุที่ข้ามเคสนี้:</label>
+                        <select id="skip_reason" class="form-input-text" style="width: 100%; margin-bottom: 12px; background: var(--bg-darker); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; padding: 10px;" onchange="toggleCustomReason(this.value)">
+                            <option value="ไม่อยู่บ้าน">ไม่อยู่บ้าน / ติดธุระ</option>
+                            <option value="ติดต่อไม่ได้">ไม่สามารถติดต่อได้</option>
+                            <option value="ไม่สะดวกให้ข้อมูลในรอบนี้">ไม่สะดวกให้ข้อมูลในรอบนี้</option>
+                            <option value="ย้ายที่อยู่ชั่วคราว">ย้ายที่อยู่ชั่วคราว</option>
+                            <option value="other">ระบุสาเหตุอื่น ๆ...</option>
+                        </select>
+                        <input type="text" id="skip_reason_custom" class="form-input-text" style="display: none; width: 100%; background: var(--bg-darker); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; padding: 10px;" placeholder="ระบุเหตุผลอื่น ๆ">
+                    </div>
+
+                    <div style="display: flex; gap: 12px;">
+                        <button type="button" onclick="closeSkipModal()" class="btn-giant btn-giant-secondary" style="flex: 1; height: 50px; font-size: 16px; margin-bottom: 0; border-radius: 12px; border: 1px solid var(--border-color); color: var(--text-primary); cursor: pointer; background: transparent;">
+                            ยกเลิก
+                        </button>
+                        <button type="button" onclick="submitSkipCase()" class="btn-giant" style="flex: 1; height: 50px; font-size: 16px; margin-bottom: 0; border-radius: 12px; background: #d97706; color: white; border: none; font-weight: bold; cursor: pointer;">
+                            ยืนยันข้ามเคส
                         </button>
                     </div>
                 </div>
@@ -1008,6 +1060,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 document.getElementById('dpac-house-moo').innerText = `${task.house_no} หมู่ ${task.moo}`;
                 document.getElementById('dpac-risk-type').innerText = task.risk_type;
 
+                // Handle skip count UI dynamically
+                const skipCount = parseInt(task.skip_count || 0);
+                const skipBadge = document.getElementById('dpac-skip-badge');
+                if (skipCount > 0) {
+                    document.getElementById('dpac-skip-count').innerText = skipCount;
+                    skipBadge.style.display = 'inline-flex';
+                } else {
+                    skipBadge.style.display = 'none';
+                }
+
+                const btnSkip = document.getElementById('btn-skip-case');
+                const skipMsg = document.getElementById('skip-disabled-msg');
+                if (skipCount >= 3) {
+                    if (btnSkip) btnSkip.style.display = 'none';
+                    if (skipMsg) skipMsg.style.display = 'block';
+                } else {
+                    if (btnSkip) btnSkip.style.display = 'block';
+                    if (skipMsg) skipMsg.style.display = 'none';
+                }
+
                 // Set risk type variables
                 const riskType = task.risk_type;
                 window.isDM = ['DM', 'BOTH'].includes(riskType);
@@ -1157,6 +1229,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 document.getElementById('dpacForm').submit();
             }
         };
+
+        // Skip Case Modal Functions
+        function openSkipModal() {
+            document.getElementById('skip-modal').style.display = 'flex';
+        }
+
+        function closeSkipModal() {
+            document.getElementById('skip-modal').style.display = 'none';
+        }
+
+        function toggleCustomReason(val) {
+            const customInput = document.getElementById('skip_reason_custom');
+            if (val === 'other') {
+                customInput.style.display = 'block';
+                customInput.required = true;
+                customInput.focus();
+            } else {
+                customInput.style.display = 'none';
+                customInput.required = false;
+            }
+        }
+
+        function submitSkipCase() {
+            const selectVal = document.getElementById('skip_reason').value;
+            let reason = selectVal;
+            if (selectVal === 'other') {
+                reason = document.getElementById('skip_reason_custom').value.trim();
+                if (!reason) {
+                    alert('กรุณาระบุเหตุผลในการข้ามเคส');
+                    return;
+                }
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const fidVal = urlParams.get('fid');
+
+            if (!navigator.onLine) {
+                const residentName = document.getElementById('dpac-name').innerText;
+                const data = {
+                    'action': 'skip_case',
+                    'followup_id': fidVal,
+                    'skipped_reason': reason,
+                    '_timestamp': Date.now(),
+                    '_type': 'skip_dpac_case',
+                    '_residentName': residentName
+                };
+                
+                const queue = JSON.parse(localStorage.getItem('offline_submissions') || '[]');
+                queue.push(data);
+                localStorage.setItem('offline_submissions', JSON.stringify(queue));
+                
+                // Update local task cache
+                const pending = JSON.parse(localStorage.getItem('vhv_dpac_tasks') || '[]');
+                const idx = pending.findIndex(t => String(t.followup_id) === String(fidVal));
+                if (idx !== -1) {
+                    pending[idx].skip_count = (parseInt(pending[idx].skip_count) || 0) + 1;
+                    localStorage.setItem('vhv_dpac_tasks', JSON.stringify(pending));
+                }
+                
+                alert("บันทึกการข้ามเคสชั่วคราวในเครื่องเรียบร้อยแล้ว (โหมดออฟไลน์) อสม. ได้รับ +0.25 แต้ม");
+                window.location.href = 'index.php';
+                return;
+            }
+
+            fetch('../api/save_dpac.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'action': 'skip_case',
+                    'followup_id': fidVal,
+                    'skipped_reason': reason
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert("ข้ามเคสชั่วคราวเรียบร้อย! อสม. ได้รับ +0.25 แต้มสะสม");
+                    window.location.href = 'index.php';
+                } else {
+                    alert("เกิดข้อผิดพลาด: " + data.message);
+                }
+            })
+            .catch(err => {
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย");
+            });
+        }
     </script>
 </body>
 

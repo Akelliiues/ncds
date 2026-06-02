@@ -149,7 +149,7 @@ $topFifty = array_slice($allLeaders, 0, 50);
                     <span
                         style="color: var(--text-secondary); font-size: 13px; font-weight: bold; display: block; margin-bottom: 4px;">คะแนนผลงานสะสม</span>
                     <div style="font-size: 32px; font-weight: 800; color: var(--text-primary);">
-                        <?= $currentVhvPoints ?> <span
+                        <?= (float)$currentVhvPoints ?> <span
                             style="font-size: 16px; color: var(--text-secondary); font-weight: normal;">แต้ม</span>
                     </div>
                 </div>
@@ -255,7 +255,7 @@ $topFifty = array_slice($allLeaders, 0, 50);
                     </div>
 
                     <div class="leader-score" style="flex-shrink: 0; position: relative; z-index: 2;">
-                        <div style="font-size: 20px; color: var(--color-accent);"><?= $points ?></div>
+                        <div style="font-size: 20px; color: var(--color-accent);"><?= (float)$points ?></div>
                         <span style="font-size: 12px; color: var(--text-muted);">แต้ม</span>
                         <?= $shinyBadge ?>
                     </div>

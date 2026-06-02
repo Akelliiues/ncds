@@ -662,7 +662,7 @@ if ($admin_hoscode) {
                 <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">แต้มรางวัลสะสม
                     อสม.</span>
                 <div class="stat-val" style="color: var(--color-primary);">
-                    <?= number_format($metrics['total_points'] ?? 0) ?> <span
+                    <?= ( (float)($metrics['total_points'] ?? 0) == (int)($metrics['total_points'] ?? 0) ? number_format($metrics['total_points'] ?? 0) : number_format($metrics['total_points'] ?? 0, 2) ) ?> <span
                         style="font-size: 16px; color: var(--text-secondary);">แต้ม</span>
                 </div>
                 <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);">
