@@ -121,6 +121,49 @@ session_start();
             line-height: 1.5;
         }
 
+        /* Developer Profile Custom Styles */
+        .developer-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .developer-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ffffff;
+            box-shadow: 0 4px 10px rgba(13, 44, 84, 0.12);
+            flex-shrink: 0;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
+
+        .developer-avatar:hover {
+            transform: scale(1.15);
+            box-shadow: 0 6px 15px rgba(13, 44, 84, 0.22);
+            border-color: var(--color-primary);
+        }
+
+        .developer-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .developer-name {
+            font-weight: 800;
+            color: var(--text-primary);
+            font-size: 14.5px;
+        }
+
+        .developer-title {
+            font-size: 12.5px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            line-height: 1.3;
+        }
+
         .btn-back {
             display: inline-flex;
             align-items: center;
@@ -243,7 +286,7 @@ session_start();
     <div class="about-container">
         <div class="about-card">
             <!-- Clickable Logo -->
-            <div class="about-logo-wrapper" onclick="openModal()" title="คลิกเพื่อดูรูปภาพขนาดใหญ่">
+            <div class="about-logo-wrapper" onclick="openModal('assets/aboutus.png')" title="คลิกเพื่อดูรูปภาพขนาดใหญ่">
                 <img src="assets/aboutus.png" alt="NCDs Prevention Logo" class="about-logo">
             </div>
 
@@ -263,11 +306,13 @@ session_start();
                 </div>
                 <div class="info-row">
                     <div class="info-label">ผู้พัฒนา:</div>
-                    <div class="info-value" style="display: flex; align-items: center; gap: 12px;">
-                        <img src="assets/developer.jpg" alt="นายบุญธรรม พันธ์ใหญ่" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); box-shadow: var(--neumorph-flat); flex-shrink: 0;">
-                        <div>
-                            นายบุญธรรม พันธ์ใหญ่<br>
-                            <span style="font-size: 12.5px; color: var(--text-secondary); font-weight: normal;">นักวิชาการคอมพิวเตอร์<br>สำนักงานสาธารณสุขอำเภอตาลสุม</span>
+                    <div class="info-value">
+                        <div class="developer-profile">
+                            <img src="assets/developer.jpg" alt="นายบุญธรรม พันธ์ใหญ่" class="developer-avatar" onclick="openModal('assets/developer.jpg')" title="คลิกเพื่อดูรูปภาพขนาดใหญ่">
+                            <div class="developer-info">
+                                <span class="developer-name">นายบุญธรรม พันธ์ใหญ่</span>
+                                <span class="developer-title">นักวิชาการคอมพิวเตอร์<br>สำนักงานสาธารณสุขอำเภอตาลสุม</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -296,18 +341,22 @@ session_start();
         </div>
     </div>
 
-    <!-- Modal for Logo Preview -->
+    <!-- Modal for Image Preview -->
     <div id="imageModal" class="modal" onclick="closeModal(event)">
         <div class="modal-content-wrapper" onclick="event.stopPropagation()">
             <button class="close-btn" onclick="closeModal(event)">&times;</button>
-            <img class="modal-content" src="assets/aboutus.png" alt="NCDs Prevention Logo Enlarged">
+            <img id="modalImage" class="modal-content" src="assets/aboutus.png" alt="Enlarged View">
         </div>
     </div>
 
     <script>
         const modal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
 
-        function openModal() {
+        function openModal(imgSrc) {
+            if (imgSrc) {
+                modalImage.src = imgSrc;
+            }
             modal.style.display = 'flex';
             // Force redraw before adding class for smooth transition
             modal.offsetHeight;
