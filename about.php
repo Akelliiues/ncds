@@ -59,6 +59,27 @@ function format_thai_date($timestamp) {
 
 $last_update_ts = get_system_last_update();
 $last_update_str = format_thai_date($last_update_ts);
+
+function get_system_build_number($last_update_ts) {
+    $commit_count = null;
+    if (function_exists('shell_exec')) {
+        $count = @shell_exec('git rev-list --count HEAD');
+        if ($count !== null && trim($count) !== '') {
+            $commit_count = trim($count);
+        }
+    }
+    
+    // Format timestamp-based build code (e.g. 260602.1226)
+    $time_code = date('ymd.Hi', $last_update_ts);
+    
+    if ($commit_count) {
+        return "{$commit_count}.{$time_code}";
+    }
+    
+    return $time_code;
+}
+
+$build_number = get_system_build_number($last_update_ts);
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -360,7 +381,7 @@ $last_update_str = format_thai_date($last_update_ts);
                 </div>
                 <div class="info-row">
                     <div class="info-label">เวอร์ชั่นพัฒนา:</div>
-                    <div class="info-value">Version 2.6.0 (พ.ศ. 2569)</div>
+                    <div class="info-value">Version 2.6.0 (Build <?= htmlspecialchars($build_number) ?>)</div>
                 </div>
                 <div class="info-row">
                     <div class="info-label">ผู้พัฒนา:</div>
