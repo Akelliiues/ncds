@@ -454,7 +454,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
                     <div class="round-badge" id="dpac-round-badge" style="margin-bottom: 0;">รอบที่
-                        <?= $isShell ? '' : $task['round_number'] ?></div>
+                        <?= $isShell ? '' : $task['round_number'] ?>
+                    </div>
                     <div class="round-badge" id="dpac-skip-badge"
                         style="display: <?= (!$isShell && isset($task['skip_count']) && $task['skip_count'] > 0) ? 'inline-flex' : 'none' ?>; background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.3); color: #facc15; margin-bottom: 0;">
                         ข้ามแล้ว <span
@@ -745,7 +746,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         style="margin-bottom: 0; flex: 1; min-width: 140px;">บันทึกผล</button>
                     <button type="button" id="btn-skip-case" onclick="openSkipModal()" class="btn-giant"
                         style="margin-bottom: 0; flex: 1; min-width: 170px; background: var(--bg-card); color: #f59e0b; border: 2px solid #d97706; font-weight: bold; border-radius: 50px; <?= $disableSkip ? 'display: none;' : '' ?>">
-                        ⚠️ ข้ามเคส (ไม่พบตัว)
+                        ⚠️ ข้ามการคัดกรอง (ไม่พบตัว)
                     </button>
                 </div>
                 <div id="skip-disabled-msg"
