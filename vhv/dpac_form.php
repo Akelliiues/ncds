@@ -173,84 +173,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .advice-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
+            gap: 12px;
             margin-bottom: 14px;
+        }
+        @media (max-width: 576px) {
+            .advice-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+        }
+        @media (max-width: 380px) {
+            .advice-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 6px;
+            }
         }
 
         .advice-card {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 6px;
+            position: relative;
             background-color: var(--bg-card);
-            border: 2px solid transparent;
-            border-radius: 16px;
-            padding: 12px 6px 10px;
+            border-radius: var(--border-radius);
+            overflow: hidden;
             cursor: pointer;
             box-shadow: var(--neumorph-flat);
-            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-            text-align: center;
-            position: relative;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            min-height: 124px;
+            border: 3px solid transparent;
+            transition: all var(--transition-speed);
+            aspect-ratio: 1 / 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+            min-height: auto;
         }
 
-        .advice-card:active {
-            transform: scale(0.95);
+        .advice-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+
+        .advice-card:hover img {
+            transform: scale(1.04);
         }
 
         .advice-card.selected {
             border-color: var(--color-green);
-            background-color: rgba(16, 185, 129, 0.07);
-            box-shadow: var(--neumorph-inset), 0 0 0 2px rgba(16, 185, 129, 0.25);
-        }
-
-        .advice-card.selected .advice-icon-wrap {
-            background: rgba(16, 185, 129, 0.15);
-        }
-
-        .advice-card.selected .advice-card-label {
-            color: var(--color-green);
-        }
-
-        .advice-icon-wrap {
-            width: 58px;
-            height: 58px;
-            border-radius: 50%;
-            background: var(--bg-darker);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s;
-            flex-shrink: 0;
-        }
-
-        .advice-icon-wrap svg {
-            width: 36px;
-            height: 36px;
-        }
-
-        .advice-card-label {
-            font-size: 12.5px;
-            font-weight: 800;
-            color: var(--text-secondary);
-            line-height: 1.3;
-            transition: color 0.2s;
+            box-shadow: var(--neumorph-inset), 0 0 12px rgba(16, 185, 129, 0.4);
         }
 
         .advice-card-check {
             position: absolute;
-            top: 6px;
+            top: 8px;
             right: 8px;
+            background-color: var(--color-green);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 14px;
+            font-weight: bold;
             opacity: 0;
-            transition: opacity 0.2s;
+            transform: scale(0.5);
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            z-index: 2;
         }
 
         .advice-card.selected .advice-card-check {
             opacity: 1;
+            transform: scale(1);
         }
 
         /* ── Advice summary box ─────────────────────────────── */
@@ -554,175 +550,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <!-- Icon Card Grid -->
                     <div class="advice-grid" id="adviceGrid">
-                        <?php
-                        // Disease-specific advice items
-                        $dmItems = [
-                            'sweet' => [
-                                'text' => 'ลดของหวาน น้ำอัดลม ชาไข่มุก และเครื่องดื่มรสหวานทุกชนิด',
-                                'label' => 'ลดของหวาน<br>น้ำอัดลม',
-                                'icon' => '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="24" cy="28" r="13" fill="#fbbf24" opacity=".25"/>
-                                    <path d="M18 20c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
-                                    <rect x="17" y="20" width="14" height="16" rx="4" fill="#fbbf24"/>
-                                    <path d="M20 28h8M20 32h5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-                                    <line x1="30" y1="12" x2="36" y2="8" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
-                                    <line x1="30" y1="12" x2="36" y2="16" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
-                                    <line x1="30" y1="12" x2="24" y2="12" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
-                                </svg>'
-                            ],
-                            'fruit' => [
-                                'text' => 'หลีกเลี่ยงผลไม้รสหวานจัด เช่น ทุเรียน มะม่วงสุก เลือกทานผักใบเขียวและผลไม้ที่หวานน้อยแทน',
-                                'label' => 'เลี่ยงผลไม้<br>หวานจัด',
-                                'icon' => '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <ellipse cx="24" cy="32" rx="11" ry="9" fill="#fde68a"/>
-                                    <path d="M24 23c0 0-4-8 4-13" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round"/>
-                                    <ellipse cx="24" cy="32" rx="11" ry="9" fill="#fbbf24" opacity=".7"/>
-                                    <path d="M16 30c2-3 5-4 8-3" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/>
-                                    <line x1="33" y1="14" x2="39" y2="10" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
-                                    <line x1="33" y1="14" x2="39" y2="18" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
-                                    <line x1="33" y1="14" x2="27" y2="14" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
-                                </svg>'
-                            ]
-                        ];
-
-                        $htItems = [
-                            'salt' => [
-                                'text' => 'ลดอาหารเค็มจัด งดเติมน้ำปลา/ซอสเพิ่ม หลีกเลี่ยงปลาร้า บะหมี่กึ่งสำเร็จรูป และอาหารแปรรูป',
-                                'label' => 'ลดเค็ม<br>งดซอส/ปลาร้า',
-                                'icon' => '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <rect x="16" y="18" width="16" height="20" rx="4" fill="#93c5fd"/>
-                                    <rect x="19" y="14" width="10" height="6" rx="2" fill="#60a5fa"/>
-                                    <circle cx="24" cy="23" r="2" fill="#fff"/>
-                                    <circle cx="24" cy="29" r="2" fill="#fff"/>
-                                    <circle cx="24" cy="35" r="2" fill="#fff"/>
-                                    <line x1="33" y1="12" x2="39" y2="8" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
-                                    <line x1="33" y1="12" x2="39" y2="16" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
-                                    <line x1="33" y1="12" x2="27" y2="12" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
-                                </svg>'
-                            ],
-                            'relax' => [
-                                'text' => 'ผ่อนคลายความเครียด พักผ่อนให้เพียงพออย่างน้อย 7-8 ชั่วโมง/คืน',
-                                'label' => 'ผ่อนคลาย<br>พักผ่อนให้พอ',
-                                'icon' => '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M12 30c0-7.732 5.373-14 12-14s12 6.268 12 14" stroke="#a78bfa" stroke-width="2.5" stroke-linecap="round"/>
-                                    <rect x="10" y="30" width="28" height="5" rx="2.5" fill="#a78bfa" opacity=".4"/>
-                                    <path d="M19 22c1-2 3-3 5-3" stroke="#7c3aed" stroke-width="2" stroke-linecap="round"/>
-                                    <path d="M36 10c-2 4-6 5-9 3 3 0 7-1 9-3z" fill="#fbbf24"/>
-                                    <circle cx="40" cy="14" r="2" fill="#fbbf24" opacity=".7"/>
-                                </svg>'
-                            ]
-                        ];
-
-                        $generalItems = [
-                            'exercise' => [
-                                'text' => 'ออกกำลังกายสม่ำเสมออย่างน้อย 30 นาที/วัน เช่น เดินเร็ว ปั่นจักรยาน ว่ายน้ำ',
-                                'label' => 'ออกกำลังกาย<br>30 นาที/วัน',
-                                'icon' => '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="30" cy="11" r="4" fill="#34d399" opacity=".6"/>
-                                    <path d="M28 16l-4 8 6 4-3 8" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                    <path d="M24 24l-5 2" stroke="#10b981" stroke-width="2.5" stroke-linecap="round"/>
-                                    <ellipse cx="20" cy="36" rx="8" ry="4" fill="#6ee7b7" opacity=".25"/>
-                                    <path d="M10 38h28" stroke="#a7f3d0" stroke-width="2" stroke-linecap="round"/>
-                                </svg>'
-                            ],
-                            'smoke' => [
-                                'text' => 'งดสูบบุหรี่และงดดื่มเครื่องดื่มแอลกอฮอล์ทุกชนิด',
-                                'label' => 'งดบุหรี่<br>& แอลกอฮอล์',
-                                'icon' => '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <rect x="10" y="26" width="20" height="6" rx="3" fill="#fca5a5"/>
-                                    <rect x="30" y="26" width="8" height="6" rx="2" fill="#ef4444" opacity=".6"/>
-                                    <path d="M32 26c0-4 4-4 4-8" stroke="#9ca3af" stroke-width="2" stroke-linecap="round"/>
-                                    <circle cx="24" cy="24" r="16" stroke="#ef4444" stroke-width="3"/>
-                                    <line x1="13" y1="13" x2="35" y2="35" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
-                                </svg>'
-                            ],
-                            'water' => [
-                                'text' => 'ดื่มน้ำเปล่าให้เพียงพออย่างน้อย 6-8 แก้ว/วัน และหลีกเลี่ยงเครื่องดื่มที่มีน้ำตาลสูง',
-                                'label' => 'ดื่มน้ำเปล่า<br>6-8 แก้ว/วัน',
-                                'icon' => '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M24 10 C18 18 14 22 14 28 a10 10 0 0 0 20 0 C34 22 30 18 24 10z" fill="#60a5fa" opacity=".5"/>
-                                    <path d="M24 10 C18 18 14 22 14 28 a10 10 0 0 0 20 0 C34 22 30 18 24 10z" stroke="#3b82f6" stroke-width="2"/>
-                                    <path d="M18 30c1 3 4 5 7 5" stroke="#bfdbfe" stroke-width="2" stroke-linecap="round"/>
-                                </svg>'
-                            ],
-                            'veg' => [
-                                'text' => 'เพิ่มการทานผักใบเขียวและธัญพืชไม่ขัดสีในทุกมื้ออาหาร',
-                                'label' => 'เพิ่มผักใบเขียว<br>ธัญพืช',
-                                'icon' => '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M24 36 C24 26 14 20 10 12 C16 14 22 20 24 26 C26 20 32 14 38 12 C34 20 24 26 24 36z" fill="#4ade80" opacity=".7"/>
-                                    <path d="M24 36 C24 26 14 20 10 12 C16 14 22 20 24 26" stroke="#16a34a" stroke-width="2" stroke-linecap="round"/>
-                                    <path d="M24 36v2" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round"/>
-                                    <ellipse cx="24" cy="40" rx="8" ry="3" fill="#bbf7d0" opacity=".5"/>
-                                </svg>'
-                            ],
-                            'doctor' => [
-                                'text' => 'ไปพบแพทย์/เจ้าหน้าที่สาธารณสุขตามนัดอย่างสม่ำเสมอ ไม่ขาดการนัด',
-                                'label' => 'พบแพทย์<br>ตามนัดสม่ำเสมอ',
-                                'icon' => '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <rect x="12" y="14" width="24" height="28" rx="5" fill="#e0f2fe" stroke="#38bdf8" stroke-width="2"/>
-                                    <path d="M18 14v-4M30 14v-4" stroke="#0ea5e9" stroke-width="2.5" stroke-linecap="round"/>
-                                    <rect x="16" y="20" width="16" height="2" rx="1" fill="#0ea5e9" opacity=".5"/>
-                                    <path d="M22 30h4M24 28v4" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
-                                    <rect x="16" y="26" width="16" height="12" rx="3" fill="#fff" opacity=".6"/>
-                                </svg>'
-                            ],
-                            'oil' => [
-                                'text' => 'หลีกเลี่ยงอาหารทอด อาหารมัน แกงกะทิ เพื่อควบคุมระดับไขมันในเลือดและน้ำหนักตัว',
-                                'label' => 'เลี่ยงของมัน<br>ของทอด',
-                                'icon' => '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="24" cy="24" r="16" stroke="#ef4444" stroke-width="3"/>
-                                    <line x1="13" y1="13" x2="35" y2="35" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
-                                    <path d="M24 17c-2 2.5-3 4-3 6a3 3 0 0 0 6 0c0-2-1-3.5-3-6z" fill="#fbbf24" opacity=".8"/>
-                                </svg>'
-                            ],
-                            'medicine' => [
-                                'text' => 'ทานยาตามแพทย์สั่งอย่างสม่ำเสมอต่อเนื่อง ไม่หยุดยาหรือปรับขนาดยาเอง',
-                                'label' => 'ทานยาต่อเนื่อง<br>ตามแพทย์สั่ง',
-                                'icon' => '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <rect x="16" y="16" width="16" height="8" rx="4" fill="#38bdf8" transform="rotate(-30 24 20)" opacity=".8"/>
-                                    <rect x="20" y="22" width="12" height="10" rx="3" fill="#fbbf24" transform="rotate(15 26 27)"/>
-                                    <circle cx="16" cy="32" r="3.5" fill="#f472b6" opacity=".9"/>
-                                    <circle cx="34" cy="18" r="3" fill="#a78bfa" opacity=".9"/>
-                                </svg>'
-                            ]
-                        ];
-
-                        // Build final visible list
-                        $toRender = [];
-                        if ($isShell) {
-                            $toRender = array_merge($dmItems, $htItems, $generalItems);
-                        } else {
-                            if ($riskType === 'BOTH') {
-                                // BOTH: 2 DM + 2 HT + 5 General = 9 items
-                                $toRender = array_merge($dmItems, $htItems);
-                                $toRender['exercise'] = $generalItems['exercise'];
-                                $toRender['veg'] = $generalItems['veg'];
-                                $toRender['doctor'] = $generalItems['doctor'];
-                                $toRender['oil'] = $generalItems['oil'];
-                                $toRender['medicine'] = $generalItems['medicine'];
-                            } elseif ($riskType === 'DM') {
-                                // DM: 2 DM + 7 General = 9 items
-                                $toRender = $dmItems;
-                                $toRender = array_merge($toRender, $generalItems);
-                            } else {
-                                // HT: 2 HT + 7 General = 9 items
-                                $toRender = $htItems;
-                                $toRender = array_merge($toRender, $generalItems);
-                            }
-                        }
-
-                        // Loop through visible items
-                        foreach ($toRender as $key => $item):
-                            ?>
-                            <button type="button" class="advice-card" data-key="<?= $key ?>"
-                                data-text="<?= htmlspecialchars($item['text']) ?>" onclick="toggleCard(this)">
-                                <span class="advice-card-check">✅</span>
-                                <div class="advice-icon-wrap">
-                                    <?= $item['icon'] ?>
-                                </div>
-                                <span class="advice-card-label"><?= $item['label'] ?></span>
-                            </button>
-                        <?php endforeach; ?>
+                        <div class="advice-card" data-text="ลดเค็ม งดซอส/ปลาร้า" onclick="toggleCard(this)">
+                            <span class="advice-card-check">✓</span>
+                            <img src="../assets/img/advice/reduce_salt.jpg" alt="ลดเค็ม งดซอส/ปลาร้า" loading="lazy">
+                        </div>
+                        <div class="advice-card" data-text="ผ่อนคลาย พักผ่อนให้พอ" onclick="toggleCard(this)">
+                            <span class="advice-card-check">✓</span>
+                            <img src="../assets/img/advice/relax.jpg" alt="ผ่อนคลาย พักผ่อนให้พอ" loading="lazy">
+                        </div>
+                        <div class="advice-card" data-text="ออกกำลังกาย 30 นาที/วัน" onclick="toggleCard(this)">
+                            <span class="advice-card-check">✓</span>
+                            <img src="../assets/img/advice/exercise.jpg" alt="ออกกำลังกาย 30 นาที/วัน" loading="lazy">
+                        </div>
+                        <div class="advice-card" data-text="งดบุหรี่ & แอลกอฮอล์" onclick="toggleCard(this)">
+                            <span class="advice-card-check">✓</span>
+                            <img src="../assets/img/advice/no_smoking_alcohol.jpg" alt="งดบุหรี่ & แอลกอฮอล์" loading="lazy">
+                        </div>
+                        <div class="advice-card" data-text="ดื่มน้ำเปล่า 6-8 แก้ว/วัน" onclick="toggleCard(this)">
+                            <span class="advice-card-check">✓</span>
+                            <img src="../assets/img/advice/drink_water.jpg" alt="ดื่มน้ำเปล่า 6-8 แก้ว/วัน" loading="lazy">
+                        </div>
+                        <div class="advice-card" data-text="เพิ่มผักใบเขียว ธัญพืช" onclick="toggleCard(this)">
+                            <span class="advice-card-check">✓</span>
+                            <img src="../assets/img/advice/more_veggies.jpg" alt="เพิ่มผักใบเขียว ธัญพืช" loading="lazy">
+                        </div>
+                        <div class="advice-card" data-text="พบแพทย์ตามนัดสม่ำเสมอ" onclick="toggleCard(this)">
+                            <span class="advice-card-check">✓</span>
+                            <img src="../assets/img/advice/meet_doctor.jpg" alt="พบแพทย์ตามนัดสม่ำเสมอ" loading="lazy">
+                        </div>
+                        <div class="advice-card" data-text="เลี่ยงของมัน ของทอด" onclick="toggleCard(this)">
+                            <span class="advice-card-check">✓</span>
+                            <img src="../assets/img/advice/avoid_fried.jpg" alt="เลี่ยงของมัน ของทอด" loading="lazy">
+                        </div>
+                        <div class="advice-card" data-text="ทานยาต่อเนื่องตามแพทย์สั่ง" onclick="toggleCard(this)">
+                            <span class="advice-card-check">✓</span>
+                            <img src="../assets/img/advice/take_medicine.jpg" alt="ทานยาต่อเนื่องตามแพทย์สั่ง" loading="lazy">
+                        </div>
                     </div>
                     <!-- /advice-grid -->
 
@@ -1125,25 +988,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     document.getElementById('bp_dia').required = true;
                 }
 
-                // Filter advice cards in UI
-                const bothKeys = ['sweet', 'fruit', 'salt', 'relax', 'exercise', 'veg', 'doctor', 'oil', 'medicine'];
-                const dmSubsetKeys = ['sweet', 'fruit', 'exercise', 'smoke', 'water', 'veg', 'doctor', 'oil', 'medicine'];
-                const htSubsetKeys = ['salt', 'relax', 'exercise', 'smoke', 'water', 'veg', 'doctor', 'oil', 'medicine'];
-
-                document.querySelectorAll('.advice-card').forEach(card => {
-                    const key = card.getAttribute('data-key');
-                    let show = false;
-
-                    if (riskType === 'BOTH') {
-                        show = bothKeys.includes(key);
-                    } else if (riskType === 'DM') {
-                        show = dmSubsetKeys.includes(key);
-                    } else if (riskType === 'HT') {
-                        show = htSubsetKeys.includes(key);
-                    }
-
-                    card.style.display = show ? 'flex' : 'none';
-                });
+                // Advice visual card grid is static, filtering is omitted to keep the 3x3 layout complete
             }
         });
 
