@@ -1,6 +1,6 @@
 <?php
 // admin/process_etl.php
-session_start();
+require_once __DIR__ . '/../config/session.php';
 
 if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
     header("Location: ../index.php");

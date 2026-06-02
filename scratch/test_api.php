@@ -3,7 +3,7 @@
 // Since session is required, we can mock session or call functions directly if we include it, or we can use curl by temporarily bypassing session or mocking it in the test script.
 // To test it realistically, let's create a mockup or mock session variables before requiring the file.
 
-session_start();
+require_once __DIR__ . '/../config/session.php';
 $_SESSION['admin_logged_in'] = true;
 $_SESSION['admin_hoscode'] = '10688'; // mock sub-admin
 

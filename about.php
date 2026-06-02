@@ -1,6 +1,6 @@
 <?php
 // about.php
-session_start();
+require_once __DIR__ . '/config/session.php';
 date_default_timezone_set('Asia/Bangkok');
 
 function get_system_last_update() {

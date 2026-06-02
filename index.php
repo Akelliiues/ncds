@@ -1,6 +1,6 @@
 <?php
 // index.php (Root - Unified Login & Role Dispatcher)
-session_start();
+require_once __DIR__ . '/config/session.php';
 
 // If already logged in, redirect to respective dashboard
 if (isset($_SESSION['vhv_id'])) {
@@ -211,6 +211,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             อำเภอตาลสุม จังหวัดอุบลราชธานี<br>
             <a href="about.php" style="color: var(--color-accent); text-decoration: none; font-weight: bold; font-size: 13px; display: inline-block; margin-top: 10px;">
                 ℹ️ เกี่ยวกับระบบและผู้พัฒนา
+            </a>
+            <span style="color: var(--text-muted); margin: 0 8px;">|</span>
+            <a href="manual.php" style="color: var(--color-accent); text-decoration: none; font-weight: bold; font-size: 13px; display: inline-block; margin-top: 10px;">
+                📖 คู่มือการใช้งานระบบ
             </a>
         </div>
     </div>

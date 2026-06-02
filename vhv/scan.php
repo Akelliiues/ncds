@@ -1,6 +1,6 @@
 <?php
 // vhv/scan.php
-session_start();
+require_once __DIR__ . '/../config/session.php';
 
 if (!isset($_SESSION['vhv_id'])) {
     header("Location: ../index.php");

@@ -1,6 +1,6 @@
 <?php
 // logout.php
-session_start();
+require_once __DIR__ . '/config/session.php';
 
 // ล้างค่าตัวแปร Session ทั้งหมด
 $_SESSION = array();

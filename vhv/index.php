@@ -1,6 +1,6 @@
 <?php
 // vhv/index.php
-session_start();
+require_once __DIR__ . '/../config/session.php';
 
 if (!isset($_SESSION['vhv_id'])) {
     header("Location: ../index.php");
@@ -208,7 +208,12 @@ try {
                 <img src="../assets/icon.png" alt="NCDs Prevention Logo" style="width: 60px; height: 60px; border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
             </a>
             <div style="flex-grow: 1;">
-                <h3 style="color: var(--color-accent); margin: 0; font-size: 14px; font-weight: 800; letter-spacing: 0.5px;">อสม. ประจำบ้าน ตาลสุม</h3>
+                <h3 style="color: var(--color-accent); margin: 0; font-size: 14px; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                    <span>อสม. ประจำบ้าน ตาลสุม</span>
+                    <a href="../manual.php" style="color: var(--color-accent); text-decoration: none; font-size: 13px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; background: rgba(30, 64, 175, 0.08); padding: 4px 10px; border-radius: 50px;">
+                        📖 คู่มือการใช้งาน
+                    </a>
+                </h3>
                 <h2 style="color: var(--text-primary); margin: 4px 0; font-size: 20px; font-weight: 800;"><?= htmlspecialchars($vhvName) ?></h2>
                 <p style="color: var(--text-secondary); margin: 0; font-size: 13px;">
                     หมู่ที่ <?= $vhvMoo ?> • สังกัดรพ.สต. [<?= htmlspecialchars($hoscode) ?>]

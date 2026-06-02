@@ -6,7 +6,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 // Start mock session
-session_start();
+require_once __DIR__ . '/../config/session.php';
 $_SESSION['admin_logged_in'] = true;
 $_SESSION['admin_hoscode'] = null; // simulate main admin
 

@@ -1,5 +1,5 @@
 ﻿<?php
-session_start();
+require_once __DIR__ . '/config/session.php';
 $_SESSION['admin_logged_in'] = true;
  = curl_init('http://localhost:8000/admin/hdc_import.php');
 curl_setopt(, CURLOPT_RETURNTRANSFER, true);

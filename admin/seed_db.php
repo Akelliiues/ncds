@@ -1,6 +1,6 @@
 <?php
 // admin/seed_db.php
-session_start();
+require_once __DIR__ . '/../config/session.php';
 
 // ตรวจสอบสิทธิ์แอดมิน
 if (php_sapi_name() !== 'cli') {

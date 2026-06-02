@@ -1,6 +1,6 @@
 <?php
 // api/assign_tasks.php
-session_start();
+require_once __DIR__ . '/../config/session.php';
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['admin_logged_in'])) {

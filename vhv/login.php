@@ -1,6 +1,6 @@
 <?php
 // vhv/login.php
-session_start();
+require_once __DIR__ . '/../config/session.php';
 
 // Redirect to root unified login page
 header("Location: ../index.php");
