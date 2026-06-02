@@ -1,6 +1,64 @@
 <?php
 // about.php
 session_start();
+date_default_timezone_set('Asia/Bangkok');
+
+function get_system_last_update() {
+    $last_update = null;
+
+    // 1. Try to get the latest Git commit timestamp
+    if (function_exists('shell_exec')) {
+        $git_time = @shell_exec('git log -1 --format=%ct');
+        if ($git_time) {
+            $last_update = intval(trim($git_time));
+        }
+    }
+
+    // 2. If Git is not available, scan modification times of key directories/files
+    if (!$last_update) {
+        $max_time = 0;
+        // Scan main directory and subfolders
+        $paths = [
+            '*.php',
+            'admin/*.php',
+            'vhv/*.php',
+            'api/*.php',
+            'assets/css/*.css',
+            'assets/js/*.js'
+        ];
+        
+        foreach ($paths as $path) {
+            $files = glob(__DIR__ . '/' . $path);
+            if (is_array($files)) {
+                foreach ($files as $file) {
+                    if (file_exists($file)) {
+                        $mtime = filemtime($file);
+                        if ($mtime > $max_time) {
+                            $max_time = $mtime;
+                        }
+                    }
+                }
+            }
+        }
+        $last_update = $max_time ? $max_time : filemtime(__FILE__);
+    }
+
+    return $last_update;
+}
+
+function format_thai_date($timestamp) {
+    $thai_months = [
+        1 => 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    ];
+    $day = date('j', $timestamp);
+    $month = $thai_months[intval(date('n', $timestamp))];
+    $year = date('Y', $timestamp) + 543;
+    return "$day $month $year";
+}
+
+$last_update_ts = get_system_last_update();
+$last_update_str = format_thai_date($last_update_ts);
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -318,7 +376,7 @@ session_start();
                 </div>
                 <div class="info-row">
                     <div class="info-label">อัพเดทล่าสุด:</div>
-                    <div class="info-value">2 มิถุนายน 2569</div>
+                    <div class="info-value"><?= htmlspecialchars($last_update_str) ?></div>
                 </div>
             </div>
 
