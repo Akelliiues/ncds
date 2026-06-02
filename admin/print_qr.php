@@ -65,7 +65,8 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $people = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-function maskName($firstName, $lastName) {
+function maskName($firstName, $lastName)
+{
     if (strpos($firstName, '*') === false && strpos($lastName, '*') === false) {
         return $firstName . ' ' . $lastName;
     }
@@ -76,15 +77,16 @@ function maskName($firstName, $lastName) {
 ?>
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>พิมพ์ QR Code ประจำตัวกลุ่มเป้าหมาย - Admin</title>
     <link rel="stylesheet" href="../assets/css/style.css">
-    
+
     <!-- QRCode.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    
+
     <style>
         .form-grid {
             display: grid;
@@ -92,14 +94,14 @@ function maskName($firstName, $lastName) {
             gap: 15px;
             align-items: end;
         }
-        
+
         .qr-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 20px;
             margin-top: 30px;
         }
-        
+
         .qr-card {
             background: white;
             border: 2px solid #333;
@@ -108,9 +110,9 @@ function maskName($firstName, $lastName) {
             text-align: center;
             color: black;
             page-break-inside: avoid;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        
+
         .qr-code-img {
             margin: 15px auto;
             width: 150px;
@@ -120,18 +122,18 @@ function maskName($firstName, $lastName) {
             align-items: center;
             justify-content: center;
         }
-        
+
         .qr-code-img img {
             width: 100%;
             height: 100%;
         }
-        
+
         .house-details {
             font-size: 16px;
             font-weight: bold;
             margin-bottom: 5px;
         }
-        
+
         .house-members {
             font-size: 14px;
             color: #555;
@@ -139,14 +141,33 @@ function maskName($firstName, $lastName) {
 
         /* Print Styles */
         @media print {
-            body { background: white; color: black; }
-            .no-print { display: none !important; }
-            .qr-grid { gap: 10px; }
-            .qr-card { border: 1px solid #000; box-shadow: none; margin-bottom: 15px; }
-            @page { margin: 1cm; size: A4; }
+            body {
+                background: white;
+                color: black;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .qr-grid {
+                gap: 10px;
+            }
+
+            .qr-card {
+                border: 1px solid #000;
+                box-shadow: none;
+                margin-bottom: 15px;
+            }
+
+            @page {
+                margin: 1cm;
+                size: A4;
+            }
         }
     </style>
 </head>
+
 <body class="admin-body">
 
     <?php include 'navbar.php'; ?>
@@ -159,23 +180,29 @@ function maskName($firstName, $lastName) {
 
         <!-- Filters (Hidden on Print) -->
         <div class="card-dark no-print" style="margin-bottom: 30px;">
-            <h3 style="color: var(--color-accent); margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 20px;">
+            <h3
+                style="color: var(--color-accent); margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 20px;">
                 🔍 ค้นหาบ้านเพื่อพิมพ์ QR Code
             </h3>
-            
+
             <form method="GET" action="print_qr.php">
                 <div class="form-grid">
                     <!-- Hospital Area selection -->
                     <div class="form-group">
                         <label>หน่วยบริการ / รพ.สต.</label>
                         <?php if ($admin_hoscode !== null): ?>
-                            <input type="text" class="form-select" value="<?= htmlspecialchars($hc_names[$admin_hoscode]) ?>" readonly style="background-color: rgba(0, 0, 0, 0.1); cursor: not-allowed; font-weight: normal; color: var(--text-muted);">
-                            <input type="hidden" name="hoscode" id="hoscode" value="<?= htmlspecialchars($admin_hoscode) ?>">
+                            <input type="text" class="form-select"
+                                value="<?= htmlspecialchars($hc_names[$admin_hoscode]) ?>" readonly
+                                style="background-color: rgba(0, 0, 0, 0.1); cursor: not-allowed; font-weight: normal; color: var(--text-muted);">
+                            <input type="hidden" name="hoscode" id="hoscode"
+                                value="<?= htmlspecialchars($admin_hoscode) ?>">
                         <?php else: ?>
                             <select name="hoscode" id="hoscode" class="form-select" onchange="onHoscodeChange()" required>
                                 <option value="">-- เลือก รพ.สต. --</option>
                                 <?php foreach ($hc_names as $code => $name): ?>
-                                    <option value="<?= $code ?>" <?= ($filter_hoscode == $code) ? 'selected' : '' ?>><?= htmlspecialchars($name) ?></option>
+                                    <option value="<?= $code ?>" <?= ($filter_hoscode == $code) ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($name) ?>
+                                    </option>
                                 <?php endforeach; ?>
                             </select>
                         <?php endif; ?>
@@ -199,12 +226,14 @@ function maskName($firstName, $lastName) {
                             <option value="">-- ทั้งหมด --</option>
                             <option value="dm" <?= $filter_target === 'dm' ? 'selected' : '' ?>>เสี่ยงเบาหวาน (DM)</option>
                             <option value="ht" <?= $filter_target === 'ht' ? 'selected' : '' ?>>เสี่ยงความดัน (HT)</option>
-                            <option value="both" <?= $filter_target === 'both' ? 'selected' : '' ?>>เสี่ยงเบาหวานและความดัน (DM & HT)</option>
+                            <option value="both" <?= $filter_target === 'both' ? 'selected' : '' ?>>เสี่ยงเบาหวานและความดัน
+                                (DM & HT)</option>
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <button type="submit" class="btn-giant" style="width: 100%; height: 42px; margin: 0; font-size: 15px;">ค้นหา</button>
+                        <button type="submit" class="btn-giant"
+                            style="width: 100%; height: 42px; margin: 0; font-size: 15px;">ค้นหา</button>
                     </div>
                 </div>
             </form>
@@ -214,7 +243,8 @@ function maskName($firstName, $lastName) {
             <!-- Print Header -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3 style="margin: 0;" class="no-print">ผลการค้นหา: พบ <?= count($people) ?> รายชื่อเป้าหมาย</h3>
-                <button onclick="window.print()" class="btn-giant btn-giant-secondary no-print" style="margin: 0; padding: 10px 20px;">🖨️ พิมพ์ QR Code</button>
+                <button onclick="window.print()" class="btn-giant btn-giant-secondary no-print"
+                    style="margin: 0; padding: 10px 20px;">🖨️ พิมพ์ QR Code</button>
             </div>
 
             <!-- Print Grid -->
@@ -223,31 +253,43 @@ function maskName($firstName, $lastName) {
                     <?php foreach ($people as $person): ?>
                         <div class="qr-card">
                             <!-- System Name & District Header -->
-                            <div style="font-size: 12px; font-weight: bold; color: #0f172a; border-bottom: 1.5px solid #cbd5e1; padding-bottom: 6px; margin-bottom: 10px; display: flex; justify-content: space-between;">
-                                <span>🌐 SSOTansum NCD</span>
-                                <span style="color: #475569;">อ.ตาลสุม</span>
+                            <div
+                                style="font-size: 12px; font-weight: bold; color: #0f172a; border-bottom: 1.5px solid #cbd5e1; padding-bottom: 6px; margin-bottom: 10px; display: flex; justify-content: space-between;">
+                                <span>🌞 NCDs Prevention</span>
+                                <span style="color: #475569;">อำเภอตาลสุม</span>
                             </div>
 
-                            <div class="house-details">บ้านเลขที่ <?= htmlspecialchars($person['house_no']) ?> หมู่ <?= htmlspecialchars($person['moo']) ?></div>
-                            <div class="house-members"><?= htmlspecialchars(maskName($person['first_name'], $person['last_name'])) ?></div>
-                            
+                            <div class="house-details">บ้านเลขที่ <?= htmlspecialchars($person['house_no']) ?> หมู่
+                                <?= htmlspecialchars($person['moo']) ?>
+                            </div>
+                            <div class="house-members">
+                                <?= htmlspecialchars(maskName($person['first_name'], $person['last_name'])) ?>
+                            </div>
+
                             <div class="qr-code-img" id="qr-<?= htmlspecialchars($person['cid']) ?>"></div>
-                            
+
                             <?php if (!empty($person['hid']) && $person['hid'] !== '000000000000000'): ?>
-                                <div style="font-size: 11px; margin-top: 5px; color: #777;">HID: <?= htmlspecialchars($person['hid']) ?></div>
+                                <div style="font-size: 11px; margin-top: 5px; color: #777;">HID: <?= htmlspecialchars($person['hid']) ?>
+                                </div>
                             <?php else: ?>
-                                <div style="font-size: 10px; margin-top: 5px; color: #f59e0b; font-weight: bold;">CID: <?= htmlspecialchars(substr($person['cid'], 0, 4) . '***' . substr($person['cid'], -4)) ?> (Manual Import)</div>
+                                <div style="font-size: 10px; margin-top: 5px; color: #f59e0b; font-weight: bold;">CID:
+                                    <?= htmlspecialchars(substr($person['cid'], 0, 4) . '***' . substr($person['cid'], -4)) ?> (Manual
+                                    Import)
+                                </div>
                             <?php endif; ?>
 
                             <!-- Message of Care -->
-                            <div style="border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-top: 10px; font-size: 11px; font-style: italic; color: #0284c7; font-weight: bold; line-height: 1.4;">
+                            <div
+                                style="border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-top: 10px; font-size: 11px; font-style: bold; color: #0284c7; font-weight: bold; line-height: 1.4;">
                                 "ด้วยความห่วงใยในสุขภาพของท่าน"<br>
-                                <span style="font-size: 10px; font-weight: normal; color: #475569;">หลีกเลี่ยงหวาน มัน เค็ม และตรวจเช็คสุขภาพสม่ำเสมอ</span>
+                                <span style="font-size: 10px; font-weight: normal; color: #475569;">หลีกเลี่ยง หวาน มัน เค็ม
+                                    และตรวจเช็คสุขภาพสม่ำเสมอ</span>
                             </div>
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <p style="color: var(--text-muted); grid-column: 1 / -1; text-align: center; padding: 50px 0;">ไม่พบรายชื่อประชากรในเงื่อนไขที่เลือก</p>
+                    <p style="color: var(--text-muted); grid-column: 1 / -1; text-align: center; padding: 50px 0;">
+                        ไม่พบรายชื่อประชากรในเงื่อนไขที่เลือก</p>
                 <?php endif; ?>
             </div>
         <?php else: ?>
@@ -259,29 +301,29 @@ function maskName($firstName, $lastName) {
 
     <!-- Script to Handle Relations and QR Generation -->
     <script>
-        const relations = <?php 
-            $relations = [];
-            foreach ($hoscode_villages as $hc => $info) {
-                $vList = [];
-                foreach ($info['villages'] as $moo => $name) {
-                    $vList[] = ['moo' => (int)$moo, 'name' => $name];
-                }
-                $relations[$hc] = [
-                    'tambon' => $info['tambon'],
-                    'villages' => $vList
-                ];
+        const relations = <?php
+        $relations = [];
+        foreach ($hoscode_villages as $hc => $info) {
+            $vList = [];
+            foreach ($info['villages'] as $moo => $name) {
+                $vList[] = ['moo' => (int) $moo, 'name' => $name];
             }
-            echo json_encode($relations, JSON_UNESCAPED_UNICODE);
+            $relations[$hc] = [
+                'tambon' => $info['tambon'],
+                'villages' => $vList
+            ];
+        }
+        echo json_encode($relations, JSON_UNESCAPED_UNICODE);
         ?>;
 
         function onHoscodeChange() {
             const hSelect = document.getElementById('hoscode');
             const mSelect = document.getElementById('moo');
             if (!mSelect) return;
-            
+
             const hCode = hSelect ? hSelect.value : "<?= $admin_hoscode ?: '' ?>";
             const savedMoo = mSelect.value;
-            
+
             if (hCode && relations[hCode]) {
                 populateMooSelect(relations[hCode].villages, savedMoo);
             } else {
@@ -293,7 +335,7 @@ function maskName($firstName, $lastName) {
             const mSelect = document.getElementById('moo');
             if (!mSelect) return;
             mSelect.innerHTML = '<option value="">-- ทุกหมู่บ้าน --</option>';
-            
+
             if (isGeneric || villages.length === 0) {
                 for (let i = 1; i <= 15; i++) {
                     mSelect.innerHTML += `<option value="${i}" ${selectedMoo == i ? 'selected' : ''}>หมู่ที่ ${i}</option>`;
@@ -305,14 +347,14 @@ function maskName($firstName, $lastName) {
             }
         }
 
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             // Setup Village filtering
             const hSelect = document.getElementById('hoscode');
             const mSelect = document.getElementById('moo');
-            
+
             const initialHoscode = hSelect ? hSelect.value : "<?= $admin_hoscode ?: '' ?>";
             const initialMoo = "<?= $filter_moo ?>";
-            
+
             if (initialHoscode) {
                 onHoscodeChange();
                 if (mSelect) mSelect.value = initialMoo;
@@ -323,7 +365,7 @@ function maskName($firstName, $lastName) {
             // Generate QR Codes
             <?php if ($filter_hoscode && count($people) > 0): ?>
                 <?php foreach ($people as $person): ?>
-                    <?php 
+                    <?php
                     // Fallback to CID if JHCIS HID is empty or placeholder (000000000000000)
                     $qrText = (!empty($person['hid']) && $person['hid'] !== '000000000000000') ? $person['hid'] : $person['cid'];
                     ?>
@@ -331,13 +373,14 @@ function maskName($firstName, $lastName) {
                         text: "<?= $qrText ?>",
                         width: 150,
                         height: 150,
-                        colorDark : "#000000",
-                        colorLight : "#ffffff",
-                        correctLevel : QRCode.CorrectLevel.H
+                        colorDark: "#000000",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
                     });
                 <?php endforeach; ?>
             <?php endif; ?>
         });
     </script>
 </body>
+
 </html>

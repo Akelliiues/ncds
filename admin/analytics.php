@@ -515,7 +515,7 @@ $mapInitialZoom = $coordCount > 0 ? 13 : 12;
                                 <?php
                                 $village_only = $hoscode_villages[$vi['hoscode']]['villages'][intval($vi['moo'])] ?? get_village_only_name($hoscode_villages[$vi['hoscode']]['tambon'], $vi['moo']);
                                 $hcName = $hc_names[$vi['hoscode']] ?? $vi['hoscode'];
-                                $successRate = $vi['completed_followups'] > 0 ? round(($vi['improved_count'] / $vi['completed_followups']) * 100, 1) : 0;
+                                $successRate = $vi['completed_followups'] > 0 ? ($vi['improved_count'] / $vi['completed_followups']) * 100 : 0;
                                 ?>
                                 <tr>
                                     <td><?= htmlspecialchars($hcName) ?></td>
@@ -526,7 +526,7 @@ $mapInitialZoom = $coordCount > 0 ? 13 : 12;
                                     <td style="text-align: right; color: var(--color-green); font-weight: bold;"><?= number_format($vi['improved_count']) ?></td>
                                     <td style="text-align: right;">
                                         <span style="background-color: <?= $successRate >= 50 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)' ?>; color: <?= $successRate >= 50 ? 'var(--color-green)' : 'var(--color-yellow)' ?>; padding: 4px 10px; border-radius: 12px; font-weight: bold;">
-                                            <?= $successRate ?>%
+                                            <?= number_format($successRate, 2) ?>%
                                         </span>
                                     </td>
                                 </tr>
