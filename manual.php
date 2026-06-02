@@ -743,6 +743,81 @@ if (isset($_SESSION['vhv_id'])) {
         .vhv-accessibility li {
             font-size: 15.5px;
         }
+
+        /* Back to top floating button */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 48px;
+            height: 48px;
+            background-color: var(--color-primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(13, 44, 84, 0.25);
+            border: 1px solid var(--border-color);
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-speed) ease-in-out;
+        }
+        .back-to-top.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .back-to-top:hover {
+            background-color: var(--color-accent);
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(13, 44, 84, 0.35);
+        }
+        .back-to-top:active {
+            transform: translateY(-1px);
+        }
+
+        /* Back to Dashboard floating button */
+        .back-to-dashboard {
+            position: fixed;
+            bottom: 30px;
+            right: 90px;
+            padding: 0 18px;
+            height: 48px;
+            background-color: var(--color-accent);
+            color: white !important;
+            text-decoration: none;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(13, 44, 84, 0.25);
+            border: 1px solid var(--border-color);
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-speed) ease-in-out;
+            white-space: nowrap;
+        }
+        .back-to-dashboard.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .back-to-dashboard:hover {
+            background-color: var(--color-primary);
+            color: white !important;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(13, 44, 84, 0.35);
+        }
+        .back-to-dashboard:active {
+            transform: translateY(-1px);
+        }
     </style>
 </head>
 
@@ -1798,7 +1873,49 @@ if (isset($_SESSION['vhv_id'])) {
                 }
             });
         });
+
+        // Back to Top & Back to Dashboard functionality
+        window.addEventListener('scroll', () => {
+            const backToTopBtn = document.getElementById("backToTopBtn");
+            const backToDashboardBtn = document.getElementById("backToDashboardBtn");
+            
+            const scrollTop = document.body.scrollTop || document.documentElement.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight;
+            const clientHeight = document.documentElement.clientHeight;
+
+            if (backToTopBtn) {
+                if (scrollTop > 300) {
+                    backToTopBtn.classList.add("show");
+                } else {
+                    backToTopBtn.classList.remove("show");
+                }
+            }
+
+            if (backToDashboardBtn) {
+                // Show when scrolled to near the bottom (within 150px)
+                if (scrollTop + clientHeight >= scrollHeight - 150) {
+                    backToDashboardBtn.classList.add("show");
+                } else {
+                    backToDashboardBtn.classList.remove("show");
+                }
+            }
+        });
+
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
     </script>
+
+    <!-- Floating Action Buttons -->
+    <a href="<?= htmlspecialchars($back_url) ?>" id="backToDashboardBtn" class="back-to-dashboard" title="กลับไปหน้าควบคุม">
+        💻 กลับไปหน้าควบคุม
+    </a>
+    <button onclick="scrollToTop()" id="backToTopBtn" class="back-to-top" title="กลับขึ้นบนสุด">
+        ▲
+    </button>
 </body>
 
 </html>

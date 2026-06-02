@@ -4,7 +4,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 // Determine if super admin
 $is_super_admin = (!isset($admin_hoscode) || empty($admin_hoscode)) && (isset($_SESSION['admin_username']) && $_SESSION['admin_username'] !== 'adminsso');
 
-$is_core_active = in_array($current_page, ['index.php', 'profile.php']);
+$is_core_active = in_array($current_page, ['index.php', 'profile.php', 'leaderboard.php']);
 $is_targets_active = in_array($current_page, ['target_manager.php', 'hdc_list.php', 'dpac_manager.php']);
 $is_work_active = in_array($current_page, ['assignment.php', 'vhv_approval.php', 'print_qr.php']);
 $is_reports_active = in_array($current_page, ['analytics.php', 'reports.php']);
@@ -171,6 +171,42 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
         background-color: var(--color-red) !important;
         transform: translateY(-2px);
     }
+
+    /* Global Back to top floating button for Admin pages */
+    .back-to-top {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 48px;
+        height: 48px;
+        background-color: var(--color-primary);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(13, 44, 84, 0.25);
+        border: 1px solid var(--border-color);
+        z-index: 2000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all var(--transition-speed) ease-in-out;
+    }
+    .back-to-top.show {
+        opacity: 1;
+        visibility: visible;
+    }
+    .back-to-top:hover {
+        background-color: var(--color-accent);
+        color: white;
+        transform: translateY(-3px);
+        box-shadow: 0 6px 16px rgba(13, 44, 84, 0.35);
+    }
+    .back-to-top:active {
+        transform: translateY(-1px);
+    }
 </style>
 <?php if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true): ?>
     <div class="no-print" style="background: linear-gradient(90deg, #f59e0b, #d97706); color: white; text-align: center; padding: 10px 20px; font-weight: 800; font-size: 14px; letter-spacing: 0.5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 0 0 12px 12px; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; animation: slideDown 0.5s ease;">
@@ -217,6 +253,12 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
                         <path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
                     </svg>
                     แดชบอร์ดสรุปผล
+                </a>
+                <a href="leaderboard.php" class="<?= $current_page == 'leaderboard.php' ? 'active' : '' ?>">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                    </svg>
+                    กระดานคะแนน อสม.
                 </a>
                 <a href="profile.php" class="<?= $current_page == 'profile.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -376,3 +418,30 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
         </a>
     </div>
 </div>
+
+<!-- Floating Back to Top Button -->
+<button onclick="scrollToTop()" id="backToTopBtn" class="back-to-top" title="กลับขึ้นบนสุด">
+    ▲
+</button>
+
+<script>
+    // Back to Top functionality
+    window.addEventListener('scroll', () => {
+        const backToTopBtn = document.getElementById("backToTopBtn");
+        if (backToTopBtn) {
+            const scrollTop = document.body.scrollTop || document.documentElement.scrollTop;
+            if (scrollTop > 300) {
+                backToTopBtn.classList.add("show");
+            } else {
+                backToTopBtn.classList.remove("show");
+            }
+        }
+    });
+
+    function scrollToTop() {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }
+</script>

@@ -81,41 +81,84 @@ if (!function_exists('maskRowData')) {
 }
 
 if (!class_exists('VisitorMaskPDOStatement')) {
-    class VisitorMaskPDOStatement extends PDOStatement
-    {
-        protected $pdo;
-        protected function __construct($pdo)
-        {
-            $this->pdo = $pdo;
-        }
+    if (PHP_VERSION_ID >= 80000) {
+        eval('
+            class VisitorMaskPDOStatement extends PDOStatement
+            {
+                protected $pdo;
+                protected function __construct($pdo)
+                {
+                    $this->pdo = $pdo;
+                }
 
-        public function fetch($mode = null, $cursorOrientation = null, $cursorOffset = null)
-        {
-            if ($mode === null) {
-                $row = parent::fetch();
-            } else {
-                $row = parent::fetch($mode, $cursorOrientation, $cursorOffset);
-            }
-            if ($row !== false && $row !== null) {
-                maskRowData($row);
-            }
-            return $row;
-        }
+                #[\ReturnTypeWillChange]
+                public function fetch(int $mode = PDO::FETCH_DEFAULT, int $cursorOrientation = PDO::FETCH_ORI_NEXT, int $cursorOffset = 0): mixed
+                {
+                    $args = func_get_args();
+                    $row = parent::fetch(...$args);
+                    if ($row !== false && $row !== null) {
+                        maskRowData($row);
+                    }
+                    return $row;
+                }
 
-        public function fetchAll($mode = null, ...$args)
-        {
-            if ($mode === null) {
-                $rows = parent::fetchAll();
-            } else {
-                $rows = parent::fetchAll($mode, ...$args);
-            }
-            if (is_array($rows)) {
-                foreach ($rows as &$row) {
-                    maskRowData($row);
+                #[\ReturnTypeWillChange]
+                public function fetchAll(int $mode = PDO::FETCH_DEFAULT, mixed ...$args): array
+                {
+                    $args = func_get_args();
+                    $rows = parent::fetchAll(...$args);
+                    if (is_array($rows)) {
+                        foreach ($rows as &$row) {
+                            maskRowData($row);
+                        }
+                    }
+                    return $rows;
                 }
             }
-            return $rows;
-        }
+        ');
+    } else {
+        eval('
+            class VisitorMaskPDOStatement extends PDOStatement
+            {
+                protected $pdo;
+                protected function __construct($pdo)
+                {
+                    $this->pdo = $pdo;
+                }
+
+                public function fetch($mode = null, $cursorOrientation = null, $cursorOffset = null)
+                {
+                    if ($mode === null) {
+                        $row = parent::fetch();
+                    } else {
+                        $row = parent::fetch($mode, $cursorOrientation, $cursorOffset);
+                    }
+                    if ($row !== false && $row !== null) {
+                        maskRowData($row);
+                    }
+                    return $row;
+                }
+
+                public function fetchAll($mode = null, $className = null, $ctorArgs = null)
+                {
+                    if ($mode === null) {
+                        $rows = parent::fetchAll();
+                    } elseif ($ctorArgs !== null) {
+                        $rows = parent::fetchAll($mode, $className, $ctorArgs);
+                    } elseif ($className !== null) {
+                        $rows = parent::fetchAll($mode, $className);
+                    } else {
+                        $rows = parent::fetchAll($mode);
+                    }
+                    if (is_array($rows)) {
+                        foreach ($rows as &$row) {
+                            maskRowData($row);
+                        }
+                    }
+                    return $rows;
+                }
+            }
+        ');
     }
 }
 
