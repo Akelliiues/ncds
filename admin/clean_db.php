@@ -35,6 +35,9 @@ function findAllDuplicates($pdo) {
             t1.cid        AS masked_cid,
             t1.first_name AS masked_fname,
             t1.last_name  AS masked_lname,
+            t1.need_screen_dm AS masked_dm,
+            t1.need_screen_ht AS masked_ht,
+            t1.health_status_origin AS masked_status,
             t2.cid        AS real_cid,
             t2.first_name AS real_fname,
             t2.last_name  AS real_lname,
@@ -45,8 +48,20 @@ function findAllDuplicates($pdo) {
         JOIN target_population t2
           ON LPAD(t1.hoscode,5,'0') = LPAD(t2.hoscode,5,'0')
          AND TRIM(LEADING '0' FROM t1.pid) = TRIM(LEADING '0' FROM t2.pid)
-        WHERE t1.cid LIKE '%*%'
-          AND t2.cid NOT LIKE '%*%'
+        WHERE (
+            t1.cid LIKE '%*%' 
+            OR t1.first_name LIKE '%*%' 
+            OR t1.cid LIKE '0%' 
+            OR t1.cid = CONCAT(LPAD(t1.hoscode, 5, '0'), LPAD(t1.pid, 8, '0'))
+            OR t1.cid = CONCAT(LPAD(t1.hoscode, 5, '0'), t1.pid)
+          )
+          AND (
+            t2.cid NOT LIKE '%*%' 
+            AND t2.first_name NOT LIKE '%*%' 
+            AND t2.cid NOT LIKE '0%' 
+            AND t2.cid <> CONCAT(LPAD(t2.hoscode, 5, '0'), LPAD(t2.pid, 8, '0'))
+            AND t2.cid <> CONCAT(LPAD(t2.hoscode, 5, '0'), t2.pid)
+          )
           AND t1.cid <> t2.cid
     ");
     foreach ($stmtA->fetchAll() as $row) {
@@ -65,6 +80,9 @@ function findAllDuplicates($pdo) {
             t1.cid        AS masked_cid,
             t1.first_name AS masked_fname,
             t1.last_name  AS masked_lname,
+            t1.need_screen_dm AS masked_dm,
+            t1.need_screen_ht AS masked_ht,
+            t1.health_status_origin AS masked_status,
             t2.cid        AS real_cid,
             t2.first_name AS real_fname,
             t2.last_name  AS real_lname,
@@ -206,6 +224,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_clean'])) {
         $stmtUpdateDpacCid   = $pdo->prepare("UPDATE dpac_enrollments SET cid = ? WHERE enrollment_id = ?");
         $stmtDeleteTarget    = $pdo->prepare("DELETE FROM target_population WHERE cid = ?");
         $stmtMoveRewards     = $pdo->prepare("UPDATE vhv_rewards SET vhv_id = vhv_id WHERE 1=0"); // placeholder
+        $stmtUpdateTargetFlags = $pdo->prepare("
+            UPDATE target_population 
+            SET 
+                need_screen_dm = CASE WHEN ? = 1 THEN 1 ELSE need_screen_dm END,
+                need_screen_ht = CASE WHEN ? = 1 THEN 1 ELSE need_screen_ht END,
+                health_status_origin = CASE WHEN health_status_origin = 'NORMAL' OR health_status_origin = '' OR health_status_origin IS NULL THEN ? ELSE health_status_origin END,
+                updated_at = NOW()
+            WHERE cid = ?
+        ");
 
         $merged_tasks  = 0;
         $merged_dpac   = 0;
@@ -216,6 +243,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_clean'])) {
         foreach ($dupes as $dup) {
             $masked_cid = $dup['masked_cid'];
             $real_cid   = $dup['real_cid'];
+
+            // 0. Copy screening flags to real record
+            $stmtUpdateTargetFlags->execute([
+                $dup['masked_dm'],
+                $dup['masked_ht'],
+                $dup['masked_status'],
+                $real_cid
+            ]);
 
             // ── 1. Merge task_assignments ───────────────────────────────────
             $stmtGetAssign->execute([$masked_cid]);

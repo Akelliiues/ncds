@@ -10,6 +10,81 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 require_once __DIR__ . '/../config/db.php';
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 
+$jsData = [];
+$subsList = [];
+try {
+    $subsList = $pdo->query("SELECT * FROM sub_districts ORDER BY sub_district_code ASC")->fetchAll();
+    foreach ($subsList as $sub) {
+        $subCode = $sub['sub_district_code'];
+        $subName = $sub['sub_district_name'];
+
+        $stmt = $pdo->prepare("SELECT COUNT(DISTINCT hoscode) FROM villages WHERE sub_district_code = ? AND hoscode IS NOT NULL AND hoscode != ''");
+        $stmt->execute([$subCode]);
+        $distinctHoscodes = $stmt->fetchColumn();
+
+        $hasSubUnits = ($distinctHoscodes > 1);
+
+        if ($hasSubUnits) {
+            $jsData[$subCode] = [
+                'name' => $subName,
+                'hasSubUnits' => true,
+                'subUnits' => []
+            ];
+
+            $stmt = $pdo->prepare("SELECT DISTINCT v.hoscode, h.hosname FROM villages v JOIN health_units h ON v.hoscode = h.hoscode WHERE v.sub_district_code = ?");
+            $stmt->execute([$subCode]);
+            $subUnits = $stmt->fetchAll();
+
+            foreach ($subUnits as $su) {
+                $hc = $su['hoscode'];
+                $hcName = $su['hosname'];
+
+                $vStmt = $pdo->prepare("SELECT moo, village_name FROM villages WHERE sub_district_code = ? AND hoscode = ? ORDER BY moo ASC");
+                $vStmt->execute([$subCode, $hc]);
+                $vills = $vStmt->fetchAll();
+
+                $villList = [];
+                foreach ($vills as $v) {
+                    $villList[] = [
+                        'moo' => intval($v['moo']),
+                        'name' => $v['village_name']
+                    ];
+                }
+
+                $jsData[$subCode]['subUnits'][$hc] = [
+                    'name' => $hcName,
+                    'villages' => $villList
+                ];
+            }
+        } else {
+            $stmt = $pdo->prepare("SELECT DISTINCT hoscode FROM villages WHERE sub_district_code = ? LIMIT 1");
+            $stmt->execute([$subCode]);
+            $hc = $stmt->fetchColumn();
+
+            $vStmt = $pdo->prepare("SELECT moo, village_name FROM villages WHERE sub_district_code = ? ORDER BY moo ASC");
+            $vStmt->execute([$subCode]);
+            $vills = $vStmt->fetchAll();
+
+            $villList = [];
+            foreach ($vills as $v) {
+                $villList[] = [
+                    'moo' => intval($v['moo']),
+                    'name' => $v['village_name']
+                ];
+            }
+
+            $jsData[$subCode] = [
+                'name' => $subName,
+                'hasSubUnits' => false,
+                'hoscode' => $hc ?: '',
+                'villages' => $villList
+            ];
+        }
+    }
+} catch (\Exception $e) {
+    // Fail silently
+}
+
 // Handle API requests
 if (isset($_GET['action'])) {
     if ($_GET['action'] == 'get_targets') {
@@ -18,7 +93,7 @@ if (isset($_GET['action'])) {
         $moo = $_GET['moo'] ?? '';
         $status = $_GET['status'] ?? 'all';
 
-        if (!$hoscode || !$moo) {
+        if (!$hoscode) {
             echo json_encode([]);
             exit;
         }
@@ -32,11 +107,159 @@ if (isset($_GET['action'])) {
         } catch (Exception $e) {
         }
 
-        $sql = "SELECT cid, prefix, first_name, last_name, birth, house_no, TIMESTAMPDIFF(YEAR, birth, CURDATE()) as age, need_screen_dm, need_screen_ht, health_status_origin, is_manual 
-                FROM target_population 
-                WHERE LPAD(hoscode, 5, '0') = LPAD(?, 5, '0') AND moo = ?";
+        $hoscodes = get_query_hoscodes($hoscode);
+        $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
+        
+        $isAllMoo = ($moo === 'all' || $moo === '');
 
-        $params = [$hoscode, $moo];
+        if ($isAllMoo) {
+            $params = array_merge(
+                $hoscodes, // dm ใน ส่วนที่ 1
+                $hoscodes, // ht ใน ส่วนที่ 1
+                $hoscodes, // target_population ใน ส่วนที่ 1
+                $hoscodes, // dm ใน ส่วนที่ 2
+                $hoscodes  // ht ใน ส่วนที่ 2
+            );
+            $mooCond1 = "";
+            $mooCond2 = "";
+            $mooCond3 = "";
+        } else {
+            $moo_str = sprintf('%02d', intval($moo));
+            $moo_int = intval($moo);
+            $params = array_merge(
+                $hoscodes, // dm ใน ส่วนที่ 1
+                $hoscodes, // ht ใน ส่วนที่ 1
+                $hoscodes, // target_population ใน ส่วนที่ 1
+                [$moo_int], // moo_int ใน ส่วนที่ 1
+                $hoscodes, // dm ใน ส่วนที่ 2
+                [$moo_str], // moo_str ใน ส่วนที่ 2 dm
+                $hoscodes, // ht ใน ส่วนที่ 2
+                [$moo_str]  // moo_str ใน ส่วนที่ 2 ht
+            );
+            $mooCond1 = " AND t.moo = ?";
+            $mooCond2 = " AND RIGHT(dm.check_vhid, 2) = ?";
+            $mooCond3 = " AND RIGHT(ht.check_vhid, 2) = ?";
+        }
+
+        $sql = "
+        SELECT * FROM (
+            -- ส่วนที่ 1: ดึงประชากรทั้งหมดจาก target_population ของหมู่ที่เลือก และ LEFT JOIN ข้อมูลผลแล็บจาก staging (ถ้ามี)
+            SELECT 
+                COALESCE(NULLIF(tp_real.cid, ''), t.cid) as cid,
+                t.pid,
+                t.hoscode,
+                t.prefix,
+                COALESCE(NULLIF(tp_real.first_name, ''), NULLIF(t.first_name, ''), 'ไม่ทราบชื่อ') as first_name,
+                COALESCE(NULLIF(tp_real.last_name, ''), NULLIF(t.last_name, ''), 'ไม่ทราบประวัติ') as last_name,
+                t.birth,
+                t.house_no,
+                TIMESTAMPDIFF(YEAR, t.birth, CURDATE()) as age,
+                t.need_screen_dm,
+                t.need_screen_ht,
+                t.health_status_origin,
+                t.is_manual,
+                h.bslevel, h.bstest, h.sbp, h.dbp,
+                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = COALESCE(NULLIF(tp_real.cid, ''), t.cid) AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
+            FROM target_population t
+            LEFT JOIN target_population tp_real ON (
+                tp_real.hoscode = t.hoscode
+                AND TRIM(LEADING '0' FROM tp_real.pid) = TRIM(LEADING '0' FROM t.pid)
+                AND tp_real.cid NOT LIKE '0%'
+                AND tp_real.cid NOT LIKE '%*%'
+                AND tp_real.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
+            )
+            LEFT JOIN (
+                SELECT 
+                    cid, pid, hoscode,
+                    MAX(bslevel) as bslevel, MAX(bstest) as bstest, MAX(sbp) as sbp, MAX(dbp) as dbp
+                FROM (
+                    SELECT 
+                        dm.cid, dm.pid, dm.hoscode, dm.bslevel, dm.bstest, NULL as sbp, NULL as dbp
+                    FROM staging_hdc_dm dm
+                    WHERE dm.hoscode IN ($inPlaceholders)
+                    
+                    UNION ALL
+                    
+                    SELECT 
+                        ht.cid, ht.pid, ht.hoscode, NULL as bslevel, NULL as bstest, ht.sbp, ht.dbp
+                    FROM staging_hdc_ht ht
+                    WHERE ht.hoscode IN ($inPlaceholders)
+                ) sub_staging
+                GROUP BY hoscode, pid
+            ) h ON (
+                (t.cid = h.cid AND h.cid NOT LIKE '%*%')
+                OR (t.hoscode = h.hoscode AND TRIM(LEADING '0' FROM t.pid) = TRIM(LEADING '0' FROM h.pid) AND t.pid IS NOT NULL AND t.pid != '')
+            )
+            WHERE t.hoscode IN ($inPlaceholders) $mooCond1
+            
+            UNION
+            
+            -- ส่วนที่ 2: ดึงรายชื่อประชากรใน staging ของหมู่ที่เลือก แต่ยังไม่ได้เพิ่ม/ไม่มีชื่อใน target_population
+            SELECT 
+                COALESCE(NULLIF(tp_real.cid, ''), h.cid) as cid,
+                h.pid,
+                h.hoscode,
+                NULL as prefix,
+                COALESCE(NULLIF(tp_real.first_name, ''), NULLIF(h.name, ''), 'ไม่ทราบชื่อ') as first_name,
+                COALESCE(NULLIF(tp_real.last_name, ''), NULLIF(h.lname, ''), 'ไม่ทราบประวัติ') as last_name,
+                h.birth,
+                h.addr as house_no,
+                TIMESTAMPDIFF(YEAR, h.birth, CURDATE()) as age,
+                0 as need_screen_dm,
+                0 as need_screen_ht,
+                h.health_status_origin,
+                0 as is_manual,
+                h.bslevel, h.bstest, h.sbp, h.dbp,
+                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = COALESCE(NULLIF(tp_real.cid, ''), h.cid) AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
+            FROM (
+                SELECT 
+                    cid, pid, hoscode, name, lname, birth, addr, check_vhid,
+                    MAX(bslevel) as bslevel, MAX(bstest) as bstest, MAX(sbp) as sbp, MAX(dbp) as dbp,
+                    MAX(health_status_origin) as health_status_origin
+                FROM (
+                    SELECT 
+                        dm.cid, dm.pid, dm.hoscode, dm.name, dm.lname, dm.birth, dm.addr, dm.check_vhid,
+                        dm.bslevel, dm.bstest, NULL as sbp, NULL as dbp,
+                        CASE 
+                            WHEN dm.risk = '2' THEN 'HIGH_RISK'
+                            WHEN dm.risk = '1' THEN 'DM_ONLY'
+                            WHEN dm.risk = '3' THEN 'SUSPECT'
+                            ELSE 'NORMAL'
+                        END as health_status_origin
+                    FROM staging_hdc_dm dm
+                    WHERE dm.hoscode IN ($inPlaceholders) $mooCond2
+                    
+                    UNION ALL
+                    
+                    SELECT 
+                        ht.cid, ht.pid, ht.hoscode, ht.name, ht.lname, ht.birth, ht.addr, ht.check_vhid,
+                        NULL as bslevel, NULL as bstest, ht.sbp, ht.dbp,
+                        CASE 
+                            WHEN ht.risk = '2' THEN 'HIGH_RISK'
+                            WHEN ht.risk = '1' THEN 'HT_ONLY'
+                            WHEN ht.risk = '3' THEN 'SUSPECT'
+                            ELSE 'NORMAL'
+                        END as health_status_origin
+                    FROM staging_hdc_ht ht
+                    WHERE ht.hoscode IN ($inPlaceholders) $mooCond3
+                ) sub_staging
+                GROUP BY hoscode, pid
+            ) h
+            LEFT JOIN target_population t ON (
+                (t.cid = h.cid AND h.cid NOT LIKE '%*%')
+                OR (t.hoscode = h.hoscode AND TRIM(LEADING '0' FROM t.pid) = TRIM(LEADING '0' FROM h.pid) AND t.pid IS NOT NULL AND t.pid != '')
+            )
+            LEFT JOIN target_population tp_real ON (
+                tp_real.hoscode = h.hoscode
+                AND TRIM(LEADING '0' FROM tp_real.pid) = TRIM(LEADING '0' FROM h.pid)
+                AND tp_real.cid NOT LIKE '0%'
+                AND tp_real.cid NOT LIKE '%*%'
+                AND tp_real.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
+            )
+            WHERE t.cid IS NULL
+        ) main_result
+        WHERE 1=1
+        ";
 
         if ($status === 'target') {
             $sql .= " AND (need_screen_dm = 1 OR need_screen_ht = 1)";
@@ -52,11 +275,181 @@ if (isset($_GET['action'])) {
         exit;
     }
 
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_GET['action'] == 'toggle_target_disease') {
+        header('Content-Type: application/json');
+        $data = json_decode(file_get_contents('php://input'), true);
+        $cid = $data['cid'] ?? '';
+        $disease = $data['disease'] ?? ''; // 'DM' or 'HT'
+        $status = isset($data['status']) ? intval($data['status']) : 0;
+
+        if (!$cid || !in_array($disease, ['DM', 'HT'])) {
+            echo json_encode(['status' => 'error', 'message' => 'ข้อมูลไม่ถูกต้อง']);
+            exit;
+        }
+
+        try {
+            $field = $disease === 'DM' ? 'need_screen_dm' : 'need_screen_ht';
+            
+            // Check if exists
+            $stmt = $pdo->prepare("SELECT cid, pid, hoscode, need_screen_dm, need_screen_ht FROM target_population WHERE cid = ?");
+            $stmt->execute([$cid]);
+            $exists = $stmt->fetch();
+
+            if ($exists) {
+                // Update
+                $stmtUpd = $pdo->prepare("UPDATE target_population SET $field = ?, updated_at = NOW() WHERE cid = ?");
+                $stmtUpd->execute([$status, $cid]);
+                echo json_encode(['status' => 'success']);
+            } else {
+                // Insert from staging HDC
+                $dm = null;
+                $ht = null;
+                
+                $stmtDM = $pdo->prepare("SELECT * FROM staging_hdc_dm WHERE cid = ? LIMIT 1");
+                $stmtDM->execute([$cid]);
+                $dm = $stmtDM->fetch();
+                
+                $stmtHT = $pdo->prepare("SELECT * FROM staging_hdc_ht WHERE cid = ? LIMIT 1");
+                $stmtHT->execute([$cid]);
+                $ht = $stmtHT->fetch();
+                
+                $r = $dm ?: $ht;
+                if (!$r) {
+                    echo json_encode(['status' => 'error', 'message' => 'ไม่พบข้อมูลประชากรนี้ในระบบ HDC Staging']);
+                    exit;
+                }
+
+                $need_dm = $disease === 'DM' ? $status : 0;
+                $need_ht = $disease === 'HT' ? $status : 0;
+                
+                if ($dm && $ht) $origin = 'BOTH';
+                else if ($dm) $origin = 'DM_ONLY';
+                else if ($ht) $origin = 'HT_ONLY';
+                else $origin = 'NORMAL';
+
+                $vhid_code = $r['check_vhid'] ?? '';
+                if (strlen($vhid_code) === 8) {
+                    $tambon = substr($vhid_code, 0, 6);
+                    $moo = intval(substr($vhid_code, 6, 2));
+                } else {
+                    $vhid_code = '34180101';
+                    $tambon = '341801';
+                    $moo = 1;
+                }
+                
+                $insert_cid = $r['cid'];
+                if (strpos($insert_cid, '*') !== false && !empty($r['hoscode']) && !empty($r['pid'])) {
+                    $insert_cid = str_pad($r['hoscode'], 5, '0', STR_PAD_LEFT) . str_pad($r['pid'], 8, '0', STR_PAD_LEFT);
+                }
+
+                $insert = $pdo->prepare("INSERT INTO target_population 
+                    (cid, pid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode, health_status_origin, need_screen_dm, need_screen_ht)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $insert->execute([
+                    $insert_cid, $r['pid'], $r['name'], $r['lname'], $r['sex'], $r['birth'], $r['addr'], $moo, $tambon, $vhid_code, $r['hoscode'], $origin, $need_dm, $need_ht
+                ]);
+
+                echo json_encode(['status' => 'success']);
+            }
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        exit;
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_GET['action'] == 'enroll_dpac_single') {
+        header('Content-Type: application/json');
+        $data = json_decode(file_get_contents('php://input'), true);
+        $cid = $data['cid'] ?? '';
+        $risk_type = $data['risk_type'] ?? 'DM'; // 'DM' or 'HT'
+        $budget_year = 2026;
+
+        if (!$cid) {
+            echo json_encode(['status' => 'error', 'message' => 'ข้อมูลไม่ถูกต้อง']);
+            exit;
+        }
+
+        try {
+            // Check if exists in target_population
+            $stmtCheckTarget = $pdo->prepare("SELECT cid FROM target_population WHERE cid = ?");
+            $stmtCheckTarget->execute([$cid]);
+            
+            if ($stmtCheckTarget->rowCount() == 0) {
+                // Insert from staging HDC
+                $dm = null;
+                $ht = null;
+                $stmtDM = $pdo->prepare("SELECT * FROM staging_hdc_dm WHERE cid = ? LIMIT 1");
+                $stmtDM->execute([$cid]);
+                $dm = $stmtDM->fetch();
+                
+                $stmtHT = $pdo->prepare("SELECT * FROM staging_hdc_ht WHERE cid = ? LIMIT 1");
+                $stmtHT->execute([$cid]);
+                $ht = $stmtHT->fetch();
+                
+                $r = $dm ?: $ht;
+                if ($r) {
+                    if ($dm && $ht) $origin = 'BOTH';
+                    else if ($dm) $origin = 'DM_ONLY';
+                    else if ($ht) $origin = 'HT_ONLY';
+                    else $origin = 'NORMAL';
+                    
+                    $vhid_code = $r['check_vhid'] ?? '';
+                    if (strlen($vhid_code) === 8) {
+                        $tambon = substr($vhid_code, 0, 6);
+                        $moo = intval(substr($vhid_code, 6, 2));
+                    } else {
+                        $vhid_code = '34180101';
+                        $tambon = '341801';
+                        $moo = 1;
+                    }
+                    
+                    $insert_cid = $r['cid'];
+                    if (strpos($insert_cid, '*') !== false && !empty($r['hoscode']) && !empty($r['pid'])) {
+                        $insert_cid = str_pad($r['hoscode'], 5, '0', STR_PAD_LEFT) . str_pad($r['pid'], 8, '0', STR_PAD_LEFT);
+                    }
+                    
+                    $need_dm = $risk_type === 'DM' ? 1 : 0;
+                    $need_ht = $risk_type === 'HT' ? 1 : 0;
+
+                    $insert = $pdo->prepare("INSERT INTO target_population 
+                        (cid, pid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode, health_status_origin, need_screen_dm, need_screen_ht)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $insert->execute([
+                        $insert_cid, $r['pid'], $r['name'], $r['lname'], $r['sex'], $r['birth'], $r['addr'], $moo, $tambon, $vhid_code, $r['hoscode'], $origin, $need_dm, $need_ht
+                    ]);
+                }
+            } else {
+                // Make sure correct target flag is set
+                $field = $risk_type === 'DM' ? 'need_screen_dm' : 'need_screen_ht';
+                $updTarget = $pdo->prepare("UPDATE target_population SET $field = 1 WHERE cid = ?");
+                $updTarget->execute([$cid]);
+            }
+
+            // Check if already enrolled in DPAC
+            $stmtCheck = $pdo->prepare("SELECT enrollment_id FROM dpac_enrollments WHERE cid = ? AND budget_year = ? AND status = 'active'");
+            $stmtCheck->execute([$cid, $budget_year]);
+            if ($stmtCheck->rowCount() > 0) {
+                echo json_encode(['status' => 'error', 'message' => 'บุคคลนี้ลงทะเบียนในโครงการ DPAC ปีงบนี้อยู่แล้ว']);
+                exit;
+            }
+
+            // Insert
+            $stmtInsert = $pdo->prepare("INSERT INTO dpac_enrollments (cid, budget_year, risk_type, status) VALUES (?, ?, ?, 'active')");
+            $stmtInsert->execute([$cid, $budget_year, $risk_type]);
+
+            echo json_encode(['status' => 'success']);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        exit;
+    }
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_GET['action'] == 'add_manual') {
         header('Content-Type: application/json');
         $data = json_decode(file_get_contents('php://input'), true);
 
         $cid = $data['cid'] ?? '';
+        $old_cid = $data['old_cid'] ?? '';
         $prefix = $data['prefix'] ?? '';
         $fname = $data['fname'] ?? '';
         $lname = $data['lname'] ?? '';
@@ -96,34 +489,79 @@ if (isset($_GET['action'])) {
                 $origin = 'NORMAL';
             }
 
-            $check = $pdo->prepare("SELECT cid FROM target_population WHERE cid = ?");
-            $check->execute([$cid]);
-            if ($check->rowCount() > 0) {
-                $stmt = $pdo->prepare("UPDATE target_population SET prefix = ?, first_name = ?, last_name = ?, birth = ?, house_no = ?, need_screen_dm = ?, need_screen_ht = ?, health_status_origin = ?, is_manual = 1, updated_at = NOW() WHERE cid = ?");
-                $stmt->execute([$prefix, $fname, $lname, $birth, $house_no, $dm, $ht, $origin, $cid]);
+            if (!empty($old_cid) && $old_cid !== $cid) {
+                // Changing CID: verify new CID doesn't already exist
+                $check = $pdo->prepare("SELECT cid FROM target_population WHERE cid = ?");
+                $check->execute([$cid]);
+                if ($check->rowCount() > 0) {
+                    echo json_encode(['status' => 'error', 'message' => 'เลขบัตรประชาชนใหม่มีอยู่ในระบบแล้ว ไม่สามารถแก้ไขเป็นเลขนี้ได้']);
+                    exit;
+                }
+
+                // Retrieve existing JHCIS details (pid/hid/sex) to preserve them
+                $findOld = $pdo->prepare("SELECT hid, pid, sex FROM target_population WHERE cid = ?");
+                $findOld->execute([$old_cid]);
+                $oldRow = $findOld->fetch();
+                if ($oldRow) {
+                    $hid = $oldRow['hid'];
+                    $pid = $oldRow['pid'];
+                    $sex = $oldRow['sex'];
+                }
+
+                $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
+                try {
+                    // Update task assignments target_cid
+                    $stmtUpdateAssignCid = $pdo->prepare("UPDATE task_assignments SET target_cid = ? WHERE target_cid = ?");
+                    $stmtUpdateAssignCid->execute([$cid, $old_cid]);
+
+                    // Update DPAC enrollments cid
+                    $stmtUpdateDpacCid = $pdo->prepare("UPDATE dpac_enrollments SET cid = ? WHERE cid = ?");
+                    $stmtUpdateDpacCid->execute([$cid, $old_cid]);
+
+                    // Update target_population record (updates the Primary Key)
+                    $stmt = $pdo->prepare("UPDATE target_population SET cid = ?, prefix = ?, first_name = ?, last_name = ?, birth = ?, house_no = ?, need_screen_dm = ?, need_screen_ht = ?, health_status_origin = ?, is_manual = 1, updated_at = NOW() WHERE cid = ?");
+                    $stmt->execute([$cid, $prefix, $fname, $lname, $birth, $house_no, $dm, $ht, $origin, $old_cid]);
+                    
+                    $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
+                } catch (Exception $ex) {
+                    $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
+                    throw $ex;
+                }
             } else {
-                $sql = "INSERT INTO target_population 
-                        (cid, hid, pid, prefix, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode, health_status_origin, need_screen_dm, need_screen_ht, is_manual) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)";
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute([
-                    $cid,
-                    $hid,
-                    $pid,
-                    $prefix,
-                    $fname,
-                    $lname,
-                    $sex,
-                    $birth,
-                    $house_no,
-                    $moo,
-                    $tambon,
-                    $vhid_code,
-                    $hoscode,
-                    $origin,
-                    $dm,
-                    $ht
-                ]);
+                $check = $pdo->prepare("SELECT cid, hid, pid, sex FROM target_population WHERE cid = ?");
+                $check->execute([$cid]);
+                $existing = $check->fetch();
+                if ($existing) {
+                    $hid = $existing['hid'];
+                    $pid = $existing['pid'];
+                    $sex = $existing['sex'];
+                    
+                    $stmt = $pdo->prepare("UPDATE target_population SET prefix = ?, first_name = ?, last_name = ?, birth = ?, house_no = ?, need_screen_dm = ?, need_screen_ht = ?, health_status_origin = ?, is_manual = 1, updated_at = NOW() WHERE cid = ?");
+                    $stmt->execute([$prefix, $fname, $lname, $birth, $house_no, $dm, $ht, $origin, $cid]);
+                } else {
+                    $sql = "INSERT INTO target_population 
+                            (cid, hid, pid, prefix, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode, health_status_origin, need_screen_dm, need_screen_ht, is_manual) 
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)";
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute([
+                        $cid,
+                        $hid,
+                        $pid,
+                        $prefix,
+                        $fname,
+                        $lname,
+                        $sex,
+                        $birth,
+                        $house_no,
+                        $moo,
+                        $tambon,
+                        $vhid_code,
+                        $hoscode,
+                        $origin,
+                        $dm,
+                        $ht
+                    ]);
+                }
             }
             echo json_encode(['status' => 'success']);
         } catch (Exception $e) {
@@ -210,10 +648,6 @@ if (isset($_GET['action'])) {
             transition: all var(--transition-speed);
         }
 
-        .item-row:hover {
-            transform: translateY(-2px);
-        }
-
         .item-info h4 {
             margin: 0 0 4px 0;
             color: var(--text-primary);
@@ -278,12 +712,9 @@ if (isset($_GET['action'])) {
                     <label class="form-label">ตำบล</label>
                     <select id="tambon" class="form-select" onchange="onTambonChange()">
                         <option value="">-- เลือกตำบล --</option>
-                        <option value="341801">ตาลสุม</option>
-                        <option value="341802">สำโรง</option>
-                        <option value="341803">จิกเทิง</option>
-                        <option value="341804">หนองกุง</option>
-                        <option value="341805">นาคาย</option>
-                        <option value="341806">คำหว้า</option>
+                        <?php foreach ($subsList as $sub): ?>
+                            <option value="<?= htmlspecialchars($sub['sub_district_code']) ?>"><?= htmlspecialchars($sub['sub_district_name']) ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div id="hoscode_container" style="display: none;">
@@ -371,14 +802,7 @@ if (isset($_GET['action'])) {
     <!-- Script Definitions -->
     <script>
         // Data logic from register.php (Copied from assignment.php)
-        const tambonData = {
-            "341801": { hasSubUnits: true, subUnits: { "10957": { name: "โรงพยาบาลตาลสุม", villages: [{ moo: 1, name: "บ้านม่วงโคน" }, { moo: 2, name: "บ้านดอนรังกา" }, { moo: 3, name: "บ้านนาห้วยแคน" }, { moo: 5, name: "บ้านนามน" }, { moo: 10, name: "บ้านนามน" }, { moo: 11, name: "บ้านตาลสุม" }, { moo: 12, name: "บ้านคำไม้ตาย" }, { moo: 13, name: "บ้านปากเซ" }] }, "03751": { name: "รพ.สต. ดอนพันชาด", villages: [{ moo: 4, name: "บ้านดอนพันชาด" }, { moo: 6, name: "บ้านดอนตะลี" }, { moo: 7, name: "บ้านปากห้วย" }, { moo: 8, name: "บ้านโนนค้อ" }, { moo: 9, name: "บ้านแก่งกบ" }, { moo: 14, name: "บ้านโนนสวรรค์" }, { moo: 15, name: "บ้านทุ่งเจริญ" }] } } },
-            "341802": { hasSubUnits: false, hoscode: "03752", villages: [{ moo: 1, name: "บ้านสำโรงใหญ่" }, { moo: 2, name: "บ้านสำโรงกลาง" }, { moo: 3, name: "บ้านนาโพธิ์" }, { moo: 4, name: "บ้านสำโรงใต้" }, { moo: 5, name: "บ้านนาแพง" }, { moo: 6, name: "บ้านหนองโน" }, { moo: 7, name: "บ้านหนองสะเดา" }, { moo: 8, name: "บ้านทุ่งเจริญ" }] },
-            "341803": { hasSubUnits: false, hoscode: "03753", villages: [{ moo: 1, name: "บ้านจิกเทิง" }, { moo: 2, name: "บ้านจิกลุ่ม" }, { moo: 3, name: "บ้านเชียงแก้ว" }, { moo: 4, name: "บ้านเชียงแก้ว" }, { moo: 5, name: "บ้านดอนโด่" }, { moo: 6, name: "บ้านดอนยูง" }, { moo: 7, name: "บ้านค้อ" }, { moo: 8, name: "บ้านดอนแป้นลม" }, { moo: 9, name: "บ้านสร้างคำ" }] },
-            "341804": { hasSubUnits: false, hoscode: "03754", villages: [{ moo: 1, name: "บ้านหนองกุงใหญ่" }, { moo: 2, name: "บ้านหนองกุงน้อย" }, { moo: 3, name: "บ้านคำแคน" }, { moo: 4, name: "บ้านสร้างแสง" }, { moo: 5, name: "บ้านคำเตยใต้" }, { moo: 6, name: "บ้านสร้างหว้า" }, { moo: 7, name: "บ้านคำเตยเหนือ" }, { moo: 8, name: "บ้านสร้างหว้าพัฒนา" }] },
-            "341805": { hasSubUnits: true, subUnits: { "03755": { name: "รพ.สต. นาคาย", villages: [{ moo: 1, name: "บ้านนาคาย" }, { moo: 2, name: "บ้านโนนจิก" }, { moo: 3, name: "บ้านหนองเป็ด" }, { moo: 4, name: "บ้านโนนยาง" }, { moo: 5, name: "บ้านดอนขวาง" }, { moo: 6, name: "บ้านดอนหวาย" }] }, "03756": { name: "รพ.สต. บ้านคำหนามแท่ง", villages: [{ moo: 7, name: "บ้านโคกคล้าย" }, { moo: 8, name: "บ้านคำหนามแท่ง" }, { moo: 9, name: "บ้านคำผักหนอก" }, { moo: 10, name: "บ้านคำฮี" }, { moo: 11, name: "บ้านห่องแดง" }, { moo: 12, name: "บ้านโนนสำราญ" }, { moo: 13, name: "บ้านโนนเจริญ" }] } } },
-            "341806": { hasSubUnits: false, hoscode: "03757", villages: [{ moo: 1, name: "บ้านคำหว้า" }, { moo: 2, name: "บ้านคำหว้า" }, { moo: 3, name: "บ้านห้วยดู่" }, { moo: 4, name: "บ้านนาทมเหนือ" }, { moo: 5, name: "บ้านไฮหย่อง" }, { moo: 6, name: "บ้านนาทมใต้" }] }
-        };
+        const tambonData = <?= json_encode($jsData, JSON_UNESCAPED_UNICODE) ?>;
 
         function onTambonChange() {
             const tCode = document.getElementById('tambon').value;
@@ -418,7 +842,7 @@ if (isset($_GET['action'])) {
 
         function populateMoo(villages) {
             const mSelect = document.getElementById('moo');
-            mSelect.innerHTML = '<option value="">-- เลือกหมู่บ้าน --</option>';
+            mSelect.innerHTML = '<option value="all" selected>ทุกหมู่บ้าน</option>';
             villages.forEach(v => {
                 mSelect.innerHTML += `<option value="${v.moo}">หมู่ที่ ${v.moo} ${v.name}</option>`;
             });
@@ -466,9 +890,46 @@ if (isset($_GET['action'])) {
 
             let html = '';
             currentTargets.forEach(t => {
-                let badgeDM = t.need_screen_dm == 1 ? '<span class="badge badge-dm">ตรวจเบาหวาน</span> ' : '';
-                let badgeHT = t.need_screen_ht == 1 ? '<span class="badge badge-ht">ตรวจความดัน</span> ' : '';
-                let noBadge = (t.need_screen_dm == 0 && t.need_screen_ht == 0) ? '<span class="badge badge-none">ไม่คัดกรอง</span>' : '';
+                let badgeDM = `
+                    <button onclick="toggleSingleTarget('${t.cid}', 'DM', ${t.need_screen_dm})" 
+                            class="badge" 
+                            style="border: 1px solid ${t.need_screen_dm == 1 ? '#f43f5e' : '#cbd5e1'}; font-weight: bold; cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: all 0.2s;
+                                   background: ${t.need_screen_dm == 1 ? 'rgba(244, 63, 94, 0.15)' : 'transparent'};
+                                   color: ${t.need_screen_dm == 1 ? '#e11d48' : 'var(--text-muted)'};
+                                   opacity: ${t.need_screen_dm == 1 ? '1' : '0.8'}">
+                        ${t.need_screen_dm == 1 ? '🔴 เป็นเป้าหมาย DM' : '⚪ ยังไม่เป็นเป้าหมาย DM'}
+                    </button>
+                `;
+                let badgeHT = `
+                    <button onclick="toggleSingleTarget('${t.cid}', 'HT', ${t.need_screen_ht})" 
+                            class="badge" 
+                            style="border: 1px solid ${t.need_screen_ht == 1 ? '#0284c7' : '#cbd5e1'}; font-weight: bold; cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: all 0.2s;
+                                   background: ${t.need_screen_ht == 1 ? 'rgba(2, 132, 199, 0.15)' : 'transparent'};
+                                   color: ${t.need_screen_ht == 1 ? '#0284c7' : 'var(--text-muted)'};
+                                   opacity: ${t.need_screen_ht == 1 ? '1' : '0.8'}">
+                        ${t.need_screen_ht == 1 ? '🔵 เป็นเป้าหมาย HT' : '⚪ ยังไม่เป็นเป้าหมาย HT'}
+                    </button>
+                `;
+
+                let dpacBadge = '';
+                if (t.is_dpac == 1) {
+                    dpacBadge = `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: var(--color-green); border: 1px solid var(--color-green); font-weight: bold;">เข้าร่วม DPAC แล้ว</span>`;
+                } else {
+                    let suggested = '';
+                    if (t.need_screen_dm == 1) suggested = 'DM';
+                    else if (t.need_screen_ht == 1) suggested = 'HT';
+                    dpacBadge = `
+                        <button onclick="enrollSingleDpac('${t.cid}', '${suggested}')" 
+                                class="btn-primary" 
+                                style="padding: 4px 10px; font-size: 12px; font-weight: bold; background: var(--color-green); border: none; border-radius: 6px; cursor: pointer; color: white; display: inline-flex; align-items: center; gap: 4px; height: 26px; line-height: 1;">
+                            + DPAC
+                        </button>
+                    `;
+                }
+
+                // HDC info strings
+                let fbsInfo = t.bslevel ? ` | FBS: <strong style="color: var(--color-yellow);">${t.bslevel}</strong> mg/dL` : '';
+                let bpInfo = (t.sbp && t.dbp) ? ` | BP: <strong style="color: var(--color-yellow);">${t.sbp}/${t.dbp}</strong> mmHg` : '';
 
                 let originText = t.health_status_origin;
                 if (originText === 'HT_ONLY') originText = 'เฉพาะความดัน';
@@ -477,21 +938,24 @@ if (isset($_GET['action'])) {
                 else if (originText === 'HIGH_RISK') originText = 'กลุ่มเสี่ยงสูง';
                 else if (originText === 'NORMAL') originText = 'ปกติ';
                 else if (originText === 'MANUAL') originText = 'แมนนวล (ข้อมูลเก่า)';
+                else if (!originText) originText = 'ไม่ระบุ';
 
                 if (t.is_manual == 1) originText += ' (แมนนวล)';
 
                 html += `
                     <div class="item-row">
-                        <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
                             <input type="checkbox" class="target-checkbox item-cb" value="${t.cid}" onchange="updateSelectedCount()">
-                            <div class="item-info">
-                                <h4>${t.first_name} ${t.last_name}</h4>
-                                <p>บ้านเลขที่: ${t.house_no} | อายุ: ${t.age || '-'} ปี | ข้อมูลตั้งต้น: ${originText}</p>
+                            <div class="item-info" style="flex: 1;">
+                                <h4>${t.first_name} ${t.last_name} <span style="font-size: 13px; font-weight: normal; color: var(--text-muted); margin-left: 8px;">(CID: ${t.cid})</span></h4>
+                                <p>บ้านเลขที่: ${t.house_no} | อายุ: ${t.age || '-'} ปี | กลุ่ม HDC: ${originText}${fbsInfo}${bpInfo}</p>
                             </div>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            ${badgeDM} ${badgeHT} ${noBadge}
-                            <button onclick="editTarget('${t.cid}')" title="แก้ไขข้อมูล" style="background: none; border: none; color: var(--color-accent); cursor: pointer; padding: 4px; margin-left: 12px;">
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            ${badgeDM}
+                            ${badgeHT}
+                            ${dpacBadge}
+                            <button onclick="editTarget('${t.cid}')" title="แก้ไขข้อมูล" style="background: none; border: none; color: var(--color-accent); cursor: pointer; padding: 4px; margin-left: 5px; display: inline-flex; align-items: center;">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -545,6 +1009,53 @@ if (isset($_GET['action'])) {
             }
         }
 
+        function toggleSingleTarget(cid, disease, currentStatus) {
+            const newStatus = currentStatus === 1 ? 0 : 1;
+            fetch(`target_manager.php?action=toggle_target_disease`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cid: cid, disease: disease, status: newStatus })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    fetchData();
+                } else {
+                    alert('เกิดข้อผิดพลาด: ' + data.message);
+                }
+            })
+            .catch(err => alert('เกิดข้อผิดพลาดในการเชื่อมต่อ'));
+        }
+
+        function enrollSingleDpac(cid, suggestedType) {
+            let type = suggestedType;
+            if (!type) {
+                type = prompt("กรุณาระบุประเภทความเสี่ยงโครงการ DPAC (DM หรือ HT):", "DM");
+                if (!type) return;
+                type = type.toUpperCase();
+                if (type !== 'DM' && type !== 'HT') {
+                    alert("ระบุไม่ถูกต้อง กรุณาระบุ DM หรือ HT");
+                    return;
+                }
+            }
+
+            fetch(`target_manager.php?action=enroll_dpac_single`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cid: cid, risk_type: type })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('ส่งรายชื่อเข้าโครงการ DPAC สำเร็จ!');
+                    fetchData();
+                } else {
+                    alert('เกิดข้อผิดพลาด: ' + data.message);
+                }
+            })
+            .catch(err => alert('เกิดข้อผิดพลาดในการเชื่อมต่อ'));
+        }
+
         // Sub-admin automatic scoping
         const loggedAdminHoscode = "<?= $admin_hoscode ?: '' ?>";
         window.addEventListener('DOMContentLoaded', () => {
@@ -595,6 +1106,10 @@ if (isset($_GET['action'])) {
                 alert('กรุณาเลือกพื้นที่ (ตำบลและหมู่บ้าน) ก่อนเพิ่มข้อมูลแมนนวล');
                 return;
             }
+            if (moo === 'all') {
+                alert('กรุณาเลือกหมู่บ้านที่เฉพาะเจาะจงก่อนเพิ่มข้อมูลแมนนวล');
+                return;
+            }
 
             modalMode = 'add';
             document.getElementById('modal-title').innerText = '+ เพิ่มประชากรเป้าหมายแบบแมนนวล';
@@ -625,7 +1140,15 @@ if (isset($_GET['action'])) {
             document.getElementById('cid-error').style.display = 'none';
             document.getElementById('manual_cid').style.borderColor = 'var(--border-color)';
             formatThaiID(document.getElementById('manual_cid'));
-            document.getElementById('manual_cid').disabled = true; // Cannot edit CID
+            
+            // Enable editing CID if it is currently masked (contains *) or is a pseudo-CID (fails Mod 11 check)
+            if (t.cid.indexOf('*') !== -1 || !isValidThaiID(t.cid.replace(/[^0-9]/g, ''))) {
+                document.getElementById('manual_cid').disabled = false;
+                document.getElementById('manual_cid').placeholder = "ระบุเลข 13 หลักจริงแทนข้อมูลชั่วคราว/ปกปิด";
+            } else {
+                document.getElementById('manual_cid').disabled = true;
+                document.getElementById('manual_cid').placeholder = "X-XXXX-XXXXX-XX-X";
+            }
 
             document.getElementById('manual_prefix').value = t.prefix || '';
             document.getElementById('manual_fname').value = t.first_name || '';
@@ -681,9 +1204,9 @@ if (isset($_GET['action'])) {
             }
             const yearCE = yearBE - 543;
 
-            const rawCid = document.getElementById('manual_cid').value.replace(/\D/g, '');
-            if (modalMode === 'add') {
-                if (!isValidThaiID(rawCid)) {
+            const rawCid = document.getElementById('manual_cid').value.replace(/[^0-9*]/g, '');
+            if (modalMode === 'add' || (modalMode === 'edit' && rawCid !== editCid)) {
+                if (rawCid.indexOf('*') === -1 && !isValidThaiID(rawCid)) {
                     alert('เลขบัตรประชาชนไม่ถูกต้องตามหลักเกณฑ์ กรุณาตรวจสอบ');
                     return;
                 }
@@ -691,7 +1214,8 @@ if (isset($_GET['action'])) {
 
             const prefix = document.getElementById('manual_prefix').value;
             const data = {
-                cid: modalMode === 'edit' ? editCid : rawCid,
+                old_cid: modalMode === 'edit' ? editCid : '',
+                cid: rawCid,
                 prefix: prefix,
                 fname: document.getElementById('manual_fname').value.trim(),
                 lname: document.getElementById('manual_lname').value.trim(),
@@ -735,7 +1259,7 @@ if (isset($_GET['action'])) {
         }
 
         function formatThaiID(input) {
-            let val = input.value.replace(/\D/g, '');
+            let val = input.value.replace(/[^0-9*]/g, '');
             if (val.length > 13) val = val.substring(0, 13);
 
             let formatted = '';
@@ -750,7 +1274,10 @@ if (isset($_GET['action'])) {
             const errDiv = document.getElementById('cid-error');
             if (errDiv) {
                 if (val.length === 13) {
-                    if (!isValidThaiID(val)) {
+                    if (val.indexOf('*') !== -1) {
+                        errDiv.style.display = 'none';
+                        input.style.borderColor = 'var(--border-color)';
+                    } else if (!isValidThaiID(val)) {
                         errDiv.style.display = 'block';
                         input.style.borderColor = '#ff4d4f';
                     } else {

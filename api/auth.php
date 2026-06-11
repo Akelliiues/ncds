@@ -30,8 +30,8 @@ if ($action === 'reset_password') {
     }
 
     try {
-        // 2. Fetch Leader's Village Code (vhid_code)
-        $leaderStmt = $pdo->prepare("SELECT vhid_code, hoscode FROM vhv_users WHERE vhv_id = ?");
+        // 2. Fetch Leader's Village Code and Rank
+        $leaderStmt = $pdo->prepare("SELECT vhid_code, hoscode, is_leader FROM vhv_users WHERE vhv_id = ?");
         $leaderStmt->execute([$leaderVhvId]);
         $leader = $leaderStmt->fetch();
 
@@ -48,11 +48,36 @@ if ($action === 'reset_password') {
             exit();
         }
 
-        // 4. Cross-District Guard: Verify if they belong to the same village/Moo
-        if ($leader['vhid_code'] !== $target['vhid_code'] || $leader['hoscode'] !== $target['hoscode']) {
+        // 4. Cross-District Guard: Verify scope of permission based on rank
+        $leaderRank = intval($leader['is_leader'] ?? 1);
+        $allowed = false;
+        $errorMsg = '';
+        
+        if ($leaderRank >= 3) {
+            // District President can reset anyone in the district
+            $allowed = true;
+        } elseif ($leaderRank == 2) {
+            // Sub-district President can reset anyone in the same sub-district (tambon = first 6 chars of vhid_code)
+            $leaderTambon = substr($leader['vhid_code'], 0, 6);
+            $targetTambon = substr($target['vhid_code'], 0, 6);
+            if ($leaderTambon === $targetTambon) {
+                $allowed = true;
+            } else {
+                $errorMsg = 'ข้อจำกัดความปลอดภัย: ในฐานะประธาน อสม. ระดับตำบล คุณสามารถรีเซ็ตรหัสผ่านให้กับ อสม. ในตำบลเดียวกันเท่านั้น';
+            }
+        } else {
+            // Village President can only reset anyone in the same village and hoscode
+            if ($leader['vhid_code'] === $target['vhid_code'] && $leader['hoscode'] === $target['hoscode']) {
+                $allowed = true;
+            } else {
+                $errorMsg = 'ข้อจำกัดความปลอดภัย: คุณสามารถรีเซ็ตรหัสผ่านให้กับ อสม. ในเขตความรับผิดชอบหมู่บ้านเดียวกันเท่านั้น';
+            }
+        }
+
+        if (!$allowed) {
             echo json_encode([
                 'status' => 'error',
-                'message' => 'ข้อจำกัดความปลอดภัย: คุณสามารถรีเซ็ตรหัสผ่านให้กับ อสม. ในเขตความรับผิดชอบหมู่บ้านเดียวกันเท่านั้น'
+                'message' => $errorMsg ?: 'ไม่มีสิทธิ์เข้าถึงข้อมูล อสม. รายนี้'
             ]);
             exit();
         }

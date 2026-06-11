@@ -11,112 +11,24 @@ require_once __DIR__ . '/../config/db.php';
 
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 
-// Hospital list
-$hc_names = [
-    '10957' => 'โรงพยาบาลตาลสุม',
-    '03751' => 'รพ.สต.ดอนพันชาด',
-    '03752' => 'รพ.สต.บ้านสำโรง',
-    '03753' => 'รพ.สต.บ้านจิกเทิง',
-    '03754' => 'รพ.สต.บ้านหนองกุงใหญ่',
-    '03755' => 'รพ.สต.นาคาย',
-    '03756' => 'รพ.สต.คำหนามแท่ง',
-    '03757' => 'รพ.สต.คำหว้า'
-];
+$hc_names = get_health_units();
 
 $admin_title = $admin_hoscode ? ($hc_names[$admin_hoscode] ?? 'รพ.สต.') : (($_SESSION['admin_username'] ?? '') === 'adminsso' ? 'ผู้รับผิดชอบระดับอำเภอ' : 'แอดมินหลัก (ทุก รพ.สต.)');
 
-// Get villages helper mapping
-function get_village_only_name($vhid_code, $moo)
-{
-    $tambon = substr($vhid_code, 0, 6);
-    $moo = intval($moo);
-
-    $villages = [
-        '341801' => [
-            1 => 'บ้านม่วงโคน',
-            2 => 'บ้านดอนรังกา',
-            3 => 'บ้านนาห้วยแคน',
-            4 => 'บ้านดอนพันชาด',
-            5 => 'บ้านนามน',
-            6 => 'บ้านดอนตะลี',
-            7 => 'บ้านปากห้วย',
-            8 => 'บ้านโนนค้อ',
-            9 => 'บ้านแก่งกบ',
-            10 => 'บ้านนามน',
-            11 => 'บ้านตาลสุม',
-            12 => 'บ้านคำไม้ตาย',
-            13 => 'บ้านปากเซ',
-            14 => 'บ้านโนนสวรรค์',
-            15 => 'บ้านทุ่งเจริญ'
-        ],
-        '341802' => [
-            1 => 'บ้านสำโรงใหญ่',
-            2 => 'บ้านสำโรงกลาง',
-            3 => 'บ้านนาโพธิ์',
-            4 => 'บ้านสำโรงใต้',
-            5 => 'บ้านนาแพง',
-            6 => 'บ้านหนองโน',
-            7 => 'บ้านหนองสะเดา',
-            8 => 'บ้านทุ่งเจริญ'
-        ],
-        '341803' => [
-            1 => 'บ้านจิกเทิง',
-            2 => 'บ้านจิกลุ่ม',
-            3 => 'บ้านเชียงแก้ว',
-            4 => 'บ้านเชียงแก้ว',
-            5 => 'บ้านดอนโด่',
-            6 => 'บ้านดอนยูง',
-            7 => 'บ้านค้อ',
-            8 => 'บ้านดอนแป้นลม',
-            9 => 'บ้านสร้างคำ'
-        ],
-        '341804' => [
-            1 => 'บ้านหนองกุงใหญ่',
-            2 => 'บ้านหนองกุงน้อย',
-            3 => 'บ้านคำแคน',
-            4 => 'บ้านสร้างแสง',
-            5 => 'บ้านคำเตยใต้',
-            6 => 'บ้านสร้างหว้า',
-            7 => 'บ้านคำเตยเหนือ',
-            8 => 'บ้านสร้างหว้าพัฒนา'
-        ],
-        '341805' => [
-            1 => 'บ้านนาคาย',
-            2 => 'บ้านโนนจิก',
-            3 => 'บ้านหนองเป็ด',
-            4 => 'บ้านโนนยาง',
-            5 => 'บ้านดอนขวาง',
-            6 => 'บ้านดอนหวาย',
-            7 => 'บ้านโคกคล้าย',
-            8 => 'บ้านคำหนามแท่ง',
-            9 => 'บ้านคำผักหนอก',
-            10 => 'บ้านคำฮี',
-            11 => 'บ้านห่องแดง',
-            12 => 'บ้านโนนสำราญ',
-            13 => 'บ้านโนนเจริญ'
-        ],
-        '341806' => [
-            1 => 'บ้านคำหว้า',
-            2 => 'บ้านคำหว้า',
-            3 => 'บ้านห้วยดู่',
-            4 => 'บ้านนาทมเหนือ',
-            5 => 'บ้านไฮหย่อง',
-            6 => 'บ้านนาทมใต้'
-        ]
+$tambons = [];
+try {
+    $stmt = $pdo->query("SELECT sub_district_code, CONCAT('ตำบล', sub_district_name) FROM sub_districts ORDER BY sub_district_code ASC");
+    $tambons = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+} catch (\Exception $e) {
+    $tambons = [
+        '341801' => 'ตำบลตาลสุม',
+        '341802' => 'ตำบลสำโรง',
+        '341803' => 'ตำบลจิกเทิง',
+        '341804' => 'ตำบลหนองกุง',
+        '341805' => 'ตำบลนาคาย',
+        '341806' => 'ตำบลคำหว้า'
     ];
-
-    return $villages[$tambon][$moo] ?? "หมู่ที่ {$moo}";
 }
-
-// Tambon lists
-$tambons = [
-    '341801' => 'ตำบลตาลสุม',
-    '341802' => 'ตำบลสำโรง',
-    '341803' => 'ตำบลจิกเทิง',
-    '341804' => 'ตำบลหนองกุง',
-    '341805' => 'ตำบลนาคาย',
-    '341806' => 'ตำบลคำหว้า'
-];
 
 // Parameters from request
 $filter_hoscode = $_GET['hoscode'] ?? '';
@@ -157,11 +69,11 @@ if ($filter_source === 'screened') {
         FROM screening_results s
         JOIN task_assignments a ON s.assignment_id = a.assignment_id
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE 1=1
+        WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ";
 
     if ($filter_hoscode) {
-        $hoscodes = [$filter_hoscode];
+        $hoscodes = get_query_hoscodes($filter_hoscode);
         $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
         $sql .= " AND p.hoscode IN ($inPlaceholders)";
         $params = array_merge($params, $hoscodes);
@@ -191,6 +103,12 @@ if ($filter_source === 'screened') {
                 ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125))
                 AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126)
             )";
+        } elseif ($filter_risk === 'all_risk') {
+            $sql .= " AND (
+                (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126)
+                OR
+                ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125))
+            )";
         } elseif ($filter_risk === 'normal') {
             $sql .= " AND (s.sys_bp1 < 120 AND s.dia_bp1 < 80 AND (s.dtx_value < 100 OR s.dtx_value IS NULL) AND (s.cv_risk_score < 10 OR s.cv_risk_score IS NULL))";
         }
@@ -206,11 +124,11 @@ if ($filter_source === 'screened') {
                p.health_status_origin as risk, p.need_screen_dm, p.need_screen_ht
         FROM target_population p
         LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed'
-        WHERE a.assignment_id IS NULL
+        WHERE a.assignment_id IS NULL AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ";
 
     if ($filter_hoscode) {
-        $hoscodes = [$filter_hoscode];
+        $hoscodes = get_query_hoscodes($filter_hoscode);
         $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
         $sql .= " AND p.hoscode IN ($inPlaceholders)";
         $params = array_merge($params, $hoscodes);
@@ -234,11 +152,13 @@ if ($filter_source === 'screened') {
 
     if ($filter_risk) {
         if ($filter_risk === 'high') {
-            $sql .= " AND p.health_status_origin IN ('HIGH_RISK', 'BOTH', 'BOTH_HIGH')";
+            $sql .= " AND p.health_status_origin = 'BOTH'";
         } elseif ($filter_risk === 'risk') {
-            $sql .= " AND p.health_status_origin IN ('DM_ONLY', 'HT_ONLY', 'BOTH')";
+            $sql .= " AND p.health_status_origin IN ('DM_ONLY', 'HT_ONLY')";
+        } elseif ($filter_risk === 'all_risk') {
+            $sql .= " AND p.health_status_origin IN ('BOTH', 'DM_ONLY', 'HT_ONLY')";
         } elseif ($filter_risk === 'normal') {
-            $sql .= " AND p.health_status_origin = 'NORMAL'";
+            $sql .= " AND (p.health_status_origin = 'NORMAL' OR p.health_status_origin IS NULL OR p.health_status_origin = '')";
         }
     }
 
@@ -251,11 +171,11 @@ if ($filter_source === 'screened') {
         SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.sub_district_code, p.hoscode,
                p.health_status_origin as risk, p.need_screen_dm, p.need_screen_ht
         FROM target_population p
-        WHERE 1=1
+        WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ";
 
     if ($filter_hoscode) {
-        $hoscodes = [$filter_hoscode];
+        $hoscodes = get_query_hoscodes($filter_hoscode);
         $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
         $sql .= " AND p.hoscode IN ($inPlaceholders)";
         $params = array_merge($params, $hoscodes);
@@ -279,11 +199,13 @@ if ($filter_source === 'screened') {
 
     if ($filter_risk) {
         if ($filter_risk === 'high') {
-            $sql .= " AND p.health_status_origin IN ('HIGH_RISK', 'BOTH', 'BOTH_HIGH')";
+            $sql .= " AND p.health_status_origin = 'BOTH'";
         } elseif ($filter_risk === 'risk') {
-            $sql .= " AND p.health_status_origin IN ('DM_ONLY', 'HT_ONLY', 'BOTH')";
+            $sql .= " AND p.health_status_origin IN ('DM_ONLY', 'HT_ONLY')";
+        } elseif ($filter_risk === 'all_risk') {
+            $sql .= " AND p.health_status_origin IN ('BOTH', 'DM_ONLY', 'HT_ONLY')";
         } elseif ($filter_risk === 'normal') {
-            $sql .= " AND p.health_status_origin = 'NORMAL'";
+            $sql .= " AND (p.health_status_origin = 'NORMAL' OR p.health_status_origin IS NULL OR p.health_status_origin = '')";
         }
     }
 
@@ -293,16 +215,16 @@ if ($filter_source === 'screened') {
 } elseif ($filter_source === 'vhv_list') {
     $sql = "
         SELECT v.vhv_name, v.hoscode, v.vhv_moo, v.approved, v.vhid_code,
-               (SELECT COUNT(*) FROM task_assignments a WHERE a.vhv_id = v.vhv_id) as assigned_targets,
-               (SELECT COUNT(*) FROM task_assignments a WHERE a.vhv_id = v.vhv_id AND a.assignment_status = 'completed') as completed_screenings,
-               (SELECT COUNT(*) FROM task_assignments a WHERE a.vhv_id = v.vhv_id AND a.assignment_status = 'pending') as pending_screenings,
-               (SELECT COUNT(*) FROM task_assignments a WHERE a.vhv_id = v.vhv_id AND a.assignment_status = 'skipped') as skipped_screenings
+               (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.vhv_id = v.vhv_id AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as assigned_targets,
+               (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.vhv_id = v.vhv_id AND a.assignment_status = 'completed' AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as completed_screenings,
+               (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.vhv_id = v.vhv_id AND a.assignment_status = 'pending' AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as pending_screenings,
+               (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.vhv_id = v.vhv_id AND a.assignment_status = 'skipped' AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as skipped_screenings
         FROM vhv_users v
         WHERE 1=1
     ";
 
     if ($filter_hoscode) {
-        $hoscodes = [$filter_hoscode];
+        $hoscodes = get_query_hoscodes($filter_hoscode);
         $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
         $sql .= " AND v.hoscode IN ($inPlaceholders)";
         $params = array_merge($params, $hoscodes);
@@ -350,14 +272,14 @@ if ($filter_source === 'screened') {
                    WHERE a.target_cid = p.cid AND a.assignment_status = 'completed'
                      AND s.sys_bp1 < 120 AND s.dia_bp1 < 80 AND (s.dtx_value < 100 OR s.dtx_value IS NULL) AND (s.cv_risk_score < 10 OR s.cv_risk_score IS NULL)
                ) THEN 1 ELSE 0 END) as normal_risk_count
-        FROM target_population p
-        WHERE 1=1
+         FROM target_population p
+         WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ";
 
     if ($filter_hoscode) {
-        $hoscodes = [$filter_hoscode];
+        $hoscodes = get_query_hoscodes($filter_hoscode);
     } else {
-        $hoscodes = ['10957', '03751', '03752', '03753', '03754', '03755', '03756', '03757'];
+        $hoscodes = get_query_hoscodes();
     }
     $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
     $sql .= " AND p.hoscode IN ($inPlaceholders)";
@@ -408,13 +330,13 @@ if ($filter_source === 'screened') {
                      AND s.sys_bp1 < 120 AND s.dia_bp1 < 80 AND (s.dtx_value < 100 OR s.dtx_value IS NULL) AND (s.cv_risk_score < 10 OR s.cv_risk_score IS NULL)
                ) THEN 1 ELSE 0 END) as normal_risk_count
         FROM target_population p
-        WHERE 1=1
+        WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ";
 
     if ($filter_hoscode) {
-        $hoscodes = [$filter_hoscode];
+        $hoscodes = get_query_hoscodes($filter_hoscode);
     } else {
-        $hoscodes = ['10957', '03751', '03752', '03753', '03754', '03755', '03756', '03757'];
+        $hoscodes = get_query_hoscodes();
     }
     $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
     $sql .= " AND p.hoscode IN ($inPlaceholders)";
@@ -829,7 +751,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
             หน่วยบริการ = <?= $filter_hoscode ? ($hc_names[$filter_hoscode] ?? $filter_hoscode) : 'ทุกแห่ง' ?> |
             หมู่ = <?= $filter_moo ? 'หมู่ที่ ' . $filter_moo : 'ทุกหมู่' ?> |
             ระดับความเสี่ยง =
-            <?= $filter_risk == 'high' ? 'กลุ่มเสี่ยงสูง' : ($filter_risk == 'risk' ? 'กลุ่มเสี่ยง' : ($filter_risk == 'normal' ? 'กลุ่มปกติ' : 'ทั้งหมด')) ?>
+            <?= $filter_risk == 'high' ? 'กลุ่มเสี่ยงสูง' : ($filter_risk == 'risk' ? 'กลุ่มเสี่ยง' : ($filter_risk == 'all_risk' ? 'กลุ่มเสี่ยงทั้งหมด' : ($filter_risk == 'normal' ? 'กลุ่มปกติ' : 'ทั้งหมด'))) ?>
             |
             ประเภทโรค =
             <?= $filter_disease == 'DM' ? 'เบาหวาน (DM)' : ($filter_disease == 'HT' ? 'ความดันโลหิต (HT)' : 'ทั้งหมด') ?>
@@ -911,12 +833,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                         <label>ระดับความเสี่ยง</label>
                         <select name="risk" class="form-select">
                             <option value="">-- ทั้งหมด (ทุกกลุ่ม) --</option>
-                            <option value="high" <?= $filter_risk == 'high' ? 'selected' : '' ?>>🔴 กลุ่มเสี่ยงสูง (High
-                                Risk)</option>
-                            <option value="risk" <?= $filter_risk == 'risk' ? 'selected' : '' ?>>🟡 กลุ่มเสี่ยง (Moderate
-                                Risk)</option>
-                            <option value="normal" <?= $filter_risk == 'normal' ? 'selected' : '' ?>>🟢 กลุ่มปกติ (Normal)
-                            </option>
+                            <option value="all_risk" <?= $filter_risk == 'all_risk' ? 'selected' : '' ?>>🟠 กลุ่มเสี่ยงทั้งหมด (All Risk)</option>
+                            <option value="high" <?= $filter_risk == 'high' ? 'selected' : '' ?>>🔴 กลุ่มเสี่ยงสูง (High Risk)</option>
+                            <option value="risk" <?= $filter_risk == 'risk' ? 'selected' : '' ?>>🟡 กลุ่มเสี่ยง (Moderate Risk)</option>
+                            <option value="normal" <?= $filter_risk == 'normal' ? 'selected' : '' ?>>🟢 กลุ่มปกติ (Normal)</option>
                         </select>
                     </div>
 

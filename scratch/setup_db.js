@@ -64,9 +64,9 @@ async function run() {
         hoscode VARCHAR(10),
         latitude DECIMAL(10, 7),
         longitude DECIMAL(10, 7),
-        health_status_origin VARCHAR(20) DEFAULT 'BOTH',
-        need_screen_dm TINYINT(1) DEFAULT 1,
-        need_screen_ht TINYINT(1) DEFAULT 1,
+        health_status_origin VARCHAR(20) DEFAULT 'NORMAL',
+        need_screen_dm TINYINT(1) DEFAULT 0,
+        need_screen_ht TINYINT(1) DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

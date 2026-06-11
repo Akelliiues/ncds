@@ -19,28 +19,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
     header('Content-Type: application/json');
     $data = json_decode(file_get_contents('php://input'), true);
     $cid = $data['cid'] ?? '';
+    $pid = $data['pid'] ?? '';
+    $hoscode = $data['hoscode'] ?? '';
+    
     if (!$cid) {
         echo json_encode(['status' => 'error', 'message' => 'Invalid CID']);
         exit;
     }
     
     try {
-        $stmt = $pdo->prepare("SELECT cid FROM target_population WHERE cid = ?");
-        $stmt->execute([$cid]);
-        $exists = $stmt->rowCount() > 0;
+        $exists = null;
+        if (!empty($hoscode) && !empty($pid)) {
+            $stmt = $pdo->prepare("SELECT cid, pid, hoscode, need_screen_dm, need_screen_ht FROM target_population WHERE LPAD(hoscode, 5, '0') = LPAD(?, 5, '0') AND TRIM(LEADING '0' FROM pid) = TRIM(LEADING '0' FROM ?)");
+            $stmt->execute([$hoscode, $pid]);
+            $exists = $stmt->fetch();
+        }
+        if (!$exists) {
+            $stmt = $pdo->prepare("SELECT cid, pid, hoscode, need_screen_dm, need_screen_ht FROM target_population WHERE cid = ?");
+            $stmt->execute([$cid]);
+            $exists = $stmt->fetch();
+        }
         
-        if ($exists) {
-            $del = $pdo->prepare("DELETE FROM target_population WHERE cid = ?");
-            $del->execute([$cid]);
+        if ($exists && ($exists['need_screen_dm'] == 1 || $exists['need_screen_ht'] == 1)) {
+            if (empty($exists['pid'])) {
+                $del = $pdo->prepare("DELETE FROM target_population WHERE cid = ?");
+                $del->execute([$exists['cid']]);
+            } else {
+                $upd = $pdo->prepare("UPDATE target_population SET need_screen_dm = 0, need_screen_ht = 0, updated_at = NOW() WHERE cid = ?");
+                $upd->execute([$exists['cid']]);
+            }
             echo json_encode(['status' => 'removed']);
         } else {
-            $stmtDM = $pdo->prepare("SELECT * FROM staging_hdc_dm WHERE cid = ? LIMIT 1");
-            $stmtDM->execute([$cid]);
-            $dm = $stmtDM->fetch();
-            
-            $stmtHT = $pdo->prepare("SELECT * FROM staging_hdc_ht WHERE cid = ? LIMIT 1");
-            $stmtHT->execute([$cid]);
-            $ht = $stmtHT->fetch();
+            $dm = null;
+            $ht = null;
+            if (!empty($hoscode) && !empty($pid)) {
+                $stmtDM = $pdo->prepare("SELECT * FROM staging_hdc_dm WHERE LPAD(hoscode, 5, '0') = LPAD(?, 5, '0') AND TRIM(LEADING '0' FROM pid) = TRIM(LEADING '0' FROM ?) LIMIT 1");
+                $stmtDM->execute([$hoscode, $pid]);
+                $dm = $stmtDM->fetch();
+                
+                $stmtHT = $pdo->prepare("SELECT * FROM staging_hdc_ht WHERE LPAD(hoscode, 5, '0') = LPAD(?, 5, '0') AND TRIM(LEADING '0' FROM pid) = TRIM(LEADING '0' FROM ?) LIMIT 1");
+                $stmtHT->execute([$hoscode, $pid]);
+                $ht = $stmtHT->fetch();
+            } else {
+                $stmtDM = $pdo->prepare("SELECT * FROM staging_hdc_dm WHERE cid = ? LIMIT 1");
+                $stmtDM->execute([$cid]);
+                $dm = $stmtDM->fetch();
+                
+                $stmtHT = $pdo->prepare("SELECT * FROM staging_hdc_ht WHERE cid = ? LIMIT 1");
+                $stmtHT->execute([$cid]);
+                $ht = $stmtHT->fetch();
+            }
             
             $r = $dm ?: $ht;
             if (!$r) {
@@ -56,23 +84,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
             else if ($need_ht) $origin = 'HT_ONLY';
             else $origin = 'NORMAL';
             
-            $vhid_code = $r['check_vhid'] ?? '';
-            if (strlen($vhid_code) === 8) {
-                $tambon = substr($vhid_code, 0, 6);
-                $moo = intval(substr($vhid_code, 6, 2));
+            if ($exists) {
+                $upd = $pdo->prepare("UPDATE target_population SET need_screen_dm = ?, need_screen_ht = ?, health_status_origin = ?, updated_at = NOW() WHERE cid = ?");
+                $upd->execute([$need_dm, $need_ht, $origin, $exists['cid']]);
             } else {
-                // Fallback if check_vhid is missing in HDC
-                $vhid_code = '34180101';
-                $tambon = '341801';
-                $moo = 1;
+                $vhid_code = $r['check_vhid'] ?? '';
+                if (strlen($vhid_code) === 8) {
+                    $tambon = substr($vhid_code, 0, 6);
+                    $moo = intval(substr($vhid_code, 6, 2));
+                } else {
+                    $vhid_code = '34180101';
+                    $tambon = '341801';
+                    $moo = 1;
+                }
+                
+                $insert_cid = $r['cid'];
+                if (strpos($insert_cid, '*') !== false && !empty($r['hoscode']) && !empty($r['pid'])) {
+                    $insert_cid = str_pad($r['hoscode'], 5, '0', STR_PAD_LEFT) . str_pad($r['pid'], 8, '0', STR_PAD_LEFT);
+                }
+                
+                $insert = $pdo->prepare("INSERT INTO target_population 
+                    (cid, pid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode, health_status_origin, need_screen_dm, need_screen_ht)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $insert->execute([
+                    $insert_cid, $r['pid'], $r['name'], $r['lname'], $r['sex'], $r['birth'], $r['addr'], $moo, $tambon, $vhid_code, $r['hoscode'], $origin, $need_dm, $need_ht
+                ]);
             }
-            
-            $insert = $pdo->prepare("INSERT INTO target_population 
-                (cid, pid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode, health_status_origin, need_screen_dm, need_screen_ht)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $insert->execute([
-                $r['cid'], $r['pid'], $r['name'], $r['lname'], $r['sex'], $r['birth'], $r['addr'], $moo, $tambon, $vhid_code, $r['hoscode'], $origin, $need_dm, $need_ht
-            ]);
             
             echo json_encode(['status' => 'added']);
         }
@@ -130,16 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 // Hospital list
-$hc_names = [
-    '10957' => 'โรงพยาบาลตาลสุม',
-    '03751' => 'รพ.สต.ดอนพันชาด',
-    '03752' => 'รพ.สต.บ้านสำโรง',
-    '03753' => 'รพ.สต.บ้านจิกเทิง',
-    '03754' => 'รพ.สต.บ้านหนองกุงใหญ่',
-    '03755' => 'รพ.สต.นาคาย',
-    '03756' => 'รพ.สต.คำหนามแท่ง',
-    '03757' => 'รพ.สต.คำหว้า'
-];
+$hc_names = get_health_units();
 
 $tambons = [
     '341801' => 'ตำบลตาลสุม',
@@ -203,9 +231,9 @@ if (!empty($filter_hoscode)) {
 }
 
 if ($filter_hoscode) {
-    $hoscodes = [$filter_hoscode];
+    $hoscodes = get_query_hoscodes($filter_hoscode);
 } else {
-    $hoscodes = ['10957', '03751', '03752', '03753', '03754', '03755', '03756', '03757'];
+    $hoscodes = get_query_hoscodes();
 }
 $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
 
@@ -264,13 +292,25 @@ if ($diseaseType === 'BOTH') {
 
     $sql = "
         SELECT 
-            dm.cid, dm.name, dm.lname, dm.sex, dm.birth, dm.addr, dm.check_vhid, dm.hoscode,
+            dm.cid, dm.pid, dm.name, dm.lname, dm.sex, dm.birth, dm.addr, dm.check_vhid, dm.hoscode,
             dm.bstest, dm.bslevel, dm.risk as dm_risk,
             ht.sbp, ht.dbp, ht.risk as ht_risk,
-            t.cid AS real_cid, t.first_name AS real_first_name, t.last_name AS real_last_name, t.birth AS real_birth
+            t.cid AS real_cid, t.first_name AS real_first_name, t.last_name AS real_last_name, t.birth AS real_birth,
+            t.need_screen_dm AS target_need_dm, t.need_screen_ht AS target_need_ht
         FROM staging_hdc_dm dm
         INNER JOIN staging_hdc_ht ht ON LPAD(dm.hoscode, 5, '0') = LPAD(ht.hoscode, 5, '0') AND dm.pid = ht.pid
-        LEFT JOIN target_population t ON t.cid = dm.cid
+        LEFT JOIN target_population t ON (
+            (t.cid = dm.cid AND dm.cid NOT LIKE '%*%')
+            OR
+            (
+                LPAD(t.hoscode, 5, '0') = LPAD(dm.hoscode, 5, '0') 
+                AND TRIM(LEADING '0' FROM t.pid) = TRIM(LEADING '0' FROM dm.pid)
+                AND t.pid IS NOT NULL 
+                AND t.pid != ''
+                AND dm.pid IS NOT NULL
+                AND dm.pid != ''
+            )
+        )
         $whereClause
         ORDER BY COALESCE(t.first_name, dm.name) ASC
         LIMIT $limit OFFSET $offset
@@ -326,9 +366,21 @@ if ($diseaseType === 'BOTH') {
     $sql = "
         SELECT 
             s.*,
-            t.cid AS real_cid, t.first_name AS real_first_name, t.last_name AS real_last_name, t.birth AS real_birth
+            t.cid AS real_cid, t.first_name AS real_first_name, t.last_name AS real_last_name, t.birth AS real_birth,
+            t.need_screen_dm AS target_need_dm, t.need_screen_ht AS target_need_ht
         FROM $table s
-        LEFT JOIN target_population t ON t.cid = s.cid
+        LEFT JOIN target_population t ON (
+            (t.cid = s.cid AND s.cid NOT LIKE '%*%')
+            OR
+            (
+                LPAD(t.hoscode, 5, '0') = LPAD(s.hoscode, 5, '0') 
+                AND TRIM(LEADING '0' FROM t.pid) = TRIM(LEADING '0' FROM s.pid)
+                AND t.pid IS NOT NULL 
+                AND t.pid != ''
+                AND s.pid IS NOT NULL
+                AND s.pid != ''
+            )
+        )
         $whereClause
         ORDER BY COALESCE(t.first_name, s.name) ASC
         LIMIT $limit OFFSET $offset
@@ -704,21 +756,17 @@ $availableRisks = ['1', '2'];
                                         
                                         <!-- Toggle Target Column -->
                                         <td style="text-align: center;">
-                                            <?php $is_target = !empty($r['real_cid']); ?>
+                                            <?php $is_target = (!empty($r['real_cid']) && ((int)$r['target_need_dm'] === 1 || (int)$r['target_need_ht'] === 1)); ?>
                                             <button type="button" class="btn-toggle-target" 
                                                     data-cid="<?= htmlspecialchars($displayCid) ?>"
+                                                    data-pid="<?= htmlspecialchars($r['pid']) ?>"
+                                                    data-hoscode="<?= htmlspecialchars($r['hoscode']) ?>"
                                                     data-status="<?= $is_target ? '1' : '0' ?>"
                                                     title="<?= $is_target ? 'นำออกจากกลุ่มเป้าหมาย' : 'เพิ่มเป็นกลุ่มเป้าหมาย' ?>"
                                                     style="background: transparent; border: none; cursor: pointer; color: <?= $is_target ? '#e11d48' : 'var(--text-muted)' ?>; padding: 4px;"
                                                     onclick="toggleTarget(this)">
                                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="<?= $is_target ? 'currentColor' : 'none' ?>" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <?php if ($is_target): ?>
-                                                        <!-- Solid Heart/Star to indicate it's a target -->
-                                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                                                    <?php else: ?>
-                                                        <!-- User Plus to indicate 'add' -->
-                                                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="17" y1="11" x2="23" y2="11"></line>
-                                                    <?php endif; ?>
+                                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                                                 </svg>
                                             </button>
                                         </td>
@@ -772,6 +820,8 @@ $availableRisks = ['1', '2'];
 
         function toggleTarget(btn) {
             const cid = btn.getAttribute('data-cid');
+            const pid = btn.getAttribute('data-pid') || '';
+            const hoscode = btn.getAttribute('data-hoscode') || '';
             const isTarget = btn.getAttribute('data-status') === '1';
             
             const originalIcon = btn.innerHTML;
@@ -781,7 +831,7 @@ $availableRisks = ['1', '2'];
             fetch('hdc_list.php?action=toggle_target', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cid: cid })
+                body: JSON.stringify({ cid: cid, pid: pid, hoscode: hoscode })
             })
             .then(r => r.json())
             .then(res => {
@@ -797,7 +847,7 @@ $availableRisks = ['1', '2'];
                     btn.setAttribute('data-status', '0');
                     btn.setAttribute('title', 'เพิ่มเป็นกลุ่มเป้าหมาย');
                     btn.style.color = 'var(--text-muted)';
-                    btn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="17" y1="11" x2="23" y2="11"></line></svg>';
+                    btn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>';
                 } else {
                     alert('เกิดข้อผิดพลาด: ' + (res.message || 'ไม่สามารถดำเนินการได้'));
                     btn.innerHTML = originalIcon;

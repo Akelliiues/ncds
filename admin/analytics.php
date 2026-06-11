@@ -11,24 +11,16 @@ require_once __DIR__ . '/../config/db.php';
 
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 
-$hc_names = [
-    '10957' => 'โรงพยาบาลตาลสุม',
-    '03751' => 'รพ.สต.ดอนพันชาด',
-    '03752' => 'รพ.สต.บ้านสำโรง',
-    '03753' => 'รพ.สต.บ้านจิกเทิง',
-    '03754' => 'รพ.สต.บ้านหนองกุงใหญ่',
-    '03755' => 'รพ.สต.นาคาย',
-    '03756' => 'รพ.สต.คำหนามแท่ง',
-    '03757' => 'รพ.สต.คำหว้า'
-];
+$hc_names = get_health_units();
+
 
 $admin_title = $admin_hoscode ? ($hc_names[$admin_hoscode] ?? 'รพ.สต.') : (($_SESSION['admin_username'] ?? '') === 'adminsso' ? 'ผู้รับผิดชอบระดับอำเภอ' : 'แอดมินหลัก (ทุก รพ.สต.)');
 
 if ($admin_hoscode) {
-    $hoscodes = [$admin_hoscode];
+    $hoscodes = get_query_hoscodes($admin_hoscode);
     $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
 } else {
-    $valid_hoscodes = array_keys($hc_names);
+    $valid_hoscodes = get_query_hoscodes();
     $inPlaceholders = implode(',', array_fill(0, count($valid_hoscodes), '?'));
     $hoscodes = $valid_hoscodes;
 }

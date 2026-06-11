@@ -12,26 +12,31 @@ require_once __DIR__ . '/../config/db.php';
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 $admin_username = $_SESSION['admin_username'] ?? '';
 
-// Hospital Names Mapping
-$hc_names = [
-    '10957' => 'โรงพยาบาลตาลสุม',
-    '03751' => 'รพ.สต.ดอนพันชาด',
-    '03752' => 'รพ.สต.บ้านสำโรง',
-    '03753' => 'รพ.สต.บ้านจิกเทิง',
-    '03754' => 'รพ.สต.บ้านหนองกุงใหญ่',
-    '03755' => 'รพ.สต.นาคาย',
-    '03756' => 'รพ.สต.คำหนามแท่ง',
-    '03757' => 'รพ.สต.คำหว้า'
-];
+$hc_names = get_health_units();
 
-$tambon_names = [
-    '341801' => 'ตำบลตาลสุม',
-    '341802' => 'ตำบลสำโรง',
-    '341803' => 'ตำบลจิกเทิง',
-    '341804' => 'ตำบลหนองกุง',
-    '341805' => 'ตำบลนาคาย',
-    '341806' => 'ตำบลคำหว้า'
-];
+$tambon_names = [];
+try {
+    $stmt = $pdo->query("SELECT sub_district_code, CONCAT('ตำบล', sub_district_name) FROM sub_districts ORDER BY sub_district_code ASC");
+    $tambon_names = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+} catch (\Exception $e) {
+    // Fallback
+    $tambon_names = [
+        '341801' => 'ตำบลตาลสุม',
+        '341802' => 'ตำบลสำโรง',
+        '341803' => 'ตำบลจิกเทิง',
+        '341804' => 'ตำบลหนองกุง',
+        '341805' => 'ตำบลนาคาย',
+        '341806' => 'ตำบลคำหว้า'
+    ];
+}
+
+$hospitalTambons = [];
+try {
+    $stmt = $pdo->query("SELECT DISTINCT hoscode, sub_district_code FROM villages WHERE hoscode IS NOT NULL AND hoscode != ''");
+    $hospitalTambons = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+} catch (\Exception $e) {
+    // Fallback
+}
 
 // Fetch all VHVs with their points breakdown
 $sql = "
@@ -633,16 +638,7 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
         document.getElementById('sort-by').addEventListener('change', renderLeaderboard);
 
         // Map hospital to tambon prefix
-        const hospitalTambons = {
-            '10957': '341801',
-            '03751': '341801',
-            '03752': '341802',
-            '03753': '341803',
-            '03754': '341804',
-            '03755': '341805',
-            '03756': '341805',
-            '03757': '341806'
-        };
+        const hospitalTambons = <?= json_encode($hospitalTambons) ?>;
 
         // When Tambon changes, filter hospital options
         function updateHospitalFilterOptions() {

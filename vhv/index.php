@@ -85,10 +85,23 @@ try {
     $completedDpacStmt->execute([$vhvId]);
     $completedDpacTasks = $completedDpacStmt->fetchAll();
 
-    // If leader, fetch other VHVs in the same village for password reset
+    // If leader, fetch other VHVs for password reset based on rank
     if ($isLeader) {
-        $subStmt = $pdo->prepare("SELECT vhv_id, vhv_name FROM vhv_users WHERE vhid_code = ? AND vhv_id != ?");
-        $subStmt->execute([$vhidCode, $vhvId]);
+        $hc_names = get_health_units();
+        if ($isLeader == 1) {
+            // Village level: same village code (vhid_code)
+            $subStmt = $pdo->prepare("SELECT vhv_id, vhv_name, vhv_moo FROM vhv_users WHERE vhid_code = ? AND vhv_id != ? ORDER BY vhv_name ASC");
+            $subStmt->execute([$vhidCode, $vhvId]);
+        } elseif ($isLeader == 2) {
+            // Sub-district level: same tambon prefix (first 6 characters of vhid_code)
+            $tambonPrefix = substr($vhidCode, 0, 6);
+            $subStmt = $pdo->prepare("SELECT vhv_id, vhv_name, vhv_moo, hoscode FROM vhv_users WHERE vhid_code LIKE ? AND vhv_id != ? ORDER BY vhv_name ASC");
+            $subStmt->execute([$tambonPrefix . '%', $vhvId]);
+        } else {
+            // District level: all other VHVs (covers all tambons)
+            $subStmt = $pdo->prepare("SELECT vhv_id, vhv_name, vhv_moo, hoscode FROM vhv_users WHERE vhv_id != ? ORDER BY vhv_name ASC");
+            $subStmt->execute([$vhvId]);
+        }
         $subVhvs = $subStmt->fetchAll();
     }
 } catch (\Throwable $e) {
@@ -217,8 +230,12 @@ try {
                 <h2 style="color: var(--text-primary); margin: 4px 0; font-size: 20px; font-weight: 800;"><?= htmlspecialchars($vhvName) ?></h2>
                 <p style="color: var(--text-secondary); margin: 0; font-size: 13px;">
                     หมู่ที่ <?= $vhvMoo ?> • สังกัดรพ.สต. [<?= htmlspecialchars($hoscode) ?>]
-                    <?php if ($isLeader): ?>
-                        • <span style="color: var(--color-accent); font-weight: bold;">ประธาน อสม.</span>
+                    <?php if ($isLeader == 1): ?>
+                        • <span style="color: var(--color-accent); font-weight: bold;">ประธาน อสม. หมู่บ้าน</span>
+                    <?php elseif ($isLeader == 2): ?>
+                        • <span style="color: #a855f7; font-weight: bold; background: rgba(168,85,247,0.1); padding: 2px 6px; border-radius: 4px;">🏆 ประธาน อสม. ตำบล</span>
+                    <?php elseif ($isLeader >= 3): ?>
+                        • <span style="color: #ec4899; font-weight: bold; background: rgba(236,72,153,0.1); padding: 2px 6px; border-radius: 4px;">👑 ประธาน อสม. อำเภอ</span>
                     <?php endif; ?>
                 </p>
             </div>
@@ -228,13 +245,22 @@ try {
         <?php if ($isLeader && !empty($subVhvs)): ?>
             <div class="card-dark" style="padding: 16px;">
                 <h4 style="color: var(--color-accent); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 800;">
-                    🔑 รีเซ็ตรหัสผ่าน อสม. ในหมู่บ้าน
+                    🔑 รีเซ็ตรหัสผ่าน อสม. <?php if ($isLeader == 1): ?>ในหมู่บ้าน<?php elseif ($isLeader == 2): ?>ในตำบล<?php else: ?>ในอำเภอ<?php endif; ?>
                 </h4>
                 <div style="display: flex; gap: 12px;">
                     <select id="reset_target_vhv" class="form-select" style="flex-grow: 1; height: 48px; font-size: 15px;">
                         <option value="">-- เลือก อสม. --</option>
                         <?php foreach ($subVhvs as $sv): ?>
-                            <option value="<?= $sv['vhv_id'] ?>"><?= htmlspecialchars($sv['vhv_name']) ?></option>
+                            <?php 
+                            $suffix = '';
+                            if ($isLeader == 1) {
+                                $suffix = ' (หมู่ ' . $sv['vhv_moo'] . ')';
+                            } else {
+                                $hcName = $hc_names[$sv['hoscode']] ?? $sv['hoscode'];
+                                $suffix = ' (หมู่ ' . $sv['vhv_moo'] . ' - ' . $hcName . ')';
+                            }
+                            ?>
+                            <option value="<?= $sv['vhv_id'] ?>"><?= htmlspecialchars($sv['vhv_name'] . $suffix) ?></option>
                         <?php endforeach; ?>
                     </select>
                     <button onclick="resetPassword()" class="numpad-btn btn-action" style="height: 48px; width: 120px; font-size: 14px; margin-top: 0; border-radius: var(--border-radius); font-weight: 800;">

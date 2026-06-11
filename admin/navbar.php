@@ -5,10 +5,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
 $is_super_admin = (!isset($admin_hoscode) || empty($admin_hoscode)) && (isset($_SESSION['admin_username']) && $_SESSION['admin_username'] !== 'adminsso');
 
 $is_core_active = in_array($current_page, ['index.php', 'profile.php', 'leaderboard.php']);
-$is_targets_active = in_array($current_page, ['target_manager.php', 'hdc_list.php', 'dpac_manager.php']);
+$is_targets_active = in_array($current_page, ['target_manager.php', 'dpac_manager.php']);
 $is_work_active = in_array($current_page, ['assignment.php', 'vhv_approval.php', 'print_qr.php']);
 $is_reports_active = in_array($current_page, ['analytics.php', 'reports.php']);
-$is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php', 'db_manager.php']);
+$is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php', 'db_manager.php', 'user_manager.php', 'unit_house_manager.php']);
 ?>
 <style>
     /* Premium Categorized Dropdowns Style */
@@ -299,12 +299,6 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
                     </svg>
                     จัดการประชากรเป้าหมาย
                 </a>
-                <a href="hdc_list.php" class="<?= $current_page == 'hdc_list.php' ? 'active' : '' ?>">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                        <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                    </svg>
-                    คัดกรองความเสี่ยง HDC
-                </a>
                 <a href="dpac_manager.php" class="<?= $current_page == 'dpac_manager.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -405,6 +399,18 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
                             <path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path>
                         </svg>
                         จัดการฐานข้อมูลระบบ
+                    </a>
+                    <a href="user_manager.php" class="<?= $current_page == 'user_manager.php' ? 'active' : '' ?>">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 11-8 0 4 4 0 018 0zm7-3a3 3 0 010 6M21 21v-2a4 4 0 00-3-3.87"></path>
+                        </svg>
+                        จัดการผู้ใช้งานระบบ
+                    </a>
+                    <a href="unit_house_manager.php" class="<?= $current_page == 'unit_house_manager.php' ? 'active' : '' ?>">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        จัดการหน่วยบริการ & บ้าน
                     </a>
                 </div>
             </div>

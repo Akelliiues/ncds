@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $db_connected = false;
     $db_error = '';
     try {
+        $allow_db_failure = true;
         require_once __DIR__ . '/config/db.php';
         $db_connected = true;
     } catch (\Throwable $e) {
@@ -38,8 +39,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([strtolower($username)]);
                 $admin_db = $stmt->fetch();
                 if ($admin_db && password_verify($password, $admin_db['password_hash'])) {
-                    $is_admin = true;
-                    $admin_hoscode = $admin_db['hoscode'];
+                    if (isset($admin_db['status']) && $admin_db['status'] === 'suspended') {
+                        $error = 'บัญชีผู้ใช้งานนี้ถูกระงับสิทธิ์การใช้งานชั่วคราว';
+                    } else {
+                        $is_admin = true;
+                        $admin_hoscode = $admin_db['hoscode'];
+                    }
                 }
             } catch (\Throwable $e) {
                 // Fail silently and use fallback
@@ -47,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Fallback checks (if database query didn't match or failed)
-        if (!$is_admin) {
+        if (!$is_admin && empty($error)) {
             if (strtolower($username) === 'visitor' && $password === '123456') {
                 $_SESSION['admin_logged_in'] = true;
                 $_SESSION['admin_username'] = 'visitor';
@@ -89,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $_SESSION['vhv_moo'] = $user['vhv_moo'];
                             $_SESSION['vhid_code'] = $user['vhid_code'];
                             $_SESSION['hoscode'] = $user['hoscode'];
-                            $_SESSION['is_leader'] = (bool) $user['is_leader'];
+                            $_SESSION['is_leader'] = intval($user['is_leader']);
                             $_SESSION['is_hl_coach'] = (bool) $user['is_hl_coach'];
 
                             header("Location: vhv/index.php");

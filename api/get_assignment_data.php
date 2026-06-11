@@ -37,18 +37,15 @@ try {
         
         // Filter by target group
         if ($group === 'suspect') {
-            $query .= " AND p.health_status_origin = 'SUSPECT' AND p.need_screen_dm = 0 AND p.need_screen_ht = 0";
+            $query .= " AND p.need_screen_dm = 0 AND p.need_screen_ht = 0";
         } else {
-            $query .= " AND (p.health_status_origin IN ('HIGH_RISK', 'BOTH', 'DM_ONLY', 'HT_ONLY', 'MANUAL') OR (p.health_status_origin = 'SUSPECT' AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)))";
+            $query .= " AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)";
         }
         
         $hoscodeParam = $_GET['hoscode'] ?? '';
         $params = [$vhid, $moo, $hoscodeParam];
         if ($admin_hoscode) {
-            $hoscodes = [$admin_hoscode];
-            if ($admin_hoscode === '10957') {
-                $hoscodes[] = '10688';
-            }
+            $hoscodes = get_query_hoscodes($admin_hoscode);
             $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
             $query .= " AND p.hoscode IN ($inPlaceholders)";
             $params = array_merge($params, $hoscodes);
@@ -68,10 +65,7 @@ try {
         $hoscodeParam = $_GET['hoscode'] ?? '';
         $params = [$vhid, $moo, $hoscodeParam];
         if ($admin_hoscode) {
-            $hoscodes = [$admin_hoscode];
-            if ($admin_hoscode === '10957') {
-                $hoscodes[] = '10688';
-            }
+            $hoscodes = get_query_hoscodes($admin_hoscode);
             $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
             $query .= " AND v.hoscode IN ($inPlaceholders)";
             $params = array_merge($params, $hoscodes);

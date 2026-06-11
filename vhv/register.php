@@ -7,6 +7,86 @@ $message = '';
 $error = '';
 $success = false;
 
+// Query sub_districts and villages dynamically for registration form JS mapping
+$jsData = [];
+try {
+    $subsList = $pdo->query("SELECT * FROM sub_districts ORDER BY sub_district_code ASC")->fetchAll();
+    foreach ($subsList as $sub) {
+        $subCode = $sub['sub_district_code'];
+        $subName = $sub['sub_district_name'];
+
+        // Check if there are multiple health units in this sub district
+        $stmt = $pdo->prepare("SELECT COUNT(DISTINCT hoscode) FROM villages WHERE sub_district_code = ? AND hoscode IS NOT NULL AND hoscode != ''");
+        $stmt->execute([$subCode]);
+        $distinctHoscodes = $stmt->fetchColumn();
+
+        $hasSubUnits = ($distinctHoscodes > 1);
+
+        if ($hasSubUnits) {
+            $jsData[$subCode] = [
+                'name' => $subName,
+                'hasSubUnits' => true,
+                'subUnits' => []
+            ];
+
+            // Fetch distinct hoscodes for this sub district
+            $stmt = $pdo->prepare("SELECT DISTINCT v.hoscode, h.hosname FROM villages v JOIN health_units h ON v.hoscode = h.hoscode WHERE v.sub_district_code = ?");
+            $stmt->execute([$subCode]);
+            $subUnits = $stmt->fetchAll();
+
+            foreach ($subUnits as $su) {
+                $hc = $su['hoscode'];
+                $hcName = $su['hosname'];
+
+                // Fetch villages for this subunit
+                $vStmt = $pdo->prepare("SELECT moo, village_name FROM villages WHERE sub_district_code = ? AND hoscode = ? ORDER BY moo ASC");
+                $vStmt->execute([$subCode, $hc]);
+                $vills = $vStmt->fetchAll();
+
+                $villList = [];
+                foreach ($vills as $v) {
+                    $villList[] = [
+                        'moo' => intval($v['moo']),
+                        'name' => $v['village_name']
+                    ];
+                }
+
+                $jsData[$subCode]['subUnits'][$hc] = [
+                    'name' => $hcName,
+                    'villages' => $villList
+                ];
+            }
+        } else {
+            // Fetch single hoscode for this sub district
+            $stmt = $pdo->prepare("SELECT DISTINCT hoscode FROM villages WHERE sub_district_code = ? LIMIT 1");
+            $stmt->execute([$subCode]);
+            $hc = $stmt->fetchColumn();
+
+            // Fetch villages
+            $vStmt = $pdo->prepare("SELECT moo, village_name FROM villages WHERE sub_district_code = ? ORDER BY moo ASC");
+            $vStmt->execute([$subCode]);
+            $vills = $vStmt->fetchAll();
+
+            $villList = [];
+            foreach ($vills as $v) {
+                $villList[] = [
+                    'moo' => intval($v['moo']),
+                    'name' => $v['village_name']
+                ];
+            }
+
+            $jsData[$subCode] = [
+                'name' => $subName,
+                'hasSubUnits' => false,
+                'hoscode' => $hc ?: '',
+                'villages' => $villList
+            ];
+        }
+    }
+} catch (\Exception $e) {
+    // Fail silently
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = trim($_POST['title'] ?? '');
     $firstName = trim($_POST['first_name'] ?? '');
@@ -35,21 +115,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // Resolve hoscode for the tambon+moo the user submitted
                 $hoscode = '';
-                $hosStmt = $pdo->prepare("SELECT hoscode FROM target_population WHERE vhid_code = ? LIMIT 1");
-                $hosStmt->execute([$vhidCode]);
-                $hosRow = $hosStmt->fetch();
-                if ($hosRow && !empty($hosRow['hoscode'])) {
-                    $hoscode = $hosRow['hoscode'];
-                } else {
-                    if ($tambonCode === '341801') {
-                        $donPhanchadMoos = [4, 6, 7, 8, 9, 13, 14, 15];
-                        $hoscode = in_array($moo, $donPhanchadMoos) ? '03751' : '10957';
-                    } elseif ($tambonCode === '341802') { $hoscode = '03752';
-                    } elseif ($tambonCode === '341803') { $hoscode = '03753';
-                    } elseif ($tambonCode === '341804') { $hoscode = '03754';
-                    } elseif ($tambonCode === '341805') { $hoscode = ($moo >= 1 && $moo <= 6) ? '03755' : '03756';
-                    } elseif ($tambonCode === '341806') { $hoscode = '03757';
-                    } else { $hoscode = '10957'; }
+                $hosStmt = $pdo->prepare("SELECT hoscode FROM villages WHERE sub_district_code = ? AND moo = ? LIMIT 1");
+                $hosStmt->execute([$tambonCode, $moo]);
+                $hoscode = $hosStmt->fetchColumn();
+                if (!$hoscode) {
+                    $hosStmt = $pdo->prepare("SELECT hoscode FROM target_population WHERE vhid_code = ? LIMIT 1");
+                    $hosStmt->execute([$vhidCode]);
+                    $hoscode = $hosStmt->fetchColumn() ?: '10957';
                 }
 
                 // Compare: name similarity (strip prefix variations) + hoscode
@@ -79,21 +151,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // 3. ค้นหา hoscode
                 $hoscode = '';
-                $hosStmt = $pdo->prepare("SELECT hoscode FROM target_population WHERE vhid_code = ? LIMIT 1");
-                $hosStmt->execute([$vhidCode]);
-                $hosRow = $hosStmt->fetch();
-                if ($hosRow && !empty($hosRow['hoscode'])) {
-                    $hoscode = $hosRow['hoscode'];
-                } else {
-                    if ($tambonCode === '341801') {
-                        $donPhanchadMoos = [4, 6, 7, 8, 9, 13, 14, 15];
-                        $hoscode = in_array($moo, $donPhanchadMoos) ? '03751' : '10957';
-                    } elseif ($tambonCode === '341802') { $hoscode = '03752';
-                    } elseif ($tambonCode === '341803') { $hoscode = '03753';
-                    } elseif ($tambonCode === '341804') { $hoscode = '03754';
-                    } elseif ($tambonCode === '341805') { $hoscode = ($moo >= 1 && $moo <= 6) ? '03755' : '03756';
-                    } elseif ($tambonCode === '341806') { $hoscode = '03757';
-                    } else { $hoscode = '10957'; }
+                $hosStmt = $pdo->prepare("SELECT hoscode FROM villages WHERE sub_district_code = ? AND moo = ? LIMIT 1");
+                $hosStmt->execute([$tambonCode, $moo]);
+                $hoscode = $hosStmt->fetchColumn();
+                if (!$hoscode) {
+                    $hosStmt = $pdo->prepare("SELECT hoscode FROM target_population WHERE vhid_code = ? LIMIT 1");
+                    $hosStmt->execute([$vhidCode]);
+                    $hoscode = $hosStmt->fetchColumn() ?: '10957';
                 }
 
                 // 4. บันทึกข้อมูล
@@ -233,12 +297,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="tambon" class="form-label">ตำบล</label>
                             <select name="tambon" id="tambon" class="form-select" onchange="onTambonChange()" required>
                                 <option value="">-- เลือกตำบล --</option>
-                                <option value="341801">ตาลสุม</option>
-                                <option value="341802">สำโรง</option>
-                                <option value="341803">จิกเทิง</option>
-                                <option value="341804">หนองกุง</option>
-                                <option value="341805">นาคาย</option>
-                                <option value="341806">คำหว้า</option>
+                                <?php
+                                $subsSelect = $pdo->query("SELECT * FROM sub_districts ORDER BY sub_district_code ASC")->fetchAll();
+                                foreach ($subsSelect as $sub):
+                                ?>
+                                    <option value="<?= htmlspecialchars($sub['sub_district_code']) ?>"><?= htmlspecialchars($sub['sub_district_name']) ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div id="single_moo_container">
@@ -277,128 +341,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-        // ข้อมูลโครงสร้างหน่วยบริการ (รพ.สต.) และหมู่บ้านของอำเภอตาลสุม
-        const tambonData = {
-            "341801": { // ตาลสุม
-                name: "ตาลสุม",
-                hasSubUnits: true,
-                subUnits: {
-                    "10957": {
-                        name: "โรงพยาบาลตาลสุม (กลุ่มงานบริการด้านปฐมภูมิ)",
-                        villages: [
-                            { moo: 1, name: "บ้านม่วงโคน" },
-                            { moo: 2, name: "บ้านดอนรังกา" },
-                            { moo: 3, name: "บ้านนาห้วยแคน (เขตเทศบาล)" },
-                            { moo: 5, name: "บ้านนามน (เขตเทศบาล)" },
-                            { moo: 10, name: "บ้านนามน (เขตเทศบาล)" },
-                            { moo: 11, name: "บ้านตาลสุม (เขตเทศบาล)" },
-                            { moo: 12, name: "บ้านคำไม้ตาย" }
-                        ]
-                    },
-                    "03751": {
-                        name: "รพ.สต. ดอนพันชาด",
-                        villages: [
-                            { moo: 4, name: "บ้านดอนพันชาด" },
-                            { moo: 6, name: "บ้านดอนตะลี" },
-                            { moo: 7, name: "บ้านปากห้วย" },
-                            { moo: 8, name: "บ้านโนนค้อ" },
-                            { moo: 9, name: "บ้านแก่งกบ" },
-                            { moo: 13, name: "บ้านปากเซ" },
-                            { moo: 14, name: "บ้านโนนสวรรค์" },
-                            { moo: 15, name: "บ้านทุ่งเจริญ" }
-                        ]
-                    }
-                }
-            },
-            "341802": { // สำโรง
-                name: "สำโรง",
-                hasSubUnits: false,
-                hoscode: "03752",
-                villages: [
-                    { moo: 1, name: "บ้านสำโรงใหญ่" },
-                    { moo: 2, name: "บ้านสำโรงกลาง" },
-                    { moo: 3, name: "บ้านนาโพธิ์" },
-                    { moo: 4, name: "บ้านสำโรงใต้" },
-                    { moo: 5, name: "บ้านนาแพง" },
-                    { moo: 6, name: "บ้านหนองโน" },
-                    { moo: 7, name: "บ้านหนองสะเดา" },
-                    { moo: 8, name: "บ้านทุ่งเจริญ" }
-                ]
-            },
-            "341803": { // จิกเทิง
-                name: "จิกเทิง",
-                hasSubUnits: false,
-                hoscode: "03753",
-                villages: [
-                    { moo: 1, name: "บ้านจิกเทิง" },
-                    { moo: 2, name: "บ้านจิกลุ่ม" },
-                    { moo: 3, name: "บ้านเชียงแก้ว" },
-                    { moo: 4, name: "บ้านเชียงแก้ว" },
-                    { moo: 5, name: "บ้านดอนโด่ (บ้านดอนโต)" },
-                    { moo: 6, name: "บ้านดอนยูง" },
-                    { moo: 7, name: "บ้านค้อ" },
-                    { moo: 8, name: "บ้านดอนแป้นลม" },
-                    { moo: 9, name: "บ้านสร้างคำ" }
-                ]
-            },
-            "341804": { // หนองกุง
-                name: "หนองกุง",
-                hasSubUnits: false,
-                hoscode: "03754",
-                villages: [
-                    { moo: 1, name: "บ้านหนองกุงใหญ่" },
-                    { moo: 2, name: "บ้านหนองกุงน้อย" },
-                    { moo: 3, name: "บ้านคำแคน" },
-                    { moo: 4, name: "บ้านสร้างแสง" },
-                    { moo: 5, name: "บ้านคำเตยใต้" },
-                    { moo: 6, name: "บ้านสร้างหว้า" },
-                    { moo: 7, name: "บ้านคำเตยเหนือ" },
-                    { moo: 8, name: "บ้านสร้างหว้าพัฒนา" }
-                ]
-            },
-            "341805": { // นาคาย
-                name: "นาคาย",
-                hasSubUnits: true,
-                subUnits: {
-                    "03755": {
-                        name: "รพ.สต. นาคาย",
-                        villages: [
-                            { moo: 1, name: "บ้านนาคาย" },
-                            { moo: 2, name: "บ้านโนนจิก" },
-                            { moo: 3, name: "บ้านหนองเป็ด" },
-                            { moo: 4, name: "บ้านโนนยาง" },
-                            { moo: 5, name: "บ้านดอนขวาง" },
-                            { moo: 6, name: "บ้านดอนหวาย" }
-                        ]
-                    },
-                    "03756": {
-                        name: "รพ.สต. บ้านคำหนามแท่ง",
-                        villages: [
-                            { moo: 7, name: "บ้านโคกคล้าย" },
-                            { moo: 8, name: "บ้านคำหนามแท่ง" },
-                            { moo: 9, name: "บ้านคำผักหนอก" },
-                            { moo: 10, name: "บ้านคำฮี" },
-                            { moo: 11, name: "บ้านห่องแดง" },
-                            { moo: 12, name: "บ้านโนนสำราญ" },
-                            { moo: 13, name: "บ้านโนนเจริญ" }
-                        ]
-                    }
-                }
-            },
-            "341806": { // คำหว้า
-                name: "คำหว้า",
-                hasSubUnits: false,
-                hoscode: "03757",
-                villages: [
-                    { moo: 1, name: "บ้านคำหว้า" },
-                    { moo: 2, name: "บ้านคำหว้า" },
-                    { moo: 3, name: "บ้านห้วยดู่" },
-                    { moo: 4, name: "บ้านนาทมเหนือ" },
-                    { moo: 5, name: "บ้านไฮหย่อง" },
-                    { moo: 6, name: "บ้านนาทมใต้" }
-                ]
-            }
-        };
+        const tambonData = <?= json_encode($jsData, JSON_UNESCAPED_UNICODE) ?>;
 
         function onTambonChange() {
             const tambonSelect = document.getElementById('tambon');

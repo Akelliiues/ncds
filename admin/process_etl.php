@@ -108,8 +108,8 @@ function findDuplicatesWithConfidence($pdo) {
             'A' AS dup_type
         FROM target_population t1
         JOIN target_population t2
-          ON LPAD(t1.hoscode,5,'0') = LPAD(t2.hoscode,5,'0')
-         AND TRIM(LEADING '0' FROM t1.pid) = TRIM(LEADING '0' FROM t2.pid)
+          ON t1.hoscode = t2.hoscode
+         AND t1.pid = t2.pid
         WHERE t1.cid LIKE '%*%'
           AND t2.cid NOT LIKE '%*%'
           AND t1.cid <> t2.cid
@@ -141,8 +141,8 @@ function findDuplicatesWithConfidence($pdo) {
             'B' AS dup_type
         FROM target_population t1
         JOIN target_population t2
-          ON LPAD(t1.hoscode,5,'0') = LPAD(t2.hoscode,5,'0')
-         AND TRIM(LEADING '0' FROM t1.pid) = TRIM(LEADING '0' FROM t2.pid)
+          ON t1.hoscode = t2.hoscode
+         AND t1.pid = t2.pid
         WHERE t1.cid NOT LIKE '%*%'
           AND t2.cid NOT LIKE '%*%'
           AND t1.cid < t2.cid
@@ -191,6 +191,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
 
         $inserted = 0; $updated = 0; $excluded_dm = 0; $skipped_invalid = 0;
 
+        // ดึงข้อมูลประชากรทั้งหมดพร้อมข้อมูลพิกัดบ้านมารอใน PHP Memory cache เพื่อความเร็วและ unmasked data mapping
+        $targetPopByCid = [];
+        $targetPopByHosPid = [];
+        
+        $allTargets = $pdo->query("
+            SELECT t.cid, t.hoscode, t.pid, t.hid, t.house_no, t.moo, t.sub_district_code, t.vhid_code,
+                   COALESCE(t.latitude, h.latitude) as latitude,
+                   COALESCE(t.longitude, h.longitude) as longitude,
+                   t.need_screen_dm, t.need_screen_ht
+            FROM target_population t
+            LEFT JOIN jhcis_homes h ON t.hoscode = h.hoscode AND t.hid = h.hid
+        ")->fetchAll();
+        
+        foreach ($allTargets as $tg) {
+            $c = trim($tg['cid']);
+            $h = str_pad(trim($tg['hoscode']), 5, '0', STR_PAD_LEFT);
+            $p = ltrim(trim($tg['pid']), '0');
+            
+            $targetPopByCid[$c] = $tg;
+            $targetPopByHosPid["{$h}|{$p}"] = $tg;
+        }
+
         foreach ($allCids as $cid) {
             if (!validateThaiCitizenID($cid)) { $skipped_invalid++; continue; }
 
@@ -227,13 +249,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
 
             $dmRisk = $dmData ? trim($dmData['risk']) : null;
             $htRisk = $htData ? trim($htData['risk']) : null;
-            $needScreenDm = true; $needScreenHt = true;
+            // Only mark need_screen = true for the disease(s) that actually have staging data
+            $needScreenDm = ($dmData !== false);
+            $needScreenHt = ($htData !== false);
 
+            // Exclude diagnosed patients (risk = 5 means already a patient, no need to screen)
             if ($dmRisk === '5' || ($dmData && (mb_strpos($dmData['result'] ?? '', 'ผู้ป่วย') !== false))) {
                 $needScreenDm = false; $excluded_dm++;
             }
             if ($htRisk === '5') $needScreenHt = false;
 
+            // Determine health_status_origin based on which staging data exists and their risk levels
             if ($dmRisk === '2' || $htRisk === '2') $healthStatusOrigin = 'HIGH_RISK';
             elseif ($dmRisk === '1' && $htRisk === '1') $healthStatusOrigin = 'BOTH';
             elseif ($dmRisk === '1') $healthStatusOrigin = 'DM_ONLY';
@@ -241,27 +267,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
             elseif ($dmRisk === '3' || $htRisk === '3') { $healthStatusOrigin = 'SUSPECT'; $needScreenDm = false; $needScreenHt = false; }
             else $healthStatusOrigin = 'NORMAL';
 
-            $exists = false;
-            if ($hoscode && $pid) {
-                $checkStmt = $pdo->prepare("SELECT cid, first_name, last_name, house_no, moo, sub_district_code, vhid_code, latitude, longitude, need_screen_dm, need_screen_ht FROM target_population WHERE LPAD(hoscode, 5, '0') = LPAD(?, 5, '0') AND TRIM(LEADING '0' FROM pid) = TRIM(LEADING '0' FROM ?)");
-                $checkStmt->execute([$hoscode, $pid]);
-                $exists = $checkStmt->fetch();
+            // ตรวจสอบข้อมูลซ้ำซ้อนหรือ unmasked record ที่มีใน Cache
+            $exists = null;
+            $cleanHoscode = str_pad(trim($hoscode), 5, '0', STR_PAD_LEFT);
+            $cleanPid = ltrim(trim($pid), '0');
+            $cleanCid = trim($cid);
+
+            if (isset($targetPopByCid[$cleanCid])) {
+                $exists = $targetPopByCid[$cleanCid];
+            } elseif (isset($targetPopByHosPid["{$cleanHoscode}|{$cleanPid}"])) {
+                $exists = $targetPopByHosPid["{$cleanHoscode}|{$cleanPid}"];
             }
 
             if ($exists) {
                 $realCid = $exists['cid'];
-                $lat = $exists['latitude'] ?: null; $lng = $exists['longitude'] ?: null;
+                $lat = ($exists['latitude'] !== null && $exists['latitude'] != 0) ? $exists['latitude'] : null;
+                $lng = ($exists['longitude'] !== null && $exists['longitude'] != 0) ? $exists['longitude'] : null;
                 if ($exists['need_screen_dm'] == 1) $needScreenDm = true;
                 if ($exists['need_screen_ht'] == 1) $needScreenHt = true;
+                
+                // รักษาค่า hid ดั้งเดิมของ JHCIS ที่นำเข้าไว้
+                $finalHid = !empty($exists['hid']) && $exists['hid'] !== '000000000000000' ? $exists['hid'] : ($hid ?: null);
+                
                 $updateStmt = $pdo->prepare("UPDATE target_population SET hid=?, house_no=?, moo=?, sub_district_code=?, vhid_code=?, latitude=?, longitude=?, health_status_origin=?, need_screen_dm=?, need_screen_ht=?, updated_at=NOW() WHERE cid=?");
-                $updateStmt->execute([$hid, $exists['house_no'] ?: $houseNo, $exists['moo'] ?: $moo, $exists['sub_district_code'] ?: $subDistrictCode, $exists['vhid_code'] ?: $checkVhid, $lat, $lng, $healthStatusOrigin, $needScreenDm?1:0, $needScreenHt?1:0, $realCid]);
+                $updateStmt->execute([
+                    $finalHid, 
+                    $exists['house_no'] ?: $houseNo, 
+                    $exists['moo'] ?: $moo, 
+                    $exists['sub_district_code'] ?: $subDistrictCode, 
+                    $exists['vhid_code'] ?: $checkVhid, 
+                    $lat, 
+                    $lng, 
+                    $healthStatusOrigin, 
+                    $needScreenDm?1:0, 
+                    $needScreenHt?1:0, 
+                    $realCid
+                ]);
                 $updated++;
             } else {
+                $insertCid = $cid;
+                if (strpos($insertCid, '*') !== false && !empty($hoscode) && !empty($pid)) {
+                    $insertCid = str_pad($hoscode, 5, '0', STR_PAD_LEFT) . str_pad($pid, 8, '0', STR_PAD_LEFT);
+                }
                 $insertStmt = $pdo->prepare("INSERT INTO target_population (cid, hid, pid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode, latitude, longitude, health_status_origin, need_screen_dm, need_screen_ht) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $insertStmt->execute([$cid, $hid, $pid, $firstName, $lastName, $sex, $birth, $houseNo, $moo, $subDistrictCode, $checkVhid, $hoscode, null, null, $healthStatusOrigin, $needScreenDm?1:0, $needScreenHt?1:0]);
+                $insertStmt->execute([$insertCid, $hid, $pid, $firstName, $lastName, $sex, $birth, $houseNo, $moo, $subDistrictCode, $checkVhid, $hoscode, null, null, $healthStatusOrigin, $needScreenDm?1:0, $needScreenHt?1:0]);
                 $inserted++;
             }
         }
+
+        // ทำความสะอาดฐานข้อมูล: ลบประชากรที่นำเข้ามาจาก JHCIS Person ในตอนแรก แต่ไม่มีชื่อ/สิทธิ์อยู่ใน HDC ปีนี้
+        // และไม่มีประวัติผลคัดกรอง หรือการมอบหมายงาน อสม. ค้างอยู่ และไม่ได้เพิ่มด้วยระบบ Manual
+        $pdo->exec("
+            DELETE t FROM target_population t
+            LEFT JOIN task_assignments ta ON t.cid = ta.target_cid
+            WHERE t.need_screen_dm = 0 
+              AND t.need_screen_ht = 0 
+              AND (t.is_manual IS NULL OR t.is_manual = 0)
+              AND ta.assignment_id IS NULL
+        ");
 
         $pdo->commit();
         $_SESSION['etl_results'] = ['total' => count($allCids), 'inserted' => $inserted, 'updated' => $updated, 'excluded_dm' => $excluded_dm, 'skipped_invalid' => $skipped_invalid];

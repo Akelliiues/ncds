@@ -14,21 +14,12 @@ require_once __DIR__ . '/../config/db.php';
 // Fetch summary metrics
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 
-$hc_names = [
-    '10957' => 'โรงพยาบาลตาลสุม',
-    '03751' => 'รพ.สต.ดอนพันชาด',
-    '03752' => 'รพ.สต.บ้านสำโรง',
-    '03753' => 'รพ.สต.บ้านจิกเทิง',
-    '03754' => 'รพ.สต.บ้านหนองกุงใหญ่',
-    '03755' => 'รพ.สต.นาคาย',
-    '03756' => 'รพ.สต.คำหนามแท่ง',
-    '03757' => 'รพ.สต.คำหว้า'
-];
+$hc_names = get_health_units();
 
 $admin_title = $admin_hoscode ? ($hc_names[$admin_hoscode] ?? 'รพ.สต.') : (($_SESSION['admin_username'] ?? '') === 'adminsso' ? 'ผู้รับผิดชอบระดับอำเภอ' : 'แอดมินหลัก (ทุก รพ.สต.)');
 
 if ($admin_hoscode) {
-    $hoscodes = [$admin_hoscode];
+    $hoscodes = get_query_hoscodes($admin_hoscode);
     $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
 
     $total_targets = $pdo->prepare("SELECT COUNT(*) FROM target_population WHERE hoscode IN ($inPlaceholders) AND (need_screen_dm = 1 OR need_screen_ht = 1)");
@@ -38,11 +29,11 @@ if ($admin_hoscode) {
     // Query target groups by health_status_origin
     $groupStmt = $pdo->prepare("
         SELECT 
-            SUM(CASE WHEN health_status_origin = 'DM_ONLY' AND (need_screen_dm = 1 OR need_screen_ht = 1) THEN 1 ELSE 0 END) as group_dm,
-            SUM(CASE WHEN health_status_origin = 'HT_ONLY' AND (need_screen_dm = 1 OR need_screen_ht = 1) THEN 1 ELSE 0 END) as group_ht,
-            SUM(CASE WHEN health_status_origin IN ('BOTH','HIGH_RISK') AND (need_screen_dm = 1 OR need_screen_ht = 1) THEN 1 ELSE 0 END) as group_both,
-            SUM(CASE WHEN health_status_origin IN ('HIGH_RISK','DM_ONLY','HT_ONLY','BOTH') AND (need_screen_dm = 1 OR need_screen_ht = 1) THEN 1 ELSE 0 END) as group_risk,
-            SUM(CASE WHEN health_status_origin = 'NORMAL' THEN 1 ELSE 0 END) as group_normal,
+            SUM(CASE WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 1 ELSE 0 END) as group_dm,
+            SUM(CASE WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 1 ELSE 0 END) as group_ht,
+            SUM(CASE WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 1 ELSE 0 END) as group_both,
+            SUM(CASE WHEN need_screen_dm = 1 OR need_screen_ht = 1 THEN 1 ELSE 0 END) as group_risk,
+            SUM(CASE WHEN health_status_origin = 'NORMAL' AND (need_screen_dm = 0 AND need_screen_ht = 0) THEN 1 ELSE 0 END) as group_normal,
             SUM(CASE WHEN need_screen_dm = 0 AND need_screen_ht = 0 THEN 1 ELSE 0 END) as group_suspected
         FROM target_population WHERE hoscode IN ($inPlaceholders)
     ");
@@ -51,22 +42,37 @@ if ($admin_hoscode) {
 
     // Detail breakdown per group for modal
     $groupDetailStmt = $pdo->prepare("
-        SELECT health_status_origin, COUNT(*) as count 
-        FROM target_population WHERE hoscode IN ($inPlaceholders)
-        GROUP BY health_status_origin ORDER BY FIELD(health_status_origin, 'HIGH_RISK','BOTH','DM_ONLY','HT_ONLY','NORMAL')
+        SELECT 
+            CASE 
+                WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
+                WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
+                WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
+                ELSE 'NORMAL'
+            END as health_status_origin,
+            COUNT(*) as count 
+        FROM target_population 
+        WHERE hoscode IN ($inPlaceholders) AND (need_screen_dm = 1 OR need_screen_ht = 1)
+        GROUP BY 
+            CASE 
+                WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
+                WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
+                WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
+                ELSE 'NORMAL'
+            END
+        ORDER BY FIELD(health_status_origin, 'BOTH','DM_ONLY','HT_ONLY','NORMAL')
     ");
     $groupDetailStmt->execute($hoscodes);
     $groupDetail = $groupDetailStmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $screened = $pdo->prepare("SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'completed' AND p.hoscode IN ($inPlaceholders)");
+    $screened = $pdo->prepare("SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'completed' AND p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)");
     $screened->execute($hoscodes);
     $screened_val = $screened->fetchColumn();
 
-    $pending = $pdo->prepare("SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'pending' AND p.hoscode IN ($inPlaceholders)");
+    $pending = $pdo->prepare("SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'pending' AND p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)");
     $pending->execute($hoscodes);
     $pending_val = $pending->fetchColumn();
 
-    $skipped = $pdo->prepare("SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholders)");
+    $skipped = $pdo->prepare("SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)");
     $skipped->execute($hoscodes);
     $skipped_val = $skipped->fetchColumn();
 
@@ -113,7 +119,7 @@ if ($admin_hoscode) {
         FROM screening_results s
         JOIN task_assignments a ON s.assignment_id = a.assignment_id
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE p.hoscode IN ($inPlaceholders) AND a.assignment_status = 'completed'
+        WHERE p.hoscode IN ($inPlaceholders) AND a.assignment_status = 'completed' AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ");
     $screenedDetailQuery->execute($hoscodes);
     $screenedDetail = $screenedDetailQuery->fetch(PDO::FETCH_ASSOC);
@@ -124,7 +130,7 @@ if ($admin_hoscode) {
         FROM screening_results s 
         JOIN task_assignments a ON s.assignment_id = a.assignment_id
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholders)
+        WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY s.skipped_reason
     ");
     $skippedDetailQuery->execute($hoscodes);
@@ -154,6 +160,7 @@ if ($admin_hoscode) {
         WHERE p.latitude IS NOT NULL 
           AND p.longitude IS NOT NULL
           AND p.hoscode IN ($inPlaceholders)
+          AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ");
     $mapDataStmt->execute($hoscodes);
     $allMapTargets = $mapDataStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -174,7 +181,7 @@ if ($admin_hoscode) {
     $editTargetsStmt = $pdo->prepare("
         SELECT cid, first_name, last_name, house_no, moo, sub_district_code, hoscode, latitude, longitude
         FROM target_population 
-        WHERE hoscode IN ($inPlaceholders)
+        WHERE hoscode IN ($inPlaceholders) AND (need_screen_dm = 1 OR need_screen_ht = 1)
         ORDER BY moo, house_no
     ");
     $editTargetsStmt->execute($hoscodes);
@@ -229,7 +236,7 @@ if ($admin_hoscode) {
         FROM screening_results s
         JOIN task_assignments a ON s.assignment_id = a.assignment_id AND a.assignment_status = 'completed'
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE p.hoscode IN ($inPlaceholders)
+        WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ");
     $chartDiseaseStmt->execute($hoscodes);
     $chartDiseaseData = $chartDiseaseStmt->fetch(PDO::FETCH_ASSOC);
@@ -243,6 +250,7 @@ if ($admin_hoscode) {
             JOIN target_population p ON a.target_cid = p.cid
             WHERE p.hoscode IN ($inPlaceholders)
               AND s.created_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+              AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
             UNION ALL
             SELECT f.completed_at as created_at
             FROM dpac_followups f
@@ -251,6 +259,7 @@ if ($admin_hoscode) {
             WHERE f.status = 'completed'
               AND p.hoscode IN ($inPlaceholders)
               AND f.completed_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+              AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         ) as combined
         GROUP BY DATE(created_at)
         ORDER BY screen_date ASC
@@ -264,7 +273,7 @@ if ($admin_hoscode) {
         FROM screening_results s 
         JOIN task_assignments a ON s.assignment_id = a.assignment_id
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholders)
+        WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY s.skipped_reason
     ");
     $chartSkippedStmt->execute($hoscodes);
@@ -275,21 +284,21 @@ if ($admin_hoscode) {
         SELECT e.risk_type, COUNT(*) as count 
         FROM dpac_enrollments e
         JOIN target_population p ON e.cid = p.cid
-        WHERE p.hoscode IN ($inPlaceholders)
+        WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY e.risk_type
     ");
     $chartDpacStmt->execute($hoscodes);
     $chartDpacData = $chartDpacStmt->fetchAll(PDO::FETCH_ASSOC);
 } else {
-    $valid_hoscodes = ['10957', '03751', '03752', '03753', '03754', '03755', '03756', '03757'];
+    $valid_hoscodes = get_query_hoscodes();
     $inPlaceholdersSa = implode(',', array_fill(0, count($valid_hoscodes), '?'));
 
     $metricsStmt = $pdo->prepare("
         SELECT 
             (SELECT COUNT(*) FROM target_population WHERE hoscode IN ($inPlaceholdersSa) AND (need_screen_dm = 1 OR need_screen_ht = 1)) as total_targets,
-            (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'completed' AND p.hoscode IN ($inPlaceholdersSa)) as screened_count,
-            (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'pending' AND p.hoscode IN ($inPlaceholdersSa)) as pending_count,
-            (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholdersSa)) as skipped_count,
+            (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'completed' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as screened_count,
+            (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'pending' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as pending_count,
+            (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as skipped_count,
             (SELECT SUM(points_earned) FROM vhv_rewards r JOIN vhv_users v ON r.vhv_id = v.vhv_id WHERE v.hoscode IN ($inPlaceholdersSa)) as total_points,
             (SELECT COUNT(*) FROM vhv_users WHERE hoscode IN ($inPlaceholdersSa)) as total_vhvs
     ");
@@ -301,11 +310,11 @@ if ($admin_hoscode) {
     // Query target groups by health_status_origin
     $groupStmtSa = $pdo->prepare("
         SELECT 
-            SUM(CASE WHEN health_status_origin = 'DM_ONLY' AND (need_screen_dm = 1 OR need_screen_ht = 1) THEN 1 ELSE 0 END) as group_dm,
-            SUM(CASE WHEN health_status_origin = 'HT_ONLY' AND (need_screen_dm = 1 OR need_screen_ht = 1) THEN 1 ELSE 0 END) as group_ht,
-            SUM(CASE WHEN health_status_origin IN ('BOTH','HIGH_RISK') AND (need_screen_dm = 1 OR need_screen_ht = 1) THEN 1 ELSE 0 END) as group_both,
-            SUM(CASE WHEN health_status_origin IN ('HIGH_RISK','DM_ONLY','HT_ONLY','BOTH') AND (need_screen_dm = 1 OR need_screen_ht = 1) THEN 1 ELSE 0 END) as group_risk,
-            SUM(CASE WHEN health_status_origin = 'NORMAL' THEN 1 ELSE 0 END) as group_normal,
+            SUM(CASE WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 1 ELSE 0 END) as group_dm,
+            SUM(CASE WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 1 ELSE 0 END) as group_ht,
+            SUM(CASE WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 1 ELSE 0 END) as group_both,
+            SUM(CASE WHEN need_screen_dm = 1 OR need_screen_ht = 1 THEN 1 ELSE 0 END) as group_risk,
+            SUM(CASE WHEN health_status_origin = 'NORMAL' AND (need_screen_dm = 0 AND need_screen_ht = 0) THEN 1 ELSE 0 END) as group_normal,
             SUM(CASE WHEN need_screen_dm = 0 AND need_screen_ht = 0 THEN 1 ELSE 0 END) as group_suspected
         FROM target_population WHERE hoscode IN ($inPlaceholdersSa)
     ");
@@ -320,9 +329,24 @@ if ($admin_hoscode) {
 
     // Detail breakdown per group for modal
     $groupDetailStmtSa = $pdo->prepare("
-        SELECT health_status_origin, COUNT(*) as count 
-        FROM target_population WHERE hoscode IN ($inPlaceholdersSa)
-        GROUP BY health_status_origin ORDER BY FIELD(health_status_origin, 'HIGH_RISK','BOTH','DM_ONLY','HT_ONLY','NORMAL')
+        SELECT 
+            CASE 
+                WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
+                WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
+                WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
+                ELSE 'NORMAL'
+            END as health_status_origin,
+            COUNT(*) as count 
+        FROM target_population 
+        WHERE hoscode IN ($inPlaceholdersSa) AND (need_screen_dm = 1 OR need_screen_ht = 1)
+        GROUP BY 
+            CASE 
+                WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
+                WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
+                WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
+                ELSE 'NORMAL'
+            END
+        ORDER BY FIELD(health_status_origin, 'BOTH','DM_ONLY','HT_ONLY','NORMAL')
     ");
     $groupDetailStmtSa->execute($valid_hoscodes);
     $groupDetail = $groupDetailStmtSa->fetchAll(PDO::FETCH_ASSOC);
@@ -343,7 +367,7 @@ if ($admin_hoscode) {
         FROM screening_results s
         JOIN task_assignments a ON s.assignment_id = a.assignment_id
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE a.assignment_status = 'completed' AND p.hoscode IN ($inPlaceholdersSa)
+        WHERE a.assignment_status = 'completed' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ");
     $screenedDetailStmt->execute($valid_hoscodes);
     $screenedDetail = $screenedDetailStmt->fetch(PDO::FETCH_ASSOC);
@@ -354,7 +378,7 @@ if ($admin_hoscode) {
         FROM screening_results s 
         JOIN task_assignments a ON s.assignment_id = a.assignment_id
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholdersSa)
+        WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY s.skipped_reason
     ");
     $skippedDetailStmt->execute($valid_hoscodes);
@@ -383,6 +407,7 @@ if ($admin_hoscode) {
         WHERE p.latitude IS NOT NULL 
           AND p.longitude IS NOT NULL
           AND p.hoscode IN ($inPlaceholdersSa)
+          AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ");
     $heatmapStmt->execute($valid_hoscodes);
     $allMapTargets = $heatmapStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -402,7 +427,7 @@ if ($admin_hoscode) {
     $editableTargetsStmt = $pdo->prepare("
         SELECT cid, first_name, last_name, house_no, moo, sub_district_code, hoscode, latitude, longitude
         FROM target_population 
-        WHERE hoscode IN ($inPlaceholdersSa)
+        WHERE hoscode IN ($inPlaceholdersSa) AND (need_screen_dm = 1 OR need_screen_ht = 1)
         ORDER BY moo, house_no
     ");
     $editableTargetsStmt->execute($valid_hoscodes);
@@ -447,7 +472,7 @@ if ($admin_hoscode) {
         FROM screening_results s
         JOIN task_assignments a ON s.assignment_id = a.assignment_id AND a.assignment_status = 'completed'
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE p.hoscode IN ($inPlaceholdersSa)
+        WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ");
     $chartDiseaseStmt->execute($valid_hoscodes);
     $chartDiseaseData = $chartDiseaseStmt->fetch(PDO::FETCH_ASSOC);
@@ -461,6 +486,7 @@ if ($admin_hoscode) {
             JOIN target_population p ON a.target_cid = p.cid
             WHERE s.created_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
               AND p.hoscode IN ($inPlaceholdersSa)
+              AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
             UNION ALL
             SELECT f.completed_at as created_at
             FROM dpac_followups f
@@ -469,6 +495,7 @@ if ($admin_hoscode) {
             WHERE f.status = 'completed'
               AND f.completed_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
               AND p.hoscode IN ($inPlaceholdersSa)
+              AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         ) as combined
         GROUP BY DATE(created_at)
         ORDER BY screen_date ASC
@@ -482,7 +509,7 @@ if ($admin_hoscode) {
         FROM screening_results s 
         JOIN task_assignments a ON s.assignment_id = a.assignment_id
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholdersSa)
+        WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY s.skipped_reason
     ");
     $chartSkippedStmt->execute($valid_hoscodes);
@@ -493,7 +520,7 @@ if ($admin_hoscode) {
         SELECT e.risk_type, COUNT(*) as count 
         FROM dpac_enrollments e
         JOIN target_population p ON e.cid = p.cid
-        WHERE p.hoscode IN ($inPlaceholdersSa)
+        WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY e.risk_type
     ");
     $chartDpacStmt->execute($valid_hoscodes);
@@ -851,7 +878,7 @@ if ($admin_hoscode) {
                     <tbody>
                         <?php
                         if ($admin_hoscode) {
-                            $hoscodes = [$admin_hoscode];
+                            $hoscodes = get_query_hoscodes($admin_hoscode);
                             $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
                             $recentScreenQuery = $pdo->prepare("
                                 SELECT p.house_no, p.moo, p.sub_district_code, p.hoscode,

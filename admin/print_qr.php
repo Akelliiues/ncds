@@ -11,17 +11,7 @@ require_once __DIR__ . '/../config/db.php';
 
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 
-// Hospital list
-$hc_names = [
-    '10957' => 'โรงพยาบาลตาลสุม',
-    '03751' => 'รพ.สต.ดอนพันชาด',
-    '03752' => 'รพ.สต.บ้านสำโรง',
-    '03753' => 'รพ.สต.บ้านจิกเทิง',
-    '03754' => 'รพ.สต.บ้านหนองกุงใหญ่',
-    '03755' => 'รพ.สต.นาคาย',
-    '03756' => 'รพ.สต.คำหนามแท่ง',
-    '03757' => 'รพ.สต.คำหว้า'
-];
+$hc_names = get_health_units();
 
 $admin_title = $admin_hoscode ? ($hc_names[$admin_hoscode] ?? 'รพ.สต.') : (($_SESSION['admin_username'] ?? '') === 'adminsso' ? 'ผู้รับผิดชอบระดับอำเภอ' : 'แอดมินหลัก (ทุก รพ.สต.)');
 
@@ -39,24 +29,26 @@ $sql = "
         first_name,
         last_name
     FROM target_population 
-    WHERE 1=1
+    WHERE (need_screen_dm = 1 OR need_screen_ht = 1)
 ";
 $params = [];
 
 if ($filter_hoscode) {
-    $sql .= " AND hoscode = ?";
-    $params[] = $filter_hoscode;
+    $hoscodes = get_query_hoscodes($filter_hoscode);
+    $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
+    $sql .= " AND hoscode IN ($inPlaceholders)";
+    $params = array_merge($params, $hoscodes);
 }
 if ($filter_moo) {
     $sql .= " AND moo = ?";
     $params[] = $filter_moo;
 }
 if ($filter_target === 'dm') {
-    $sql .= " AND health_status_origin = 'DM_ONLY' AND (need_screen_dm = 1 OR need_screen_ht = 1)";
+    $sql .= " AND need_screen_dm = 1 AND need_screen_ht = 0";
 } elseif ($filter_target === 'ht') {
-    $sql .= " AND health_status_origin = 'HT_ONLY' AND (need_screen_dm = 1 OR need_screen_ht = 1)";
+    $sql .= " AND need_screen_dm = 0 AND need_screen_ht = 1";
 } elseif ($filter_target === 'both') {
-    $sql .= " AND health_status_origin IN ('BOTH', 'HIGH_RISK') AND (need_screen_dm = 1 OR need_screen_ht = 1)";
+    $sql .= " AND need_screen_dm = 1 AND need_screen_ht = 1";
 }
 
 $sql .= " ORDER BY CAST(moo AS UNSIGNED) ASC, CAST(house_no AS UNSIGNED) ASC";
@@ -303,15 +295,34 @@ function maskName($firstName, $lastName)
     <script>
         const relations = <?php
         $relations = [];
-        foreach ($hoscode_villages as $hc => $info) {
-            $vList = [];
-            foreach ($info['villages'] as $moo => $name) {
-                $vList[] = ['moo' => (int) $moo, 'name' => $name];
+        try {
+            $stmt = $pdo->query("SELECT vhid_code, sub_district_code, moo, village_name, hoscode FROM villages ORDER BY hoscode, moo");
+            $dbVillages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($dbVillages as $v) {
+                $hc = $v['hoscode'];
+                if (!$hc) continue;
+                if (!isset($relations[$hc])) {
+                    $relations[$hc] = [
+                        'tambon' => $v['sub_district_code'],
+                        'villages' => []
+                    ];
+                }
+                $relations[$hc]['villages'][] = [
+                    'moo' => (int)$v['moo'],
+                    'name' => $v['village_name']
+                ];
             }
-            $relations[$hc] = [
-                'tambon' => $info['tambon'],
-                'villages' => $vList
-            ];
+        } catch (\Exception $e) {
+            foreach ($hoscode_villages as $hc => $info) {
+                $vList = [];
+                foreach ($info['villages'] as $moo => $name) {
+                    $vList[] = ['moo' => (int) $moo, 'name' => $name];
+                }
+                $relations[$hc] = [
+                    'tambon' => $info['tambon'],
+                    'villages' => $vList
+                ];
+            }
         }
         echo json_encode($relations, JSON_UNESCAPED_UNICODE);
         ?>;

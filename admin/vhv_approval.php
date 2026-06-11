@@ -13,16 +13,7 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 $message = '';
 $error = '';
 
-$hc_names = [
-    '10957' => 'โรงพยาบาลตาลสุม',
-    '03751' => 'รพ.สต.ดอนพันชาด',
-    '03752' => 'รพ.สต.บ้านสำโรง',
-    '03753' => 'รพ.สต.บ้านจิกเทิง',
-    '03754' => 'รพ.สต.บ้านหนองกุงใหญ่',
-    '03755' => 'รพ.สต.นาคาย',
-    '03756' => 'รพ.สต.คำหนามแท่ง',
-    '03757' => 'รพ.สต.คำหว้า'
-];
+$hc_names = get_health_units();
 
 $admin_title = $admin_hoscode ? ($hc_names[$admin_hoscode] ?? 'รพ.สต.') : (($_SESSION['admin_username'] ?? '') === 'adminsso' ? 'ผู้รับผิดชอบระดับอำเภอ' : 'แอดมินหลัก (ทุก รพ.สต.)');
 
@@ -109,8 +100,50 @@ function get_village_full_name($vhid_code, $moo) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    $target_vhv_id = $_POST['target_vhv_id'] ?? '';
     $action = $_POST['action'];
+
+    if ($action === 'check_leader') {
+        header('Content-Type: application/json');
+        $vhv_id = $_POST['vhv_id'] ?? '';
+        $is_leader = intval($_POST['is_leader'] ?? 0);
+        $vhv_moo = intval($_POST['vhv_moo'] ?? 0);
+        $hoscode = $_POST['hoscode'] ?? '';
+        
+        $tambonPrefix = '';
+        if ($hoscode === '03752') $tambonPrefix = '341802';
+        elseif ($hoscode === '03753') $tambonPrefix = '341803';
+        elseif ($hoscode === '03754') $tambonPrefix = '341804';
+        elseif ($hoscode === '03755' || $hoscode === '03756') $tambonPrefix = '341805';
+        elseif ($hoscode === '03757') $tambonPrefix = '341806';
+        else $tambonPrefix = '341801';
+        
+        $vhid_code = $tambonPrefix . sprintf("%02d", $vhv_moo);
+        
+        $conflict_name = '';
+        
+        if ($is_leader == 1) {
+            $chk = $pdo->prepare("SELECT vhv_name FROM vhv_users WHERE vhid_code = ? AND is_leader = 1 AND vhv_id != ? AND approved = 1");
+            $chk->execute([$vhid_code, $vhv_id]);
+            $conflict_name = $chk->fetchColumn() ?: '';
+        } elseif ($is_leader == 2) {
+            $chk = $pdo->prepare("SELECT vhv_name FROM vhv_users WHERE vhid_code LIKE ? AND is_leader = 2 AND vhv_id != ? AND approved = 1");
+            $chk->execute([$tambonPrefix . '%', $vhv_id]);
+            $conflict_name = $chk->fetchColumn() ?: '';
+        } elseif ($is_leader == 3) {
+            $chk = $pdo->prepare("SELECT vhv_name FROM vhv_users WHERE is_leader = 3 AND vhv_id != ? AND approved = 1");
+            $chk->execute([$vhv_id]);
+            $conflict_name = $chk->fetchColumn() ?: '';
+        }
+        
+        if (!empty($conflict_name)) {
+            echo json_encode(['status' => 'conflict', 'name' => $conflict_name]);
+        } else {
+            echo json_encode(['status' => 'ok']);
+        }
+        exit();
+    }
+
+    $target_vhv_id = $_POST['target_vhv_id'] ?? '';
 
     if (!empty($target_vhv_id) || $action === 'edit') {
         try {
@@ -181,6 +214,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $hoscode = trim($_POST['hoscode'] ?? '');
                     $is_leader = intval($_POST['is_leader'] ?? 0);
 
+                    if ($admin_hoscode !== null) {
+                        $checkRank = $pdo->prepare("SELECT is_leader FROM vhv_users WHERE vhv_id = ?");
+                        $checkRank->execute([$old_vhv_id]);
+                        $currentRank = intval($checkRank->fetchColumn() ?: 0);
+
+                        if ($is_leader == 3 || $currentRank == 3) {
+                            if ($is_leader != $currentRank) {
+                                throw new \Exception("คุณไม่มีสิทธิ์ในการกำหนดหรือเปลี่ยนสถานะประธาน อสม. ระดับอำเภอ");
+                            }
+                        }
+                    }
+
                     if (empty($new_vhv_id) || empty($vhv_name) || empty($hoscode)) {
                         $error = "กรุณากรอกข้อมูลให้ครบถ้วน";
                     } else {
@@ -222,6 +267,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         }
                         $new_vhid = $tambonPrefix . sprintf("%02d", $vhv_moo);
 
+                        // Demote conflicting leaders of the same scope if $is_leader > 0
+                        if ($is_leader == 1) {
+                            $demote = $pdo->prepare("UPDATE vhv_users SET is_leader = 0 WHERE vhid_code = ? AND is_leader = 1 AND vhv_id != ?");
+                            $demote->execute([$new_vhid, $old_vhv_id]);
+                        } elseif ($is_leader == 2) {
+                            $demote = $pdo->prepare("UPDATE vhv_users SET is_leader = 0 WHERE vhid_code LIKE ? AND is_leader = 2 AND vhv_id != ?");
+                            $demote->execute([$tambonPrefix . '%', $old_vhv_id]);
+                        } elseif ($is_leader == 3) {
+                            $demote = $pdo->prepare("UPDATE vhv_users SET is_leader = 0 WHERE is_leader = 3 AND vhv_id != ?");
+                            $demote->execute([$old_vhv_id]);
+                        }
+
                         // 4. Update VHV info
                         $updateVhv = $pdo->prepare("
                             UPDATE vhv_users 
@@ -257,29 +314,79 @@ try {
     $limit = 50;
     $offset = ($page - 1) * $limit;
 
-    $params = [];
-    $inPlaceholders = "";
+    // Search and Filter variables
+    $search = trim($_GET['search'] ?? '');
+    $hoscode_filter = trim($_GET['hoscode_filter'] ?? '');
+    $moo_filter = isset($_GET['moo_filter']) && $_GET['moo_filter'] !== '' ? intval($_GET['moo_filter']) : '';
+    $role_filter = trim($_GET['role_filter'] ?? '');
+
+    $where_pending = ["approved = 0"];
+    $where_approved = ["approved = 1"];
+    $params_pending = [];
+    $params_approved = [];
+
+    // Guard by admin's hoscode or filter by hoscode if main admin
     if ($admin_hoscode) {
-        $hoscodes = [$admin_hoscode];
-        $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
-        $params = $hoscodes;
+        $where_pending[] = "hoscode = ?";
+        $where_approved[] = "hoscode = ?";
+        $params_pending[] = $admin_hoscode;
+        $params_approved[] = $admin_hoscode;
+    } elseif (!empty($hoscode_filter)) {
+        $where_pending[] = "hoscode = ?";
+        $where_approved[] = "hoscode = ?";
+        $params_pending[] = $hoscode_filter;
+        $params_approved[] = $hoscode_filter;
+    }
+
+    // Filter by search text
+    if (!empty($search)) {
+        $where_pending[] = "(vhv_name LIKE ? OR vhv_id LIKE ?)";
+        $where_approved[] = "(vhv_name LIKE ? OR vhv_id LIKE ?)";
+        $params_pending[] = "%$search%";
+        $params_pending[] = "%$search%";
+        $params_approved[] = "%$search%";
+        $params_approved[] = "%$search%";
+    }
+
+    // Filter by Moo
+    if ($moo_filter !== '') {
+        $where_pending[] = "vhv_moo = ?";
+        $where_approved[] = "vhv_moo = ?";
+        $params_pending[] = $moo_filter;
+        $params_approved[] = $moo_filter;
+    }
+
+    // Filter by Role
+    if ($role_filter === 'leader_moo') {
+        $where_pending[] = "is_leader = 1";
+        $where_approved[] = "is_leader = 1";
+    } elseif ($role_filter === 'leader_tambon') {
+        $where_pending[] = "is_leader = 2";
+        $where_approved[] = "is_leader = 2";
+    } elseif ($role_filter === 'leader_amphoe') {
+        $where_pending[] = "is_leader = 3";
+        $where_approved[] = "is_leader = 3";
+    } elseif ($role_filter === 'leader_any') {
+        $where_pending[] = "is_leader > 0";
+        $where_approved[] = "is_leader > 0";
+    } elseif ($role_filter === 'member') {
+        $where_pending[] = "is_leader = 0";
+        $where_approved[] = "is_leader = 0";
+    } elseif ($role_filter === 'hl_coach') {
+        $where_pending[] = "is_hl_coach = 1";
+        $where_approved[] = "is_hl_coach = 1";
     }
 
     // 1. Fetch counts for tab badges
-    $count_pending_query = "SELECT COUNT(*) FROM vhv_users WHERE approved = 0";
-    $count_approved_query = "SELECT COUNT(*) FROM vhv_users WHERE approved = 1";
-
-    if ($admin_hoscode) {
-        $count_pending_query .= " AND hoscode IN ($inPlaceholders)";
-        $count_approved_query .= " AND hoscode IN ($inPlaceholders)";
-    }
+    $count_pending_query = "SELECT COUNT(*) FROM vhv_users WHERE " . implode(" AND ", $where_pending);
+    $count_approved_query = "SELECT COUNT(*) FROM vhv_users WHERE " . implode(" AND ", $where_approved);
 
     $stmt = $pdo->prepare($count_pending_query);
-    $stmt->execute($params);
+    $stmt->execute($params_pending);
     $total_pending = $stmt->fetchColumn();
 
     $stmt = $pdo->prepare($count_approved_query);
-    $stmt->execute($params);
+    $stmt->execute($params_approved);
     $total_approved = $stmt->fetchColumn();
 
     // 2. Fetch records for active tab only
@@ -293,21 +400,15 @@ try {
     }
 
     if ($tab === 'approved') {
-        $active_query = "SELECT * FROM vhv_users WHERE approved = 1";
-        if ($admin_hoscode) {
-            $active_query .= " AND hoscode IN ($inPlaceholders)";
-        }
-        $active_query .= " ORDER BY vhv_name ASC LIMIT $limit OFFSET $offset";
+        $active_query = "SELECT * FROM vhv_users WHERE " . implode(" AND ", $where_approved) . " ORDER BY vhv_name ASC LIMIT $limit OFFSET $offset";
+        $active_params = $params_approved;
     } else {
-        $active_query = "SELECT * FROM vhv_users WHERE approved = 0";
-        if ($admin_hoscode) {
-            $active_query .= " AND hoscode IN ($inPlaceholders)";
-        }
-        $active_query .= " ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
+        $active_query = "SELECT * FROM vhv_users WHERE " . implode(" AND ", $where_pending) . " ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
+        $active_params = $params_pending;
     }
 
     $stmt = $pdo->prepare($active_query);
-    $stmt->execute($params);
+    $stmt->execute($active_params);
     $active_list = $stmt->fetchAll();
 
     // Map $pending_list and $approved_list to work with existing HTML code
@@ -509,13 +610,89 @@ try {
         <?php endif; ?>
 
         <!-- Sub Tabs -->
+        <?php
+        $pendingParams = $_GET;
+        $pendingParams['tab'] = 'pending';
+        unset($pendingParams['page']);
+        
+        $approvedParams = $_GET;
+        $approvedParams['tab'] = 'approved';
+        unset($approvedParams['page']);
+        ?>
         <div class="tab-menu">
-            <a href="?tab=pending" class="tab-link <?= $tab === 'pending' ? 'active' : '' ?>">
+            <a href="?<?= http_build_query($pendingParams) ?>" class="tab-link <?= $tab === 'pending' ? 'active' : '' ?>">
                 รอการอนุมัติ (<?= number_format($total_pending) ?>)
             </a>
-            <a href="?tab=approved" class="tab-link <?= $tab === 'approved' ? 'active' : '' ?>">
+            <a href="?<?= http_build_query($approvedParams) ?>" class="tab-link <?= $tab === 'approved' ? 'active' : '' ?>">
                 อนุมัติแล้ว (<?= number_format($total_approved) ?>)
             </a>
+        </div>
+
+        <!-- Search and Filter Form -->
+        <div class="card-dark" style="padding: 20px; margin-bottom: 24px;">
+            <form method="GET" style="display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;">
+                <!-- Keep the active tab -->
+                <input type="hidden" name="tab" value="<?= htmlspecialchars($tab) ?>">
+                
+                <!-- Text search -->
+                <div style="flex: 2; min-width: 200px;">
+                    <label for="filter_search" style="display: block; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-primary);">ค้นหา อสม.</label>
+                    <input type="text" name="search" id="filter_search" class="form-input-text" placeholder="ชื่อ หรือ เบอร์โทรศัพท์..." value="<?= htmlspecialchars($search) ?>" style="box-shadow: var(--neumorph-inset); text-align: left; height: 44px; margin-bottom: 0;">
+                </div>
+
+                <!-- HOSCODE filter (Show only if main admin / super admin) -->
+                <?php if ($admin_hoscode === null): ?>
+                    <div style="flex: 1.5; min-width: 180px;">
+                        <label for="filter_hoscode" style="display: block; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-primary);">สังกัด รพ.สต.</label>
+                        <select name="hoscode_filter" id="filter_hoscode" class="form-select" style="box-shadow: var(--neumorph-inset); height: 44px; font-size: 14px;">
+                            <option value="">-- ทั้งหมดทุก รพ.สต. --</option>
+                            <?php foreach ($hc_names as $code => $name): ?>
+                                <option value="<?= $code ?>" <?= $hoscode_filter === $code ? 'selected' : '' ?>><?= htmlspecialchars($name) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Moo filter -->
+                <div style="width: 120px; min-width: 100px;">
+                    <label for="filter_moo" style="display: block; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-primary);">หมู่ที่</label>
+                    <select name="moo_filter" id="filter_moo" class="form-select" style="box-shadow: var(--neumorph-inset); height: 44px; font-size: 14px;">
+                        <option value="">-- ทั้งหมด --</option>
+                        <?php for ($i = 1; $i <= 20; $i++): ?>
+                            <option value="<?= $i ?>" <?= $moo_filter === $i ? 'selected' : '' ?>>หมู่ <?= $i ?></option>
+                        <?php endfor; ?>
+                    </select>
+                </div>
+
+                <!-- Status/Role filter -->
+                <div style="flex: 1.2; min-width: 160px;">
+                    <label for="filter_role" style="display: block; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-primary);">สถานะ / บทบาท</label>
+                    <select name="role_filter" id="filter_role" class="form-select" style="box-shadow: var(--neumorph-inset); height: 44px; font-size: 14px;">
+                        <option value="">-- ทั้งหมด --</option>
+                        <option value="leader_any" <?= $role_filter === 'leader_any' ? 'selected' : '' ?>>ประธาน อสม. (ทุกระดับ)</option>
+                        <option value="leader_moo" <?= $role_filter === 'leader_moo' ? 'selected' : '' ?>>ประธาน อสม. หมู่บ้าน</option>
+                        <option value="leader_tambon" <?= $role_filter === 'leader_tambon' ? 'selected' : '' ?>>🏆 ประธาน อสม. ตำบล</option>
+                        <option value="leader_amphoe" <?= $role_filter === 'leader_amphoe' ? 'selected' : '' ?>>👑 ประธาน อสม. อำเภอ</option>
+                        <option value="member" <?= $role_filter === 'member' ? 'selected' : '' ?>>อสม. สมาชิก</option>
+                        <option value="hl_coach" <?= $role_filter === 'hl_coach' ? 'selected' : '' ?>>HL-Coach</option>
+                    </select>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 8px;">
+                    <button type="submit" class="btn-giant btn-giant-primary" style="margin: 0; width: auto; padding: 0 20px; height: 44px; border-radius: var(--border-radius); font-size: 14px; display: inline-flex; align-items: center; gap: 6px;">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        กรองข้อมูล
+                    </button>
+                    <?php if (!empty($search) || !empty($hoscode_filter) || $moo_filter !== '' || !empty($role_filter)): ?>
+                        <a href="vhv_approval.php?tab=<?= htmlspecialchars($tab) ?>" class="btn-giant btn-giant-secondary" style="margin: 0; width: auto; padding: 0 16px; height: 44px; border-radius: var(--border-radius); line-height: 44px; font-size: 14px; text-align: center; display: inline-flex; align-items: center; background-color: var(--text-muted); color: white; text-decoration: none;">
+                            ล้างตัวกรอง
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </form>
         </div>
 
         <!-- Pending Approvals Section -->
@@ -658,8 +835,12 @@ try {
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <?php if ($user['is_leader']): ?>
-                                            <span style="color: var(--color-accent); font-weight: bold;">ประธาน อสม.</span>
+                                        <?php if ($user['is_leader'] == 1): ?>
+                                            <span style="color: var(--color-accent); font-weight: bold;">ประธาน อสม. หมู่บ้าน</span>
+                                        <?php elseif ($user['is_leader'] == 2): ?>
+                                            <span style="color: #a855f7; font-weight: bold; background: rgba(168,85,247,0.1); padding: 4px 8px; border-radius: 4px; font-size: 12px;">🏆 ประธาน อสม. ตำบล</span>
+                                        <?php elseif ($user['is_leader'] >= 3): ?>
+                                            <span style="color: #ec4899; font-weight: bold; background: rgba(236,72,153,0.1); padding: 4px 8px; border-radius: 4px; font-size: 12px;">👑 ประธาน อสม. อำเภอ</span>
                                         <?php else: ?>
                                             <span style="color: var(--text-muted);">อสม. สมาชิก</span>
                                         <?php endif; ?>
@@ -772,7 +953,9 @@ try {
                         <label for="modal_is_leader" class="modal-form-label">สถานะในระบบ</label>
                         <select name="is_leader" id="modal_is_leader" class="form-select" style="box-shadow: var(--neumorph-inset);">
                             <option value="0">อสม. สมาชิก</option>
-                            <option value="1">ประธาน อสม.</option>
+                            <option value="1">ประธาน อสม. หมู่บ้าน</option>
+                            <option value="2">ประธาน อสม. ตำบล</option>
+                            <option value="3">ประธาน อสม. อำเภอ</option>
                         </select>
                     </div>
                 </div>
@@ -798,7 +981,29 @@ try {
         </div>
     </div>
 
+    <!-- Confirm Swap Leader Modal -->
+    <div id="confirmSwapModal" class="modal-overlay" style="display: none; z-index: 1100;">
+        <div class="modal-content" style="max-width: 450px; text-align: center;">
+            <h3 style="color: var(--color-yellow); margin-top: 0; margin-bottom: 16px; font-size: 22px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                ⚠️ แจ้งเตือนการตั้งประธานซ้ำซ้อน
+            </h3>
+            <p id="swapModalText" style="color: var(--text-primary); font-size: 15px; line-height: 1.6; margin-bottom: 24px; text-align: left;">
+                มีประธาน อสม. ในระดับนี้อยู่ในเขตความรับผิดชอบนี้แล้ว
+            </p>
+            <div style="display: flex; gap: 12px; justify-content: center;">
+                <button type="button" onclick="closeSwapModal()" class="btn-giant btn-giant-secondary" style="height: 44px; line-height: 44px; padding: 0 20px; font-size: 14px; margin: 0; width: auto; background-color: var(--text-muted); color: white;">
+                    ยกเลิก
+                </button>
+                <button type="button" onclick="confirmAndSubmitSwap()" class="btn-giant btn-giant-primary" style="height: 44px; line-height: 44px; padding: 0 20px; font-size: 14px; margin: 0; width: auto; background-color: var(--color-yellow); color: #0f172a; font-weight: bold;">
+                    ยืนยันเพื่อสลับตำแหน่ง
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        const isAdminHospital = <?= $admin_hoscode !== null ? 'true' : 'false' ?>;
+        let originalIsLeader = 0;
 
         function openEditModal(userJson) {
             try {
@@ -807,8 +1012,43 @@ try {
                 document.getElementById('modal_vhv_id').value = user.vhv_id;
                 document.getElementById('modal_vhv_name').value = user.vhv_name;
                 document.getElementById('modal_vhv_moo').value = user.vhv_moo;
-                document.getElementById('modal_is_leader').value = user.is_leader;
                 document.getElementById('modal_hoscode').value = user.hoscode;
+                
+                originalIsLeader = parseInt(user.is_leader) || 0;
+                const selectLeader = document.getElementById('modal_is_leader');
+                
+                if (isAdminHospital) {
+                    if (user.is_leader == 3) {
+                        selectLeader.value = 3;
+                        selectLeader.disabled = true;
+                        
+                        let hiddenInput = document.getElementById('modal_is_leader_hidden');
+                        if (!hiddenInput) {
+                            hiddenInput = document.createElement('input');
+                            hiddenInput.type = 'hidden';
+                            hiddenInput.name = 'is_leader';
+                            hiddenInput.id = 'modal_is_leader_hidden';
+                            selectLeader.parentNode.appendChild(hiddenInput);
+                        }
+                        hiddenInput.value = 3;
+                    } else {
+                        selectLeader.value = user.is_leader;
+                        selectLeader.disabled = false;
+                        const opt3 = selectLeader.querySelector('option[value="3"]');
+                        if (opt3) opt3.disabled = true;
+                        
+                        const hiddenInput = document.getElementById('modal_is_leader_hidden');
+                        if (hiddenInput) hiddenInput.remove();
+                    }
+                } else {
+                    selectLeader.value = user.is_leader;
+                    selectLeader.disabled = false;
+                    const opt3 = selectLeader.querySelector('option[value="3"]');
+                    if (opt3) opt3.disabled = false;
+                    
+                    const hiddenInput = document.getElementById('modal_is_leader_hidden');
+                    if (hiddenInput) hiddenInput.remove();
+                }
                 
                 // Show modal overlay
                 const modal = document.getElementById('editModal');
@@ -821,6 +1061,12 @@ try {
 
         function closeEditModal() {
             document.getElementById('editModal').style.display = 'none';
+            document.getElementById('modal_is_leader').disabled = false;
+            const opt3 = document.getElementById('modal_is_leader').querySelector('option[value="3"]');
+            if (opt3) opt3.disabled = false;
+            const hiddenInput = document.getElementById('modal_is_leader_hidden');
+            if (hiddenInput) hiddenInput.remove();
+            originalIsLeader = 0;
         }
 
         // Close modal when clicking outside content
@@ -829,6 +1075,64 @@ try {
                 closeEditModal();
             }
         });
+
+        // Trigger leader check immediately on dropdown change
+        document.getElementById('modal_is_leader').addEventListener('change', function() {
+            const isLeaderVal = parseInt(this.value) || 0;
+            if (isLeaderVal === 0 || isLeaderVal === originalIsLeader) {
+                return; // Reverting to Member or same status requires no check
+            }
+
+            const oldVhvId = document.getElementById('modal_old_vhv_id').value;
+            const vhvMoo = document.getElementById('modal_vhv_moo').value;
+            const hoscode = document.getElementById('modal_hoscode').value;
+
+            // Fetch conflict check API
+            fetch('vhv_approval.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'action': 'check_leader',
+                    'vhv_id': oldVhvId,
+                    'is_leader': isLeaderVal,
+                    'vhv_moo': vhvMoo,
+                    'hoscode': hoscode
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'conflict') {
+                    let levelName = '';
+                    if (isLeaderVal === 1) levelName = 'ระดับหมู่บ้าน';
+                    else if (isLeaderVal === 2) levelName = 'ระดับตำบล';
+                    else if (isLeaderVal === 3) levelName = 'ระดับอำเภอ';
+
+                    document.getElementById('swapModalText').innerHTML = `
+                        ตรวจพบว่าพื้นที่นี้มี <strong>ประธาน อสม. ${levelName}</strong> ปฏิบัติงานอยู่แล้วคือ 
+                        <br><br>
+                        <strong style="font-size: 18px; color: var(--color-accent);">คุณ${data.name}</strong>
+                        <br><br>
+                        คุณต้องการยืนยันที่จะ<strong>สลับตำแหน่ง</strong>โดยแต่งตั้ง อสม. รายใหม่นี้ และปรับตำแหน่งของท่านเดิมให้เป็น อสม. สมาชิกทั่วไปแทนหรือไม่?
+                    `;
+                    document.getElementById('confirmSwapModal').style.display = 'flex';
+                }
+            })
+            .catch(err => {
+                console.error("Conflict check error:", err);
+            });
+        });
+
+        function closeSwapModal() {
+            document.getElementById('confirmSwapModal').style.display = 'none';
+            // Revert dropdown value back to its original value
+            document.getElementById('modal_is_leader').value = originalIsLeader;
+        }
+
+        function confirmAndSubmitSwap() {
+            document.getElementById('confirmSwapModal').style.display = 'none';
+        }
     </script>
 </body>
 </html>
