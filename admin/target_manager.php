@@ -92,9 +92,12 @@ if (isset($_GET['action'])) {
         $hoscode = $_GET['hoscode'] ?? '';
         $moo = $_GET['moo'] ?? '';
         $status = $_GET['status'] ?? 'all';
+        $page = max(1, intval($_GET['page'] ?? 1));
+        $limit = max(10, min(200, intval($_GET['limit'] ?? 50)));
+        $offset = ($page - 1) * $limit;
 
         if (!$hoscode) {
-            echo json_encode([]);
+            echo json_encode(['data' => [], 'total' => 0, 'page' => 1, 'limit' => $limit, 'totalPages' => 0]);
             exit;
         }
 
@@ -258,7 +261,7 @@ if (isset($_GET['action'])) {
             )
             WHERE t.cid IS NULL
         ) main_result
-        WHERE 1=1
+        WHERE age >= 35
         ";
 
         if ($status === 'target') {
@@ -267,11 +270,25 @@ if (isset($_GET['action'])) {
             $sql .= " AND (need_screen_dm = 0 AND need_screen_ht = 0)";
         }
 
+        // Count total records before pagination
+        $countSql = "SELECT COUNT(*) FROM ($sql) count_tbl";
+        $countStmt = $pdo->prepare($countSql);
+        $countStmt->execute($params);
+        $totalRecords = (int) $countStmt->fetchColumn();
+        $totalPages = max(1, ceil($totalRecords / $limit));
+
         $sql .= " ORDER BY CAST(house_no AS UNSIGNED) ASC, house_no ASC";
+        $sql .= " LIMIT $limit OFFSET $offset";
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
-        echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+        echo json_encode([
+            'data' => $stmt->fetchAll(PDO::FETCH_ASSOC),
+            'total' => $totalRecords,
+            'page' => $page,
+            'limit' => $limit,
+            'totalPages' => $totalPages
+        ]);
         exit;
     }
 
@@ -691,6 +708,49 @@ if (isset($_GET['action'])) {
             color: #9ca3af;
             border: 1px solid #9ca3af;
         }
+        /* Pagination Controls */
+        .pagination-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            padding: 16px 0 8px;
+            flex-wrap: wrap;
+        }
+        .pagination-bar button {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-weight: 700;
+            font-size: 13px;
+            padding: 6px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: var(--neumorph-flat);
+            transition: all var(--transition-speed);
+            min-width: 36px;
+        }
+        .pagination-bar button:hover:not(:disabled) {
+            color: var(--color-accent);
+            border-color: var(--color-accent);
+            transform: translateY(-1px);
+        }
+        .pagination-bar button.active {
+            background: var(--color-primary);
+            color: #fff;
+            border-color: var(--color-primary);
+            box-shadow: var(--neumorph-inset);
+        }
+        .pagination-bar button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .pagination-info {
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 600;
+            margin-left: 12px;
+        }
     </style>
 </head>
 
@@ -796,6 +856,7 @@ if (isset($_GET['action'])) {
             <div class="list-body" id="target-list" style="margin-top: 20px;">
                 <div style="text-align: center; color: var(--text-muted); padding: 40px;">กรุณาเลือกพื้นที่</div>
             </div>
+            <div id="pagination-container"></div>
         </div>
     </div>
 
@@ -849,8 +910,13 @@ if (isset($_GET['action'])) {
         }
 
         let currentTargets = [];
+        let currentPage = 1;
+        let totalPages = 1;
+        let totalRecords = 0;
+        const pageLimit = 50;
 
-        function fetchData() {
+        function fetchData(page = 1) {
+            currentPage = page;
             const tambon = document.getElementById('tambon').value;
             const moo = document.getElementById('moo').value;
             const status = document.getElementById('status_filter').value;
@@ -859,6 +925,7 @@ if (isset($_GET['action'])) {
             if (!tambon || !moo) {
                 document.getElementById('target-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">กรุณาเลือกหมู่บ้าน</div>';
                 document.getElementById('target-count').innerText = '(พบ 0 ราย)';
+                document.getElementById('pagination-container').innerHTML = '';
                 return;
             }
 
@@ -869,18 +936,23 @@ if (isset($_GET['action'])) {
             }
 
             document.getElementById('target-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">กำลังโหลด...</div>';
+            document.getElementById('pagination-container').innerHTML = '';
 
-            fetch(`target_manager.php?action=get_targets&hoscode=${hoscode}&moo=${moo}&status=${status}`)
+            fetch(`target_manager.php?action=get_targets&hoscode=${hoscode}&moo=${moo}&status=${status}&page=${currentPage}&limit=${pageLimit}`)
                 .then(r => r.json())
-                .then(data => {
-                    currentTargets = data;
+                .then(resp => {
+                    currentTargets = resp.data || [];
+                    totalRecords = resp.total || 0;
+                    totalPages = resp.totalPages || 1;
+                    currentPage = resp.page || 1;
                     renderTargets();
+                    renderPagination();
                 });
         }
 
         function renderTargets() {
             const list = document.getElementById('target-list');
-            document.getElementById('target-count').innerText = `(พบ ${currentTargets.length} ราย)`;
+            document.getElementById('target-count').innerText = `(พบ ${totalRecords} ราย — หน้า ${currentPage}/${totalPages})`;
             updateSelectedCount();
 
             if (currentTargets.length === 0) {
@@ -967,6 +1039,50 @@ if (isset($_GET['action'])) {
             });
             list.innerHTML = html;
             document.getElementById('select-all').checked = false;
+        }
+
+        function renderPagination() {
+            const container = document.getElementById('pagination-container');
+            if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+            let html = '<div class="pagination-bar">';
+
+            // Previous button
+            html += `<button ${currentPage <= 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})" title="หน้าก่อน">◀</button>`;
+
+            // Page number buttons with ellipsis
+            const maxVisible = 7;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+            if (endPage - startPage < maxVisible - 1) {
+                startPage = Math.max(1, endPage - maxVisible + 1);
+            }
+
+            if (startPage > 1) {
+                html += `<button onclick="goToPage(1)">1</button>`;
+                if (startPage > 2) html += `<span style="color: var(--text-muted); padding: 0 4px;">…</span>`;
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button class="${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) html += `<span style="color: var(--text-muted); padding: 0 4px;">…</span>`;
+                html += `<button onclick="goToPage(${totalPages})">${totalPages}</button>`;
+            }
+
+            // Next button
+            html += `<button ${currentPage >= totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})" title="หน้าถัดไป">▶</button>`;
+
+            html += `<span class="pagination-info">แสดง ${((currentPage-1)*pageLimit)+1}–${Math.min(currentPage*pageLimit, totalRecords)} จาก ${totalRecords} ราย</span>`;
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function goToPage(page) {
+            if (page < 1 || page > totalPages) return;
+            fetchData(page);
         }
 
         function toggleSelectAll() {
