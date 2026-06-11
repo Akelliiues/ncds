@@ -46,8 +46,8 @@ function findAllDuplicates($pdo) {
             'A' AS dup_type
         FROM target_population t1
         JOIN target_population t2
-          ON LPAD(t1.hoscode,5,'0') = LPAD(t2.hoscode,5,'0')
-         AND TRIM(LEADING '0' FROM t1.pid) = TRIM(LEADING '0' FROM t2.pid)
+          ON t1.hoscode = t2.hoscode
+         AND t1.pid = t2.pid
         WHERE (
             t1.cid LIKE '%*%' 
             OR t1.first_name LIKE '%*%' 
@@ -91,8 +91,8 @@ function findAllDuplicates($pdo) {
             'B' AS dup_type
         FROM target_population t1
         JOIN target_population t2
-          ON LPAD(t1.hoscode,5,'0') = LPAD(t2.hoscode,5,'0')
-         AND TRIM(LEADING '0' FROM t1.pid) = TRIM(LEADING '0' FROM t2.pid)
+          ON t1.hoscode = t2.hoscode
+         AND t1.pid = t2.pid
         WHERE t1.cid NOT LIKE '%*%'
           AND t2.cid NOT LIKE '%*%'
           AND t1.cid <> t2.cid
@@ -332,14 +332,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_clean'])) {
         $updatedDefaultNames = $pdo->exec("
             UPDATE target_population t
             JOIN (
-                SELECT pid, hoscode,
+                SELECT dm.pid, dm.hoscode,
                        COALESCE(NULLIF(dm.name,''), NULLIF(ht.name,'')) AS fname,
                        COALESCE(NULLIF(dm.lname,''), NULLIF(ht.lname,'')) AS lname
                 FROM (SELECT DISTINCT pid, hoscode, name, lname FROM staging_hdc_dm) dm
                 LEFT JOIN (SELECT DISTINCT pid, hoscode, name AS htname, lname AS htlname FROM staging_hdc_ht) ht
                   ON dm.pid = ht.pid AND dm.hoscode = ht.hoscode
-            ) s ON LPAD(t.hoscode,5,'0') = LPAD(s.hoscode,5,'0')
-               AND TRIM(LEADING '0' FROM t.pid) = TRIM(LEADING '0' FROM s.pid)
+            ) s ON t.hoscode = s.hoscode
+               AND t.pid = s.pid
             SET
                 t.first_name = CASE WHEN t.first_name IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','') AND s.fname IS NOT NULL THEN s.fname ELSE t.first_name END,
                 t.last_name  = CASE WHEN t.last_name  IN ('ไม่ทราบประวัติ','ไม่ทราบ','Unknown','') AND s.lname IS NOT NULL THEN s.lname ELSE t.last_name END,
@@ -361,10 +361,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_clean'])) {
 
         // ตรวจ pid+hoscode ซ้ำที่เหลือ
         $v1 = $pdo->query("
-            SELECT LPAD(hoscode,5,'0') AS hoscode, TRIM(LEADING '0' FROM pid) AS pid, COUNT(*) AS cnt
+            SELECT LPAD(hoscode,5,'0') AS hoscode, pid, COUNT(*) AS cnt
             FROM target_population
             WHERE pid IS NOT NULL AND pid != ''
-            GROUP BY LPAD(hoscode,5,'0'), TRIM(LEADING '0' FROM pid)
+            GROUP BY LPAD(hoscode,5,'0'), pid
             HAVING cnt > 1
         ")->fetchAll();
         $verifyResults['remaining_pid_dupes'] = $v1;

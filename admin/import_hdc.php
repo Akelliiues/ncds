@@ -503,7 +503,7 @@ if (isset($_POST['action_confirm'])) {
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
             } elseif ($importType === 'home') {
-                $stmtCheckHome = $pdo->prepare("SELECT 1 FROM target_population WHERE LPAD(hoscode, 5, '0') = LPAD(?, 5, '0') AND hid = ? LIMIT 1");
+                $stmtCheckHome = $pdo->prepare("SELECT 1 FROM target_population WHERE hoscode = ? AND hid = ? LIMIT 1");
                 $stmt = $pdo->prepare("
                     INSERT INTO jhcis_homes 
                     (hoscode, hid, house_no, vhid_code, latitude, longitude)
@@ -516,7 +516,7 @@ if (isset($_POST['action_confirm'])) {
                 ");
             } else {
                 // Type: person
-                $stmtCheckPerson = $pdo->prepare("SELECT * FROM target_population WHERE cid = ? OR (LPAD(hoscode, 5, '0') = LPAD(?, 5, '0') AND TRIM(LEADING '0' FROM pid) = TRIM(LEADING '0' FROM ?))");
+                $stmtCheckPerson = $pdo->prepare("SELECT * FROM target_population WHERE cid = ? OR (hoscode = ? AND pid = ?)");
                 $stmtUpdatePersonCid = $pdo->prepare("UPDATE target_population SET cid = ?, hid = ?, pid = ?, first_name = ?, last_name = ?, sex = ?, birth = ?, house_no = ?, moo = ?, sub_district_code = ?, vhid_code = ?, hoscode = ?, updated_at = NOW() WHERE cid = ?");
                 $stmtUpdatePersonSimple = $pdo->prepare("UPDATE target_population SET hid = ?, pid = ?, first_name = ?, last_name = ?, sex = ?, birth = ?, house_no = ?, moo = ?, sub_district_code = ?, vhid_code = ?, hoscode = ?, updated_at = NOW() WHERE cid = ?");
                 $stmtInsertPerson = $pdo->prepare("INSERT INTO target_population (cid, hid, pid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE hid=VALUES(hid), pid=VALUES(pid), first_name=VALUES(first_name), last_name=VALUES(last_name), sex=VALUES(sex), birth=VALUES(birth), house_no=VALUES(house_no), moo=VALUES(moo), sub_district_code=VALUES(sub_district_code), vhid_code=VALUES(vhid_code), hoscode=VALUES(hoscode), updated_at=NOW()");
@@ -569,6 +569,10 @@ if (isset($_POST['action_confirm'])) {
                 foreach ($expectedCols as $colKey => $names) {
                     $idx = $mapping[$colKey];
                     $rowVals[$colKey] = ($idx !== -1 && isset($row[$idx])) ? $row[$idx] : null;
+                }
+                
+                if (isset($rowVals['pid']) && $rowVals['pid'] !== null) {
+                    $rowVals['pid'] = ltrim(trim((string)$rowVals['pid']), '0');
                 }
                 
                 // Get hoscode

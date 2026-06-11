@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
     try {
         $exists = null;
         if (!empty($hoscode) && !empty($pid)) {
-            $stmt = $pdo->prepare("SELECT cid, pid, hoscode, need_screen_dm, need_screen_ht FROM target_population WHERE LPAD(hoscode, 5, '0') = LPAD(?, 5, '0') AND TRIM(LEADING '0' FROM pid) = TRIM(LEADING '0' FROM ?)");
+            $stmt = $pdo->prepare("SELECT cid, pid, hoscode, need_screen_dm, need_screen_ht FROM target_population WHERE hoscode = ? AND pid = ?");
             $stmt->execute([$hoscode, $pid]);
             $exists = $stmt->fetch();
         }
@@ -53,11 +53,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
             $dm = null;
             $ht = null;
             if (!empty($hoscode) && !empty($pid)) {
-                $stmtDM = $pdo->prepare("SELECT * FROM staging_hdc_dm WHERE LPAD(hoscode, 5, '0') = LPAD(?, 5, '0') AND TRIM(LEADING '0' FROM pid) = TRIM(LEADING '0' FROM ?) LIMIT 1");
+                $stmtDM = $pdo->prepare("SELECT * FROM staging_hdc_dm WHERE hoscode = ? AND pid = ? LIMIT 1");
                 $stmtDM->execute([$hoscode, $pid]);
                 $dm = $stmtDM->fetch();
                 
-                $stmtHT = $pdo->prepare("SELECT * FROM staging_hdc_ht WHERE LPAD(hoscode, 5, '0') = LPAD(?, 5, '0') AND TRIM(LEADING '0' FROM pid) = TRIM(LEADING '0' FROM ?) LIMIT 1");
+                $stmtHT = $pdo->prepare("SELECT * FROM staging_hdc_ht WHERE hoscode = ? AND pid = ? LIMIT 1");
                 $stmtHT->execute([$hoscode, $pid]);
                 $ht = $stmtHT->fetch();
             } else {
@@ -282,7 +282,7 @@ if ($diseaseType === 'BOTH') {
     $countSql = "
         SELECT COUNT(dm.cid)
         FROM staging_hdc_dm dm
-        INNER JOIN staging_hdc_ht ht ON LPAD(dm.hoscode, 5, '0') = LPAD(ht.hoscode, 5, '0') AND dm.pid = ht.pid
+        INNER JOIN staging_hdc_ht ht ON dm.hoscode = ht.hoscode AND dm.pid = ht.pid
         $whereClause
     ";
     $countStmt = $pdo->prepare($countSql);
@@ -298,13 +298,13 @@ if ($diseaseType === 'BOTH') {
             t.cid AS real_cid, t.first_name AS real_first_name, t.last_name AS real_last_name, t.birth AS real_birth,
             t.need_screen_dm AS target_need_dm, t.need_screen_ht AS target_need_ht
         FROM staging_hdc_dm dm
-        INNER JOIN staging_hdc_ht ht ON LPAD(dm.hoscode, 5, '0') = LPAD(ht.hoscode, 5, '0') AND dm.pid = ht.pid
+        INNER JOIN staging_hdc_ht ht ON dm.hoscode = ht.hoscode AND dm.pid = ht.pid
         LEFT JOIN target_population t ON (
             (t.cid = dm.cid AND dm.cid NOT LIKE '%*%')
             OR
             (
-                LPAD(t.hoscode, 5, '0') = LPAD(dm.hoscode, 5, '0') 
-                AND TRIM(LEADING '0' FROM t.pid) = TRIM(LEADING '0' FROM dm.pid)
+                t.hoscode = dm.hoscode 
+                AND t.pid = dm.pid
                 AND t.pid IS NOT NULL 
                 AND t.pid != ''
                 AND dm.pid IS NOT NULL
@@ -373,8 +373,8 @@ if ($diseaseType === 'BOTH') {
             (t.cid = s.cid AND s.cid NOT LIKE '%*%')
             OR
             (
-                LPAD(t.hoscode, 5, '0') = LPAD(s.hoscode, 5, '0') 
-                AND TRIM(LEADING '0' FROM t.pid) = TRIM(LEADING '0' FROM s.pid)
+                t.hoscode = s.hoscode 
+                AND t.pid = s.pid
                 AND t.pid IS NOT NULL 
                 AND t.pid != ''
                 AND s.pid IS NOT NULL

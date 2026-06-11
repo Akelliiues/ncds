@@ -282,7 +282,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
             $hid        = $source['hid']         ?? '000000000000000';
             $addr       = $source['addr']        ?? '';
             $checkVhid  = $source['check_vhid']  ?? '';
-            $pid        = $source['pid']         ?? null;
+            $pid        = !empty($source['pid']) ? ltrim(trim((string)$source['pid']), '0') : null;
             $hoscode    = trim((string)($source['hoscode'] ?? '00000'));
             if (is_numeric($hoscode) && strlen($hoscode) < 5) $hoscode = str_pad($hoscode, 5, '0', STR_PAD_LEFT);
 
@@ -542,8 +542,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_merge'])) {
                     FROM (SELECT DISTINCT pid, hoscode, name, lname FROM staging_hdc_dm) dm
                     LEFT JOIN (SELECT DISTINCT pid, hoscode, name AS hname, lname AS hlname FROM staging_hdc_ht) ht
                       ON dm.pid = ht.pid AND dm.hoscode = ht.hoscode
-                ) s ON LPAD(t.hoscode,5,'0') = LPAD(s.hoscode,5,'0')
-                   AND TRIM(LEADING '0' FROM t.pid) = TRIM(LEADING '0' FROM s.pid)
+                ) s ON t.hoscode = s.hoscode
+                   AND t.pid = s.pid
                 SET
                     t.first_name = CASE WHEN t.first_name IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','') AND s.fname IS NOT NULL AND s.fname != '' THEN s.fname ELSE t.first_name END,
                     t.last_name  = CASE WHEN t.last_name IN ('ไม่ทราบประวัติ','ไม่ทราบ','Unknown','') AND s.lname IS NOT NULL AND s.lname != '' THEN s.lname ELSE t.last_name END,

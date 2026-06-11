@@ -163,7 +163,7 @@ if (isset($_GET['action'])) {
             FROM target_population t
             LEFT JOIN target_population tp_real ON (
                 tp_real.hoscode = t.hoscode
-                AND TRIM(LEADING '0' FROM tp_real.pid) = TRIM(LEADING '0' FROM t.pid)
+                AND tp_real.pid = t.pid
                 AND tp_real.cid NOT LIKE '0%'
                 AND tp_real.cid NOT LIKE '%*%'
                 AND tp_real.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
@@ -188,7 +188,7 @@ if (isset($_GET['action'])) {
                 GROUP BY hoscode, pid
             ) h ON (
                 (t.cid = h.cid AND h.cid NOT LIKE '%*%')
-                OR (t.hoscode = h.hoscode AND TRIM(LEADING '0' FROM t.pid) = TRIM(LEADING '0' FROM h.pid) AND t.pid IS NOT NULL AND t.pid != '')
+                OR (t.hoscode = h.hoscode AND t.pid = h.pid AND t.pid IS NOT NULL AND t.pid != '')
             )
             WHERE t.hoscode IN ($inPlaceholders) $mooCond1
             
@@ -247,11 +247,11 @@ if (isset($_GET['action'])) {
             ) h
             LEFT JOIN target_population t ON (
                 (t.cid = h.cid AND h.cid NOT LIKE '%*%')
-                OR (t.hoscode = h.hoscode AND TRIM(LEADING '0' FROM t.pid) = TRIM(LEADING '0' FROM h.pid) AND t.pid IS NOT NULL AND t.pid != '')
+                OR (t.hoscode = h.hoscode AND t.pid = h.pid AND t.pid IS NOT NULL AND t.pid != '')
             )
             LEFT JOIN target_population tp_real ON (
                 tp_real.hoscode = h.hoscode
-                AND TRIM(LEADING '0' FROM tp_real.pid) = TRIM(LEADING '0' FROM h.pid)
+                AND tp_real.pid = h.pid
                 AND tp_real.cid NOT LIKE '0%'
                 AND tp_real.cid NOT LIKE '%*%'
                 AND tp_real.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
