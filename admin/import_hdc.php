@@ -53,6 +53,42 @@ function translateRiskTextToNumber($text) {
     return '0';
 }
 
+function isValidThaiCitizenIDMOD11($cid) {
+    $cid = preg_replace('/[^0-9]/', '', $cid);
+    if (strlen($cid) !== 13) {
+        return false;
+    }
+    $sum = 0;
+    for ($i = 0; $i < 12; $i++) {
+        $sum += (int)$cid[$i] * (13 - $i);
+    }
+    $checkDigit = (11 - ($sum % 11)) % 10;
+    return $checkDigit === (int)$cid[12];
+}
+
+function isMockHospitalCID($cid, $hoscode = null) {
+    $cid = trim((string)$cid);
+    if (strlen($cid) !== 13) return false;
+    
+    if ($hoscode !== null) {
+        $paddedHos = str_pad(trim($hoscode), 5, '0', STR_PAD_LEFT);
+        if (strpos($cid, $paddedHos) === 0) {
+            return true;
+        }
+    }
+    
+    global $hc_names;
+    if (empty($hc_names)) {
+        $hc_names = get_health_units();
+    }
+    $prefix = substr($cid, 0, 5);
+    if (isset($hc_names[$prefix])) {
+        return true;
+    }
+    
+    return false;
+}
+
 // Helper to match column headers case-insensitively
 function getColumnIndex($headers, $possibleNames) {
     foreach ($possibleNames as $name) {
@@ -708,7 +744,12 @@ if (isset($_POST['action_confirm'])) {
                             $finalSubDistrict = !empty($existing['sub_district_code']) ? $existing['sub_district_code'] : $subDistrictCode;
                             $finalVhid = !empty($existing['vhid_code']) && $existing['vhid_code'] !== '34180101' ? $existing['vhid_code'] : $checkVhid;
 
-                            if ($oldCid !== $newCid) {
+                            $useOldCid = false;
+                            if (isValidThaiCitizenIDMOD11($oldCid) && isMockHospitalCID($newCid, $rowHoscode)) {
+                                $useOldCid = true;
+                            }
+
+                            if ($oldCid !== $newCid && !$useOldCid) {
                                 // Check if new CID already exists in database using cache to avoid PRIMARY KEY duplicate violation
                                 if (isset($existingPersonsByCid[$cleanCid])) {
                                     $skippedCount++;
@@ -745,7 +786,7 @@ if (isset($_POST['action_confirm'])) {
                                 $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
                                 $updatedCount++;
                             } else {
-                                // Same CID: update demographics and preserve address
+                                // Same CID or we are forcing keeping the old CID: update demographics and preserve address
                                 $stmtUpdatePersonSimple->execute([
                                     $finalHid,
                                     $pid,
@@ -758,7 +799,7 @@ if (isset($_POST['action_confirm'])) {
                                     $finalSubDistrict,
                                     $finalVhid,
                                     $rowHoscode,
-                                    $newCid
+                                    $oldCid // Use old CID to perform update if we are keeping the old CID
                                 ]);
                                 $updatedCount++;
                             }

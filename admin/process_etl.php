@@ -24,6 +24,42 @@ function validateThaiCitizenID($id) {
     return strlen($id) === 13;
 }
 
+function isValidThaiCitizenIDMOD11($cid) {
+    $cid = preg_replace('/[^0-9]/', '', $cid);
+    if (strlen($cid) !== 13) {
+        return false;
+    }
+    $sum = 0;
+    for ($i = 0; $i < 12; $i++) {
+        $sum += (int)$cid[$i] * (13 - $i);
+    }
+    $checkDigit = (11 - ($sum % 11)) % 10;
+    return $checkDigit === (int)$cid[12];
+}
+
+function isMockHospitalCID($cid, $hoscode = null) {
+    $cid = trim((string)$cid);
+    if (strlen($cid) !== 13) return false;
+    
+    if ($hoscode !== null) {
+        $paddedHos = str_pad(trim($hoscode), 5, '0', STR_PAD_LEFT);
+        if (strpos($cid, $paddedHos) === 0) {
+            return true;
+        }
+    }
+    
+    global $hc_names;
+    if (empty($hc_names)) {
+        $hc_names = get_health_units();
+    }
+    $prefix = substr($cid, 0, 5);
+    if (isset($hc_names[$prefix])) {
+        return true;
+    }
+    
+    return false;
+}
+
 /**
  * คำนวณ confidence score ระหว่าง 2 records
  * คืนค่า 0-100 และ array of matching factors
@@ -156,10 +192,24 @@ function findDuplicatesWithConfidence($pdo) {
                 ['cid'=>$r['cid_a'],'first_name'=>$r['fn_a'],'last_name'=>$r['ln_a'],'house_no'=>$r['hn_a'],'moo'=>$r['moo_a'],'sub_district_code'=>$r['sub_a'],'birth'=>$r['birth_a'],'sex'=>$r['sex_a'],'pid'=>$r['pid_a'],'hoscode'=>$r['hsc_a']],
                 ['cid'=>$r['cid_b'],'first_name'=>$r['fn_b'],'last_name'=>$r['ln_b'],'house_no'=>$r['hn_b'],'moo'=>$r['moo_b'],'sub_district_code'=>$r['sub_b'],'birth'=>$r['birth_b'],'sex'=>$r['sex_b'],'pid'=>$r['pid_b'],'hoscode'=>$r['hsc_b']]
             );
-            // เลือก record ที่ชื่อสมบูรณ์กว่าเป็น "real"
-            $aIsDefault = in_array($r['fn_a'], ['ไม่ทราบชื่อ','ไม่ทราบ','Unknown','']);
-            $masked = $aIsDefault ? $r['cid_a'] : $r['cid_b'];
-            $real   = $aIsDefault ? $r['cid_b'] : $r['cid_a'];
+            // ตรวจสอบความถูกต้องของ CID (MOD11) และตัวจำลองขึ้นต้นด้วยรหัสหน่วยบริการ (Mock Hospital CID)
+            $aIsMock = isMockHospitalCID($r['cid_a'], $r['hsc_a']);
+            $bIsMock = isMockHospitalCID($r['cid_b'], $r['hsc_b']);
+            $aIsValidMOD11 = isValidThaiCitizenIDMOD11($r['cid_a']);
+            $bIsValidMOD11 = isValidThaiCitizenIDMOD11($r['cid_b']);
+
+            if ($aIsMock && !$bIsMock && $bIsValidMOD11) {
+                $masked = $r['cid_a'];
+                $real   = $r['cid_b'];
+            } elseif ($bIsMock && !$aIsMock && $aIsValidMOD11) {
+                $masked = $r['cid_b'];
+                $real   = $r['cid_a'];
+            } else {
+                // เลือก record ที่ชื่อสมบูรณ์กว่าเป็น "real"
+                $aIsDefault = in_array($r['fn_a'], ['ไม่ทราบชื่อ','ไม่ทราบ','Unknown','']);
+                $masked = $aIsDefault ? $r['cid_a'] : $r['cid_b'];
+                $real   = $aIsDefault ? $r['cid_b'] : $r['cid_a'];
+            }
             $dupes[] = array_merge($r, ['confidence' => $conf['score'], 'factors' => $conf['factors'], 'masked_cid' => $masked, 'real_cid' => $real]);
         }
     }
@@ -281,6 +331,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
 
             if ($exists) {
                 $realCid = $exists['cid'];
+                
+                // หาก CID เดิมในระบบเป็นรหัสจำลอง แต่ใน staging ได้รับ CID จริง (ตามหลัก MOD11) ให้สลับมาใช้ CID จริงทันที
+                if (isMockHospitalCID($realCid, $exists['hoscode']) && isValidThaiCitizenIDMOD11($cleanCid)) {
+                    $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
+                    $pdo->prepare("UPDATE task_assignments SET target_cid = ? WHERE target_cid = ?")->execute([$cleanCid, $realCid]);
+                    $pdo->prepare("UPDATE dpac_enrollments SET cid = ? WHERE cid = ?")->execute([$cleanCid, $realCid]);
+                    $pdo->prepare("UPDATE target_population SET cid = ? WHERE cid = ?")->execute([$cleanCid, $realCid]);
+                    $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
+                    
+                    $realCid = $cleanCid;
+                }
+                
                 $lat = ($exists['latitude'] !== null && $exists['latitude'] != 0) ? $exists['latitude'] : null;
                 $lng = ($exists['longitude'] !== null && $exists['longitude'] != 0) ? $exists['longitude'] : null;
                 if ($exists['need_screen_dm'] == 1) $needScreenDm = true;
@@ -432,6 +494,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_merge'])) {
                             $stmtUpdDpac->execute([$real_cid, $md['enrollment_id']]);
                         }
                     }
+
+                    // คัดลอกข้อมูล Demographics ที่สมบูรณ์/ไม่ปกปิดจาก record ที่จะถูกลบไปยัง record ที่จะเก็บไว้
+                    $stmtUpdateDemographics = $pdo->prepare("
+                        UPDATE target_population t_keep
+                        JOIN target_population t_del ON t_del.cid = ?
+                        SET 
+                            t_keep.first_name = CASE WHEN (t_keep.first_name LIKE '%*%' OR t_keep.first_name IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')) AND t_del.first_name NOT LIKE '%*%' AND t_del.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','') THEN t_del.first_name ELSE t_keep.first_name END,
+                            t_keep.last_name = CASE WHEN (t_keep.last_name LIKE '%*%' OR t_keep.last_name IN ('ไม่ทราบประวัติ','ไม่ทราบ','Unknown','')) AND t_del.last_name NOT LIKE '%*%' AND t_del.last_name NOT IN ('ไม่ทราบประวัติ','ไม่ทราบ','Unknown','') THEN t_del.last_name ELSE t_keep.last_name END,
+                            t_keep.sex = CASE WHEN (t_keep.sex IS NULL OR t_keep.sex = '1') AND t_del.sex != '1' THEN t_del.sex ELSE t_keep.sex END,
+                            t_keep.birth = CASE WHEN (t_keep.birth IS NULL OR t_keep.birth = '1970-01-01') AND t_del.birth != '1970-01-01' THEN t_del.birth ELSE t_keep.birth END,
+                            t_keep.pid = CASE WHEN (t_keep.pid IS NULL OR t_keep.pid = '') THEN t_del.pid ELSE t_keep.pid END,
+                            t_keep.hid = CASE WHEN (t_keep.hid IS NULL OR t_keep.hid = '' OR t_keep.hid = '000000000000000') THEN t_del.hid ELSE t_keep.hid END,
+                            t_keep.house_no = CASE WHEN (t_keep.house_no IS NULL OR t_keep.house_no = '') THEN t_del.house_no ELSE t_keep.house_no END,
+                            t_keep.moo = CASE WHEN (t_keep.moo IS NULL OR t_keep.moo = 0 OR t_keep.moo = 1) AND t_del.moo > 1 THEN t_del.moo ELSE t_keep.moo END,
+                            t_keep.sub_district_code = CASE WHEN (t_keep.sub_district_code IS NULL OR t_keep.sub_district_code = '' OR t_keep.sub_district_code = '341801') AND t_del.sub_district_code != '341801' THEN t_del.sub_district_code ELSE t_keep.sub_district_code END,
+                            t_keep.vhid_code = CASE WHEN (t_keep.vhid_code IS NULL OR t_keep.vhid_code = '' OR t_keep.vhid_code = '34180101') AND t_del.vhid_code != '34180101' THEN t_del.vhid_code ELSE t_keep.vhid_code END,
+                            t_keep.latitude = CASE WHEN (t_keep.latitude IS NULL OR t_keep.latitude = 0) AND t_del.latitude != 0 THEN t_del.latitude ELSE t_keep.latitude END,
+                            t_keep.longitude = CASE WHEN (t_keep.longitude IS NULL OR t_keep.longitude = 0) AND t_del.longitude != 0 THEN t_del.longitude ELSE t_keep.longitude END,
+                            t_keep.need_screen_dm = CASE WHEN t_del.need_screen_dm = 1 THEN 1 ELSE t_keep.need_screen_dm END,
+                            t_keep.need_screen_ht = CASE WHEN t_del.need_screen_ht = 1 THEN 1 ELSE t_keep.need_screen_ht END,
+                            t_keep.health_status_origin = CASE WHEN t_keep.health_status_origin = 'NORMAL' AND t_del.health_status_origin != 'NORMAL' THEN t_del.health_status_origin ELSE t_keep.health_status_origin END,
+                            t_keep.updated_at = NOW()
+                        WHERE t_keep.cid = ?
+                    ");
+                    $stmtUpdateDemographics->execute([$masked_cid, $real_cid]);
 
                     // Delete masked target record
                     $stmtDelTarget->execute([$masked_cid]);
