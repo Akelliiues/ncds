@@ -234,10 +234,7 @@ if (isset($_POST['action_upload']) && isset($_FILES['csv_file'])) {
     @ini_set('max_execution_time', 0);
     @ini_set('memory_limit', '512M');
     $importType = $_POST['import_type'] ?? 'dm';
-    $selectedHoscode = $_POST['hoscode'] ?? '10957';
-    if ($importType === 'person' || $importType === 'home') {
-        $selectedHoscode = 'ALL';
-    }
+    $selectedHoscode = 'ALL';
     $file = $_FILES['csv_file']['tmp_name'];
     $originalName = $_FILES['csv_file']['name'];
     
@@ -394,10 +391,7 @@ if (isset($_POST['action_confirm'])) {
     @ini_set('max_execution_time', 0);
     @ini_set('memory_limit', '512M');
     $importType = $_POST['import_type'] ?? 'dm';
-    $selectedHoscode = $_POST['hoscode'] ?? '10957';
-    if ($importType === 'person' || $importType === 'home') {
-        $selectedHoscode = 'ALL';
-    }
+    $selectedHoscode = 'ALL';
     $tempFileName = $_POST['temp_file'] ?? '';
     $tempPath = $tempDir . '/' . basename($tempFileName);
     $delimiter = $_POST['delimiter'] ?? ',';
@@ -1035,32 +1029,9 @@ if (isset($_POST['action_confirm'])) {
                 <form action="" method="POST" enctype="multipart/form-data" id="upload-form">
                     <input type="hidden" name="action_upload" value="1">
 
-                    <!-- Step 1: Select Hospital -->
-                    <div style="background: var(--bg-card); border-radius: var(--border-radius); padding: 24px; box-shadow: var(--neumorph-flat); margin-bottom: 28px;">
-                        <h3 style="color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 800;">
-                            <span style="display: flex; align-items: center; justify-content: center; background: var(--color-primary); color: white; width: 28px; height: 28px; border-radius: 50%; font-size: 13px; font-weight: bold;">1</span>
-                            เลือกหน่วยบริการ / รพ.สต. เพื่ออ้างอิงข้อมูล:
-                        </h3>
-                        <p id="hoscode-info-text" style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
-                            กรุณาเลือกหน่วยบริการอ้างอิง หรือเลือก <strong style="color: var(--color-primary);">"ทุกหน่วยบริการ"</strong> เพื่อนำเข้าไฟล์ประมวลผลรวมที่มาจากระบบ HDC อำเภอ
-                        </p>
-                        <div style="position: relative; max-width: 550px;">
-                            <select id="hoscode-select" name="hoscode" required style="width: 100%; padding: 14px 18px; border-radius: 14px; border: 2px solid rgba(13, 44, 84, 0.1); background: var(--bg-darker); color: var(--text-primary); font-size: 14px; font-weight: 600; cursor: pointer; transition: all var(--transition-speed); outline: none; appearance: none;">
-                                <option value="ALL" <?= $selectedHoscode === 'ALL' ? 'selected' : '' ?>>ทุกหน่วยบริการ (รวมข้อมูลทั้งหมด)</option>
-                                <?php foreach ($hc_names as $code => $name): ?>
-                                    <option value="<?= $code ?>" <?= $selectedHoscode === $code ? 'selected' : '' ?>><?= $code ?> - <?= htmlspecialchars($name) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                            <div style="position: absolute; right: 18px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-secondary); display: flex; align-items: center;">
-                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"></path></svg>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 2: Select File Type (Grouped HDC vs JHCIS) & Trigger Upload -->
+                    <!-- Select File Type (Grouped HDC vs JHCIS) & Trigger Upload -->
                     <div style="background: var(--bg-card); border-radius: var(--border-radius); padding: 24px; box-shadow: var(--neumorph-flat); margin-bottom: 28px;">
                         <h3 style="color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 800;">
-                            <span style="display: flex; align-items: center; justify-content: center; background: var(--color-primary); color: white; width: 28px; height: 28px; border-radius: 50%; font-size: 13px; font-weight: bold;">2</span>
                             เลือกประเภทไฟล์และแหล่งข้อมูลนำเข้าเพื่อเลือกไฟล์ทันที:
                         </h3>
                         <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 20px;">
@@ -1276,28 +1247,6 @@ if (isset($_POST['action_confirm'])) {
                 radio.checked = true;
             }
 
-            // Show/hide or disable hospital selector for JHCIS files
-            const hoscodeSelect = document.getElementById('hoscode-select');
-            const hoscodeText = document.getElementById('hoscode-info-text');
-            if (type === 'person' || type === 'home') {
-                if (hoscodeSelect) {
-                    hoscodeSelect.disabled = true;
-                    hoscodeSelect.style.opacity = '0.5';
-                    hoscodeSelect.value = 'ALL';
-                }
-                if (hoscodeText) {
-                    hoscodeText.innerHTML = 'ระบบจะทำการ <strong style="color: var(--color-green);">ตรวจหาหน่วยบริการอ้างอิงอัตโนมัติ</strong> จากคอลัมน์รหัสหน่วยบริการ (hoscode) ในไฟล์นำเข้า';
-                }
-            } else {
-                if (hoscodeSelect) {
-                    hoscodeSelect.disabled = false;
-                    hoscodeSelect.style.opacity = '1';
-                }
-                if (hoscodeText) {
-                    hoscodeText.innerHTML = 'กรุณาเลือกหน่วยบริการอ้างอิง หรือเลือก <strong style="color: var(--color-primary);">"ทุกหน่วยบริการ"</strong> เพื่อนำเข้าไฟล์ประมวลผลรวมที่มาจากระบบ HDC อำเภอ';
-                }
-            }
-
             // Immediately trigger file input click
             document.getElementById('csv_file').click();
         }
@@ -1312,25 +1261,6 @@ if (isset($_POST['action_confirm'])) {
         function cancelUpload() {
             document.getElementById('cancel-form').submit();
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const checkedRadio = document.querySelector('input[name="import_type"]:checked');
-            if (checkedRadio) {
-                const type = checkedRadio.value;
-                const hoscodeSelect = document.getElementById('hoscode-select');
-                const hoscodeText = document.getElementById('hoscode-info-text');
-                if (type === 'person' || type === 'home') {
-                    if (hoscodeSelect) {
-                        hoscodeSelect.disabled = true;
-                        hoscodeSelect.style.opacity = '0.5';
-                        hoscodeSelect.value = 'ALL';
-                    }
-                    if (hoscodeText) {
-                        hoscodeText.innerHTML = 'ระบบจะทำการ <strong style="color: var(--color-green);">ตรวจหาหน่วยบริการอ้างอิงอัตโนมัติ</strong> จากคอลัมน์รหัสหน่วยบริการ (hoscode) ในไฟล์นำเข้า';
-                    }
-                }
-            }
-        });
 
         <?php if ($step === 2): ?>
         // Client-side mapping preview logic
