@@ -318,7 +318,8 @@ try {
     if (php_sapi_name() === 'cli' || (isset($allow_db_failure) && $allow_db_failure === true)) {
         throw new \PDOException($e->getMessage(), (int) $e->getCode());
     } else {
-        header('HTTP/1.1 500 Internal Server Error');
+        // Comment out HTTP 500 to prevent web server/proxy from overriding the custom error card with a generic "HTTP ERROR 500" page
+        // header('HTTP/1.1 500 Internal Server Error');
         $is_sub_dir = (strpos($_SERVER['SCRIPT_NAME'], '/admin/') !== false || strpos($_SERVER['SCRIPT_NAME'], '/vhv/') !== false);
         $css_path = $is_sub_dir ? '../assets/css/style.css' : 'assets/css/style.css';
         ?>
