@@ -536,7 +536,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_merge'])) {
             $updNames = $pdo->exec("
                 UPDATE target_population t
                 JOIN (
-                    SELECT pid, hoscode,
+                    SELECT dm.pid, dm.hoscode,
                            COALESCE(NULLIF(dm.name,''), NULLIF(ht.hname,'')) AS fname,
                            COALESCE(NULLIF(dm.lname,''), NULLIF(ht.hlname,'')) AS lname
                     FROM (SELECT DISTINCT pid, hoscode, name, lname FROM staging_hdc_dm) dm
