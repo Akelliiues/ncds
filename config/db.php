@@ -412,14 +412,26 @@ try {
             <div class="error-card">
                 <div class="error-icon">⚠️</div>
                 <h2>เชื่อมต่อฐานข้อมูลล้มเหลว</h2>
-                <p>ระบบ NCD Portal ไม่สามารถเชื่อมต่อกับฐานข้อมูล MySQL ของระบบ JHCIS (พอร์ต 3333) ได้ในขณะนี้</p>
+                <p>ระบบ NCD Portal ไม่สามารถเชื่อมต่อกับฐานข้อมูล MySQL ได้ในขณะนี้</p>
                 
                 <div class="steps">
+                    <strong>รายละเอียดการเชื่อมต่อที่พยายามเรียกใช้:</strong>
+                    <ul style="list-style-type: none; padding-left: 0; margin-bottom: 15px; color: #e5e7eb;">
+                        <li>📍 <strong>Host:</strong> <code><?php echo htmlspecialchars($host); ?></code></li>
+                        <?php if (!empty($port)): ?>
+                            <li>🔌 <strong>Port:</strong> <code><?php echo htmlspecialchars($port); ?></code></li>
+                        <?php else: ?>
+                            <li>🔌 <strong>Port:</strong> <code>3306 (Default)</code></li>
+                        <?php endif; ?>
+                        <li>🗄️ <strong>Database:</strong> <code><?php echo htmlspecialchars($db); ?></code></li>
+                        <li>👤 <strong>User:</strong> <code><?php echo htmlspecialchars($user); ?></code></li>
+                    </ul>
+                    
                     <strong>วิธีแก้ไขเบื้องต้น:</strong>
                     <ul>
-                        <li>ตรวจสอบว่าได้เปิดบริการ MySQL ของระบบ JHCIS หรือ AppServ บนพอร์ต 3333 แล้ว</li>
-                        <li>หากรันบนเครื่อง Localhost กรุณาตรวจสอบสถานะของ JHCIS Database Server (พอร์ต 3333)</li>
-                        <li>หากเพิ่งเริ่มระบบคอมพิวเตอร์ กรุณารอประมาณ 1-2 นาทีเพื่อให้ฐานข้อมูลเริ่มทำงานเสร็จสมบูรณ์</li>
+                        <li>ตรวจสอบว่าบริการ MySQL Server บนเครื่องโฮสต์ที่ระบุเปิดทำงานอยู่ปกติ</li>
+                        <li>หากเป็นการติดตั้งบนเครื่องเซิร์ฟเวอร์จริง กรุณาตรวจสอบสถานะการทำงานของบริการ MySQL/MariaDB Service</li>
+                        <li>ตรวจสอบว่าสิทธิ์ของผู้ใช้ <code><?php echo htmlspecialchars($user); ?></code> สามารถเข้าใช้งานฐานข้อมูล <code><?php echo htmlspecialchars($db); ?></code> ได้อย่างถูกต้อง</li>
                     </ul>
                 </div>
                 
