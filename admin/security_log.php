@@ -509,6 +509,7 @@ $incident_labels = [
             ?>
         </div>
         <?php endif; ?>
+        <?php endif; ?>
     </div>
 
     <!-- Danger zone: clear log (super admin only) -->
