@@ -146,21 +146,27 @@ try {
 }
 
 // -----------------------------------------------------------------------
-// hoscode name map
+// hoscode name map (Query from health_units database table)
 // -----------------------------------------------------------------------
-function get_hc_names_local() {
-    return [
-        '10957' => 'สสอ.ตาลสุม',
-        '03751' => 'รพ.ตาลสุม',
-        '03752' => 'รพ.สต.บ้านสำโรงใหญ่',
+$hc_names = [];
+try {
+    $unitStmt = $pdo->query("SELECT hoscode, hosname FROM health_units ORDER BY hoscode ASC");
+    while ($row = $unitStmt->fetch()) {
+        $hc_names[$row['hoscode']] = $row['hosname'];
+    }
+} catch (PDOException $e) {
+    // Fallback in case of database issue
+    $hc_names = [
+        '10957' => 'โรงพยาบาลตาลสุม',
+        '03751' => 'รพ.สต.ดอนพันชาด',
+        '03752' => 'รพ.สต.บ้านสำโรง',
         '03753' => 'รพ.สต.บ้านจิกเทิง',
-        '03754' => 'รพ.สต.บ้านหนองกุง',
-        '03755' => 'รพ.สต.บ้านนาคาย',
-        '03756' => 'รพ.สต.บ้านดอนขวาง',
-        '03757' => 'รพ.สต.บ้านนาทม',
+        '03754' => 'รพ.สต.บ้านหนองกุงใหญ่',
+        '03755' => 'รพ.สต.นาคาย',
+        '03756' => 'รพ.สต.คำหนามแท่ง',
+        '03757' => 'รพ.สต.คำหว้า'
     ];
 }
-$hc_names = get_hc_names_local();
 
 $incident_labels = [
     'CROSS_DISTRICT_UNAUTHORIZED_SCAN_BLOCKED' => ['label' => 'สแกนข้ามเขต', 'color' => '#ef4444', 'bg' => 'rgba(239,68,68,0.12)'],
