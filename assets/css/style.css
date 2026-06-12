@@ -51,12 +51,17 @@ body {
     box-sizing: border-box;
     font-family: var(--font-base);
     background-color: var(--bg-main);
+    /* Subtle premium background dotted grid pattern */
+    background-image: 
+        radial-gradient(rgba(13, 44, 84, 0.035) 1.5px, transparent 1.5px),
+        radial-gradient(rgba(13, 44, 84, 0.02) 1.5px, transparent 1.5px);
+    background-size: 24px 24px;
+    background-position: 0 0, 12px 12px;
     color: var(--text-primary);
     min-height: 100vh;
 }
 
 body.admin-body {
-    background-color: var(--bg-main);
     color: var(--text-primary);
 }
 
