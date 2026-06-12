@@ -67,20 +67,26 @@ try {
     }
 
     $isAuthorized = true;
+    $incidentType = 'CROSS_DISTRICT_UNAUTHORIZED_SCAN_BLOCKED';
     
     if (!$houseInfo) {
         // House not found in staging database, lock it
         $isAuthorized = false;
+        $incidentType = 'UNAUTHORIZED_SCAN';
     } else {
         // If the house village (vhid_code) or hospital (hoscode) doesn't match the VHV's village/hospital
         // OR no assignment exists for this VHV for this house
-        if ($houseInfo['vhid_code'] !== $vhidCode || empty($assignments)) {
+        if ($houseInfo['vhid_code'] !== $vhidCode) {
             $isAuthorized = false;
+            $incidentType = 'CROSS_DISTRICT_UNAUTHORIZED_SCAN_BLOCKED';
+        } elseif (empty($assignments)) {
+            $isAuthorized = false;
+            $incidentType = 'NO_ASSIGNMENT';
         }
     }
 
     if (!$isAuthorized) {
-        // Security Log writing
+        // 1. JSON Log writing (as a backup)
         $logDir = __DIR__ . '/../logs';
         if (!file_exists($logDir)) {
             mkdir($logDir, 0755, true);
@@ -102,14 +108,68 @@ try {
             'vhv_longitude' => $lng,
             'ip_address' => $_SERVER['REMOTE_ADDR'] ?? 'Unknown',
             'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown',
-            'incident_type' => 'CROSS_DISTRICT_UNAUTHORIZED_SCAN_BLOCKED'
+            'incident_type' => $incidentType
         ];
 
         file_put_contents($logFile, json_encode($logData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
+        // 2. Database Log writing
+        $vhvName = $_SESSION['vhv_name'] ?? null;
+        $vhvHoscode = $_SESSION['hoscode'] ?? null;
+        $ipAddress = $_SERVER['REMOTE_ADDR'] ?? null;
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+
+        try {
+            // Ensure table exists (in case admin hasn't opened security_log.php yet)
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS scan_security_log (
+                    id           INT AUTO_INCREMENT PRIMARY KEY,
+                    logged_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    vhv_id       VARCHAR(20)  NOT NULL,
+                    vhv_name     VARCHAR(120) DEFAULT NULL,
+                    hoscode      VARCHAR(10)  DEFAULT NULL,
+                    scanned_code VARCHAR(30)  NOT NULL,
+                    scan_lat     DECIMAL(10,7) DEFAULT NULL,
+                    scan_lng     DECIMAL(10,7) DEFAULT NULL,
+                    ip_address   VARCHAR(45)  DEFAULT NULL,
+                    user_agent   TEXT         DEFAULT NULL,
+                    incident_type VARCHAR(60) NOT NULL DEFAULT 'UNAUTHORIZED_SCAN',
+                    INDEX idx_logged_at (logged_at),
+                    INDEX idx_vhv_id    (vhv_id),
+                    INDEX idx_hoscode   (hoscode)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            ");
+
+            $logStmt = $pdo->prepare("
+                INSERT INTO scan_security_log (vhv_id, vhv_name, hoscode, scanned_code, scan_lat, scan_lng, ip_address, user_agent, incident_type)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            $logStmt->execute([
+                $vhvId,
+                $vhvName,
+                $vhvHoscode,
+                $hid,
+                $lat > 0 ? $lat : null,
+                $lng > 0 ? $lng : null,
+                $ipAddress,
+                $userAgent,
+                $incidentType
+            ]);
+        } catch (\PDOException $dbEx) {
+            // Ignore DB log write error to prevent app crash
+        }
+
+        // Return error message to VHV app
+        $msgText = 'ความปลอดภัย: บล็อกการแสดงข้อมูลเนื่องจากสแกนบ้านนอกเขตรับผิดชอบของท่าน';
+        if ($incidentType === 'NO_ASSIGNMENT') {
+            $msgText = 'สิทธิ์การเข้าถึง: ท่านไม่ได้รับมอบหมายงานคัดกรองบุคคล/บ้านหลังนี้ในปีงบประมาณปัจจุบัน';
+        } elseif ($incidentType === 'UNAUTHORIZED_SCAN') {
+            $msgText = 'สิทธิ์การเข้าถึง: ไม่พบรหัสบ้านหรือเลขบัตรประชาชนนี้ในฐานข้อมูลระบบ';
+        }
+
         echo json_encode([
             'status' => 'locked',
-            'message' => 'ความปลอดภัย: บล็อกการแสดงข้อมูลเนื่องจากสแกนบ้านนอกเขตรับผิดชอบของท่าน'
+            'message' => $msgText
         ]);
         exit();
     }

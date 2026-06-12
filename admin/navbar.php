@@ -7,7 +7,7 @@ $is_super_admin = (!isset($admin_hoscode) || empty($admin_hoscode)) && (isset($_
 $is_core_active = in_array($current_page, ['index.php', 'profile.php', 'leaderboard.php']);
 $is_targets_active = in_array($current_page, ['target_manager.php', 'dpac_manager.php']);
 $is_work_active = in_array($current_page, ['assignment.php', 'vhv_approval.php', 'print_qr.php']);
-$is_reports_active = in_array($current_page, ['analytics.php', 'reports.php']);
+$is_reports_active = in_array($current_page, ['analytics.php', 'reports.php', 'security_log.php']);
 $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php', 'db_manager.php', 'user_manager.php', 'unit_house_manager.php']);
 ?>
 <style>
@@ -364,6 +364,13 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
                         <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
                     รายงานและการพิมพ์
+                </a>
+                <a href="security_log.php" class="<?= $current_page == 'security_log.php' ? 'active' : '' ?>">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                        <path d="M7 11V7a5 5 0 0110 0v4" />
+                    </svg>
+                    บันทึกความปลอดภัย (Security Log)
                 </a>
             </div>
         </div>
