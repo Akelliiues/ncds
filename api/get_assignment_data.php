@@ -60,10 +60,9 @@ try {
             SELECT v.vhv_id, v.vhv_name, 
                    (SELECT COUNT(*) FROM task_assignments a WHERE a.vhv_id = v.vhv_id AND a.budget_year = 2026) as task_count
             FROM vhv_users v
-            WHERE (v.vhid_code = ? OR (v.moo = ? AND v.hoscode = ?)) AND v.approved = 1
+            WHERE v.vhid_code = ? AND v.approved = 1
         ";
-        $hoscodeParam = $_GET['hoscode'] ?? '';
-        $params = [$vhid, $moo, $hoscodeParam];
+        $params = [$vhid];
         if ($admin_hoscode) {
             $hoscodes = get_query_hoscodes($admin_hoscode);
             $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
