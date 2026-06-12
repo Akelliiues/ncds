@@ -2,12 +2,16 @@
 // vhv/manual.php (Mobile-Optimized VHV Manual)
 require_once __DIR__ . '/../config/session.php';
 
-if (!isset($_SESSION['vhv_id'])) {
+if (!isset($_SESSION['vhv_id']) && !defined('ALLOW_GUEST_MANUAL')) {
     header("Location: ../index.php");
     exit();
 }
 
-$vhvName = $_SESSION['vhv_name'];
+$is_vhv = isset($_SESSION['vhv_id']);
+$vhvName = $is_vhv ? $_SESSION['vhv_name'] : '';
+
+$path_prefix = defined('ALLOW_GUEST_MANUAL') ? '' : '../';
+$back_url = defined('ALLOW_GUEST_MANUAL') ? ($is_vhv ? 'vhv/index.php' : 'index.php') : 'index.php';
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -15,7 +19,7 @@ $vhvName = $_SESSION['vhv_name'];
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>คู่มือ อสม. - NCDs Portal</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="<?= $path_prefix ?>assets/css/style.css">
     <style>
         body {
             background-color: var(--bg-main);
@@ -264,7 +268,7 @@ $vhvName = $_SESSION['vhv_name'];
     <div class="mobile-wrapper">
         <!-- Navigation Header -->
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-            <a href="index.php" style="color: var(--color-accent); text-decoration: none; font-size: 14px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; background: rgba(13, 44, 84, 0.08); padding: 8px 16px; border-radius: 50px;">
+            <a href="<?= htmlspecialchars($back_url) ?>" style="color: var(--color-accent); text-decoration: none; font-size: 14px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; background: rgba(13, 44, 84, 0.08); padding: 8px 16px; border-radius: 50px;">
                 ⬅️ ย้อนกลับ
             </a>
             <span style="font-weight: 800; color: var(--text-primary); font-size: 14px;">คู่มือการใช้งาน อสม.</span>
@@ -272,7 +276,7 @@ $vhvName = $_SESSION['vhv_name'];
 
         <!-- Header Section -->
         <div class="header-section">
-            <img src="../assets/icon.png" alt="NCDs Prevention Logo">
+            <img src="<?= $path_prefix ?>assets/icon.png" alt="NCDs Prevention Logo">
             <h1>📖 คู่มือการใช้งานระบบ</h1>
             <p>สำหรับ อสม. ในการลงพื้นที่คัดกรองเชิงรุก</p>
         </div>

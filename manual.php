@@ -2,23 +2,21 @@
 // manual.php (Root - Unified System User Manual)
 require_once __DIR__ . '/config/session.php';
 
-// ตรวจสอบบทบาทผู้ใช้จากเซสชันเพื่อตั้งแท็บและปุ่มย้อนกลับให้สอดคล้องโดยอัตโนมัติ
-$default_tab = 'vhv';
-$back_url = 'index.php';
-$user_role_label = 'บุคคลทั่วไป / ผู้มาเยี่ยมชม';
+$is_admin = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
 
-if (isset($_SESSION['vhv_id'])) {
-    $default_tab = 'vhv';
-    $back_url = 'vhv/index.php';
-    $user_role_label = 'อสม. ' . htmlspecialchars($_SESSION['vhv_name']);
-} elseif (isset($_SESSION['admin_logged_in'])) {
-    $default_tab = 'admin';
-    $back_url = 'admin/index.php';
-    if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
-        $user_role_label = 'เจ้าหน้าที่ (โหมดผู้มาเยือน)';
-    } else {
-        $user_role_label = 'ผู้ดูแลระบบ/เจ้าหน้าที่ (' . htmlspecialchars($_SESSION['admin_username']) . ')';
-    }
+if (!$is_admin) {
+    define('ALLOW_GUEST_MANUAL', true);
+    require_once __DIR__ . '/vhv/manual.php';
+    exit();
+}
+
+// ตรวจสอบบทบาทผู้ใช้จากเซสชันเพื่อตั้งแท็บและปุ่มย้อนกลับให้สอดคล้องโดยอัตโนมัติ (เฉพาะเมื่อล็อกอินเป็นแอดมิน)
+$default_tab = 'admin';
+$back_url = 'admin/index.php';
+if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
+    $user_role_label = 'เจ้าหน้าที่ (โหมดผู้มาเยือน)';
+} else {
+    $user_role_label = 'ผู้ดูแลระบบ/เจ้าหน้าที่ (' . htmlspecialchars($_SESSION['admin_username']) . ')';
 }
 ?>
 <!DOCTYPE html>
