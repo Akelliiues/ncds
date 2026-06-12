@@ -13,28 +13,66 @@ $_SESSION['is_hl_coach'] = false;
 
 // 2. ดึงข้อมูล HID ในหมู่บ้าน '34180401' เพื่อใช้สำหรับกรณี NO_ASSIGNMENT
 $in_village_hid = '';
+$no_assignment_hid = '';
 try {
+    // หาเป้าหมายที่ไม่มีงานมอบหมายให้ อสม. รายนี้
     $house = $pdo->query("
-        SELECT hid FROM target_population 
-        WHERE vhid_code = '34180401' AND hid IS NOT NULL AND hid <> '' 
+        SELECT p.hid FROM target_population p
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.vhv_id = '0986624652' AND a.budget_year = 2026
+        WHERE p.vhid_code = '34180401' AND p.hid IS NOT NULL AND p.hid <> '' AND a.assignment_id IS NULL
         LIMIT 1
     ")->fetch();
     if ($house) {
-        $in_village_hid = $house['hid'];
+        $no_assignment_hid = $house['hid'];
     }
 } catch (Exception $e) {
     // Ignore
 }
 
-// ถ้าไม่เจอบ้านในหมู่บ้านนี้ ให้ mock เป็นรหัสอื่นที่มีรูปแบบเดียวกัน
-if (empty($in_village_hid)) {
-    $in_village_hid = '999901'; 
+if (empty($no_assignment_hid)) {
+    $no_assignment_hid = '999901'; 
 }
 
-// 3. กำหนดตัวแปรสำหรับกรณีต่างๆ
+// 3. จัดการกรณี AUTHORIZED_SCAN (สแกนสำเร็จเนื่องจากมีงานมอบหมายจริง)
+$assigned_house_hid = '';
+try {
+    // หาเป้าหมายหนึ่งคนในหมู่บ้านเพื่อเชื่อมงานมอบหมายทดลอง
+    $target = $pdo->query("
+        SELECT cid, hid FROM target_population 
+        WHERE vhid_code = '34180401' AND cid IS NOT NULL AND cid <> '' AND hid IS NOT NULL AND hid <> '' 
+        LIMIT 1
+    ")->fetch();
+    
+    if ($target) {
+        $assigned_house_hid = $target['hid'];
+        $target_cid = $target['cid'];
+        
+        // ตรวจสอบหรือสร้างการมอบหมายงานจำลอง
+        $check_assign = $pdo->prepare("
+            SELECT COUNT(*) FROM task_assignments 
+            WHERE target_cid = ? AND vhv_id = '0986624652' AND budget_year = 2026
+        ");
+        $check_assign->execute([$target_cid]);
+        
+        if ($check_assign->fetchColumn() == 0) {
+            $insert_assign = $pdo->prepare("
+                INSERT INTO task_assignments (target_cid, vhv_id, budget_year)
+                VALUES (?, '0986624652', 2026)
+            ");
+            $insert_assign->execute([$target_cid]);
+        }
+    }
+} catch (Exception $e) {
+    // Ignore
+}
+
+if (empty($assigned_house_hid)) {
+    $assigned_house_hid = '999902';
+}
+
+// 4. กำหนดตัวแปรสำหรับกรณีต่างๆ
 $invalid_hid = '999999999'; // UNAUTHORIZED_SCAN
 $cross_district_hid = '1261'; // CROSS_DISTRICT_UNAUTHORIZED_SCAN_BLOCKED (มาจากข้อมูลหมู่ 34200511)
-$no_assignment_hid = $in_village_hid; // NO_ASSIGNMENT (อยู่ในหมู่ 34180401 แต่ไม่มีงานมอบหมาย)
 
 ?>
 <!DOCTYPE html>
@@ -54,6 +92,8 @@ $no_assignment_hid = $in_village_hid; // NO_ASSIGNMENT (อยู่ในหม
         .btn-cross:hover { background: #dc2626; }
         .btn-no-assign { background: #8b5cf6; }
         .btn-no-assign:hover { background: #7c3aed; }
+        .btn-success-scan { background: #10b981; }
+        .btn-success-scan:hover { background: #059669; }
         .result-box { margin-top: 20px; padding: 15px; border-radius: 8px; background: #0f172a; font-family: monospace; min-height: 50px; white-space: pre-wrap; word-break: break-all; }
         .info { font-size: 13px; color: #94a3b8; line-height: 1.5; margin-bottom: 20px; }
     </style>
@@ -76,6 +116,10 @@ $no_assignment_hid = $in_village_hid; // NO_ASSIGNMENT (อยู่ในหม
 
     <button class="btn btn-no-assign" onclick="runTest('<?= $no_assignment_hid ?>')">
         3. ทดสอบสแกนไม่มีงานมอบหมายในเขต (NO_ASSIGNMENT)
+    </button>
+
+    <button class="btn btn-success-scan" onclick="runTest('<?= $assigned_house_hid ?>')">
+        4. ทดสอบสแกนสำเร็จ ได้รับมอบหมายงาน (AUTHORIZED_SCAN / SUCCESS)
     </button>
 
     <div class="result-box" id="result">

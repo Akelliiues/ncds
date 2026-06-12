@@ -166,6 +166,7 @@ $incident_labels = [
     'CROSS_DISTRICT_UNAUTHORIZED_SCAN_BLOCKED' => ['label' => 'สแกนข้ามเขต', 'color' => '#ef4444', 'bg' => 'rgba(239,68,68,0.12)'],
     'UNAUTHORIZED_SCAN'                         => ['label' => 'ไม่มีสิทธิ์สแกน', 'color' => '#f59e0b', 'bg' => 'rgba(245,158,11,0.12)'],
     'NO_ASSIGNMENT'                             => ['label' => 'ไม่มีงานมอบหมาย', 'color' => '#8b5cf6', 'bg' => 'rgba(139,92,246,0.12)'],
+    'AUTHORIZED_SCAN'                           => ['label' => 'เข้าคัดกรอง (สำเร็จ)', 'color' => '#10b981', 'bg' => 'rgba(16,185,129,0.12)'],
 ];
 ?>
 <!DOCTYPE html>
@@ -327,19 +328,19 @@ $incident_labels = [
     <!-- Summary Stats -->
     <div class="stat-grid">
         <div class="stat-card">
-            <div class="stat-num" style="color:var(--color-red);"><?= number_format($stats['total_all'] ?? 0) ?></div>
+            <div class="stat-num" style="color:var(--color-red);"><?= number_format((float)($stats['total_all'] ?? 0)) ?></div>
             <div class="stat-label">ทั้งหมด (ทุกช่วง)</div>
         </div>
         <div class="stat-card">
-            <div class="stat-num" style="color:var(--color-yellow);"><?= number_format($stats['today'] ?? 0) ?></div>
+            <div class="stat-num" style="color:var(--color-yellow);"><?= number_format((float)($stats['today'] ?? 0)) ?></div>
             <div class="stat-label">วันนี้</div>
         </div>
         <div class="stat-card">
-            <div class="stat-num" style="color:var(--color-primary);"><?= number_format($stats['this_week'] ?? 0) ?></div>
+            <div class="stat-num" style="color:var(--color-primary);"><?= number_format((float)($stats['this_week'] ?? 0)) ?></div>
             <div class="stat-label">7 วันล่าสุด</div>
         </div>
         <div class="stat-card">
-            <div class="stat-num" style="color:var(--color-accent);"><?= number_format($stats['unique_vhvs'] ?? 0) ?></div>
+            <div class="stat-num" style="color:var(--color-accent);"><?= number_format((float)($stats['unique_vhvs'] ?? 0)) ?></div>
             <div class="stat-label">อสม. ที่เกิดเหตุ (ไม่ซ้ำ)</div>
         </div>
     </div>

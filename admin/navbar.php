@@ -365,12 +365,12 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
                     </svg>
                     รายงานและการพิมพ์
                 </a>
-                <a href="security_log.php" class="<?= $current_page == 'security_log.php' ? 'active' : '' ?>">
+                <a href="security_log.php" class="<?= $current_page == 'security_log.php' ? 'active' : '' ?>" style="white-space: nowrap !important;">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                         <path d="M7 11V7a5 5 0 0110 0v4" />
                     </svg>
-                    บันทึกความปลอดภัย (Security Log)
+                    บันทึกความปลอดภัย (Secure Log)
                 </a>
             </div>
         </div>

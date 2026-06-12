@@ -174,7 +174,51 @@ try {
         exit();
     }
 
-    // Within area and assigned, return list of assignments
+    // Within area and assigned, log success scan and return list of assignments
+    $vhvName = $_SESSION['vhv_name'] ?? null;
+    $vhvHoscode = $_SESSION['hoscode'] ?? null;
+    $ipAddress = $_SERVER['REMOTE_ADDR'] ?? null;
+    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+
+    try {
+        // Ensure table exists
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS scan_security_log (
+                id           INT AUTO_INCREMENT PRIMARY KEY,
+                logged_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                vhv_id       VARCHAR(20)  NOT NULL,
+                vhv_name     VARCHAR(120) DEFAULT NULL,
+                hoscode      VARCHAR(10)  DEFAULT NULL,
+                scanned_code VARCHAR(30)  NOT NULL,
+                scan_lat     DECIMAL(10,7) DEFAULT NULL,
+                scan_lng     DECIMAL(10,7) DEFAULT NULL,
+                ip_address   VARCHAR(45)  DEFAULT NULL,
+                user_agent   TEXT         DEFAULT NULL,
+                incident_type VARCHAR(60) NOT NULL DEFAULT 'UNAUTHORIZED_SCAN',
+                INDEX idx_logged_at (logged_at),
+                INDEX idx_vhv_id    (vhv_id),
+                INDEX idx_hoscode   (hoscode)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        ");
+
+        $logStmt = $pdo->prepare("
+            INSERT INTO scan_security_log (vhv_id, vhv_name, hoscode, scanned_code, scan_lat, scan_lng, ip_address, user_agent, incident_type)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'AUTHORIZED_SCAN')
+        ");
+        $logStmt->execute([
+            $vhvId,
+            $vhvName,
+            $vhvHoscode,
+            $hid,
+            $lat > 0 ? $lat : null,
+            $lng > 0 ? $lng : null,
+            $ipAddress,
+            $userAgent
+        ]);
+    } catch (\PDOException $dbEx) {
+        // Ignore DB log write error
+    }
+
     echo json_encode([
         'status' => 'success',
         'data' => $assignments
