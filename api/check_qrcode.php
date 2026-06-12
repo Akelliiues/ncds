@@ -61,8 +61,18 @@ try {
         $assignments = $stmt->fetchAll();
 
         // 2. PDPA Cross-District Lock:
-        $houseStmt = $pdo->prepare("SELECT vhid_code, hoscode FROM target_population WHERE hid = ? LIMIT 1");
-        $houseStmt->execute([$hid]);
+        // Prioritize the logged-in VHV's village (vhid_code) and hospital (hoscode) 
+        // to handle non-globally-unique HIDs correctly.
+        $houseStmt = $pdo->prepare("
+            SELECT vhid_code, hoscode 
+            FROM target_population 
+            WHERE hid = ? 
+            ORDER BY 
+                CASE WHEN vhid_code = ? THEN 0 ELSE 1 END,
+                CASE WHEN hoscode = ? THEN 0 ELSE 1 END
+            LIMIT 1
+        ");
+        $houseStmt->execute([$hid, $vhidCode, $hoscode]);
         $houseInfo = $houseStmt->fetch();
     }
 
