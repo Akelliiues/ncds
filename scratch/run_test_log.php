@@ -3,7 +3,7 @@
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/session.php';
 
-// 1. ดึงข้อมูล อสม. จริง 1 คนจาก vhv_users ที่มีสถานะอนุมัติ (approved = 1)
+// 1. ดึงข้อมูล อสม. จริง 1 คนจาก vhv_users
 $vhv = null;
 try {
     $vhv = $pdo->query("
@@ -16,7 +16,6 @@ try {
     // Ignore
 }
 
-// ถ้าไม่มี อสม. ในระบบ ให้ใช้ค่า mock เป็น fallback
 if (!$vhv) {
     $vhv = [
         'vhv_id' => '0986624652',
@@ -26,101 +25,101 @@ if (!$vhv) {
     ];
 }
 
-// ตั้งค่า Session ให้ตรงกับ อสม. คนนี้
-$_SESSION['vhv_id'] = $vhv['vhv_id'];
-$_SESSION['vhv_name'] = $vhv['vhv_name'];
-$_SESSION['vhid_code'] = $vhv['vhid_code'];
-$_SESSION['hoscode'] = $vhv['hoscode'];
-$_SESSION['is_leader'] = 0;
-$_SESSION['is_hl_coach'] = false;
-
-// 2. ดึงเป้าหมาย 1 หลังคาเรือนที่อยู่นอกเขตหมู่บ้าน/นอกสังกัด รพ.สต. เพื่อใช้เป็นกรณีข้ามเขต (CROSS_DISTRICT_UNAUTHORIZED_SCAN_BLOCKED)
-$cross_district_hid = '999903'; // mock fallback
+// 2. ดึงข้อมูลเป้าหมายจริง 1 คนในระบบเพื่อเป็นแกนในการจำลองสแกนสำเร็จ
+$assigned_target = null;
 try {
-    $cross_house = $pdo->prepare("
-        SELECT hid FROM target_population 
-        WHERE vhid_code <> ? AND vhid_code IS NOT NULL AND vhid_code <> '' AND hid IS NOT NULL AND hid <> '' 
+    $assigned_target = $pdo->query("
+        SELECT cid, hid, vhid_code, hoscode 
+        FROM target_population 
+        WHERE cid IS NOT NULL AND cid <> '' AND hid IS NOT NULL AND hid <> '' AND vhid_code IS NOT NULL AND vhid_code <> '' 
         LIMIT 1
-    ");
-    $cross_house->execute([$vhv['vhid_code']]);
-    $cross_res = $cross_house->fetch();
-    if ($cross_res) {
-        $cross_district_hid = $cross_res['hid'];
-    }
+    ")->fetch();
 } catch (Exception $e) {
     // Ignore
 }
 
-// 3. ดึงเป้าหมาย 1 หลังคาเรือนในหมู่บ้านเดียวกันที่ดูแล (vhid_code เดียวกัน) แต่ยังไม่มีงานมอบหมาย (NO_ASSIGNMENT)
-$no_assignment_hid = '999901'; // mock fallback
-try {
-    $no_assign_house = $pdo->prepare("
-        SELECT p.hid FROM target_population p
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.vhv_id = ? AND a.budget_year = 2026
-        WHERE p.vhid_code = ? AND p.hid IS NOT NULL AND p.hid <> '' AND a.assignment_id IS NULL
-        LIMIT 1
-    ");
-    $no_assign_house->execute([$vhv['vhv_id'], $vhv['vhid_code']]);
-    $no_assign_res = $no_assign_house->fetch();
-    if ($no_assign_res) {
-        $no_assignment_hid = $no_assign_res['hid'];
-    }
-} catch (Exception $e) {
-    // Ignore
-}
-
-// 4. ดึงเป้าหมาย 1 หลังคาเรือนที่ได้รับมอบหมายจริง (AUTHORIZED_SCAN / SUCCESS)
-$assigned_house_hid = '999902'; // mock fallback
-try {
-    // พยายามหาจากที่มีการมอบหมายงานจริงอยู่แล้ว
-    $assigned_house = $pdo->prepare("
-        SELECT p.hid 
-        FROM task_assignments a
-        JOIN target_population p ON a.target_cid = p.cid
-        WHERE a.vhv_id = ? AND a.budget_year = 2026 AND p.hid IS NOT NULL AND p.hid <> ''
-        LIMIT 1
-    ");
-    $assigned_house->execute([$vhv['vhv_id']]);
-    $assigned_res = $assigned_house->fetch();
+// 3. กำหนดค่า Session และตัวแปรจำลองตามเป้าหมายจริงที่พบ
+if ($assigned_target) {
+    $assigned_house_hid = $assigned_target['hid'];
+    $target_cid = $assigned_target['cid'];
     
-    if ($assigned_res) {
-        $assigned_house_hid = $assigned_res['hid'];
-    } else {
-        // หากไม่มีงานมอบหมายเลย ให้จำลองมอบหมายงานให้กับเป้าหมายคนหนึ่งในหมู่บ้านเดียวกัน
-        $target = $pdo->prepare("
-            SELECT cid, hid FROM target_population 
-            WHERE vhid_code = ? AND cid IS NOT NULL AND cid <> '' AND hid IS NOT NULL AND hid <> '' 
+    // ล็อกอิน อสม. โดยอิงเขตที่ตรงกับเป้าหมายนี้เพื่อให้สแกนสำเร็จ (AUTHORIZED_SCAN)
+    $_SESSION['vhv_id'] = $vhv['vhv_id'];
+    $_SESSION['vhv_name'] = $vhv['vhv_name'];
+    $_SESSION['vhid_code'] = $assigned_target['vhid_code'];
+    $_SESSION['hoscode'] = $assigned_target['hoscode'];
+    $_SESSION['is_leader'] = 0;
+    $_SESSION['is_hl_coach'] = false;
+    
+    // สร้างการมอบหมายงานทดลองใน DB
+    try {
+        $check_assign = $pdo->prepare("
+            SELECT COUNT(*) FROM task_assignments 
+            WHERE target_cid = ? AND vhv_id = ? AND budget_year = 2026
+        ");
+        $check_assign->execute([$target_cid, $vhv['vhv_id']]);
+        
+        if ($check_assign->fetchColumn() == 0) {
+            $insert_assign = $pdo->prepare("
+                INSERT INTO task_assignments (target_cid, vhv_id, budget_year)
+                VALUES (?, ?, 2026)
+            ");
+            $insert_assign->execute([$target_cid, $vhv['vhv_id']]);
+        }
+    } catch (Exception $e) {
+        // Ignore
+    }
+    
+    // กรณี NO_ASSIGNMENT: หาบ้านหลังอื่นในหมู่บ้านเดียวกัน แต่ไม่มีการมอบหมายงานให้ อสม. คนนี้
+    $no_assignment_hid = '999901';
+    try {
+        $no_assign_house = $pdo->prepare("
+            SELECT p.hid FROM target_population p
+            LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.vhv_id = ? AND a.budget_year = 2026
+            WHERE p.vhid_code = ? AND p.hid IS NOT NULL AND p.hid <> ? AND a.assignment_id IS NULL
             LIMIT 1
         ");
-        $target->execute([$vhv['vhid_code']]);
-        $target_res = $target->fetch();
-        
-        if ($target_res) {
-            $assigned_house_hid = $target_res['hid'];
-            $target_cid = $target_res['cid'];
-            
-            // เช็คและมอบหมายงานทดลอง
-            $check_assign = $pdo->prepare("
-                SELECT COUNT(*) FROM task_assignments 
-                WHERE target_cid = ? AND vhv_id = ? AND budget_year = 2026
-            ");
-            $check_assign->execute([$target_cid, $vhv['vhv_id']]);
-            
-            if ($check_assign->fetchColumn() == 0) {
-                $insert_assign = $pdo->prepare("
-                    INSERT INTO task_assignments (target_cid, vhv_id, budget_year)
-                    VALUES (?, ?, 2026)
-                ");
-                $insert_assign->execute([$target_cid, $vhv['vhv_id']]);
-            }
+        $no_assign_house->execute([$vhv['vhv_id'], $assigned_target['vhid_code'], $assigned_target['hid']]);
+        $no_assign_res = $no_assign_house->fetch();
+        if ($no_assign_res) {
+            $no_assignment_hid = $no_assign_res['hid'];
         }
+    } catch (Exception $e) {
+        // Ignore
     }
-} catch (Exception $e) {
-    // Ignore
+    
+    // กรณี CROSS_DISTRICT: หาบ้านที่อยู่คนละหมู่บ้านกัน
+    $cross_district_hid = '999903';
+    try {
+        $cross_house = $pdo->prepare("
+            SELECT hid FROM target_population 
+            WHERE vhid_code <> ? AND vhid_code IS NOT NULL AND vhid_code <> '' AND hid IS NOT NULL AND hid <> '' 
+            LIMIT 1
+        ");
+        $cross_house->execute([$assigned_target['vhid_code']]);
+        $cross_res = $cross_house->fetch();
+        if ($cross_res) {
+            $cross_district_hid = $cross_res['hid'];
+        }
+    } catch (Exception $e) {
+        // Ignore
+    }
+
+} else {
+    // Fallback logic if DB target_population is empty (mocking)
+    $assigned_house_hid = '999902';
+    $no_assignment_hid = '999901';
+    $cross_district_hid = '999903';
+    
+    $_SESSION['vhv_id'] = $vhv['vhv_id'];
+    $_SESSION['vhv_name'] = $vhv['vhv_name'];
+    $_SESSION['vhid_code'] = $vhv['vhid_code'];
+    $_SESSION['hoscode'] = $vhv['hoscode'];
+    $_SESSION['is_leader'] = 0;
+    $_SESSION['is_hl_coach'] = false;
 }
 
-// 5. รหัสบ้านที่ไม่มีในระบบ (UNAUTHORIZED_SCAN)
-$invalid_hid = '999999999';
+$invalid_hid = '999999999'; // UNAUTHORIZED_SCAN
 
 ?>
 <!DOCTYPE html>

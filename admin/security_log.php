@@ -107,7 +107,10 @@ $countStmt = $pdo->prepare("
 $countStmt->execute($params);
 $total_records = $countStmt->fetchColumn();
 $total_pages   = max(1, ceil($total_records / $limit));
-if ($page > $total_pages) { $page = $total_pages; $offset = ($page - 1) * $limit; }
+if ($page > $total_pages) {
+    $page = $total_pages;
+    $offset = ($page - 1) * $limit;
+}
 
 // -----------------------------------------------------------------------
 // Summary stats (today, this week)
@@ -125,7 +128,8 @@ try {
         FROM scan_security_log $statWhere");
     $s->execute($statParams);
     $stats = $s->fetch();
-} catch (PDOException $e) {}
+} catch (PDOException $e) {
+}
 
 // -----------------------------------------------------------------------
 // Fetch records
@@ -177,13 +181,16 @@ $incident_labels = [
 ?>
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Security Log - การสแกนที่ผิดปกติ | NCD ตาลสุม</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
-        body { background-color: var(--bg-main); }
+        body {
+            background-color: var(--bg-main);
+        }
 
         .stat-grid {
             display: grid;
@@ -191,6 +198,7 @@ $incident_labels = [
             gap: 16px;
             margin-bottom: 28px;
         }
+
         .stat-card {
             background: var(--bg-card);
             border-radius: var(--border-radius);
@@ -198,8 +206,19 @@ $incident_labels = [
             box-shadow: var(--neumorph-flat);
             text-align: center;
         }
-        .stat-num  { font-size: 36px; font-weight: 800; line-height: 1.1; }
-        .stat-label { font-size: 13px; color: var(--text-secondary); margin-top: 4px; font-weight: 600; }
+
+        .stat-num {
+            font-size: 36px;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            font-weight: 600;
+        }
 
         .badge-incident {
             display: inline-block;
@@ -209,12 +228,14 @@ $incident_labels = [
             font-weight: 700;
         }
 
-        .log-table th, .log-table td {
+        .log-table th,
+        .log-table td {
             padding: 10px 12px;
             text-align: left;
             font-size: 13.5px;
             vertical-align: middle;
         }
+
         .log-table th {
             background: var(--bg-darker);
             color: var(--text-secondary);
@@ -224,7 +245,10 @@ $incident_labels = [
             letter-spacing: 0.5px;
             white-space: nowrap;
         }
-        .log-table tr:hover td { background: rgba(59,130,246,0.04); }
+
+        .log-table tr:hover td {
+            background: rgba(59, 130, 246, 0.04);
+        }
 
         .map-link {
             display: inline-flex;
@@ -235,7 +259,10 @@ $incident_labels = [
             text-decoration: none;
             font-weight: 600;
         }
-        .map-link:hover { text-decoration: underline; }
+
+        .map-link:hover {
+            text-decoration: underline;
+        }
 
         .filter-bar {
             display: flex;
@@ -244,6 +271,7 @@ $incident_labels = [
             align-items: flex-end;
             margin-bottom: 20px;
         }
+
         .filter-bar label {
             display: block;
             font-size: 12px;
@@ -251,7 +279,9 @@ $incident_labels = [
             color: var(--text-secondary);
             margin-bottom: 5px;
         }
-        .filter-bar input, .filter-bar select {
+
+        .filter-bar input,
+        .filter-bar select {
             height: 40px;
             font-size: 14px;
             border-radius: 8px;
@@ -260,8 +290,15 @@ $incident_labels = [
             color: var(--text-primary);
             padding: 0 12px;
         }
-        .filter-bar .f-search { min-width: 200px; flex: 2; }
-        .filter-bar .f-sm     { min-width: 130px; }
+
+        .filter-bar .f-search {
+            min-width: 200px;
+            flex: 2;
+        }
+
+        .filter-bar .f-sm {
+            min-width: 130px;
+        }
 
         .pagination {
             display: flex;
@@ -270,6 +307,7 @@ $incident_labels = [
             margin-top: 20px;
             flex-wrap: wrap;
         }
+
         .page-link {
             padding: 6px 12px;
             border: 1px solid var(--border-color);
@@ -280,279 +318,318 @@ $incident_labels = [
             font-size: 13px;
             transition: all 0.2s;
         }
-        .page-link:hover { border-color: var(--color-primary); }
-        .page-link.active { background: var(--color-primary); color: white; border-color: var(--color-primary); }
+
+        .page-link:hover {
+            border-color: var(--color-primary);
+        }
+
+        .page-link.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
 
         .empty-state {
             text-align: center;
             padding: 60px 20px;
             color: var(--text-secondary);
         }
-        .empty-state .icon { font-size: 56px; display: block; margin-bottom: 16px; }
+
+        .empty-state .icon {
+            font-size: 56px;
+            display: block;
+            margin-bottom: 16px;
+        }
 
         /* Danger zone box */
         .danger-zone {
-            background: rgba(239,68,68,0.06);
-            border: 1.5px solid rgba(239,68,68,0.3);
+            background: rgba(239, 68, 68, 0.06);
+            border: 1.5px solid rgba(239, 68, 68, 0.3);
             border-radius: var(--border-radius);
             padding: 20px 24px;
             margin-top: 24px;
         }
-        .danger-zone h4 { color: var(--color-red); margin: 0 0 12px; font-size: 15px; }
+
+        .danger-zone h4 {
+            color: var(--color-red);
+            margin: 0 0 12px;
+            font-size: 15px;
+        }
     </style>
 </head>
+
 <body class="admin-body">
-<?php include 'navbar.php'; ?>
+    <?php include 'navbar.php'; ?>
 
-<div style="max-width:1300px;margin:40px auto;padding:0 20px;">
+    <div style="max-width:1300px;margin:40px auto;padding:0 20px;">
 
-    <!-- Page header -->
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
-        <div>
-            <h2 style="color:var(--color-accent);margin:0 0 6px;">🔐 Security Log — การสแกน QR ที่ผิดปกติ</h2>
-            <p style="color:var(--text-secondary);margin:0;font-size:14px;">
-                รายการบันทึกเมื่อ อสม. สแกน QR Code ที่ไม่ได้รับสิทธิ์ หรือสแกนนอกเขตรับผิดชอบ
-                <?php if ($admin_hoscode): ?>
-                    • แสดงเฉพาะ <strong><?= htmlspecialchars($hc_names[$admin_hoscode] ?? $admin_hoscode) ?></strong>
-                <?php endif; ?>
-            </p>
+        <!-- Page header -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
+            <div>
+                <h2 style="color:var(--color-accent);margin:0 0 6px;">🔐 Security Log — การสแกน QR ที่ผิดปกติ</h2>
+                <p style="color:var(--text-secondary);margin:0;font-size:14px;">
+                    รายการบันทึกเมื่อ อสม. สแกน QR Code ที่ไม่ได้รับสิทธิ์ หรือสแกนนอกเขตรับผิดชอบ
+                    <?php if ($admin_hoscode): ?>
+                        • แสดงเฉพาะ <strong><?= htmlspecialchars($hc_names[$admin_hoscode] ?? $admin_hoscode) ?></strong>
+                    <?php endif; ?>
+                </p>
+            </div>
+            <a href="javascript:window.print()" class="btn-giant btn-giant-secondary"
+                style="margin:0;padding:10px 18px;font-size:14px;display:inline-flex;align-items:center;gap:6px;">
+                🖨️ พิมพ์รายงาน
+            </a>
         </div>
-        <a href="javascript:window.print()" class="btn-giant btn-giant-secondary"
-           style="margin:0;padding:10px 18px;font-size:14px;display:inline-flex;align-items:center;gap:6px;">
-            🖨️ พิมพ์รายงาน
-        </a>
-    </div>
 
-    <!-- Success message -->
-    <?php if ($message): ?>
-    <div style="background:rgba(16,185,129,0.12);border:2px solid var(--color-green);color:var(--color-green);
+        <!-- Success message -->
+        <?php if ($message): ?>
+            <div style="background:rgba(16,185,129,0.12);border:2px solid var(--color-green);color:var(--color-green);
                 padding:14px 18px;border-radius:var(--border-radius);margin-bottom:20px;font-weight:700;">
-        ✅ <?= htmlspecialchars($message) ?>
-    </div>
-    <?php endif; ?>
+                ✅ <?= htmlspecialchars($message) ?>
+            </div>
+        <?php endif; ?>
 
-    <!-- Summary Stats -->
-    <div class="stat-grid">
-        <div class="stat-card">
-            <div class="stat-num" style="color:var(--color-red);"><?= number_format((float)($stats['total_all'] ?? 0)) ?></div>
-            <div class="stat-label">ทั้งหมด (ทุกช่วง)</div>
+        <!-- Summary Stats -->
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="stat-num" style="color:var(--color-red);"><?= number_format((float)($stats['total_all'] ?? 0)) ?></div>
+                <div class="stat-label">ทั้งหมด (ทุกช่วง)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num" style="color:var(--color-yellow);"><?= number_format((float)($stats['today'] ?? 0)) ?></div>
+                <div class="stat-label">วันนี้</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num" style="color:var(--color-primary);"><?= number_format((float)($stats['this_week'] ?? 0)) ?></div>
+                <div class="stat-label">7 วันล่าสุด</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num" style="color:var(--color-accent);"><?= number_format((float)($stats['unique_vhvs'] ?? 0)) ?></div>
+                <div class="stat-label">อสม. ที่เกิดเหตุ (ไม่ซ้ำ)</div>
+            </div>
         </div>
-        <div class="stat-card">
-            <div class="stat-num" style="color:var(--color-yellow);"><?= number_format((float)($stats['today'] ?? 0)) ?></div>
-            <div class="stat-label">วันนี้</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-num" style="color:var(--color-primary);"><?= number_format((float)($stats['this_week'] ?? 0)) ?></div>
-            <div class="stat-label">7 วันล่าสุด</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-num" style="color:var(--color-accent);"><?= number_format((float)($stats['unique_vhvs'] ?? 0)) ?></div>
-            <div class="stat-label">อสม. ที่เกิดเหตุ (ไม่ซ้ำ)</div>
-        </div>
-    </div>
 
-    <!-- Filter bar -->
-    <div class="card-dark" style="padding:18px 20px;margin-bottom:20px;">
-        <form method="GET" class="filter-bar">
-            <div style="flex:2;min-width:200px;">
-                <label>ค้นหา (ID อสม. / ชื่อ / รหัสสแกน / IP)</label>
-                <input type="text" name="search" class="f-search" style="width:100%;"
-                       value="<?= htmlspecialchars($search) ?>" placeholder="ค้นหา...">
-            </div>
-            <?php if (!$admin_hoscode): ?>
-            <div class="f-sm">
-                <label>สังกัด รพ.สต.</label>
-                <select name="hoscode">
-                    <option value="">-- ทั้งหมด --</option>
-                    <?php foreach ($hc_names as $code => $name): ?>
-                    <option value="<?= $code ?>" <?= $filter_hsc === $code ? 'selected' : '' ?>><?= htmlspecialchars($name) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <?php endif; ?>
-            <div class="f-sm">
-                <label>วันที่</label>
-                <input type="date" name="date" value="<?= htmlspecialchars($filter_date) ?>">
-            </div>
-            <div class="f-sm">
-                <label>ประเภทเหตุการณ์</label>
-                <select name="type">
-                    <option value="">-- ทั้งหมด --</option>
-                    <?php foreach ($incident_labels as $k => $v): ?>
-                    <option value="<?= $k ?>" <?= $filter_type === $k ? 'selected' : '' ?>><?= $v['label'] ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div style="display:flex;gap:8px;align-items:flex-end;">
-                <button type="submit"
+        <!-- Filter bar -->
+        <div class="card-dark" style="padding:18px 20px;margin-bottom:20px;">
+            <form method="GET" class="filter-bar">
+                <div style="flex:2;min-width:200px;">
+                    <label>ค้นหา (ID อสม. / ชื่อ / รหัสสแกน / IP)</label>
+                    <input type="text" name="search" class="f-search" style="width:100%;"
+                        value="<?= htmlspecialchars($search) ?>" placeholder="ค้นหา...">
+                </div>
+                <?php if (!$admin_hoscode): ?>
+                    <div class="f-sm">
+                        <label>สังกัด รพ.สต.</label>
+                        <select name="hoscode">
+                            <option value="">-- ทั้งหมด --</option>
+                            <?php foreach ($hc_names as $code => $name): ?>
+                                <option value="<?= $code ?>" <?= $filter_hsc === $code ? 'selected' : '' ?>><?= htmlspecialchars($name) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                <?php endif; ?>
+                <div class="f-sm">
+                    <label>วันที่</label>
+                    <input type="date" name="date" value="<?= htmlspecialchars($filter_date) ?>">
+                </div>
+                <div class="f-sm">
+                    <label>ประเภทเหตุการณ์</label>
+                    <select name="type">
+                        <option value="">-- ทั้งหมด --</option>
+                        <?php foreach ($incident_labels as $k => $v): ?>
+                            <option value="<?= $k ?>" <?= $filter_type === $k ? 'selected' : '' ?>><?= $v['label'] ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div style="display:flex;gap:8px;align-items:flex-end;">
+                    <button type="submit"
                         style="height:40px;padding:0 18px;border-radius:8px;border:none;
                                background:var(--color-primary);color:white;font-weight:700;cursor:pointer;">
-                    🔍 กรอง
-                </button>
-                <?php if ($search || $filter_hsc || $filter_date || $filter_type): ?>
-                <a href="security_log.php"
-                   style="height:40px;padding:0 14px;border-radius:8px;border:1px solid var(--border-color);
+                        🔍 กรอง
+                    </button>
+                    <?php if ($search || $filter_hsc || $filter_date || $filter_type): ?>
+                        <a href="security_log.php"
+                            style="height:40px;padding:0 14px;border-radius:8px;border:1px solid var(--border-color);
                           background:var(--bg-card);color:var(--text-secondary);font-weight:700;
                           display:inline-flex;align-items:center;text-decoration:none;">
-                    ✕ ล้าง
-                </a>
-                <?php endif; ?>
-            </div>
-        </form>
-    </div>
+                            ✕ ล้าง
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </form>
+        </div>
 
-    <!-- Log Table -->
-    <div class="card-dark" style="padding:0;overflow:hidden;">
-        <div style="padding:16px 20px;border-bottom:1px solid var(--border-color);
+        <!-- Log Table -->
+        <div class="card-dark" style="padding:0;overflow:hidden;">
+            <div style="padding:16px 20px;border-bottom:1px solid var(--border-color);
                     display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-weight:800;color:var(--color-accent);font-size:15px;">
-                📋 รายการ Log (<?= number_format($total_records) ?> รายการ)
-            </span>
-            <span style="font-size:13px;color:var(--text-muted);">หน้า <?= $page ?> / <?= $total_pages ?></span>
-        </div>
+                <span style="font-weight:800;color:var(--color-accent);font-size:15px;">
+                    📋 รายการ Log (<?= number_format($total_records) ?> รายการ)
+                </span>
+                <span style="font-size:13px;color:var(--text-muted);">หน้า <?= $page ?> / <?= $total_pages ?></span>
+            </div>
 
-        <?php if (empty($logs)): ?>
-        <div class="empty-state">
-            <span class="icon">✅</span>
-            <h3 style="color:var(--color-green);margin-bottom:8px;">ไม่พบรายการสแกนที่ผิดปกติ</h3>
-            <p style="font-size:14px;">ยังไม่มีการบันทึกเหตุการณ์ด้านความปลอดภัยตามเงื่อนไขที่เลือก</p>
-        </div>
-        <?php else: ?>
-        <div style="overflow-x:auto;">
-            <table class="log-table" style="width:100%;border-collapse:collapse;">
-                <thead>
-                    <tr>
-                        <th style="padding-left:20px;">#</th>
-                        <th>วันที่ / เวลา</th>
-                        <th>อสม. (ID)</th>
-                        <th>ชื่อ</th>
-                        <th>สังกัด</th>
-                        <th>รหัสที่สแกน (HID/CID)</th>
-                        <th>ประเภทเหตุการณ์</th>
-                        <th>พิกัด GPS</th>
-                        <th>IP Address</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($logs as $i => $log):
-                        $inc = $incident_labels[$log['incident_type']] ?? ['label' => $log['incident_type'], 'color' => '#6b7280', 'bg' => 'rgba(107,114,128,0.1)'];
-                        $rowNum = $offset + $i + 1;
-                    ?>
-                    <tr style="border-bottom:1px solid var(--border-color);">
-                        <td style="padding-left:20px;color:var(--text-muted);font-size:12px;"><?= $rowNum ?></td>
-                        <td style="white-space:nowrap;">
-                            <strong style="font-size:13px;"><?= date('d/m/Y', strtotime($log['logged_at'])) ?></strong><br>
-                            <span style="color:var(--text-muted);font-size:12px;"><?= date('H:i:s', strtotime($log['logged_at'])) ?></span>
-                        </td>
-                        <td>
-                            <code style="background:var(--bg-darker);padding:2px 8px;border-radius:6px;font-size:13px;">
-                                <?= htmlspecialchars($log['vhv_id']) ?>
-                            </code>
-                        </td>
-                        <td style="font-weight:600;color:var(--text-primary);">
-                            <?= htmlspecialchars($log['vhv_name'] ?: '—') ?>
-                        </td>
-                        <td style="font-size:13px;color:var(--text-secondary);">
-                            <?= htmlspecialchars($hc_names[$log['hoscode']] ?? ($log['hoscode'] ?: '—')) ?>
-                        </td>
-                        <td>
-                            <code style="background:rgba(239,68,68,0.08);color:var(--color-red);
+            <?php if (empty($logs)): ?>
+                <div class="empty-state">
+                    <span class="icon">✅</span>
+                    <h3 style="color:var(--color-green);margin-bottom:8px;">ไม่พบรายการสแกนที่ผิดปกติ</h3>
+                    <p style="font-size:14px;">ยังไม่มีการบันทึกเหตุการณ์ด้านความปลอดภัยตามเงื่อนไขที่เลือก</p>
+                </div>
+            <?php else: ?>
+                <div style="overflow-x:auto;">
+                    <table class="log-table" style="width:100%;border-collapse:collapse;">
+                        <thead>
+                            <tr>
+                                <th style="padding-left:20px;">#</th>
+                                <th>วันที่ / เวลา</th>
+                                <th>อสม. (ID)</th>
+                                <th>ชื่อ</th>
+                                <th>สังกัด</th>
+                                <th>รหัสที่สแกน (HID/CID)</th>
+                                <th>ประเภทเหตุการณ์</th>
+                                <th>พิกัด GPS</th>
+                                <th>IP Address</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($logs as $i => $log):
+                                $inc = $incident_labels[$log['incident_type']] ?? ['label' => $log['incident_type'], 'color' => '#6b7280', 'bg' => 'rgba(107,114,128,0.1)'];
+                                $rowNum = $offset + $i + 1;
+                            ?>
+                                <tr style="border-bottom:1px solid var(--border-color);">
+                                    <td style="padding-left:20px;color:var(--text-muted);font-size:12px;"><?= $rowNum ?></td>
+                                    <td style="white-space:nowrap;">
+                                        <strong style="font-size:13px;"><?= date('d/m/Y', strtotime($log['logged_at'])) ?></strong><br>
+                                        <span style="color:var(--text-muted);font-size:12px;"><?= date('H:i:s', strtotime($log['logged_at'])) ?></span>
+                                    </td>
+                                    <td>
+                                        <code style="background:var(--bg-darker);padding:2px 8px;border-radius:6px;font-size:13px;">
+                                            <?= htmlspecialchars($log['vhv_id']) ?>
+                                        </code>
+                                    </td>
+                                    <td style="font-weight:600;color:var(--text-primary);">
+                                        <?= htmlspecialchars($log['vhv_name'] ?: '—') ?>
+                                    </td>
+                                    <td style="font-size:13px;color:var(--text-secondary);">
+                                        <?= htmlspecialchars($hc_names[$log['hoscode']] ?? ($log['hoscode'] ?: '—')) ?>
+                                    </td>
+                                    <td>
+                                        <code style="background:rgba(239,68,68,0.08);color:var(--color-red);
                                          padding:2px 8px;border-radius:6px;font-size:13px;">
-                                <?= htmlspecialchars($log['scanned_code']) ?>
-                            </code>
-                        </td>
-                        <td>
-                            <span class="badge-incident"
-                                  style="background:<?= $inc['bg'] ?>;color:<?= $inc['color'] ?>;">
-                                <?= $inc['label'] ?>
-                            </span>
-                        </td>
-                        <td>
-                            <?php if ($log['scan_lat'] && $log['scan_lng']): ?>
-                            <a href="https://maps.google.com/?q=<?= $log['scan_lat'] ?>,<?= $log['scan_lng'] ?>"
-                               target="_blank" class="map-link">
-                                📍 ดูแผนที่
-                            </a>
-                            <br>
-                            <span style="font-size:11px;color:var(--text-muted);">
-                                <?= number_format((float)$log['scan_lat'],5) ?>, <?= number_format((float)$log['scan_lng'],5) ?>
-                            </span>
-                            <?php else: ?>
-                            <span style="color:var(--text-muted);font-size:12px;">—</span>
-                            <?php endif; ?>
-                        </td>
-                        <td style="font-size:12px;color:var(--text-muted);">
-                            <?= htmlspecialchars($log['ip_address'] ?: '—') ?>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+                                            <?= htmlspecialchars($log['scanned_code']) ?>
+                                        </code>
+                                    </td>
+                                    <td>
+                                        <span class="badge-incident"
+                                            style="background:<?= $inc['bg'] ?>;color:<?= $inc['color'] ?>;">
+                                            <?= $inc['label'] ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <?php if ($log['scan_lat'] && $log['scan_lng']): ?>
+                                            <a href="https://maps.google.com/?q=<?= $log['scan_lat'] ?>,<?= $log['scan_lng'] ?>"
+                                                target="_blank" class="map-link">
+                                                📍 ดูแผนที่
+                                            </a>
+                                            <br>
+                                            <span style="font-size:11px;color:var(--text-muted);">
+                                                <?= number_format((float)$log['scan_lat'], 5) ?>, <?= number_format((float)$log['scan_lng'], 5) ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span style="color:var(--text-muted);font-size:12px;">—</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td style="font-size:12px;color:var(--text-muted);">
+                                        <?= htmlspecialchars($log['ip_address'] ?: '—') ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <?php if ($total_pages > 1): ?>
+                    <div class="pagination" style="padding:16px 20px;">
+                        <?php
+                        $qp = $_GET;
+                        $start = max(1, $page - 3);
+                        $end   = min($total_pages, $page + 3);
+                        if ($start > 1) {
+                            $qp['page'] = 1;
+                            echo '<a href="?' . http_build_query($qp) . '" class="page-link">1</a>';
+                            if ($start > 2) echo '<span style="padding:6px 4px;color:var(--text-muted);">…</span>';
+                        }
+                        for ($pi = $start; $pi <= $end; $pi++) {
+                            $qp['page'] = $pi;
+                            $active = $pi == $page ? 'active' : '';
+                            echo '<a href="?' . http_build_query($qp) . '" class="page-link ' . $active . '">' . $pi . '</a>';
+                        }
+                        if ($end < $total_pages) {
+                            if ($end < $total_pages - 1) echo '<span style="padding:6px 4px;color:var(--text-muted);">…</span>';
+                            $qp['page'] = $total_pages;
+                            echo '<a href="?' . http_build_query($qp) . '" class="page-link">' . $total_pages . '</a>';
+                        }
+                        ?>
+                    </div>
+                <?php endif; ?>
+            <?php endif; ?>
         </div>
 
-        <!-- Pagination -->
-        <?php if ($total_pages > 1): ?>
-        <div class="pagination" style="padding:16px 20px;">
-            <?php
-            $qp = $_GET;
-            $start = max(1, $page - 3);
-            $end   = min($total_pages, $page + 3);
-            if ($start > 1) {
-                $qp['page'] = 1;
-                echo '<a href="?' . http_build_query($qp) . '" class="page-link">1</a>';
-                if ($start > 2) echo '<span style="padding:6px 4px;color:var(--text-muted);">…</span>';
-            }
-            for ($pi = $start; $pi <= $end; $pi++) {
-                $qp['page'] = $pi;
-                $active = $pi == $page ? 'active' : '';
-                echo '<a href="?' . http_build_query($qp) . '" class="page-link ' . $active . '">' . $pi . '</a>';
-            }
-            if ($end < $total_pages) {
-                if ($end < $total_pages - 1) echo '<span style="padding:6px 4px;color:var(--text-muted);">…</span>';
-                $qp['page'] = $total_pages;
-                echo '<a href="?' . http_build_query($qp) . '" class="page-link">' . $total_pages . '</a>';
-            }
-            ?>
-        </div>
-        <?php endif; ?>
-        <?php endif; ?>
-    </div>
-
-    <!-- Danger zone: clear log (super admin only) -->
-    <?php if (!$admin_hoscode): ?>
-    <div class="danger-zone no-print">
-        <h4>⚠️ จัดการ Log (ผู้ดูแลระบบหลักเท่านั้น)</h4>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-            <form method="POST" onsubmit="return confirm('ยืนยัน: ลบ Log ที่เก่ากว่า 90 วัน?')">
-                <input type="hidden" name="action" value="clear_old">
-                <input type="hidden" name="days"   value="90">
-                <button type="submit"
-                        style="height:38px;padding:0 18px;border-radius:8px;border:1px solid rgba(239,68,68,0.4);
+        <!-- Danger zone: clear log (super admin only) -->
+        <?php if (!$admin_hoscode): ?>
+            <div class="danger-zone no-print">
+                <h4>⚠️ จัดการ Log (ผู้ดูแลระบบหลักเท่านั้น)</h4>
+                <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                    <form method="POST" onsubmit="return confirm('ยืนยัน: ลบ Log ที่เก่ากว่า 90 วัน?')">
+                        <input type="hidden" name="action" value="clear_old">
+                        <input type="hidden" name="days" value="90">
+                        <button type="submit"
+                            style="height:38px;padding:0 18px;border-radius:8px;border:1px solid rgba(239,68,68,0.4);
                                background:rgba(239,68,68,0.08);color:var(--color-red);font-weight:700;cursor:pointer;">
-                    🗑️ ลบ Log เก่ากว่า 90 วัน
-                </button>
-            </form>
-            <form method="POST" onsubmit="return confirm('ยืนยัน: ลบ Log ทั้งหมด? ไม่สามารถย้อนกลับได้!')">
-                <input type="hidden" name="action" value="clear_all">
-                <button type="submit"
-                        style="height:38px;padding:0 18px;border-radius:8px;border:1px solid var(--color-red);
+                            🗑️ ลบ Log เก่ากว่า 90 วัน
+                        </button>
+                    </form>
+                    <form method="POST" onsubmit="return confirm('ยืนยัน: ลบ Log ทั้งหมด? ไม่สามารถย้อนกลับได้!')">
+                        <input type="hidden" name="action" value="clear_all">
+                        <button type="submit"
+                            style="height:38px;padding:0 18px;border-radius:8px;border:1px solid var(--color-red);
                                background:var(--color-red);color:white;font-weight:700;cursor:pointer;">
-                    🗑️ ลบ Log ทั้งหมด
-                </button>
-            </form>
-        </div>
+                            🗑️ ลบ Log ทั้งหมด
+                        </button>
+                    </form>
+                </div>
+            </div>
+        <?php endif; ?>
+
     </div>
-    <?php endif; ?>
 
-</div>
+    <style>
+        @media print {
 
-<style>
-@media print {
-    .admin-navbar, .filter-bar, .danger-zone, .pagination, .no-print { display: none !important; }
-    .log-table th, .log-table td { font-size: 11px !important; padding: 6px 8px !important; }
-    body { background: white !important; }
-    .card-dark { box-shadow: none !important; border: 1px solid #ccc !important; }
-}
-</style>
+            .admin-navbar,
+            .filter-bar,
+            .danger-zone,
+            .pagination,
+            .no-print {
+                display: none !important;
+            }
+
+            .log-table th,
+            .log-table td {
+                font-size: 11px !important;
+                padding: 6px 8px !important;
+            }
+
+            body {
+                background: white !important;
+            }
+
+            .card-dark {
+                box-shadow: none !important;
+                border: 1px solid #ccc !important;
+            }
+        }
+    </style>
 </body>
+
 </html>
