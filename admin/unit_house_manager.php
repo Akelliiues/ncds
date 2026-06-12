@@ -346,18 +346,79 @@ $house_filter_hoscode = $_GET['house_hoscode'] ?? '';
 $house_filter_vhid = $_GET['house_vhid'] ?? '';
 $house_search = trim($_GET['house_search'] ?? '');
 
+// Expression to resolve raw vhid_code: standardizes 7 to 8 digits, maps single digit moo to 8-digit village code based on hoscode, and falls back to target_population
+$raw_vhid_sql = "COALESCE(
+    NULLIF(
+        CASE 
+            WHEN h.vhid_code REGEXP '^[0-9]+$' AND CAST(h.vhid_code AS UNSIGNED) > 0 AND CAST(h.vhid_code AS UNSIGNED) < 100 THEN
+                CONCAT(
+                    CASE 
+                        WHEN CAST(h.hoscode AS UNSIGNED) IN (10957, 3751) THEN '341801'
+                        WHEN CAST(h.hoscode AS UNSIGNED) = 3752 THEN '341802'
+                        WHEN CAST(h.hoscode AS UNSIGNED) = 3753 THEN '341803'
+                        WHEN CAST(h.hoscode AS UNSIGNED) = 3754 THEN '341804'
+                        WHEN CAST(h.hoscode AS UNSIGNED) IN (3755, 3756) THEN '341805'
+                        WHEN CAST(h.hoscode AS UNSIGNED) = 3757 THEN '341806'
+                        ELSE '341801'
+                    END,
+                    LPAD(h.vhid_code, 2, '0')
+                )
+            WHEN LENGTH(h.vhid_code) = 7 THEN 
+                CONCAT(SUBSTRING(h.vhid_code, 1, 6), '0', SUBSTRING(h.vhid_code, 7, 1))
+            WHEN LENGTH(h.vhid_code) = 8 THEN 
+                h.vhid_code
+            ELSE 
+                NULL
+        END, 
+        ''
+    ),
+    (SELECT 
+        CASE 
+            WHEN LENGTH(t.vhid_code) = 7 THEN CONCAT(SUBSTRING(t.vhid_code, 1, 6), '0', SUBSTRING(t.vhid_code, 7, 1))
+            WHEN LENGTH(t.vhid_code) = 8 THEN t.vhid_code
+            ELSE CONCAT(t.sub_district_code, LPAD(t.moo, 2, '0'))
+        END
+     FROM target_population t
+     WHERE CAST(t.hoscode AS UNSIGNED) = CAST(h.hoscode AS UNSIGNED) 
+       AND CAST(t.hid AS UNSIGNED) = CAST(h.hid AS UNSIGNED)
+       AND ((t.vhid_code IS NOT NULL AND t.vhid_code != '') 
+            OR (t.sub_district_code IS NOT NULL AND t.sub_district_code != '' AND t.moo IS NOT NULL AND t.moo != ''))
+     LIMIT 1),
+    (SELECT 
+        CONCAT(
+            CASE 
+                WHEN CAST(h.hoscode AS UNSIGNED) IN (10957, 3751) THEN '341801'
+                WHEN CAST(h.hoscode AS UNSIGNED) = 3752 THEN '341802'
+                WHEN CAST(h.hoscode AS UNSIGNED) = 3753 THEN '341803'
+                WHEN CAST(h.hoscode AS UNSIGNED) = 3754 THEN '341804'
+                WHEN CAST(h.hoscode AS UNSIGNED) IN (3755, 3756) THEN '341805'
+                WHEN CAST(h.hoscode AS UNSIGNED) = 3757 THEN '341806'
+                ELSE '341801'
+            END,
+            LPAD(t.moo, 2, '0')
+        )
+     FROM target_population t
+     WHERE CAST(t.hoscode AS UNSIGNED) = CAST(h.hoscode AS UNSIGNED)
+       AND CAST(t.hid AS UNSIGNED) = CAST(h.hid AS UNSIGNED)
+       AND t.moo IS NOT NULL AND t.moo != ''
+     LIMIT 1)
+)";
+
+// Final resolved vhid_code: replaces the district code prefix '3420' (from live database) with '3418' (from portal villages configuration)
+$resolved_vhid_sql = "CASE WHEN $raw_vhid_sql LIKE '3420%' THEN CONCAT('3418', SUBSTRING($raw_vhid_sql, 5)) ELSE $raw_vhid_sql END";
+
 if (!empty($house_filter_hoscode)) {
-    $house_where[] = "h.hoscode = ?";
+    $house_where[] = "CAST(h.hoscode AS UNSIGNED) = CAST(? AS UNSIGNED)";
     $house_params[] = $house_filter_hoscode;
 }
 if (!empty($house_filter_vhid)) {
-    $house_where[] = "h.vhid_code = ?";
+    $house_where[] = "$resolved_vhid_sql = ?";
     $house_params[] = $house_filter_vhid;
 }
 if (!empty($house_search)) {
-    $house_where[] = "(h.house_no LIKE ? OR h.hid LIKE ?)";
-    $house_params[] = "%$house_search%";
-    $house_params[] = "%$house_search%";
+    $house_where[] = "(h.house_no = ? OR h.hid = ?)";
+    $house_params[] = $house_search;
+    $house_params[] = $house_search;
 }
 
 $house_where_sql = "";
@@ -373,12 +434,13 @@ $total_house_pages = ceil($total_houses / $house_limit);
 
 // Query paginated houses
 $house_sql = "
-    SELECT h.*, u.hosname, v.village_name, v.moo
+    SELECT h.*, u.hosname, v.village_name, v.moo,
+           $resolved_vhid_sql AS resolved_vhid_code
     FROM jhcis_homes h
-    LEFT JOIN health_units u ON h.hoscode = u.hoscode
-    LEFT JOIN villages v ON h.vhid_code = v.vhid_code
+    LEFT JOIN health_units u ON CAST(h.hoscode AS UNSIGNED) = CAST(u.hoscode AS UNSIGNED)
+    LEFT JOIN villages v ON $resolved_vhid_sql = v.vhid_code
     $house_where_sql
-    ORDER BY h.hoscode ASC, h.vhid_code ASC, CAST(h.house_no AS UNSIGNED) ASC, h.house_no ASC
+    ORDER BY h.hoscode ASC, resolved_vhid_code ASC, CAST(h.house_no AS UNSIGNED) ASC, h.house_no ASC
     LIMIT $house_limit OFFSET $house_offset
 ";
 $house_stmt = $pdo->prepare($house_sql);
@@ -810,8 +872,8 @@ $houses_list = $house_stmt->fetchAll();
                                 <?php foreach ($houses_list as $hm): ?>
                                     <tr>
                                         <td><strong style="color: var(--text-primary);"><?= htmlspecialchars($hm['hid']) ?></strong></td>
-                                        <td style="font-weight: bold; color: var(--color-primary);">บ้านเลขที่ <?= htmlspecialchars($hm['house_no']) ?></td>
-                                        <td>หมู่ที่ <?= htmlspecialchars($hm['moo'] ?? '') ?> <?= htmlspecialchars($hm['village_name'] ?? '') ?></td>
+                                        <td style="font-weight: bold; color: var(--color-primary);"><?= htmlspecialchars($hm['house_no']) ?></td>
+                                        <td><?= htmlspecialchars($hm['village_name'] ?: get_village_only_name($hm['resolved_vhid_code'] ?? $hm['vhid_code'] ?? '', $hm['moo'] ?: intval(substr($hm['resolved_vhid_code'] ?? $hm['vhid_code'] ?? '', 6, 2)))) ?></td>
                                         <td><?= htmlspecialchars($hm['hosname'] ?? $hm['hoscode']) ?></td>
                                         <td>
                                             <?php if ($hm['latitude'] && $hm['longitude']): ?>
@@ -1276,7 +1338,9 @@ $houses_list = $house_stmt->fetchAll();
             const hoscode = document.getElementById(hoscodeSelectId).value;
             const vhidSelect = document.getElementById(vhidSelectId);
             
-            vhidSelect.innerHTML = '<option value="">-- เลือกหมู่บ้าน --</option>';
+            // Set dynamic first option text based on whether it is a search filter
+            const firstOptionText = vhidSelectId.includes('filter') ? '-- ทั้งหมด --' : '-- เลือกหมู่บ้าน --';
+            vhidSelect.innerHTML = `<option value="">${firstOptionText}</option>`;
             
             if (hoscode && hoscodeVillagesMap[hoscode]) {
                 hoscodeVillagesMap[hoscode].forEach(v => {

@@ -684,6 +684,12 @@ if (isset($_POST['action_confirm'])) {
                         $lat = ($rowVals['latitude'] !== '' && is_numeric($rowVals['latitude'])) ? (float)$rowVals['latitude'] : null;
                         $lng = ($rowVals['longitude'] !== '' && is_numeric($rowVals['longitude'])) ? (float)$rowVals['longitude'] : null;
                         
+                        // Clear lat and lng (set to null) ONLY for hospcode 10957 (โรงพยาบาลตาลสุม) due to corrupted coordinates in the source system
+                        if (intval($rowHoscode) === 10957) {
+                            $lat = null;
+                            $lng = null;
+                        }
+                        
                         if ($lat == 0 || $lng == 0) {
                             $lat = null;
                             $lng = null;

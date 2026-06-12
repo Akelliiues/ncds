@@ -99,8 +99,31 @@ if ($admin_hoscode) {
         'total_vhvs' => $total_vhvs_val
     ];
 
-    // Card 1 Detail: Targets per village (moo)
-    $mooQuery = $pdo->prepare("SELECT hoscode, moo, COUNT(*) as count FROM target_population WHERE hoscode IN ($inPlaceholders) AND (need_screen_dm = 1 OR need_screen_ht = 1) GROUP BY hoscode, moo ORDER BY moo");
+    // Card 1 Detail: Targets per village (moo) and health status origin
+    $mooQuery = $pdo->prepare("
+        SELECT 
+            hoscode, 
+            moo, 
+            CASE 
+                WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
+                WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
+                WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
+                ELSE 'NORMAL'
+            END as health_status_origin,
+            COUNT(*) as count 
+        FROM target_population 
+        WHERE hoscode IN ($inPlaceholders) AND (need_screen_dm = 1 OR need_screen_ht = 1) 
+        GROUP BY 
+            hoscode, 
+            moo,
+            CASE 
+                WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
+                WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
+                WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
+                ELSE 'NORMAL'
+            END
+        ORDER BY moo
+    ");
     $mooQuery->execute($hoscodes);
     $targetsDetail = $mooQuery->fetchAll(PDO::FETCH_ASSOC);
     foreach ($targetsDetail as &$row) {
@@ -351,8 +374,29 @@ if ($admin_hoscode) {
     $groupDetailStmtSa->execute($valid_hoscodes);
     $groupDetail = $groupDetailStmtSa->fetchAll(PDO::FETCH_ASSOC);
 
-    // Card 1 Detail: Targets per hoscode for super admin
-    $targetsDetailStmt = $pdo->prepare("SELECT hoscode, COUNT(*) as count FROM target_population WHERE hoscode IN ($inPlaceholdersSa) AND (need_screen_dm = 1 OR need_screen_ht = 1) GROUP BY hoscode ORDER BY hoscode");
+    // Card 1 Detail: Targets per hoscode and health status origin
+    $targetsDetailStmt = $pdo->prepare("
+        SELECT 
+            hoscode, 
+            CASE 
+                WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
+                WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
+                WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
+                ELSE 'NORMAL'
+            END as health_status_origin,
+            COUNT(*) as count 
+        FROM target_population 
+        WHERE hoscode IN ($inPlaceholdersSa) AND (need_screen_dm = 1 OR need_screen_ht = 1) 
+        GROUP BY 
+            hoscode,
+            CASE 
+                WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
+                WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
+                WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
+                ELSE 'NORMAL'
+            END
+        ORDER BY hoscode
+    ");
     $targetsDetailStmt->execute($valid_hoscodes);
     $targetsDetail = $targetsDetailStmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -577,7 +621,7 @@ if ($admin_hoscode) {
             <!-- กลุ่มเสี่ยง DM -->
             <div class="card-dark"
                 style="cursor: pointer; border-left: 4px solid #f97316; position: relative; overflow: hidden;"
-                onclick="showCardModal('targets')">
+                onclick="showCardModal('targets_dm')">
                 <div
                     style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(249, 115, 22, 0.08);">
                 </div>
@@ -600,7 +644,7 @@ if ($admin_hoscode) {
             <!-- กลุ่มเสี่ยง HT -->
             <div class="card-dark"
                 style="cursor: pointer; border-left: 4px solid #06b6d4; position: relative; overflow: hidden;"
-                onclick="showCardModal('targets')">
+                onclick="showCardModal('targets_ht')">
                 <div
                     style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(6, 182, 212, 0.08);">
                 </div>
@@ -623,7 +667,7 @@ if ($admin_hoscode) {
             <!-- กลุ่มเสี่ยง Both/High Risk -->
             <div class="card-dark"
                 style="cursor: pointer; border-left: 4px solid var(--color-red); position: relative; overflow: hidden;"
-                onclick="showCardModal('targets')">
+                onclick="showCardModal('targets_both')">
                 <div
                     style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(239, 68, 68, 0.08);">
                 </div>
@@ -1634,6 +1678,61 @@ if ($admin_hoscode) {
                 return html;
             }
 
+            function getSafeLatLng(lat, lng) {
+                var latVal = parseFloat(lat);
+                var lngVal = parseFloat(lng);
+                if (isNaN(latVal) || isNaN(lngVal)) return null;
+                // If coordinates are swapped (Thailand latitude is ~15, longitude is ~104-105)
+                if (latVal > 90 || (latVal > 80 && lngVal < 30)) {
+                    return [lngVal, latVal];
+                }
+                return [latVal, lngVal];
+            }
+
+            function isMaskedDuplicate(masked, unmasked) {
+                // Helper to check if name is masked (contains * or X)
+                function isMasked(str) {
+                    return str && (str.indexOf('*') !== -1 || str.indexOf('X') !== -1);
+                }
+                
+                var maskedFirstIsMasked = isMasked(masked.first_name);
+                var maskedLastIsMasked = isMasked(masked.last_name);
+                
+                var unmaskedFirstIsMasked = isMasked(unmasked.first_name);
+                var unmaskedLastIsMasked = isMasked(unmasked.last_name);
+                
+                // If masked name is not masked, or unmasked name is actually masked, they are not a pair
+                if (!(maskedFirstIsMasked || maskedLastIsMasked) || (unmaskedFirstIsMasked || unmaskedLastIsMasked)) {
+                    return false;
+                }
+                
+                // Helper to extract non-masked prefix
+                function getPrefix(str) {
+                    if (!str) return "";
+                    var idxStar = str.indexOf('*');
+                    var idxX = str.indexOf('X');
+                    var idx = -1;
+                    if (idxStar !== -1 && idxX !== -1) idx = Math.min(idxStar, idxX);
+                    else if (idxStar !== -1) idx = idxStar;
+                    else idx = idxX;
+                    return idx > 0 ? str.substring(0, idx) : str.substring(0, 1);
+                }
+                
+                var mFirstPrefix = getPrefix(masked.first_name);
+                var mLastPrefix = getPrefix(masked.last_name);
+                
+                if (!mFirstPrefix || !mLastPrefix) return false;
+                
+                var uFirst = unmasked.first_name || "";
+                var uLast = unmasked.last_name || "";
+                
+                // Both first name and last name must match prefix
+                var firstMatch = uFirst.startsWith(mFirstPrefix);
+                var lastMatch = uLast.startsWith(mLastPrefix);
+                
+                return firstMatch && lastMatch;
+            }
+
             function buildMarkers(adjustView) {
                 // Clear existing
                 markers.forEach(function (m) { map.removeLayer(m.marker); });
@@ -1641,11 +1740,10 @@ if ($admin_hoscode) {
                 if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
 
                 var heatPoints = [];
-                var visibleCount = 0;
+                var bounds = [];
                 
                 // Group data by coordinates
                 var groupedData = {};
-                var bounds = [];
 
                 allMapData.forEach(function (t) {
                     if (!t.latitude || !t.longitude) return;
@@ -1656,25 +1754,64 @@ if ($admin_hoscode) {
 
                     if (!passRisk || !passHos) return;
 
-                    visibleCount++;
-                    var lat = parseFloat(t.latitude).toFixed(6);
-                    var lng = parseFloat(t.longitude).toFixed(6);
+                    var latLng = getSafeLatLng(t.latitude, t.longitude);
+                    if (!latLng) return;
+                    var latVal = latLng[0];
+                    var lngVal = latLng[1];
+
+                    var lat = latVal.toFixed(6);
+                    var lng = lngVal.toFixed(6);
                     var key = lat + ',' + lng;
                     
                     if (!groupedData[key]) {
                         groupedData[key] = [];
                     }
                     groupedData[key].push(t);
-                    
-                    // Heatmap intensity for this individual
-                    var intensity = t.risk === 'high' ? 1.0 : (t.risk === 'moderate' ? 0.6 : 0.3);
-                    heatPoints.push([parseFloat(t.latitude), parseFloat(t.longitude), intensity]);
-                    bounds.push([parseFloat(t.latitude), parseFloat(t.longitude)]);
                 });
 
-                // Create markers for each group
+                // Deduplicate masked duplicates within each coordinate group
+                var visibleCount = 0;
                 Object.keys(groupedData).forEach(function(key) {
                     var group = groupedData[key];
+                    if (group.length > 1) {
+                        var toRemove = [];
+                        for (var i = 0; i < group.length; i++) {
+                            for (var j = 0; j < group.length; j++) {
+                                if (i === j) continue;
+                                var t1 = group[i]; // potential masked duplicate
+                                var t2 = group[j]; // potential unmasked real target
+                                
+                                if (isMaskedDuplicate(t1, t2)) {
+                                    // Merge screening results if t1 has results but t2 doesn't
+                                    if (t1.sys_bp1 !== null && t2.sys_bp1 === null) {
+                                        t2.sys_bp1 = t1.sys_bp1;
+                                        t2.dia_bp1 = t1.dia_bp1;
+                                        t2.dtx_value = t1.dtx_value;
+                                        t2.cv_risk_score = t1.cv_risk_score;
+                                        t2.bmi = t1.bmi;
+                                        t2.risk = t1.risk;
+                                    }
+                                    toRemove.push(t1);
+                                    break;
+                                }
+                            }
+                        }
+                        if (toRemove.length > 0) {
+                            groupedData[key] = group.filter(function(t) {
+                                return toRemove.indexOf(t) === -1;
+                            });
+                        }
+                    }
+                    
+                    // Update visibleCount
+                    visibleCount += groupedData[key].length;
+                });
+
+                // Create markers and populate bounds/heatPoints for each group
+                Object.keys(groupedData).forEach(function(key) {
+                    var group = groupedData[key];
+                    if (group.length === 0) return;
+
                     var parts = key.split(',');
                     var lat = parseFloat(parts[0]);
                     var lng = parseFloat(parts[1]);
@@ -1702,6 +1839,13 @@ if ($admin_hoscode) {
                     }).addTo(map).bindPopup(classifyPopupGroupHTML(group));
 
                     markers.push({ marker: marker, data: group });
+
+                    // Populating bounds and heatPoints only for coordinates within Tan Sum boundary
+                    if (lat >= 15.20 && lat <= 15.60 && lng >= 104.70 && lng <= 105.40) {
+                        var groupIntensity = groupRisk === 'high' ? 1.0 : (groupRisk === 'moderate' ? 0.6 : 0.3);
+                        heatPoints.push([lat, lng, groupIntensity]);
+                        bounds.push([lat, lng]);
+                    }
                 });
 
                 // Update counter
@@ -1858,8 +2002,18 @@ if ($admin_hoscode) {
                 var lng = parseFloat(opt.getAttribute('data-lng'));
 
                 if (lat && lng) {
-                    // Jump to existing location
-                    map.setView([lat, lng], 16);
+                    // Safety check: if coordinates are swapped
+                    var latLng = getSafeLatLng(lat, lng);
+                    if (latLng) {
+                        lat = latLng[0];
+                        lng = latLng[1];
+                    }
+
+                    // Jump to existing location smoothly
+                    map.flyTo([lat, lng], 16, {
+                        animate: true,
+                        duration: 1.5
+                    });
                     document.getElementById('edit-status').innerHTML = '📌 พิกัดปัจจุบัน: ' + lat.toFixed(6) + ', ' + lng.toFixed(6) + '<br>💡 คลิกบนแผนที่เพื่อเปลี่ยนตำแหน่งใหม่';
                 } else {
                     document.getElementById('edit-status').innerHTML = '❌ ยังไม่มีพิกัด - คลิกบนแผนที่เพื่อกำหนดตำแหน่ง';
@@ -1995,13 +2149,21 @@ if ($admin_hoscode) {
         <div id="details-modal" onclick="if(event.target === this) closeDetailsModal()"
             style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(13, 44, 84, 0.4); backdrop-filter: blur(4px); z-index: 2000; align-items: center; justify-content: center;">
             <div class="card-dark"
-                style="width: 90%; max-width: 500px; padding: 24px; max-height: 80vh; overflow-y: auto;">
+                style="position: relative; width: 90%; max-width: 500px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.1); border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 24px; margin-bottom: 0;">
+                <button onclick="closeDetailsModal()" 
+                        style="position: absolute; top: 24px; right: 24px; background: none; border: none; color: var(--text-muted); cursor: pointer; transition: color var(--transition-speed); padding: 4px; display: inline-flex; align-items: center; justify-content: center;"
+                        onmouseover="this.style.color='var(--color-red)'"
+                        onmouseout="this.style.color='var(--text-muted)'"
+                        title="ปิด">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
                 <h3 id="modal-title"
-                    style="color: var(--color-accent); border-bottom: 2px solid var(--border-color); padding-bottom: 12px; margin-bottom: 20px;">
+                    style="color: var(--color-accent); border-bottom: 2px solid var(--border-color); padding-bottom: 12px; margin-bottom: 20px; padding-right: 30px;">
                     รายละเอียด</h3>
-                <div id="modal-body-content" style="margin-bottom: 24px;"></div>
-                <button onclick="closeDetailsModal()" class="btn-primary"
-                    style="width: 100%; height: 50px; border-radius: 25px; border: none; background: var(--color-primary); color: white; font-weight: bold; cursor: pointer;">ปิดหน้าต่าง</button>
+                <div id="modal-body-content" style="margin-bottom: 0;"></div>
             </div>
         </div>
 
@@ -2032,9 +2194,72 @@ if ($admin_hoscode) {
                 var title = '';
                 var html = '';
 
-                if (type === 'targets') {
+                var cardTargetFilters = {
+                    'targets_dm': {
+                        origin: 'DM_ONLY',
+                        label: 'เฉพาะเสี่ยงเบาหวาน (DM)',
+                        totalVal: <?= intval($metrics['group_dm']) ?>,
+                        color: '#f97316'
+                    },
+                    'targets_ht': {
+                        origin: 'HT_ONLY',
+                        label: 'เฉพาะเสี่ยงความดัน (HT)',
+                        totalVal: <?= intval($metrics['group_ht']) ?>,
+                        color: '#06b6d4'
+                    },
+                    'targets_both': {
+                        origin: 'BOTH',
+                        label: 'เสี่ยงทั้งคู่ (DM+HT)',
+                        totalVal: <?= intval($metrics['group_both']) ?>,
+                        color: 'var(--color-red)'
+                    }
+                };
+
+                if (type.indexOf('targets_') === 0) {
+                    var config = cardTargetFilters[type];
+                    var origin = config.origin;
+                    title = '📊 กลุ่มเป้าหมาย ' + config.label;
+                    
+                    html = '<div style="margin-bottom: 16px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px; border-left: 4px solid ' + config.color + ';">';
+                    html += '<span style="color: var(--text-secondary); font-size: 14px;">จำนวนเป้าหมายทั้งหมดในกลุ่มนี้</span>';
+                    html += '<div style="font-size: 24px; font-weight: bold; color: ' + config.color + '; margin-top: 4px;">' + config.totalVal.toLocaleString() + ' ราย</div>';
+                    html += '</div>';
+
+                    // Also show per-village/hoscode breakdown specifically for this group
+                    html += '<h4 style="margin-top: 20px; color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">แยกตามพื้นที่</h4>';
+                    html += '<div style="border-radius: 12px; overflow: hidden; border: 1px solid rgba(0,0,0,0.05);">';
+                    html += '<table class="admin-table"><thead><tr><th>พื้นที่</th><th style="text-align: right;">จำนวน (ราย)</th></tr></thead><tbody>';
+                    
+                    var filteredDetails = targetsDetail.filter(function(row) {
+                        return row.health_status_origin === origin;
+                    });
+
+                    var totalCount = 0;
+                    <?php if (!$admin_hoscode): ?>
+                        if (filteredDetails.length === 0) {
+                            html += '<tr><td colspan="2" style="text-align: center;">ไม่มีข้อมูล</td></tr>';
+                        } else {
+                            filteredDetails.forEach(function (row) {
+                                totalCount += Number(row.count);
+                                html += '<tr><td>' + (hcNamesChart[row.hoscode] || row.hoscode) + '</td><td style="text-align: right; font-weight: bold;">' + Number(row.count).toLocaleString() + ' ราย</td></tr>';
+                            });
+                        }
+                    <?php else: ?>
+                        if (filteredDetails.length === 0) {
+                            html += '<tr><td colspan="2" style="text-align: center;">ไม่มีข้อมูล</td></tr>';
+                        } else {
+                            filteredDetails.forEach(function (row) {
+                                totalCount += Number(row.count);
+                                html += '<tr><td>' + (row.village_name || ('หมู่ที่ ' + row.moo)) + '</td><td style="text-align: right; font-weight: bold;">' + Number(row.count).toLocaleString() + ' ราย</td></tr>';
+                            });
+                        }
+                    <?php endif; ?>
+                    html += '<tr style="background-color: var(--bg-darker); font-weight: bold;"><td>รวมทั้งหมด</td><td style="text-align: right;">' + totalCount.toLocaleString() + ' ราย</td></tr>';
+                    html += '</tbody></table></div>';
+                } else if (type === 'targets') {
                     title = '📊 กลุ่มเป้าหมายการคัดกรอง แยกตามสถานะ HDC';
-                    html = '<table class="admin-table"><thead><tr><th>กลุ่มเป้าหมาย</th><th style="text-align: right;">จำนวน (ราย)</th></tr></thead><tbody>';
+                    html = '<div style="border-radius: 12px; overflow: hidden; border: 1px solid rgba(0,0,0,0.05); margin-bottom: 20px;">';
+                    html += '<table class="admin-table"><thead><tr><th>กลุ่มเป้าหมาย</th><th style="text-align: right;">จำนวน (ราย)</th></tr></thead><tbody>';
                     if (groupDetail.length === 0) {
                         html += '<tr><td colspan="2" style="text-align: center;">ไม่มีข้อมูล</td></tr>';
                     } else {
@@ -2045,29 +2270,44 @@ if ($admin_hoscode) {
                         });
                     }
                     html += '<tr style="background-color: var(--bg-darker); font-weight: bold;"><td>รวมทั้งหมด</td><td style="text-align: right;">' + Number(<?= $metrics['total_targets'] ?>).toLocaleString() + ' ราย</td></tr>';
-                    html += '</tbody></table>';
+                    html += '</tbody></table></div>';
 
                     // Also show per-village/hoscode breakdown
                     html += '<h4 style="margin-top: 20px; color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">แยกตามพื้นที่</h4>';
+                    html += '<div style="border-radius: 12px; overflow: hidden; border: 1px solid rgba(0,0,0,0.05);">';
                     html += '<table class="admin-table"><thead><tr><th>พื้นที่</th><th style="text-align: right;">จำนวน (ราย)</th></tr></thead><tbody>';
-                    <?php if (!$admin_hoscode): ?>
-                        if (targetsDetail.length === 0) {
-                            html += '<tr><td colspan="2" style="text-align: center;">ไม่มีข้อมูล</td></tr>';
-                        } else {
-                            targetsDetail.forEach(function (row) {
-                                html += '<tr><td>' + (hcNamesChart[row.hoscode] || row.hoscode) + '</td><td style="text-align: right; font-weight: bold;">' + Number(row.count).toLocaleString() + ' ราย</td></tr>';
-                            });
+                    
+                    var areaCounts = {};
+                    targetsDetail.forEach(function (row) {
+                        var areaKey = <?php echo !$admin_hoscode ? 'row.hoscode' : "row.hoscode + '_' + row.moo"; ?>;
+                        if (!areaCounts[areaKey]) {
+                            areaCounts[areaKey] = {
+                                hoscode: row.hoscode,
+                                moo: row.moo || '',
+                                village_name: row.village_name || '',
+                                count: 0
+                            };
                         }
-                    <?php else: ?>
-                        if (targetsDetail.length === 0) {
-                            html += '<tr><td colspan="2" style="text-align: center;">ไม่มีข้อมูล</td></tr>';
-                        } else {
-                            targetsDetail.forEach(function (row) {
-                                html += '<tr><td>' + (row.village_name || ('หมู่ที่ ' + row.moo)) + '</td><td style="text-align: right; font-weight: bold;">' + Number(row.count).toLocaleString() + ' ราย</td></tr>';
-                            });
-                        }
+                        areaCounts[areaKey].count += Number(row.count);
+                    });
+
+                    var areaList = Object.values(areaCounts);
+                    <?php if ($admin_hoscode): ?>
+                        areaList.sort(function(a, b) { return Number(a.moo) - Number(b.moo); });
                     <?php endif; ?>
-                    html += '</tbody></table>';
+
+                    if (areaList.length === 0) {
+                        html += '<tr><td colspan="2" style="text-align: center;">ไม่มีข้อมูล</td></tr>';
+                    } else {
+                        areaList.forEach(function (row) {
+                            <?php if (!$admin_hoscode): ?>
+                                html += '<tr><td>' + (hcNamesChart[row.hoscode] || row.hoscode) + '</td><td style="text-align: right; font-weight: bold;">' + Number(row.count).toLocaleString() + ' ราย</td></tr>';
+                            <?php else: ?>
+                                html += '<tr><td>' + (row.village_name || ('หมู่ที่ ' + row.moo)) + '</td><td style="text-align: right; font-weight: bold;">' + Number(row.count).toLocaleString() + ' ราย</td></tr>';
+                            <?php endif; ?>
+                        });
+                    }
+                    html += '</tbody></table></div>';
                 } else if (type === 'screened') {
                     title = '🟢 ผลการคัดกรองเสร็จสิ้นแยกกลุ่มเสี่ยง';
                     var high = Number(screenedDetail.high_risk || 0);
@@ -2075,15 +2315,17 @@ if ($admin_hoscode) {
                     var normal = Number(screenedDetail.normal || 0);
                     var total = high + risk + normal;
 
-                    html = '<table class="admin-table"><tbody>' +
+                    html = '<div style="border-radius: 12px; overflow: hidden; border: 1px solid rgba(0,0,0,0.05);">';
+                    html += '<table class="admin-table"><tbody>' +
                         '<tr><td>🔴 กลุ่มเสี่ยงสูง (High Risk)</td><td style="text-align: right; font-weight: bold; color: var(--color-red);">' + high.toLocaleString() + ' ราย (' + (total > 0 ? Math.round(high / total * 100) : 0) + '%)</td></tr>' +
                         '<tr><td>🟡 กลุ่มเสี่ยง (Moderate Risk)</td><td style="text-align: right; font-weight: bold; color: var(--color-yellow);">' + risk.toLocaleString() + ' ราย (' + (total > 0 ? Math.round(risk / total * 100) : 0) + '%)</td></tr>' +
                         '<tr><td>🟢 กลุ่มปกติ (Normal)</td><td style="text-align: right; font-weight: bold; color: var(--color-green);">' + normal.toLocaleString() + ' ราย (' + (total > 0 ? Math.round(normal / total * 100) : 0) + '%)</td></tr>' +
                         '<tr style="font-weight: bold; background-color: var(--bg-darker);"><td>รวมคัดกรองเสร็จสิ้น</td><td style="text-align: right;">' + total.toLocaleString() + ' ราย</td></tr>' +
-                        '</tbody></table>';
+                        '</tbody></table></div>';
                 } else if (type === 'skipped') {
                     title = '⚠️ สาเหตุที่กดข้าม / เลื่อนตรวจสะสม';
-                    html = '<table class="admin-table"><thead><tr><th>เหตุผล</th><th style="text-align: right;">จำนวนเคส (ราย)</th></tr></thead><tbody>';
+                    html = '<div style="border-radius: 12px; overflow: hidden; border: 1px solid rgba(0,0,0,0.05);">';
+                    html += '<table class="admin-table"><thead><tr><th>เหตุผล</th><th style="text-align: right;">จำนวนเคส (ราย)</th></tr></thead><tbody>';
                     if (skippedDetail.length === 0) {
                         html += '<tr><td colspan="2" style="text-align: center;">ไม่มีเคสถูกข้าม</td></tr>';
                     } else {
@@ -2091,10 +2333,11 @@ if ($admin_hoscode) {
                             html += '<tr><td>' + (row.skipped_reason || 'ไม่อยู่บ้าน/ไม่มีผู้ให้ประวัติ') + '</td><td style="text-align: right; font-weight: bold;">' + Number(row.count).toLocaleString() + ' เคส</td></tr>';
                         });
                     }
-                    html += '</tbody></table>';
+                    html += '</tbody></table></div>';
                 } else if (type === 'rewards') {
                     title = '🏆 กระดานคะแนน อสม. ยอดเยี่ยม (Top 10)';
-                    html = '<table class="admin-table"><thead><tr><th>อสม. ผู้ปฏิบัติงาน</th><th style="text-align: right;">คะแนนสะสม (แต้ม)</th></tr></thead><tbody>';
+                    html = '<div style="border-radius: 12px; overflow: hidden; border: 1px solid rgba(0,0,0,0.05);">';
+                    html += '<table class="admin-table"><thead><tr><th>อสม. ผู้ปฏิบัติงาน</th><th style="text-align: right;">คะแนนสะสม (แต้ม)</th></tr></thead><tbody>';
                     if (rewardsDetail.length === 0) {
                         html += '<tr><td colspan="2" style="text-align: center;">ยังไม่มีการบันทึกผลงานสะสม</td></tr>';
                     } else {
@@ -2102,7 +2345,7 @@ if ($admin_hoscode) {
                             html += '<tr><td style="font-weight: bold; color: var(--text-primary);">' + row.vhv_name + '</td><td style="text-align: right; font-weight: bold; color: var(--color-green);">' + Number(row.total_points).toLocaleString() + ' แต้ม</td></tr>';
                         });
                     }
-                    html += '</tbody></table>';
+                    html += '</tbody></table></div>';
                 }
 
                 document.getElementById('modal-title').textContent = title;

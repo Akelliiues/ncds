@@ -587,31 +587,7 @@ if (isset($_GET['action'])) {
         exit;
     }
 
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_GET['action'] == 'update_targets') {
-        header('Content-Type: application/json');
-        $data = json_decode(file_get_contents('php://input'), true);
-        $cids = $data['cids'] ?? [];
-        $dm = $data['need_dm'] ? 1 : 0;
-        $ht = $data['need_ht'] ? 1 : 0;
 
-        if (empty($cids)) {
-            echo json_encode(['status' => 'error', 'message' => 'ไม่มีรายชื่อที่เลือก']);
-            exit;
-        }
-
-        $inQuery = implode(',', array_fill(0, count($cids), '?'));
-        $sql = "UPDATE target_population SET need_screen_dm = ?, need_screen_ht = ?, updated_at = NOW() WHERE cid IN ($inQuery)";
-        $stmt = $pdo->prepare($sql);
-
-        $params = array_merge([$dm, $ht], $cids);
-        try {
-            $stmt->execute($params);
-            echo json_encode(['status' => 'success']);
-        } catch (Exception $e) {
-            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-        }
-        exit;
-    }
 }
 
 ?>
@@ -800,40 +776,7 @@ if (isset($_GET['action'])) {
             </div>
         </div>
 
-        <!-- Action Panel -->
-        <div class="filter-card" style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <label
-                    style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-primary); font-weight: bold;">
-                    <input type="checkbox" id="select-all" class="target-checkbox" onchange="toggleSelectAll()">
-                    เลือกทั้งหมด
-                </label>
-                <span id="selected-count" style="color: var(--color-accent); font-weight: bold;">เลือก 0 คน</span>
-            </div>
-            <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
-                <label
-                    style="display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; color: var(--text-primary); cursor: pointer; font-size: 14px;">
-                    <input type="checkbox" id="set_dm" checked
-                        style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-accent);">
-                    เป้าหมายเบาหวาน (DM)
-                </label>
-                <label
-                    style="display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; color: var(--text-primary); cursor: pointer; font-size: 14px;">
-                    <input type="checkbox" id="set_ht" checked
-                        style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-accent);">
-                    เป้าหมายความดัน (HT)
-                </label>
-                <button onclick="updateTargetStatus()" class="btn-giant btn-giant-primary" title="บันทึกการตั้งค่า"
-                    style="margin: 0; padding: 0; display: inline-flex; align-items: center; justify-content: center; width: 44px !important; height: 44px !important; border-radius: 50% !important; min-width: 44px;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                        <polyline points="7 3 7 8 15 8"></polyline>
-                    </svg>
-                </button>
-            </div>
-        </div>
+
 
         <!-- Target List -->
         <div class="list-card" style="height: auto; min-height: 500px;">
@@ -953,7 +896,6 @@ if (isset($_GET['action'])) {
         function renderTargets() {
             const list = document.getElementById('target-list');
             document.getElementById('target-count').innerText = `(พบ ${totalRecords} ราย — หน้า ${currentPage}/${totalPages})`;
-            updateSelectedCount();
 
             if (currentTargets.length === 0) {
                 list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">ไม่พบประชากรเป้าหมายในพื้นที่นี้</div>';
@@ -1017,7 +959,6 @@ if (isset($_GET['action'])) {
                 html += `
                     <div class="item-row">
                         <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-                            <input type="checkbox" class="target-checkbox item-cb" value="${t.cid}" onchange="updateSelectedCount()">
                             <div class="item-info" style="flex: 1;">
                                 <h4>${t.first_name} ${t.last_name} <span style="font-size: 13px; font-weight: normal; color: var(--text-muted); margin-left: 8px;">(CID: ${t.cid})</span></h4>
                                 <p>บ้านเลขที่: ${t.house_no} | อายุ: ${t.age || '-'} ปี | กลุ่ม HDC: ${originText}${fbsInfo}${bpInfo}</p>
@@ -1038,7 +979,6 @@ if (isset($_GET['action'])) {
                 `;
             });
             list.innerHTML = html;
-            document.getElementById('select-all').checked = false;
         }
 
         function renderPagination() {
@@ -1085,45 +1025,7 @@ if (isset($_GET['action'])) {
             fetchData(page);
         }
 
-        function toggleSelectAll() {
-            const isChecked = document.getElementById('select-all').checked;
-            document.querySelectorAll('.item-cb').forEach(cb => cb.checked = isChecked);
-            updateSelectedCount();
-        }
 
-        function updateSelectedCount() {
-            const count = document.querySelectorAll('.item-cb:checked').length;
-            document.getElementById('selected-count').innerText = `เลือก ${count} คน`;
-        }
-
-        function updateTargetStatus() {
-            const cids = Array.from(document.querySelectorAll('.item-cb:checked')).map(cb => cb.value);
-            if (cids.length === 0) {
-                alert("กรุณาเลือกประชากรก่อนครับ");
-                return;
-            }
-
-            const need_dm = document.getElementById('set_dm').checked;
-            const need_ht = document.getElementById('set_ht').checked;
-
-            if (confirm(`ยืนยันการเปลี่ยนสถานะเป้าหมายสำหรับ ${cids.length} รายที่เลือก?`)) {
-                fetch('target_manager.php?action=update_targets', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cids: cids, need_dm: need_dm, need_ht: need_ht })
-                })
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            alert("อัปเดตข้อมูลสำเร็จ!");
-                            fetchData();
-                        } else {
-                            alert("เกิดข้อผิดพลาด: " + data.message);
-                        }
-                    })
-                    .catch(err => alert("เกิดข้อผิดพลาดในการเชื่อมต่อ"));
-            }
-        }
 
         function toggleSingleTarget(cid, disease, currentStatus) {
             const newStatus = currentStatus === 1 ? 0 : 1;
