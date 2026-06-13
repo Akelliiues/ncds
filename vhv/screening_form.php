@@ -898,20 +898,26 @@ if (!$isShell) {
             });
 
             // Set up CV Risk Score triggers
-            const sbpInput = document.getElementById('sys_bp1');
-            const dbpInput = document.getElementById('dia_bp1');
+            const sbp1Input = document.getElementById('sys_bp1');
+            const dbp1Input = document.getElementById('dia_bp1');
+            const sbp2Input = document.getElementById('sys_bp2');
+            const dbp2Input = document.getElementById('dia_bp2');
             const dtxInput = document.getElementById('dtx_value');
             
-            [sbpInput, dtxInput].forEach(el => {
+            [sbp1Input, sbp2Input, dtxInput].forEach(el => {
                 if (el) el.addEventListener('input', calculateCvRisk);
             });
             
-            [sbpInput, dbpInput, dtxInput].forEach(el => {
+            [sbp1Input, dbp1Input, sbp2Input, dbp2Input, dtxInput].forEach(el => {
                 if (el) {
                     el.addEventListener('input', function() {
                         isCriticalAcknowledged = false;
                     });
                 }
+            });
+            
+            document.querySelectorAll('input[name="dtx_type"]').forEach(radio => {
+                radio.addEventListener('change', calculateCvRisk);
             });
             
             document.querySelectorAll('input[name="smoking_risk"]').forEach(radio => {
@@ -1226,11 +1232,23 @@ if (!$isShell) {
 
             const age = selectedResident.age;
             const sex = selectedResident.sex; // '1' = Male, '2' = Female
-            const sbp = parseFloat(document.getElementById('sys_bp1').value) || 120;
+            
+            const sbp1 = parseFloat(document.getElementById('sys_bp1').value) || 0;
+            const sbp2 = parseFloat(document.getElementById('sys_bp2').value) || 0;
+            let sbp = 120;
+            if (sbp1 > 0 && sbp2 > 0) {
+                sbp = (sbp1 + sbp2) / 2;
+            } else if (sbp1 > 0) {
+                sbp = sbp1;
+            } else if (sbp2 > 0) {
+                sbp = sbp2;
+            }
+            
             const dtx = parseFloat(document.getElementById('dtx_value').value) || 90;
+            const dtxType = document.querySelector('input[name="dtx_type"]:checked')?.value || 'fpg';
             
             // Check if patient already has diabetes
-            const hasDm = !selectedResident.needDm || dtx >= 126;
+            const hasDm = !selectedResident.needDm || (dtxType === 'fpg' ? dtx >= 126 : dtx >= 200);
 
             // Smoking
             let isSmoker = false;
@@ -1423,19 +1441,20 @@ if (!$isShell) {
                 return true;
             }
 
-            const sbpInput = document.getElementById('sys_bp1');
-            const dbpInput = document.getElementById('dia_bp1');
-            const dtxInput = document.getElementById('dtx_value');
+            const sbp1 = parseInt(document.getElementById('sys_bp1').value) || 0;
+            const dbp1 = parseInt(document.getElementById('dia_bp1').value) || 0;
+            const sbp2 = parseInt(document.getElementById('sys_bp2').value) || 0;
+            const dbp2 = parseInt(document.getElementById('dia_bp2').value) || 0;
+            const dtx = parseInt(document.getElementById('dtx_value').value) || 0;
 
-            let sbp = sbpInput ? parseInt(sbpInput.value) || 0 : 0;
-            let dbp = dbpInput ? parseInt(dbpInput.value) || 0 : 0;
-            let dtx = dtxInput ? parseInt(dtxInput.value) || 0 : 0;
+            const sbpMax = Math.max(sbp1, sbp2);
+            const dbpMax = Math.max(dbp1, dbp2);
 
-            let hasCriticalBp = sbp >= 180 || dbp >= 110;
+            let hasCriticalBp = sbpMax >= 180 || dbpMax >= 110;
             let hasCriticalDtx = dtx >= 300;
 
             if (hasCriticalBp || hasCriticalDtx) {
-                showCriticalModal(sbp, dbp, dtx, hasCriticalBp, hasCriticalDtx);
+                showCriticalModal(sbpMax, dbpMax, dtx, hasCriticalBp, hasCriticalDtx);
                 return false;
             }
 
