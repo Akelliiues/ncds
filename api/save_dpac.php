@@ -60,21 +60,33 @@ try {
 
         $skippedReason = $_POST['skipped_reason'] ?? 'ไม่ระบุ';
 
+        $isSandboxVal = isSandboxMode() ? 1 : 0;
+
         // Update skip count and reason
-        $updateStmt = $pdo->prepare("
-            UPDATE dpac_followups 
-            SET skip_count = skip_count + 1,
-                skipped_reason = ?
-            WHERE followup_id = ? AND vhv_id = ?
-        ");
+        if ($isSandboxVal) {
+            $updateStmt = $pdo->prepare("
+                UPDATE dpac_followups 
+                SET skip_count = skip_count + 1,
+                    skipped_reason = ?,
+                    is_sandbox_completed = 1
+                WHERE followup_id = ? AND vhv_id = ?
+            ");
+        } else {
+            $updateStmt = $pdo->prepare("
+                UPDATE dpac_followups 
+                SET skip_count = skip_count + 1,
+                    skipped_reason = ?
+                WHERE followup_id = ? AND vhv_id = ?
+            ");
+        }
         $updateStmt->execute([$skippedReason, $fid, $vhvId]);
 
         // Award +0.25 points for effort
         $rewardStmt = $pdo->prepare("
-            INSERT INTO vhv_rewards (vhv_id, followup_id, points_earned, approval_status, approved_at)
-            VALUES (?, ?, 0.25, 'approved', CURRENT_TIMESTAMP)
+            INSERT INTO vhv_rewards (vhv_id, followup_id, points_earned, approval_status, approved_at, is_sandbox)
+            VALUES (?, ?, 0.25, 'approved', CURRENT_TIMESTAMP, ?)
         ");
-        $rewardStmt->execute([$vhvId, $fid]);
+        $rewardStmt->execute([$vhvId, $fid, $isSandboxVal]);
 
         $pdo->commit();
         echo json_encode([
@@ -94,14 +106,27 @@ try {
         $healthRisk = $_POST['health_risk_level'] ?? '';
         $advice = $_POST['advice_given'] ?? '';
 
-        $updateStmt = $pdo->prepare("
-            UPDATE dpac_followups 
-            SET status = 'completed', completed_at = CURRENT_TIMESTAMP,
-                weight = ?, height = ?, waist = ?,
-                fbs = ?, bp_sys = ?, bp_dia = ?,
-                health_risk_level = ?, advice_given = ?
-            WHERE followup_id = ? AND vhv_id = ?
-        ");
+        $isSandboxVal = isSandboxMode() ? 1 : 0;
+        if ($isSandboxVal) {
+            $updateStmt = $pdo->prepare("
+                UPDATE dpac_followups 
+                SET status = 'completed', completed_at = CURRENT_TIMESTAMP,
+                    weight = ?, height = ?, waist = ?,
+                    fbs = ?, bp_sys = ?, bp_dia = ?,
+                    health_risk_level = ?, advice_given = ?,
+                    is_sandbox_completed = 1
+                WHERE followup_id = ? AND vhv_id = ?
+            ");
+        } else {
+            $updateStmt = $pdo->prepare("
+                UPDATE dpac_followups 
+                SET status = 'completed', completed_at = CURRENT_TIMESTAMP,
+                    weight = ?, height = ?, waist = ?,
+                    fbs = ?, bp_sys = ?, bp_dia = ?,
+                    health_risk_level = ?, advice_given = ?
+                WHERE followup_id = ? AND vhv_id = ?
+            ");
+        }
         $updateStmt->execute([$weight, $height, $waist, $fbs, $sbp, $dbp, $healthRisk, $advice, $fid, $vhvId]);
 
         // Calculate points to earn: 1.00 - (skip_count * 0.25)
@@ -110,10 +135,10 @@ try {
 
         // Insert remaining points
         $rewardStmt = $pdo->prepare("
-            INSERT INTO vhv_rewards (vhv_id, followup_id, points_earned, approval_status, approved_at)
-            VALUES (?, ?, ?, 'approved', CURRENT_TIMESTAMP)
+            INSERT INTO vhv_rewards (vhv_id, followup_id, points_earned, approval_status, approved_at, is_sandbox)
+            VALUES (?, ?, ?, 'approved', CURRENT_TIMESTAMP, ?)
         ");
-        $rewardStmt->execute([$vhvId, $fid, $pointsEarned]);
+        $rewardStmt->execute([$vhvId, $fid, $pointsEarned, $isSandboxVal]);
 
         $pdo->commit();
         echo json_encode([

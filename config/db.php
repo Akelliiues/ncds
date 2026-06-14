@@ -1469,6 +1469,43 @@ try {
         // 2. Insert default sandbox_mode value
         $pdo->exec("INSERT IGNORE INTO system_settings (setting_key, setting_value, description)
             VALUES ('sandbox_mode', '1', 'โหมดทดสอบจำลองระบบ (0 = ปิด/ใช้งานจริง, 1 = เปิด/จำลอง)');");
+
+        // 3. Auto-migration: Add sandbox-related columns to support Restore Point mechanism
+        try {
+            $checkSr = $pdo->query("SHOW COLUMNS FROM `screening_results` LIKE 'is_sandbox'");
+            if ($checkSr->rowCount() === 0) {
+                $pdo->exec("ALTER TABLE `screening_results` ADD COLUMN `is_sandbox` TINYINT(1) DEFAULT 0");
+            }
+        } catch (\PDOException $e) {}
+
+        try {
+            $checkTa1 = $pdo->query("SHOW COLUMNS FROM `task_assignments` LIKE 'is_sandbox'");
+            if ($checkTa1->rowCount() === 0) {
+                $pdo->exec("ALTER TABLE `task_assignments` ADD COLUMN `is_sandbox` TINYINT(1) DEFAULT 0");
+            }
+            $checkTa2 = $pdo->query("SHOW COLUMNS FROM `task_assignments` LIKE 'is_sandbox_completed'");
+            if ($checkTa2->rowCount() === 0) {
+                $pdo->exec("ALTER TABLE `task_assignments` ADD COLUMN `is_sandbox_completed` TINYINT(1) DEFAULT 0");
+            }
+        } catch (\PDOException $e) {}
+
+        try {
+            $checkWr = $pdo->query("SHOW COLUMNS FROM `vhv_rewards` LIKE 'is_sandbox'");
+            if ($checkWr->rowCount() === 0) {
+                $pdo->exec("ALTER TABLE `vhv_rewards` ADD COLUMN `is_sandbox` TINYINT(1) DEFAULT 0");
+            }
+        } catch (\PDOException $e) {}
+
+        try {
+            $checkDf1 = $pdo->query("SHOW COLUMNS FROM `dpac_followups` LIKE 'is_sandbox'");
+            if ($checkDf1->rowCount() === 0) {
+                $pdo->exec("ALTER TABLE `dpac_followups` ADD COLUMN `is_sandbox` TINYINT(1) DEFAULT 0");
+            }
+            $checkDf2 = $pdo->query("SHOW COLUMNS FROM `dpac_followups` LIKE 'is_sandbox_completed'");
+            if ($checkDf2->rowCount() === 0) {
+                $pdo->exec("ALTER TABLE `dpac_followups` ADD COLUMN `is_sandbox_completed` TINYINT(1) DEFAULT 0");
+            }
+        } catch (\PDOException $e) {}
     }
 } catch (\Exception $e) {
     // Fail silently

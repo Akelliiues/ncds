@@ -56,16 +56,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $healthRisk = $_POST['health_risk_level'] ?? '';
     $advice = $_POST['advice_given'] ?? '';
 
+    $isSandboxVal = isSandboxMode() ? 1 : 0;
     $pdo->beginTransaction();
     try {
-        $updateStmt = $pdo->prepare("
-            UPDATE dpac_followups 
-            SET status = 'completed', completed_at = CURRENT_TIMESTAMP,
-                weight = ?, height = ?, waist = ?,
-                fbs = ?, bp_sys = ?, bp_dia = ?,
-                health_risk_level = ?, advice_given = ?
-            WHERE followup_id = ? AND vhv_id = ?
-        ");
+        if ($isSandboxVal) {
+            $updateStmt = $pdo->prepare("
+                UPDATE dpac_followups 
+                SET status = 'completed', completed_at = CURRENT_TIMESTAMP,
+                    weight = ?, height = ?, waist = ?,
+                    fbs = ?, bp_sys = ?, bp_dia = ?,
+                    health_risk_level = ?, advice_given = ?,
+                    is_sandbox_completed = 1
+                WHERE followup_id = ? AND vhv_id = ?
+            ");
+        } else {
+            $updateStmt = $pdo->prepare("
+                UPDATE dpac_followups 
+                SET status = 'completed', completed_at = CURRENT_TIMESTAMP,
+                    weight = ?, height = ?, waist = ?,
+                    fbs = ?, bp_sys = ?, bp_dia = ?,
+                    health_risk_level = ?, advice_given = ?
+                WHERE followup_id = ? AND vhv_id = ?
+            ");
+        }
         $updateStmt->execute([$weight, $height, $waist, $fbs, $sbp, $dbp, $healthRisk, $advice, $fid, $vhvId]);
 
         // Insert reward point (+1 point) for DPAC followup completion
@@ -73,10 +86,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $checkReward->execute([$vhvId, $fid]);
         if ($checkReward->fetchColumn() == 0) {
             $rewardStmt = $pdo->prepare("
-                INSERT INTO vhv_rewards (vhv_id, followup_id, points_earned, approval_status, approved_at)
-                VALUES (?, ?, 1, 'approved', CURRENT_TIMESTAMP)
+                INSERT INTO vhv_rewards (vhv_id, followup_id, points_earned, approval_status, approved_at, is_sandbox)
+                VALUES (?, ?, 1, 'approved', CURRENT_TIMESTAMP, ?)
             ");
-            $rewardStmt->execute([$vhvId, $fid]);
+            $rewardStmt->execute([$vhvId, $fid, $isSandboxVal]);
         }
 
         $pdo->commit();

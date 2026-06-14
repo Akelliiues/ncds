@@ -77,11 +77,12 @@ try {
             }
         } else {
             // New assignment
+            $isSandboxVal = isSandboxMode() ? 1 : 0;
             $insertStmt = $pdo->prepare("
-                INSERT INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status)
-                VALUES (?, ?, ?, 'pending')
+                INSERT INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox)
+                VALUES (?, ?, ?, 'pending', ?)
             ");
-            $insertStmt->execute([$cid, $vhvId, $currentYear]);
+            $insertStmt->execute([$cid, $vhvId, $currentYear, $isSandboxVal]);
         }
     }
 

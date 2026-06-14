@@ -132,22 +132,28 @@ try {
         $delStmt = $pdo->prepare("DELETE FROM screening_results WHERE assignment_id = ?");
         $delStmt->execute([$assignmentId]);
 
+        $isSandboxVal = isSandboxMode() ? 1 : 0;
+
         // 1. Insert into screening_results
         $screenStmt = $pdo->prepare("
             INSERT INTO screening_results 
-            (assignment_id, sys_bp1, dia_bp1, sys_bp2, dia_bp2, dtx_value, dtx_type, weight, height, waist, bmi, diet_risk, exercise_risk, stress_risk, smoking_risk, alcohol_risk, cv_risk_score, screening_lat, screening_lng, advice_given)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (assignment_id, sys_bp1, dia_bp1, sys_bp2, dia_bp2, dtx_value, dtx_type, weight, height, waist, bmi, diet_risk, exercise_risk, stress_risk, smoking_risk, alcohol_risk, cv_risk_score, screening_lat, screening_lng, advice_given, is_sandbox)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $screenStmt->execute([
             $assignmentId, $sys1, $dia1, $sys2, $dia2, $dtx, $dtxType,
             $weight, $height, $waist, round($bmi, 2),
             $diet, $exercise, $stress, $smoking, $alcohol, $cvRiskScore,
-            $lat, $lng, $adviceGiven
+            $lat, $lng, $adviceGiven, $isSandboxVal
         ]);
         $screeningId = $pdo->lastInsertId();
 
         // 2. Update task assignment status to 'completed'
-        $updateAssign = $pdo->prepare("UPDATE task_assignments SET assignment_status = 'completed' WHERE assignment_id = ?");
+        if ($isSandboxVal) {
+            $updateAssign = $pdo->prepare("UPDATE task_assignments SET assignment_status = 'completed', is_sandbox_completed = 1 WHERE assignment_id = ?");
+        } else {
+            $updateAssign = $pdo->prepare("UPDATE task_assignments SET assignment_status = 'completed' WHERE assignment_id = ?");
+        }
         $updateAssign->execute([$assignmentId]);
 
         // 3. Dynamic GPS Buffer check for reward points:
@@ -169,18 +175,19 @@ try {
 
         // Insert VHV reward points
         $rewardStmt = $pdo->prepare("
-            INSERT INTO vhv_rewards (vhv_id, screening_id, points_earned, approval_status, approved_at)
-            VALUES (?, ?, 1, ?, ?)
+            INSERT INTO vhv_rewards (vhv_id, screening_id, points_earned, approval_status, approved_at, is_sandbox)
+            VALUES (?, ?, 1, ?, ?, ?)
         ");
         $rewardStmt->execute([
             $vhvId,
             $screeningId,
             $approvalStatus,
-            $approvalStatus === 'approved' ? date('Y-m-d H:i:s') : null
+            $approvalStatus === 'approved' ? date('Y-m-d H:i:s') : null,
+            $isSandboxVal
         ]);
 
         // 5. Auto-update house coordinates from VHV's GPS if valid
-        if ($lat != 0 && $lng != 0 && !empty($hoscode)) {
+        if ($lat != 0 && $lng != 0 && !empty($hoscode) && !$isSandboxVal) {
             // Update target_population coordinates (scope by hoscode and hid to prevent cross-district override)
             $updateCoordStmt = $pdo->prepare("
                 UPDATE target_population 
@@ -323,24 +330,30 @@ try {
         $lat = (float)($_POST['lat'] ?? 0);
         $lng = (float)($_POST['lng'] ?? 0);
 
+        $isSandboxVal = isSandboxMode() ? 1 : 0;
+
         // 1. Set task assignment status to 'skipped'
-        $updateAssign = $pdo->prepare("UPDATE task_assignments SET assignment_status = 'skipped' WHERE assignment_id = ?");
+        if ($isSandboxVal) {
+            $updateAssign = $pdo->prepare("UPDATE task_assignments SET assignment_status = 'skipped', is_sandbox_completed = 1 WHERE assignment_id = ?");
+        } else {
+            $updateAssign = $pdo->prepare("UPDATE task_assignments SET assignment_status = 'skipped' WHERE assignment_id = ?");
+        }
         $updateAssign->execute([$assignmentId]);
 
         // 2. Insert record in screening_results with skipped reason
         $screenStmt = $pdo->prepare("
-            INSERT INTO screening_results (assignment_id, skipped_reason, screening_lat, screening_lng)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO screening_results (assignment_id, skipped_reason, screening_lat, screening_lng, is_sandbox)
+            VALUES (?, ?, ?, ?, ?)
         ");
-        $screenStmt->execute([$assignmentId, $skippedReason, $lat, $lng]);
+        $screenStmt->execute([$assignmentId, $skippedReason, $lat, $lng, $isSandboxVal]);
         $screeningId = $pdo->lastInsertId();
 
         // 3. Award VHV +1 reward point immediately (approval_status = 'approved') to motivate them
         $rewardStmt = $pdo->prepare("
-            INSERT INTO vhv_rewards (vhv_id, screening_id, points_earned, approval_status, approved_at)
-            VALUES (?, ?, 1, 'approved', CURRENT_TIMESTAMP)
+            INSERT INTO vhv_rewards (vhv_id, screening_id, points_earned, approval_status, approved_at, is_sandbox)
+            VALUES (?, ?, 1, 'approved', CURRENT_TIMESTAMP, ?)
         ");
-        $rewardStmt->execute([$vhvId, $screeningId]);
+        $rewardStmt->execute([$vhvId, $screeningId, $isSandboxVal]);
 
         $pdo->commit();
 
