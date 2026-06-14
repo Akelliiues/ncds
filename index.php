@@ -60,11 +60,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['is_visitor'] = true;
                 header("Location: admin/index.php");
                 exit();
-            } elseif (strtolower($username) === 'admin' && $password === 'Prevention2026') {
-                $is_admin = true;
-            } elseif (preg_match('/^admin(\d{5})$/', strtolower($username), $matches) && $password === 'Prevention2026') {
-                $is_admin = true;
-                $admin_hoscode = $matches[1];
             }
         }
 
@@ -89,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $user = false;
                     }
 
-                    if ($user && ($password === '1234' || password_verify($password, $user['password_hash']))) {
+                    if ($user && password_verify($password, $user['password_hash'])) {
                         // Check approval status
                         if (isset($user['approved']) && $user['approved'] == 0) {
                             $error = 'บัญชี อสม. นี้อยู่ระหว่างรอการอนุมัติการใช้งานจากผู้ดูแลระบบ';

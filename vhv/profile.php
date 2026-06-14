@@ -57,12 +57,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'รหัสผ่านใหม่ไม่ตรงกัน';
         } else {
             try {
-                // Verify old password (support default "1234" check too)
+                // Verify old password
                 $old_hash = $vhv['password_hash'];
-                $old_password_correct = false;
-                if ($old_password === '1234' || password_verify($old_password, $old_hash)) {
-                    $old_password_correct = true;
-                }
+                $old_password_correct = password_verify($old_password, $old_hash);
                 
                 if ($old_password_correct) {
                     $new_hash = password_hash($new_password, PASSWORD_DEFAULT);
