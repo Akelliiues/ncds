@@ -81,7 +81,7 @@ function sendLineFlexMessage($lineUserId, $flexData) {
 try {
     // Fetch target population & home coordinates
     $assignStmt = $pdo->prepare("
-        SELECT a.*, p.cid, p.hid, p.first_name, p.last_name, p.latitude as home_lat, p.longitude as home_lng
+        SELECT a.*, p.cid, p.hid, p.hoscode, p.first_name, p.last_name, p.latitude as home_lat, p.longitude as home_lng
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
         WHERE a.assignment_id = ?
@@ -95,6 +95,7 @@ try {
 
     $targetCid = $assignment['target_cid'];
     $hid = $assignment['hid'];
+    $hoscode = $assignment['hoscode'] ?? '';
     $residentName = $assignment['first_name'] . ' ' . $assignment['last_name'];
 
     if ($action === 'save_screening') {
@@ -179,13 +180,22 @@ try {
         ]);
 
         // 5. Auto-update house coordinates from VHV's GPS if valid
-        if ($lat != 0 && $lng != 0) {
+        if ($lat != 0 && $lng != 0 && !empty($hoscode)) {
+            // Update target_population coordinates (scope by hoscode and hid to prevent cross-district override)
             $updateCoordStmt = $pdo->prepare("
                 UPDATE target_population 
                 SET latitude = ?, longitude = ?, updated_at = NOW()
-                WHERE hid = ?
+                WHERE hid = ? AND hoscode = ?
             ");
-            $updateCoordStmt->execute([$lat, $lng, $hid]);
+            $updateCoordStmt->execute([$lat, $lng, $hid, $hoscode]);
+
+            // Update jhcis_homes coordinates to keep staging and JHCIS aligned
+            $updateHomeStmt = $pdo->prepare("
+                UPDATE jhcis_homes 
+                SET latitude = ?, longitude = ? 
+                WHERE hid = ? AND hoscode = ?
+            ");
+            $updateHomeStmt->execute([$lat, $lng, $hid, $hoscode]);
         }
 
         $pdo->commit();
