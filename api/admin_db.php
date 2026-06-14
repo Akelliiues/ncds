@@ -154,6 +154,85 @@ if ($action === 'clear_hoscode') {
         ]);
     }
     exit();
+} elseif ($action === 'clear_mock_data') {
+    try {
+        $pdo->beginTransaction();
+        
+        $mockCids = ['1234567890111', '1234567890112', '1234567890113', '1234567890114'];
+        $mockCidsPlaceholders = implode(',', array_fill(0, count($mockCids), '?'));
+        
+        // 1. Delete vhv_rewards of mock cids
+        $stmtRewards = $pdo->prepare("
+            DELETE FROM vhv_rewards WHERE screening_id IN (
+                SELECT s.screening_id 
+                FROM screening_results s
+                JOIN task_assignments a ON s.assignment_id = a.assignment_id
+                WHERE a.target_cid IN ($mockCidsPlaceholders)
+            )
+        ");
+        $stmtRewards->execute($mockCids);
+        
+        // 2. Delete screening_results
+        $stmtScreen = $pdo->prepare("
+            DELETE FROM screening_results WHERE assignment_id IN (
+                SELECT assignment_id FROM task_assignments WHERE target_cid IN ($mockCidsPlaceholders)
+            )
+        ");
+        $stmtScreen->execute($mockCids);
+        
+        // 3. Delete task_assignments
+        $stmtAssign = $pdo->prepare("DELETE FROM task_assignments WHERE target_cid IN ($mockCidsPlaceholders)");
+        $stmtAssign->execute($mockCids);
+        
+        // 4. Delete dpac_followups
+        $stmtFollowup = $pdo->prepare("
+            DELETE FROM dpac_followups WHERE enrollment_id IN (
+                SELECT enrollment_id FROM dpac_enrollments WHERE cid IN ($mockCidsPlaceholders)
+            )
+        ");
+        $stmtFollowup->execute($mockCids);
+        
+        // 5. Delete dpac_enrollments
+        $stmtDpac = $pdo->prepare("DELETE FROM dpac_enrollments WHERE cid IN ($mockCidsPlaceholders)");
+        $stmtDpac->execute($mockCids);
+        
+        // 6. Delete target_population (mock records)
+        $stmtTarget = $pdo->prepare("DELETE FROM target_population WHERE cid IN ($mockCidsPlaceholders)");
+        $stmtTarget->execute($mockCids);
+        $deletedTargets = $stmtTarget->rowCount();
+        
+        // 7. Delete staging_hdc_dm / ht mock records
+        $stmtStgDm = $pdo->prepare("DELETE FROM staging_hdc_dm WHERE cid IN ($mockCidsPlaceholders)");
+        $stmtStgDm->execute($mockCids);
+        $stmtStgHt = $pdo->prepare("DELETE FROM staging_hdc_ht WHERE cid IN ($mockCidsPlaceholders)");
+        $stmtStgHt->execute($mockCids);
+        
+        // 8. Delete mock VHV users
+        $mockVhvs = ['1001', '1002', '1003'];
+        $mockVhvsPlaceholders = implode(',', array_fill(0, count($mockVhvs), '?'));
+        $stmtVhv = $pdo->prepare("DELETE FROM vhv_users WHERE vhv_id IN ($mockVhvsPlaceholders)");
+        $stmtVhv->execute($mockVhvs);
+        $deletedVhvs = $stmtVhv->rowCount();
+        
+        $pdo->commit();
+        
+        echo json_encode([
+            'status' => 'success',
+            'message' => 'ล้างข้อมูลจำลองและบัญชีทดสอบเรียบร้อยแล้ว',
+            'deleted_targets' => $deletedTargets,
+            'deleted_vhvs' => $deletedVhvs
+        ]);
+        
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'เกิดข้อผิดพลาดในการล้างข้อมูลจำลอง: ' . $e->getMessage()
+        ]);
+    }
+    exit();
 } else {
     echo json_encode(['status' => 'error', 'message' => 'คำสั่งไม่ถูกต้อง']);
     exit();

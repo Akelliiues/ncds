@@ -159,6 +159,25 @@ if ($admin_hoscode) {
     $skippedDetailQuery->execute($hoscodes);
     $skippedDetail = $skippedDetailQuery->fetchAll(PDO::FETCH_ASSOC);
 
+    // Card pending Detail
+    $pendingDetailQuery = $pdo->prepare("
+        SELECT 
+            p.hoscode, 
+            p.moo, 
+            COUNT(*) as count 
+        FROM task_assignments a
+        JOIN target_population p ON a.target_cid = p.cid
+        WHERE p.hoscode IN ($inPlaceholders) AND a.assignment_status = 'pending' AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+        GROUP BY p.hoscode, p.moo
+        ORDER BY p.moo
+    ");
+    $pendingDetailQuery->execute($hoscodes);
+    $pendingDetail = $pendingDetailQuery->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($pendingDetail as &$row) {
+        $row['village_name'] = get_village_display_name_by_hoscode($row['hoscode'], $row['moo']);
+    }
+    unset($row);
+
     // Card 4 Detail: Top VHVs by rewards
     $rewardsDetailQuery = $pdo->prepare("
         SELECT v.vhv_name, SUM(r.points_earned) as total_points
@@ -427,6 +446,20 @@ if ($admin_hoscode) {
     ");
     $skippedDetailStmt->execute($valid_hoscodes);
     $skippedDetail = $skippedDetailStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Card pending Detail (Super Admin)
+    $pendingDetailStmt = $pdo->prepare("
+        SELECT 
+            p.hoscode, 
+            COUNT(*) as count 
+        FROM task_assignments a
+        JOIN target_population p ON a.target_cid = p.cid
+        WHERE p.hoscode IN ($inPlaceholdersSa) AND a.assignment_status = 'pending' AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+        GROUP BY p.hoscode
+        ORDER BY hoscode
+    ");
+    $pendingDetailStmt->execute($valid_hoscodes);
+    $pendingDetail = $pendingDetailStmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Card 4 Detail: Top VHVs by rewards
     $rewardsDetailStmt = $pdo->prepare("
@@ -2173,6 +2206,7 @@ if ($admin_hoscode) {
             var groupDetail = <?= json_encode($groupDetail) ?>;
             var screenedDetail = <?= json_encode($screenedDetail) ?>;
             var skippedDetail = <?= json_encode($skippedDetail) ?>;
+            var pendingDetail = <?= json_encode($pendingDetail) ?>;
             var rewardsDetail = <?= json_encode($rewardsDetail) ?>;
 
             var groupLabels = {
@@ -2333,6 +2367,25 @@ if ($admin_hoscode) {
                             html += '<tr><td>' + (row.skipped_reason || 'ไม่อยู่บ้าน/ไม่มีผู้ให้ประวัติ') + '</td><td style="text-align: right; font-weight: bold;">' + Number(row.count).toLocaleString() + ' เคส</td></tr>';
                         });
                     }
+                    html += '</tbody></table></div>';
+                } else if (type === 'pending') {
+                    title = '⏳ รายละเอียดงานรอดำเนินการ แยกตามพื้นที่';
+                    html = '<div style="border-radius: 12px; overflow: hidden; border: 1px solid rgba(0,0,0,0.05);">';
+                    html += '<table class="admin-table"><thead><tr><th>พื้นที่</th><th style="text-align: right;">รอดำเนินการ (ราย)</th></tr></thead><tbody>';
+                    var totalPending = 0;
+                    if (pendingDetail.length === 0) {
+                        html += '<tr><td colspan="2" style="text-align: center;">ไม่มีงานรอดำเนินการค้างในระบบ</td></tr>';
+                    } else {
+                        pendingDetail.forEach(function (row) {
+                            totalPending += Number(row.count);
+                            <?php if (!$admin_hoscode): ?>
+                                html += '<tr><td>' + (hcNamesChart[row.hoscode] || row.hoscode) + '</td><td style="text-align: right; font-weight: bold; color: var(--color-primary);">' + Number(row.count).toLocaleString() + ' ราย</td></tr>';
+                            <?php else: ?>
+                                html += '<tr><td>' + (row.village_name || ('หมู่ที่ ' + row.moo)) + '</td><td style="text-align: right; font-weight: bold; color: var(--color-primary);">' + Number(row.count).toLocaleString() + ' ราย</td></tr>';
+                            <?php endif; ?>
+                        });
+                    }
+                    html += '<tr style="background-color: var(--bg-darker); font-weight: bold;"><td>รวมทั้งหมด</td><td style="text-align: right; color: var(--color-primary);">' + totalPending.toLocaleString() + ' ราย</td></tr>';
                     html += '</tbody></table></div>';
                 } else if (type === 'rewards') {
                     title = '🏆 กระดานคะแนน อสม. ยอดเยี่ยม (Top 10)';

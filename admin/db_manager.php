@@ -34,6 +34,9 @@ $stats = $pdo->query($statsQuery)->fetchAll();
 
 $hcNames = get_health_units();
 
+$isSandbox = isSandboxMode();
+$mockTargetCount = (int)$pdo->query("SELECT COUNT(*) FROM target_population WHERE cid IN ('1234567890111', '1234567890112', '1234567890113', '1234567890114')")->fetchColumn();
+$mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN ('1001', '1002', '1003')")->fetchColumn();
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -43,6 +46,50 @@ $hcNames = get_health_units();
     <title>จัดการฐานข้อมูล (DB Manager) - Admin</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
+        /* Toggle Switch CSS */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+        .switch input { 
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-main);
+            box-shadow: var(--neumorph-inset);
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            background-color: var(--text-muted);
+            box-shadow: var(--neumorph-flat);
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: rgba(245, 158, 11, 0.2);
+        }
+        input:checked + .slider:before {
+            transform: translateX(24px);
+            background-color: var(--color-yellow);
+        }
+
         .db-card {
             background-color: var(--bg-card);
             border-radius: var(--border-radius);
@@ -120,6 +167,43 @@ $hcNames = get_health_units();
             <a href="index.php" class="btn-giant btn-giant-secondary" style="margin: 0; padding: 10px 20px; font-size: 14px;">← กลับหน้าแดชบอร์ด</a>
         </div>
 
+        <!-- Sandbox & Mode Settings Card -->
+        <div class="db-card" style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                <div>
+                    <h3 style="color: var(--color-primary); margin: 0; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+                        🛡️ โหมดการทดสอบระบบ (Sandbox Mode)
+                    </h3>
+                    <p style="color: var(--text-secondary); margin: 5px 0 0 0; font-size: 13px;">
+                        เปิดโหมดจำลองเพื่อทดสอบระบบด้วยข้อมูลตัวอย่าง หรือปิดเมื่อต้องการใช้งานกับประชากรจริง
+                    </p>
+                </div>
+                
+                <!-- Toggle Switch Neumorphic style -->
+                <div style="display: flex; align-items: center; gap: 10px; background: var(--bg-darker); padding: 8px 16px; border-radius: 50px; box-shadow: var(--neumorph-inset);">
+                    <span style="font-size: 14px; font-weight: bold; color: <?= $isSandbox ? 'var(--color-yellow)' : 'var(--color-green)' ?>;">
+                        <?= $isSandbox ? '⚙️ โหมดจำลอง (Sandbox)' : '🚀 โหมดจริง (Production)' ?>
+                    </span>
+                    <label class="switch">
+                        <input type="checkbox" id="sandbox-toggle" onchange="toggleSandboxMode(this)" <?= $isSandbox ? 'checked' : '' ?>>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <?php if ($mockTargetCount > 0 || $mockVhvCount > 0): ?>
+                <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 12px; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                    <div style="font-size: 13px; color: var(--text-secondary);">
+                        <strong style="color: var(--color-yellow);">⚠️ ตรวจพบข้อมูลจำลองทดสอบคงค้างในฐานข้อมูล:</strong><br>
+                        มีประชากรจำลอง <strong><?= $mockTargetCount ?></strong> ราย และ บัญชี อสม. จำลอง <strong><?= $mockVhvCount ?></strong> บัญชี (และใบงาน/ผลคัดกรองที่เกี่ยวข้อง)
+                    </div>
+                    <button class="btn-danger" style="margin: 0; font-size: 13px; display: flex; align-items: center; gap: 5px;" onclick="clearMockData()">
+                        🗑️ ล้างข้อมูลจำลองและบัญชีทดสอบทั้งหมด
+                    </button>
+                </div>
+            <?php endif; ?>
+        </div>
+
         <div class="db-card">
             <h3 style="color: var(--color-red); margin-top: 0;">⚠️ ข้อควรระวังในการเคลียร์ข้อมูล</h3>
             <p style="color: var(--text-secondary); line-height: 1.6; font-size: 14px;">
@@ -192,6 +276,68 @@ $hcNames = get_health_units();
                 .then(data => {
                     if (data.status === 'success') {
                         alert(`ล้างข้อมูลสำเร็จแล้ว\nจำนวนประชากรที่ถูกลบ: ${data.deleted_count} ราย`);
+                        window.location.reload();
+                    } else {
+                        alert("เกิดข้อผิดพลาด: " + data.message);
+                    }
+                })
+                .catch(err => {
+                    alert("เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย");
+                });
+            }
+        }
+
+        function toggleSandboxMode(element) {
+            const isChecked = element.checked;
+            const modeVal = isChecked ? '1' : '0';
+            
+            fetch('../api/toggle_sandbox.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'sandbox_mode': modeVal
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert("เกิดข้อผิดพลาด: " + data.message);
+                    element.checked = !isChecked;
+                }
+            })
+            .catch(err => {
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย");
+                element.checked = !isChecked;
+            });
+        }
+
+        function clearMockData() {
+            if (confirm("⚠️ ยืนยันการล้างข้อมูลจำลองและบัญชีทดสอบทั้งหมด?\n\nข้อมูลจำลอง 4 คน (นายดำ, นางแดง, เขียว, ขาว) และ อสม. จำลอง (1001, 1002, 1003) พร้อมใบงาน/ผลคัดกรองจำลองทั้งหมดจะถูกลบอย่างถาวรจากฐานข้อมูล!")) {
+                
+                let check = prompt('พิมพ์คำว่า "ลบข้อมูลทดสอบ" เพื่อยืนยัน:');
+                if (check !== "ลบข้อมูลทดสอบ") {
+                    alert("พิมพ์ข้อความไม่ถูกต้อง ยกเลิกการลบข้อมูล");
+                    return;
+                }
+
+                fetch('../api/admin_db.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        'action': 'clear_mock_data'
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert(`ล้างข้อมูลสำเร็จแล้ว!\n- ลบประชากรเป้าหมายจำลอง: ${data.deleted_targets} ราย\n- ลบบัญชี อสม. จำลอง: ${data.deleted_vhvs} บัญชี`);
                         window.location.reload();
                     } else {
                         alert("เกิดข้อผิดพลาด: " + data.message);

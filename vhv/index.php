@@ -28,7 +28,23 @@ $db_error = '';
 
 try {
     $pendingStmt = $pdo->prepare("
-        SELECT a.assignment_id, a.assignment_status, p.cid, p.hid, p.first_name, p.last_name, p.house_no, p.moo, p.need_screen_dm, p.need_screen_ht, p.health_status_origin
+        SELECT a.assignment_id, a.assignment_status, p.cid, p.hid, p.first_name, p.last_name, p.house_no, p.moo, p.sex, p.birth, p.need_screen_dm, p.need_screen_ht, p.health_status_origin,
+               COALESCE(
+                   (SELECT sr.sys_bp1 FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
+                   (SELECT ht.sbp FROM staging_hdc_ht ht WHERE ht.cid = p.cid ORDER BY ht.imported_at DESC LIMIT 1)
+               ) AS last_sbp,
+               COALESCE(
+                   (SELECT sr.dia_bp1 FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
+                   (SELECT ht.dbp FROM staging_hdc_ht ht WHERE ht.cid = p.cid ORDER BY ht.imported_at DESC LIMIT 1)
+               ) AS last_dbp,
+               COALESCE(
+                   (SELECT sr.dtx_value FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
+                   (SELECT dm.bslevel FROM staging_hdc_dm dm WHERE dm.cid = p.cid ORDER BY dm.imported_at DESC LIMIT 1)
+               ) AS last_dtx,
+               COALESCE(
+                   (SELECT sr.dtx_type FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
+                   'fpg'
+               ) AS last_dtx_type
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
         WHERE a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status = 'pending'
@@ -441,9 +457,14 @@ try {
     </div>
 
     <script>
+        const isSandboxMode = <?= isSandboxMode() ? 'true' : 'false' ?>;
         let currentTestHid = '';
         let currentTestCid = '';
         function openTestModal(houseNo, hid, cid) {
+            if (!isSandboxMode) {
+                alert("⚠️ ระบบทำงานในโหมดใช้งานจริง: กรุณากดปุ่ม 'สแกนบ้าน' ด้านล่างเพื่อสแกน QR Code ประจำบ้านเป้าหมายและเริ่มทำการคัดกรอง");
+                return;
+            }
             document.getElementById('test-house-no').textContent = houseNo;
             currentTestHid = hid;
             currentTestCid = cid;

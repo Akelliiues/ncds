@@ -241,6 +241,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
 
         $inserted = 0; $updated = 0; $excluded_dm = 0; $skipped_invalid = 0;
 
+        // ดึงรายชื่อเป้าหมายที่ได้รับการคัดกรองหรือเลื่อนตรวจ (เสร็จสมบูรณ์/ข้ามสะสม) ไปแล้วในปีงบประมาณปัจจุบัน
+        $screenedCids = $pdo->query("SELECT DISTINCT target_cid FROM task_assignments WHERE assignment_status IN ('completed', 'skipped') AND budget_year = 2026")->fetchAll(PDO::FETCH_COLUMN);
+        $screenedCidsMap = array_flip($screenedCids);
+
         // ดึงข้อมูลประชากรทั้งหมดพร้อมข้อมูลพิกัดบ้านมารอใน PHP Memory cache เพื่อความเร็วและ unmasked data mapping
         $targetPopByCid = [];
         $targetPopByHosPid = [];
@@ -351,6 +355,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
                 // รักษาค่า hid ดั้งเดิมของ JHCIS ที่นำเข้าไว้
                 $finalHid = !empty($exists['hid']) && $exists['hid'] !== '000000000000000' ? $exists['hid'] : ($hid ?: null);
                 
+                // คัดกรองแล้ว: ล็อกระดับความเสี่ยงตั้งต้น (health_status_origin) ไม่ให้อัปเดตซ้ำเพื่อความสม่ำเสมอของผลงาน
+                $isAlreadyScreened = isset($screenedCidsMap[$realCid]);
+                $finalHealthStatusOrigin = $isAlreadyScreened ? $exists['health_status_origin'] : $healthStatusOrigin;
+
                 $updateStmt = $pdo->prepare("UPDATE target_population SET hid=?, house_no=?, moo=?, sub_district_code=?, vhid_code=?, latitude=?, longitude=?, health_status_origin=?, need_screen_dm=?, need_screen_ht=?, updated_at=NOW() WHERE cid=?");
                 $updateStmt->execute([
                     $finalHid, 
@@ -360,7 +368,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
                     $exists['vhid_code'] ?: $checkVhid, 
                     $lat, 
                     $lng, 
-                    $healthStatusOrigin, 
+                    $finalHealthStatusOrigin, 
                     $needScreenDm?1:0, 
                     $needScreenHt?1:0, 
                     $realCid

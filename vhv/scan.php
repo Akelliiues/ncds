@@ -104,6 +104,9 @@ $presetHid = $_GET['hid'] ?? '';
         <p style="color:var(--text-secondary);margin:4px 0 0;font-size:14px;">
             สแกนการ์ด QR Code ที่ติดหน้าบ้านเพื่อเข้าสู่การคัดกรอง
         </p>
+        <div id="gps-warning" style="display:none; background: rgba(245,158,11,0.12); border: 1px solid var(--color-yellow); color: var(--color-yellow); padding: 10px; border-radius: 12px; font-size: 13px; margin-top: 10px; font-weight: bold; text-align: center; box-shadow: var(--neumorph-inset);">
+            ⚠️ อุปกรณ์ปิดรับพิกัด หรือถูกปฏิเสธสิทธิ์เข้าถึงตำแหน่ง (GPS)<br><span style="font-size: 11.5px; font-weight: 500; opacity: 0.95;">กรุณาอนุญาตให้เข้าถึงตำแหน่งในเบราว์เซอร์เพื่อใช้ส่งข้อมูลจริง</span>
+        </div>
     </div>
 
     <!-- PDPA Lock overlay -->
@@ -286,6 +289,7 @@ function initScanner() {
         () => { /* ignore per-frame failures */ }
     ).then(() => {
         hideStatus();   // camera open — hide status box
+        startGpsTracking();
     }).catch(err => {
         hideReader();
         handleCameraError(err);
@@ -338,6 +342,7 @@ function handleCameraError(err) {
             () => {}
         ).then(() => {
             hideStatus();
+            startGpsTracking();
         }).catch(() => {
             hideReader();
             setStatus('error',
@@ -404,7 +409,7 @@ function checkManualHid() {
 }
 
 // ---------- Validate via API ----------
-function validateHouseAssignment(hid) {
+async function validateHouseAssignment(hid) {
     // Offline fallback
     if (!navigator.onLine) {
         const cache = [
@@ -416,6 +421,24 @@ function validateHouseAssignment(hid) {
         const match = cache.find(t => String(t.hid) === String(hid) || String(t.cid) === String(hid));
         if (match) { goToForm(hid); } else { showLock(hid); }
         return;
+    }
+
+    // หากยังจับพิกัดไม่ได้ ให้พยายามดึงพิกัดแบบเร่งด่วน ณ วินาทีนี้ (สูงสุด 2.0 วินาที)
+    if (!gpsLat || !gpsLng) {
+        try {
+            const location = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(
+                    p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+                    reject,
+                    { timeout: 2000, maximumAge: 30000, enableHighAccuracy: false } // ปิด High Accuracy ใน fallback ด่วนเพื่อให้ได้พิกัดเร็วขึ้นจากเสาสัญญาณ/WiFi
+                );
+            });
+            gpsLat = location.lat;
+            gpsLng = location.lng;
+            document.getElementById('gps-warning').style.display = 'none';
+        } catch (e) {
+            // ดึงพิกัดไม่ได้ ให้ข้ามเพื่อไม่ทำให้แอปค้าง
+        }
     }
 
     fetch('../api/check_qrcode.php', {
@@ -466,21 +489,46 @@ function resetScanner() {
 }
 
 // ---------- GPS (background) ----------
+let gpsWatchId = null;
+
+function startGpsTracking() {
+    if (gpsWatchId !== null) return; // Already tracking
+    if (!navigator.geolocation) {
+        document.getElementById('gps-warning').style.display = 'block';
+        return;
+    }
+    gpsWatchId = navigator.geolocation.watchPosition(
+        p => {
+            gpsLat = p.coords.latitude;
+            gpsLng = p.coords.longitude;
+            document.getElementById('gps-warning').style.display = 'none';
+        },
+        err => {
+            console.error("GPS watchPosition error:", err);
+            // แสดงเตือนเมื่อปฏิเสธสิทธิ์หรือปิด GPS
+            if (err.code === 1 || err.code === 2) {
+                document.getElementById('gps-warning').style.display = 'block';
+            }
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+    );
+}
+
 function getCurrentLocation() {
     return new Promise((resolve, reject) => {
-        if (!navigator.geolocation) { reject(); return; }
+        if (!navigator.geolocation) { reject('not_supported'); return; }
         navigator.geolocation.getCurrentPosition(
             p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
-            reject,
-            { timeout: 8000, maximumAge: 30000, enableHighAccuracy: false }
+            err => reject(err),
+            { timeout: 6000, maximumAge: 15000, enableHighAccuracy: true }
         );
     });
 }
 
 // ---------- Bootstrap ----------
 document.addEventListener('DOMContentLoaded', () => {
-    // Get GPS silently
-    getCurrentLocation().then(c => { gpsLat = c.lat; gpsLng = c.lng; }).catch(() => {});
+    // โหลดพิกัด GPS แบบเบื้องหลังพร้อมหน่วงเวลา 1.5 วินาที เพื่อเลี่ยงการแย่งสิทธิ์กับกล้องตอนโหลดหน้าแรก
+    setTimeout(startGpsTracking, 1500);
 
     // Load html5-qrcode library dynamically (versioned URL for stability)
     const LIB_URL = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';

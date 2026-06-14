@@ -1453,3 +1453,46 @@ try {
     // Fail silently
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// System Settings Sandbox/Production Config Auto-migration & Helper Functions
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (isset($pdo)) {
+        // 1. Auto Create table system_settings
+        $pdo->exec("CREATE TABLE IF NOT EXISTS system_settings (
+            setting_key VARCHAR(50) PRIMARY KEY,
+            setting_value VARCHAR(255) NOT NULL,
+            description VARCHAR(255) NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+        // 2. Insert default sandbox_mode value
+        $pdo->exec("INSERT IGNORE INTO system_settings (setting_key, setting_value, description)
+            VALUES ('sandbox_mode', '1', 'โหมดทดสอบจำลองระบบ (0 = ปิด/ใช้งานจริง, 1 = เปิด/จำลอง)');");
+    }
+} catch (\Exception $e) {
+    // Fail silently
+}
+
+if (!function_exists('get_system_setting')) {
+    function get_system_setting($key, $default = null) {
+        global $pdo;
+        if (!isset($pdo)) return $default;
+        try {
+            $stmt = $pdo->prepare("SELECT setting_value FROM system_settings WHERE setting_key = ?");
+            $stmt->execute([$key]);
+            $val = $stmt->fetchColumn();
+            return $val !== false ? $val : $default;
+        } catch (\Exception $e) {
+            return $default;
+        }
+    }
+}
+
+if (!function_exists('isSandboxMode')) {
+    function isSandboxMode() {
+        return get_system_setting('sandbox_mode', '1') === '1';
+    }
+}
+
+

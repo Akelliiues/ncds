@@ -12,11 +12,13 @@ require_once __DIR__ . '/../config/db.php';
 $currentVhvId = $_SESSION['vhv_id'];
 $vhvName = $_SESSION['vhv_name'];
 
-// Positive title mapping for the top 50 ranks
+// Positive title mapping for the top 50 ranks (Unique top 5, tiered classes for 6-50)
 function getPositiveTitle($rank)
 {
     if ($rank <= 0 || $rank > 50)
         return '';
+    
+    // Top 5 are unique supreme titles
     if ($rank === 1)
         return '🏆 สุดยอดขุนพลสาธารณสุขตาลสุม';
     if ($rank === 2)
@@ -27,24 +29,36 @@ function getPositiveTitle($rank)
         return '✨ ผู้พิทักษ์หัวใจไร้โรค';
     if ($rank === 5)
         return '🌟 ขวัญใจสุขภาพดีถ้วนหน้า';
-    if ($rank >= 6 && $rank <= 10)
-        return '💪 ยอดนักปราบเบาหวานและความดัน';
-    if ($rank >= 11 && $rank <= 15)
-        return '🛡️ ผู้ปกป้องสุขภาวะตาลสุม';
-    if ($rank >= 16 && $rank <= 20)
-        return '❤️ เสาหลักสุขภาพดีชุมชน';
-    if ($rank >= 21 && $rank <= 25)
-        return '🌱 ผู้หว่านเมล็ดพันธุ์สุขภาพ';
-    if ($rank >= 26 && $rank <= 30)
-        return '🤝 พลังขับเคลื่อนตำบลสุขภาพดี';
-    if ($rank >= 31 && $rank <= 35)
-        return '🎉 ผู้จุดประกายรักตนเอง';
-    if ($rank >= 36 && $rank <= 40)
-        return '🍀 ทูตสุขภาพสร้างพลังบวก';
-    if ($rank >= 41 && $rank <= 45)
-        return '💡 ปราชญ์สุขภาพคู่บ้านคู่เมือง';
-    if ($rank >= 46 && $rank <= 50)
-        return '☀️ แสนสว่างนำทางชีวิตชีวา';
+
+    // Base titles for group tiers (ranks 6-50 in groups of 5)
+    $baseTitles = [
+        1 => '💪 ยอดนักปราบเบาหวานและความดัน',
+        2 => '🛡️ ผู้ปกป้องสุขภาวะตาลสุม',
+        3 => '❤️ เสาหลักสุขภาพดีชุมชน',
+        4 => '🌱 ผู้หว่านเมล็ดพันธุ์สุขภาพ',
+        5 => '🤝 พลังขับเคลื่อนตำบลสุขภาพดี',
+        6 => '🎉 ผู้จุดประกายรักตนเอง',
+        7 => '🍀 ทูตสุขภาพสร้างพลังบวก',
+        8 => '💡 ปราชญ์สุขภาพคู่บ้านคู่เมือง',
+        9 => '☀️ แสนสว่างนำทางชีวิตชีวา'
+    ];
+
+    // Thai traditional civil service / military tiers
+    $suffixes = [
+        0 => 'ชั้นเอก',
+        1 => 'ชั้นโท',
+        2 => 'ชั้นตรี',
+        3 => 'ชั้นจัตวา',
+        4 => 'ชั้นเบญจ'
+    ];
+
+    $groupIndex = floor(($rank - 6) / 5) + 1;
+    $suffixIndex = ($rank - 6) % 5;
+
+    if (isset($baseTitles[$groupIndex]) && isset($suffixes[$suffixIndex])) {
+        return $baseTitles[$groupIndex] . ' ' . $suffixes[$suffixIndex];
+    }
+
     return '';
 }
 

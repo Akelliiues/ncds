@@ -1,16 +1,20 @@
 <?php
 // admin/seed_db.php
 require_once __DIR__ . '/../config/session.php';
+require_once __DIR__ . '/../config/db.php';
 
-// ตรวจสอบสิทธิ์แอดมิน
+// บล็อกเด็ดขาดหากไม่ได้เปิดโหมดจำลอง (Sandbox Mode)
+if (!isSandboxMode()) {
+    die("<div style='padding: 40px 20px; font-family: sans-serif; text-align: center;'><h2>เข้าถึงถูกปฏิเสธ (Access Denied)</h2><p>ฟังก์ชันนำเข้าข้อมูลจำลอง (Seed DB) ถูกปิดใช้งานอย่างถาวรเนื่องจากระบบกำลังทำงานในโหมดใช้งานจริง (Production Mode)</p><a href='index.php' style='display: inline-block; padding: 10px 20px; background-color: #0d2c54; color: white; border-radius: 8px; text-decoration: none; font-weight: bold;'>กลับหน้าหลักแอดมิน</a></div>");
+}
+
+// ตรวจสอบสิทธิ์แอดมินในกรณีรันผ่านหน้าเว็บ (เมื่อเปิด Sandbox)
 if (php_sapi_name() !== 'cli') {
     if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
         header("Location: ../index.php");
         exit();
     }
 }
-
-require_once __DIR__ . '/../config/db.php';
 
 $message = '';
 $error = '';

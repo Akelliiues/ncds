@@ -92,6 +92,7 @@ if (isset($_GET['action'])) {
         $hoscode = $_GET['hoscode'] ?? '';
         $moo = $_GET['moo'] ?? '';
         $status = $_GET['status'] ?? 'all';
+        $search = trim($_GET['search'] ?? '');
         $page = max(1, intval($_GET['page'] ?? 1));
         $limit = max(10, min(200, intval($_GET['limit'] ?? 50)));
         $offset = ($page - 1) * $limit;
@@ -270,6 +271,14 @@ if (isset($_GET['action'])) {
             $sql .= " AND (need_screen_dm = 0 AND need_screen_ht = 0)";
         }
 
+        if ($search !== '') {
+            $sql .= " AND (first_name LIKE ? OR last_name LIKE ? OR cid LIKE ?)";
+            $searchParam = '%' . $search . '%';
+            $params[] = $searchParam;
+            $params[] = $searchParam;
+            $params[] = $searchParam;
+        }
+
         // Count total records before pagination
         $countSql = "SELECT COUNT(*) FROM ($sql) count_tbl";
         $countStmt = $pdo->prepare($countSql);
@@ -312,10 +321,21 @@ if (isset($_GET['action'])) {
             $stmt->execute([$cid]);
             $exists = $stmt->fetch();
 
+            $req_tambon = $data['tambon'] ?? '';
+            $req_moo = $data['moo'] ?? '';
+            $req_hoscode = $data['hoscode'] ?? '';
+
             if ($exists) {
                 // Update
-                $stmtUpd = $pdo->prepare("UPDATE target_population SET $field = ?, updated_at = NOW() WHERE cid = ?");
-                $stmtUpd->execute([$status, $cid]);
+                if ($req_tambon && $req_moo && $req_hoscode) {
+                    $moo_str = str_pad($req_moo, 2, '0', STR_PAD_LEFT);
+                    $vhid_code = $req_tambon . $moo_str;
+                    $stmtUpd = $pdo->prepare("UPDATE target_population SET $field = ?, moo = ?, sub_district_code = ?, vhid_code = ?, hoscode = ?, updated_at = NOW() WHERE cid = ?");
+                    $stmtUpd->execute([$status, $req_moo, $req_tambon, $vhid_code, $req_hoscode, $cid]);
+                } else {
+                    $stmtUpd = $pdo->prepare("UPDATE target_population SET $field = ?, updated_at = NOW() WHERE cid = ?");
+                    $stmtUpd->execute([$status, $cid]);
+                }
                 echo json_encode(['status' => 'success']);
             } else {
                 // Insert from staging HDC
@@ -344,14 +364,23 @@ if (isset($_GET['action'])) {
                 else if ($ht) $origin = 'HT_ONLY';
                 else $origin = 'NORMAL';
 
-                $vhid_code = $r['check_vhid'] ?? '';
-                if (strlen($vhid_code) === 8) {
-                    $tambon = substr($vhid_code, 0, 6);
-                    $moo = intval(substr($vhid_code, 6, 2));
+                $insert_hoscode = $req_hoscode ?: $r['hoscode'] ?: '';
+
+                if ($req_tambon && $req_moo) {
+                    $tambon = $req_tambon;
+                    $moo = intval($req_moo);
+                    $moo_str = str_pad($req_moo, 2, '0', STR_PAD_LEFT);
+                    $vhid_code = $req_tambon . $moo_str;
                 } else {
-                    $vhid_code = '34180101';
-                    $tambon = '341801';
-                    $moo = 1;
+                    $vhid_code = $r['check_vhid'] ?? '';
+                    if (strlen($vhid_code) === 8) {
+                        $tambon = substr($vhid_code, 0, 6);
+                        $moo = intval(substr($vhid_code, 6, 2));
+                    } else {
+                        $vhid_code = '34180101';
+                        $tambon = '341801';
+                        $moo = 1;
+                    }
                 }
                 
                 $insert_cid = $r['cid'];
@@ -363,7 +392,7 @@ if (isset($_GET['action'])) {
                     (cid, pid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode, health_status_origin, need_screen_dm, need_screen_ht)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $insert->execute([
-                    $insert_cid, $r['pid'], $r['name'], $r['lname'], $r['sex'], $r['birth'], $r['addr'], $moo, $tambon, $vhid_code, $r['hoscode'], $origin, $need_dm, $need_ht
+                    $insert_cid, $r['pid'], $r['name'], $r['lname'], $r['sex'], $r['birth'], $r['addr'], $moo, $tambon, $vhid_code, $insert_hoscode, $origin, $need_dm, $need_ht
                 ]);
 
                 echo json_encode(['status' => 'success']);
@@ -391,6 +420,10 @@ if (isset($_GET['action'])) {
             $stmtCheckTarget = $pdo->prepare("SELECT cid FROM target_population WHERE cid = ?");
             $stmtCheckTarget->execute([$cid]);
             
+            $req_tambon = $data['tambon'] ?? '';
+            $req_moo = $data['moo'] ?? '';
+            $req_hoscode = $data['hoscode'] ?? '';
+
             if ($stmtCheckTarget->rowCount() == 0) {
                 // Insert from staging HDC
                 $dm = null;
@@ -410,14 +443,21 @@ if (isset($_GET['action'])) {
                     else if ($ht) $origin = 'HT_ONLY';
                     else $origin = 'NORMAL';
                     
-                    $vhid_code = $r['check_vhid'] ?? '';
-                    if (strlen($vhid_code) === 8) {
-                        $tambon = substr($vhid_code, 0, 6);
-                        $moo = intval(substr($vhid_code, 6, 2));
+                    if ($req_tambon && $req_moo) {
+                        $tambon = $req_tambon;
+                        $moo = intval($req_moo);
+                        $moo_str = str_pad($req_moo, 2, '0', STR_PAD_LEFT);
+                        $vhid_code = $req_tambon . $moo_str;
                     } else {
-                        $vhid_code = '34180101';
-                        $tambon = '341801';
-                        $moo = 1;
+                        $vhid_code = $r['check_vhid'] ?? '';
+                        if (strlen($vhid_code) === 8) {
+                            $tambon = substr($vhid_code, 0, 6);
+                            $moo = intval(substr($vhid_code, 6, 2));
+                        } else {
+                            $vhid_code = '34180101';
+                            $tambon = '341801';
+                            $moo = 1;
+                        }
                     }
                     
                     $insert_cid = $r['cid'];
@@ -428,18 +468,28 @@ if (isset($_GET['action'])) {
                     $need_dm = $risk_type === 'DM' ? 1 : 0;
                     $need_ht = $risk_type === 'HT' ? 1 : 0;
 
+                    $insert_hoscode = $req_hoscode ?: $r['hoscode'] ?: '';
+
                     $insert = $pdo->prepare("INSERT INTO target_population 
                         (cid, pid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode, health_status_origin, need_screen_dm, need_screen_ht)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     $insert->execute([
-                        $insert_cid, $r['pid'], $r['name'], $r['lname'], $r['sex'], $r['birth'], $r['addr'], $moo, $tambon, $vhid_code, $r['hoscode'], $origin, $need_dm, $need_ht
+                        $insert_cid, $r['pid'], $r['name'], $r['lname'], $r['sex'], $r['birth'], $r['addr'], $moo, $tambon, $vhid_code, $insert_hoscode, $origin, $need_dm, $need_ht
                     ]);
                 }
             } else {
                 // Make sure correct target flag is set
                 $field = $risk_type === 'DM' ? 'need_screen_dm' : 'need_screen_ht';
-                $updTarget = $pdo->prepare("UPDATE target_population SET $field = 1 WHERE cid = ?");
-                $updTarget->execute([$cid]);
+                
+                if ($req_tambon && $req_moo && $req_hoscode) {
+                    $moo_str = str_pad($req_moo, 2, '0', STR_PAD_LEFT);
+                    $vhid_code = $req_tambon . $moo_str;
+                    $updTarget = $pdo->prepare("UPDATE target_population SET $field = 1, moo = ?, sub_district_code = ?, vhid_code = ?, hoscode = ? WHERE cid = ?");
+                    $updTarget->execute([$req_moo, $req_tambon, $vhid_code, $req_hoscode, $cid]);
+                } else {
+                    $updTarget = $pdo->prepare("UPDATE target_population SET $field = 1 WHERE cid = ?");
+                    $updTarget->execute([$cid]);
+                }
             }
 
             // Check if already enrolled in DPAC
@@ -536,8 +586,8 @@ if (isset($_GET['action'])) {
                     $stmtUpdateDpacCid->execute([$cid, $old_cid]);
 
                     // Update target_population record (updates the Primary Key)
-                    $stmt = $pdo->prepare("UPDATE target_population SET cid = ?, prefix = ?, first_name = ?, last_name = ?, birth = ?, house_no = ?, need_screen_dm = ?, need_screen_ht = ?, health_status_origin = ?, is_manual = 1, updated_at = NOW() WHERE cid = ?");
-                    $stmt->execute([$cid, $prefix, $fname, $lname, $birth, $house_no, $dm, $ht, $origin, $old_cid]);
+                    $stmt = $pdo->prepare("UPDATE target_population SET cid = ?, prefix = ?, first_name = ?, last_name = ?, birth = ?, house_no = ?, moo = ?, sub_district_code = ?, vhid_code = ?, hoscode = ?, need_screen_dm = ?, need_screen_ht = ?, health_status_origin = ?, is_manual = 1, updated_at = NOW() WHERE cid = ?");
+                    $stmt->execute([$cid, $prefix, $fname, $lname, $birth, $house_no, $moo, $tambon, $vhid_code, $hoscode, $dm, $ht, $origin, $old_cid]);
                     
                     $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
                 } catch (Exception $ex) {
@@ -553,8 +603,8 @@ if (isset($_GET['action'])) {
                     $pid = $existing['pid'];
                     $sex = $existing['sex'];
                     
-                    $stmt = $pdo->prepare("UPDATE target_population SET prefix = ?, first_name = ?, last_name = ?, birth = ?, house_no = ?, need_screen_dm = ?, need_screen_ht = ?, health_status_origin = ?, is_manual = 1, updated_at = NOW() WHERE cid = ?");
-                    $stmt->execute([$prefix, $fname, $lname, $birth, $house_no, $dm, $ht, $origin, $cid]);
+                    $stmt = $pdo->prepare("UPDATE target_population SET prefix = ?, first_name = ?, last_name = ?, birth = ?, house_no = ?, moo = ?, sub_district_code = ?, vhid_code = ?, hoscode = ?, need_screen_dm = ?, need_screen_ht = ?, health_status_origin = ?, is_manual = 1, updated_at = NOW() WHERE cid = ?");
+                    $stmt->execute([$prefix, $fname, $lname, $birth, $house_no, $moo, $tambon, $vhid_code, $hoscode, $dm, $ht, $origin, $cid]);
                 } else {
                     $sql = "INSERT INTO target_population 
                             (cid, hid, pid, prefix, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode, health_status_origin, need_screen_dm, need_screen_ht, is_manual) 
@@ -743,7 +793,7 @@ if (isset($_GET['action'])) {
         <div class="filter-card">
             <h4 style="margin-top: 0; margin-bottom: 16px; color: var(--text-primary);">ตัวกรองพื้นที่และกลุ่มประชากร
             </h4>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
                 <div>
                     <label class="form-label">ตำบล</label>
                     <select id="tambon" class="form-select" onchange="onTambonChange()">
@@ -772,6 +822,10 @@ if (isset($_GET['action'])) {
                         <option value="target">เป็นกลุ่มเป้าหมายแล้ว</option>
                         <option value="non_target">ยังไม่ถูกตั้งเป็นเป้าหมาย</option>
                     </select>
+                </div>
+                <div>
+                    <label class="form-label">ค้นหารายชื่อ / CID</label>
+                    <input type="text" id="search_input" class="form-control" placeholder="พิมพ์ชื่อ, นามสกุล หรือ CID" oninput="onSearchInput()">
                 </div>
             </div>
         </div>
@@ -858,11 +912,20 @@ if (isset($_GET['action'])) {
         let totalRecords = 0;
         const pageLimit = 50;
 
+        let searchTimeout = null;
+        function onSearchInput() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                fetchData(1);
+            }, 300);
+        }
+
         function fetchData(page = 1) {
             currentPage = page;
             const tambon = document.getElementById('tambon').value;
             const moo = document.getElementById('moo').value;
             const status = document.getElementById('status_filter').value;
+            const search = document.getElementById('search_input') ? document.getElementById('search_input').value.trim() : '';
             let hoscode = '';
 
             if (!tambon || !moo) {
@@ -881,7 +944,7 @@ if (isset($_GET['action'])) {
             document.getElementById('target-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">กำลังโหลด...</div>';
             document.getElementById('pagination-container').innerHTML = '';
 
-            fetch(`target_manager.php?action=get_targets&hoscode=${hoscode}&moo=${moo}&status=${status}&page=${currentPage}&limit=${pageLimit}`)
+            fetch(`target_manager.php?action=get_targets&hoscode=${hoscode}&moo=${moo}&status=${status}&search=${encodeURIComponent(search)}&page=${currentPage}&limit=${pageLimit}`)
                 .then(r => r.json())
                 .then(resp => {
                     currentTargets = resp.data || [];
@@ -1029,10 +1092,26 @@ if (isset($_GET['action'])) {
 
         function toggleSingleTarget(cid, disease, currentStatus) {
             const newStatus = currentStatus === 1 ? 0 : 1;
+            const tambon = document.getElementById('tambon').value;
+            const moo = document.getElementById('moo').value;
+            let hoscode = '';
+            if (tambonData[tambon].hasSubUnits) {
+                hoscode = document.getElementById('hoscode').value;
+            } else {
+                hoscode = tambonData[tambon].hoscode;
+            }
+
             fetch(`target_manager.php?action=toggle_target_disease`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cid: cid, disease: disease, status: newStatus })
+                body: JSON.stringify({ 
+                    cid: cid, 
+                    disease: disease, 
+                    status: newStatus,
+                    tambon: tambon,
+                    moo: moo,
+                    hoscode: hoscode
+                })
             })
             .then(r => r.json())
             .then(data => {
@@ -1057,10 +1136,25 @@ if (isset($_GET['action'])) {
                 }
             }
 
+            const tambon = document.getElementById('tambon').value;
+            const moo = document.getElementById('moo').value;
+            let hoscode = '';
+            if (tambonData[tambon].hasSubUnits) {
+                hoscode = document.getElementById('hoscode').value;
+            } else {
+                hoscode = tambonData[tambon].hoscode;
+            }
+
             fetch(`target_manager.php?action=enroll_dpac_single`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cid: cid, risk_type: type })
+                body: JSON.stringify({ 
+                    cid: cid, 
+                    risk_type: type,
+                    tambon: tambon,
+                    moo: moo,
+                    hoscode: hoscode
+                })
             })
             .then(r => r.json())
             .then(data => {

@@ -80,6 +80,113 @@ function get_system_build_number($last_update_ts) {
 }
 
 $build_number = get_system_build_number($last_update_ts);
+
+function get_system_changelog() {
+    $changelog = [];
+
+    // 1. Try Git first
+    if (function_exists('shell_exec')) {
+        $git_log = @shell_exec('git log -25 --pretty=format:"%s|%ct" 2>/dev/null');
+        if ($git_log) {
+            $lines = explode("\n", trim($git_log));
+            $count = 0;
+            foreach ($lines as $line) {
+                if (empty($line) || strpos($line, '|') === false) continue;
+                list($message, $timestamp) = explode('|', $line, 2);
+                $message = trim($message);
+                $timestamp = intval(trim($timestamp));
+
+                // Filter out non-essential commits
+                $msg_lower = strtolower($message);
+                if (
+                    strpos($msg_lower, 'merge branch') !== false ||
+                    strpos($msg_lower, 'merge pull request') !== false ||
+                    (strpos($msg_lower, 'update') === 0 && strlen($message) < 15) ||
+                    (strpos($msg_lower, 'fix') === 0 && strlen($message) < 8) ||
+                    $msg_lower === 'refactor' ||
+                    $msg_lower === 'typo' ||
+                    $msg_lower === 'temp'
+                ) {
+                    continue;
+                }
+
+                // Determine type based on keywords
+                $type = 'feature';
+                if (strpos($msg_lower, 'fix') !== false || strpos($msg_lower, 'bug') !== false || strpos($msg_lower, 'แก้ไข') !== false) {
+                    $type = 'fix';
+                } elseif (strpos($msg_lower, 'security') !== false || strpos($msg_lower, 'protect') !== false || strpos($msg_lower, 'ป้องกัน') !== false || strpos($msg_lower, 'สิทธิ์') !== false) {
+                    $type = 'security';
+                }
+
+                $changelog[] = [
+                    'title' => $message,
+                    'timestamp' => $timestamp,
+                    'type' => $type
+                ];
+
+                $count++;
+                if ($count >= 4) break; // Limit to 4 items
+            }
+        }
+    }
+
+    // 2. Fallback to changelog.json
+    if (empty($changelog)) {
+        $json_file = __DIR__ . '/changelog.json';
+        if (file_exists($json_file)) {
+            $json_data = json_decode(file_get_contents($json_file), true);
+            if (is_array($json_data)) {
+                $count = 0;
+                foreach ($json_data as $item) {
+                    $changelog[] = [
+                        'title' => $item['title'] ?? '',
+                        'timestamp' => isset($item['date']) ? strtotime($item['date']) : time(),
+                        'type' => $item['type'] ?? 'feature'
+                    ];
+                    $count++;
+                    if ($count >= 4) break;
+                }
+            }
+        }
+    }
+
+    // If still empty, return a default item
+    if (empty($changelog)) {
+        $changelog[] = [
+            'title' => 'ปรับปรุงระบบและเพิ่มประสิทธิภาพการทำงานทั่วไป',
+            'timestamp' => time(),
+            'type' => 'feature'
+        ];
+    }
+
+    return $changelog;
+}
+
+function get_time_diff_display($timestamp) {
+    $now = time();
+    $diff = $now - $timestamp;
+
+    if ($diff < 0) $diff = 0;
+
+    if ($diff < 3600) {
+        $mins = max(1, intval($diff / 60));
+        return "$mins นาทีที่แล้ว";
+    } elseif ($diff < 86400) {
+        $hours = intval($diff / 3600);
+        return "$hours ชั่วโมงที่แล้ว";
+    } elseif ($diff < 172800) {
+        return "เมื่อวานนี้";
+    } else {
+        $thai_months = [
+            1 => 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+            'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+        ];
+        $day = date('j', $timestamp);
+        $month = $thai_months[intval(date('n', $timestamp))];
+        $year = date('Y', $timestamp) + 543;
+        return "$day $month $year";
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -398,6 +505,33 @@ $build_number = get_system_build_number($last_update_ts);
                 <div class="info-row">
                     <div class="info-label">อัพเดทล่าสุด:</div>
                     <div class="info-value"><?= htmlspecialchars($last_update_str) ?></div>
+                </div>
+            </div>
+
+            <!-- Changelog Section -->
+            <div class="changelog-card" style="text-align: left; background-color: var(--bg-darker); border-radius: 16px; padding: 20px; margin-bottom: 25px; box-shadow: var(--neumorph-inset);">
+                <h3 style="color: var(--color-accent); font-size: 15px; font-weight: 800; margin-top: 0; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <span style="font-size: 18px;">✨</span> บันทึกการปรับปรุงล่าสุด (Recent Updates)
+                </h3>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <?php
+                    $system_updates = get_system_changelog();
+                    foreach ($system_updates as $update):
+                        $icon = '🚀';
+                        if ($update['type'] === 'fix') {
+                            $icon = '🔧';
+                        } elseif ($update['type'] === 'security') {
+                            $icon = '🔒';
+                        }
+                    ?>
+                        <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 13.5px; line-height: 1.4;">
+                            <span style="flex-shrink: 0; font-size: 14px;"><?= $icon ?></span>
+                            <div style="flex-grow: 1; min-width: 0;">
+                                <span style="color: var(--text-primary); font-weight: 700; word-break: break-word;"><?= htmlspecialchars($update['title']) ?></span>
+                                <span style="color: var(--text-muted); font-size: 11.5px; margin-left: 6px; white-space: nowrap;">(<?= get_time_diff_display($update['timestamp']) ?>)</span>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
                 </div>
             </div>
 

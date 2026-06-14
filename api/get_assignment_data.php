@@ -42,6 +42,11 @@ try {
             $query .= " AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)";
         }
         
+        // กรองข้อมูลประชากรจำลองทดสอบออกในโหมดจริง
+        if (!isSandboxMode()) {
+            $query .= " AND p.cid NOT IN ('1234567890111', '1234567890112', '1234567890113', '1234567890114')";
+        }
+        
         $hoscodeParam = $_GET['hoscode'] ?? '';
         $params = [$vhid, $moo, $hoscodeParam];
         if ($admin_hoscode) {
@@ -69,6 +74,12 @@ try {
             $query .= " AND v.hoscode IN ($inPlaceholders)";
             $params = array_merge($params, $hoscodes);
         }
+        
+        // กรองข้อมูล อสม. จำลองทดสอบออกในโหมดจริง
+        if (!isSandboxMode()) {
+            $query .= " AND v.vhv_id NOT IN ('1001', '1002', '1003')";
+        }
+        
         $query .= " ORDER BY v.vhv_name";
         
         $stmt = $pdo->prepare($query);

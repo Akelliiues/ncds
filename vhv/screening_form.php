@@ -25,7 +25,23 @@ if (!$isShell) {
     // Fetch residents based on hid or cid
     if (!empty($hid)) {
         $residentsStmt = $pdo->prepare("
-            SELECT p.*, a.assignment_id
+            SELECT p.*, a.assignment_id,
+                   COALESCE(
+                       (SELECT sr.sys_bp1 FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
+                       (SELECT ht.sbp FROM staging_hdc_ht ht WHERE ht.cid = p.cid ORDER BY ht.imported_at DESC LIMIT 1)
+                   ) AS last_sbp,
+                   COALESCE(
+                       (SELECT sr.dia_bp1 FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
+                       (SELECT ht.dbp FROM staging_hdc_ht ht WHERE ht.cid = p.cid ORDER BY ht.imported_at DESC LIMIT 1)
+                   ) AS last_dbp,
+                   COALESCE(
+                       (SELECT sr.dtx_value FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
+                       (SELECT dm.bslevel FROM staging_hdc_dm dm WHERE dm.cid = p.cid ORDER BY dm.imported_at DESC LIMIT 1)
+                   ) AS last_dtx,
+                   COALESCE(
+                       (SELECT sr.dtx_type FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
+                       'fpg'
+                   ) AS last_dtx_type
             FROM task_assignments a
             JOIN target_population p ON a.target_cid = p.cid
             WHERE p.hid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('pending', 'skipped')
@@ -45,7 +61,23 @@ if (!$isShell) {
         }
     } else {
         $residentsStmt = $pdo->prepare("
-            SELECT p.*, a.assignment_id
+            SELECT p.*, a.assignment_id,
+                   COALESCE(
+                       (SELECT sr.sys_bp1 FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
+                       (SELECT ht.sbp FROM staging_hdc_ht ht WHERE ht.cid = p.cid ORDER BY ht.imported_at DESC LIMIT 1)
+                   ) AS last_sbp,
+                   COALESCE(
+                       (SELECT sr.dia_bp1 FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
+                       (SELECT ht.dbp FROM staging_hdc_ht ht WHERE ht.cid = p.cid ORDER BY ht.imported_at DESC LIMIT 1)
+                   ) AS last_dbp,
+                   COALESCE(
+                       (SELECT sr.dtx_value FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
+                       (SELECT dm.bslevel FROM staging_hdc_dm dm WHERE dm.cid = p.cid ORDER BY dm.imported_at DESC LIMIT 1)
+                   ) AS last_dtx,
+                   COALESCE(
+                       (SELECT sr.dtx_type FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
+                       'fpg'
+                   ) AS last_dtx_type
             FROM task_assignments a
             JOIN target_population p ON a.target_cid = p.cid
             WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('pending', 'skipped')
@@ -280,7 +312,7 @@ if (!$isShell) {
                     <div id="residents-container">
                     <?php if (!$isShell): ?>
                         <?php foreach ($residents as $r): ?>
-                            <div class="resident-card" onclick="selectResident(<?= $r['assignment_id'] ?>, '<?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?>', '<?= $r['sex'] ?>', '<?= $r['birth'] ?>', <?= $r['need_screen_dm'] ? 'true' : 'false' ?>, <?= $r['need_screen_ht'] ? 'true' : 'false' ?>, <?= (float)($r['latitude'] ?? 0) ?>, <?= (float)($r['longitude'] ?? 0) ?>, this)">
+                            <div class="resident-card" onclick="selectResident(<?= $r['assignment_id'] ?>, '<?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?>', '<?= $r['sex'] ?>', '<?= $r['birth'] ?>', <?= $r['need_screen_dm'] ? 'true' : 'false' ?>, <?= $r['need_screen_ht'] ? 'true' : 'false' ?>, <?= (float)($r['latitude'] ?? 0) ?>, <?= (float)($r['longitude'] ?? 0) ?>, <?= $r['last_sbp'] !== null ? (int)$r['last_sbp'] : 'null' ?>, <?= $r['last_dbp'] !== null ? (int)$r['last_dbp'] : 'null' ?>, <?= $r['last_dtx'] !== null ? (int)$r['last_dtx'] : 'null' ?>, '<?= htmlspecialchars($r['last_dtx_type'] ?? 'fpg') ?>', this)">
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                     <div>
                                         <strong style="font-size: 18px; color: var(--text-primary);"><?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?></strong>
@@ -317,6 +349,7 @@ if (!$isShell) {
                         <div id="selected-resident-name" style="font-size: 20px; font-weight: 800; color: var(--color-accent); margin-top: 4px;"></div>
                     </div>
 
+                    <?php if (isSandboxMode() && isset($_GET['debug']) && $_GET['debug'] === 'true'): ?>
                     <!-- GPS Mock Testing Tool -->
                     <div class="card-dark neumorph-flat" style="padding: 16px; margin-bottom: 20px; border: 1.5px dashed var(--color-primary); border-radius: var(--border-radius);">
                         <span style="color: var(--color-accent); font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
@@ -339,6 +372,7 @@ if (!$isShell) {
                             พิกัดปัจจุบัน: รอโหลดจากระบบ...
                         </div>
                     </div>
+                    <?php endif; ?>
 
                     <!-- Measurements (Scroll Picker) -->
                     <span class="form-label-big" style="font-size: 18px; margin-top: 10px;">📏 ข้อมูลร่างกาย</span>
@@ -372,6 +406,7 @@ if (!$isShell) {
                     <!-- Blood Pressure section -->
                     <div id="section-bp" style="margin-bottom: 24px;">
                         <span style="color: var(--text-primary); font-size: 18px; font-weight: 800; display: block; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">🩺 วัดความดันโลหิต</span>
+                        <div id="last-bp-info" class="card-dark neumorph-inset" style="padding: 10px 14px; font-size: 13.5px; color: var(--color-primary); font-weight: 700; margin-bottom: 14px; display: none; border-radius: var(--border-radius);"></div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                             <div>
                                 <label style="font-size: 13px; color: var(--text-secondary);">ครั้งที่ 1 ตัวบน (SYS)</label>
@@ -395,8 +430,9 @@ if (!$isShell) {
                     </div>
 
                     <!-- Blood Sugar DTX section -->
-                    <div id="section-dtx" style="margin-bottom: 24px;">
+                    <div id="section-dtx" style="display: none; margin-bottom: 24px;">
                         <span style="color: var(--text-primary); font-size: 18px; font-weight: 800; display: block; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">🩸 วัดระดับน้ำตาลในเลือด (DTX)</span>
+                        <div id="last-dtx-info" class="card-dark neumorph-inset" style="padding: 10px 14px; font-size: 13.5px; color: var(--color-accent); font-weight: 700; margin-bottom: 14px; display: none; border-radius: var(--border-radius);"></div>
                         <div style="margin-bottom: 12px;">
                             <label style="font-size: 13px; color: var(--text-secondary); display: block; margin-bottom: 6px;">สถานะเจาะเลือด</label>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
@@ -512,7 +548,13 @@ if (!$isShell) {
                     <div style="background-color: var(--bg-darker); border: 2px solid var(--border-color); padding: 16px; border-radius: var(--border-radius); margin-bottom: 24px; text-align: center;">
                         <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">ประเมินความเสี่ยงโรคหัวใจและหลอดเลือด (Thai CV Risk)</span>
                         <div id="cv-risk-display" style="font-size: 40px; font-weight: 800; color: var(--color-green); margin: 8px 0;">0.00%</div>
-                        <div id="cv-risk-status" style="font-size: 15px; color: var(--text-secondary);">ความเสี่ยงต่ำมาก</div>
+                        <div id="cv-risk-status" style="font-size: 15px; color: var(--text-secondary); font-weight: bold; margin-bottom: 12px;">ความเสี่ยงต่ำมาก</div>
+                        
+                        <!-- Details of BP and DTX used in calculation -->
+                        <div id="cv-risk-details" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; border-top: 1px dashed var(--border-color); padding-top: 10px; font-size: 13px; text-align: left; color: var(--text-secondary); margin-top: 8px;">
+                            <div>🩺 ความดันที่ใช้: <strong id="cv-risk-bp-val" style="color: var(--text-primary);">-</strong></div>
+                            <div>🩸 ค่าน้ำตาลที่ใช้: <strong id="cv-risk-dtx-val" style="color: var(--text-primary);">-</strong></div>
+                        </div>
                     </div>
 
                     <!-- VHV Advice Given (Preset Selection) -->
@@ -737,6 +779,7 @@ if (!$isShell) {
     </div>
 
     <script>
+        const isSandboxMode = <?= isSandboxMode() ? 'true' : 'false' ?>;
         let selectedResident = null;
         let activeNumPad = null;
         let currentPickerInputId = null;
@@ -849,6 +892,10 @@ if (!$isShell) {
                             r.need_screen_ht == 1, 
                             parseFloat(r.latitude || 0), 
                             parseFloat(r.longitude || 0), 
+                            r.last_sbp !== undefined ? r.last_sbp : null,
+                            r.last_dbp !== undefined ? r.last_dbp : null,
+                            r.last_dtx !== undefined ? r.last_dtx : null,
+                            r.last_dtx_type || 'fpg',
                             card
                         );
                     };
@@ -878,17 +925,49 @@ if (!$isShell) {
                 }
             }
 
-            // Get current location coordinates asynchronously
-            getCurrentLocation().then(coords => {
-                gpsLocation.lat = coords.lat;
-                gpsLocation.lng = coords.lng;
-                document.getElementById('screening_lat').value = coords.lat;
-                document.getElementById('screening_lng').value = coords.lng;
-                document.getElementById('gps-status-info').innerHTML = `📍 พิกัดปัจจุบันจาก GPS: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
-            }).catch(err => {
-                console.error("GPS coords capture failed:", err);
-                document.getElementById('gps-status-info').innerHTML = `⚠️ ไม่สามารถจับพิกัด GPS ได้ (ใช้พิกัดจำลองทดแทน)`;
-            });
+            // Get current location coordinates asynchronously, and keep it updated via watchPosition in production mode
+            if (!isSandboxMode) {
+                if (navigator.geolocation) {
+                    navigator.geolocation.watchPosition(
+                        position => {
+                            gpsLocation.lat = position.coords.latitude;
+                            gpsLocation.lng = position.coords.longitude;
+                            document.getElementById('screening_lat').value = position.coords.latitude;
+                            document.getElementById('screening_lng').value = position.coords.longitude;
+                            const infoDiv = document.getElementById('gps-status-info');
+                            if (infoDiv) {
+                                infoDiv.innerHTML = `📍 พิกัดปัจจุบันจาก GPS: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+                            }
+                        },
+                        err => {
+                            console.error("GPS coords capture failed:", err);
+                            const infoDiv = document.getElementById('gps-status-info');
+                            if (infoDiv) {
+                                infoDiv.innerHTML = `⚠️ ไม่สามารถจับพิกัด GPS ได้`;
+                            }
+                        },
+                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+                    );
+                }
+            } else {
+                // Sandbox mode or fallback: capture once and allow Mock GPS tool
+                getCurrentLocation().then(coords => {
+                    gpsLocation.lat = coords.lat;
+                    gpsLocation.lng = coords.lng;
+                    document.getElementById('screening_lat').value = coords.lat;
+                    document.getElementById('screening_lng').value = coords.lng;
+                    const infoDiv = document.getElementById('gps-status-info');
+                    if (infoDiv) {
+                        infoDiv.innerHTML = `📍 พิกัดปัจจุบันจาก GPS: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
+                    }
+                }).catch(err => {
+                    console.error("GPS coords capture failed:", err);
+                    const infoDiv = document.getElementById('gps-status-info');
+                    if (infoDiv) {
+                        infoDiv.innerHTML = `⚠️ ไม่สามารถจับพิกัด GPS ได้`;
+                    }
+                });
+            }
 
             // Set up BMI calculation triggers
             const w = document.getElementById('weight');
@@ -945,9 +1024,12 @@ if (!$isShell) {
         }
 
         function mockGps(mode) {
+            if (!isSandboxMode) return;
             const btnHome = document.getElementById('btn-gps-home');
             const btnDrift = document.getElementById('btn-gps-drift');
             const infoDiv = document.getElementById('gps-status-info');
+            
+            if (!btnHome || !btnDrift || !infoDiv) return;
             
             btnHome.classList.remove('neumorph-inset');
             btnHome.classList.add('neumorph-flat');
@@ -995,7 +1077,7 @@ if (!$isShell) {
             document.getElementById('screening_lng').value = gpsLocation.lng;
         }
 
-        function selectResident(assignId, name, sex, birth, needDm, needHt, latVal, lngVal, card) {
+        function selectResident(assignId, name, sex, birth, needDm, needHt, latVal, lngVal, lastSbp, lastDbp, lastDtx, lastDtxType, card) {
             // Deselect all
             document.querySelectorAll('.resident-card').forEach(c => {
                 c.classList.remove('selected');
@@ -1018,7 +1100,11 @@ if (!$isShell) {
                 needDm: needDm,
                 needHt: needHt,
                 homeLat: latVal,
-                homeLng: lngVal
+                homeLng: lngVal,
+                lastSbp: lastSbp ? parseInt(lastSbp) : null,
+                lastDbp: lastDbp ? parseInt(lastDbp) : null,
+                lastDtx: lastDtx ? parseInt(lastDtx) : null,
+                lastDtxType: lastDtxType || 'fpg'
             };
 
             document.getElementById('assignment_id').value = assignId;
@@ -1027,17 +1113,48 @@ if (!$isShell) {
             // Set home coordinates for GPS mock checks
             homeLat = parseFloat(latVal);
             homeLng = parseFloat(lngVal);
-            mockGps('home');
+            if (isSandboxMode) {
+                mockGps('home');
+            }
 
             // Toggle sub-sections based on requirements
             const bpSection = document.getElementById('section-bp');
             const dtxSection = document.getElementById('section-dtx');
 
             bpSection.style.display = needHt ? 'block' : 'none';
-            dtxSection.style.display = needDm ? 'block' : 'none';
+            dtxSection.style.display = 'none'; // ซ่อนส่วนวัดระดับน้ำตาล (DTX) ชั่วคราวตามที่ผู้ใช้ร้องขอ
+
+            // Display historical BP and DTX values in UI
+            const lastBpInfo = document.getElementById('last-bp-info');
+            const lastDtxInfo = document.getElementById('last-dtx-info');
+
+            if (lastBpInfo) {
+                if (selectedResident.lastSbp && selectedResident.lastDbp) {
+                    lastBpInfo.innerHTML = `⏳ ค่าความดันโลหิตล่าสุด: <strong style="color: var(--text-primary);">${selectedResident.lastSbp}/${selectedResident.lastDbp} mmHg</strong>`;
+                    lastBpInfo.style.display = 'block';
+                } else {
+                    lastBpInfo.innerHTML = `⏳ ไม่มีประวัติค่าความดันเดิม`;
+                    lastBpInfo.style.display = 'block';
+                }
+            }
+
+            if (lastDtxInfo) {
+                if (selectedResident.lastDtx) {
+                    const typeName = selectedResident.lastDtxType === 'fpg' ? 'งดอาหาร' : 'ไม่ได้งดอาหาร';
+                    lastDtxInfo.innerHTML = `⏳ ค่าน้ำตาลในเลือดล่าสุด: <strong style="color: var(--text-primary);">${selectedResident.lastDtx} mg/dL (${typeName})</strong>`;
+                    lastDtxInfo.style.display = 'block';
+                } else {
+                    lastDtxInfo.innerHTML = `⏳ ไม่มีประวัติค่าน้ำตาลเดิม`;
+                    lastDtxInfo.style.display = 'block';
+                }
+            }
 
             // Show next button
             document.getElementById('btn-next-resident').style.display = 'block';
+
+            // Trigger initial calculations
+            calculateCvRisk();
+            calculateBmi();
 
             // Auto-transition to next step (Zero-Typing 3-Click Flow: Click 1)
             setTimeout(() => {
@@ -1235,17 +1352,35 @@ if (!$isShell) {
             
             const sbp1 = parseFloat(document.getElementById('sys_bp1').value) || 0;
             const sbp2 = parseFloat(document.getElementById('sys_bp2').value) || 0;
+            
             let sbp = 120;
+            let usingHistoricalBp = false;
+            
             if (sbp1 > 0 && sbp2 > 0) {
                 sbp = (sbp1 + sbp2) / 2;
             } else if (sbp1 > 0) {
                 sbp = sbp1;
             } else if (sbp2 > 0) {
                 sbp = sbp2;
+            } else if (selectedResident.lastSbp > 0) {
+                sbp = selectedResident.lastSbp;
+                usingHistoricalBp = true;
             }
             
-            const dtx = parseFloat(document.getElementById('dtx_value').value) || 90;
-            const dtxType = document.querySelector('input[name="dtx_type"]:checked')?.value || 'fpg';
+            const dtxValInput = parseFloat(document.getElementById('dtx_value').value) || 0;
+            let dtx = 90;
+            let usingHistoricalDtx = false;
+            
+            if (dtxValInput > 0) {
+                dtx = dtxValInput;
+            } else if (selectedResident.lastDtx > 0) {
+                dtx = selectedResident.lastDtx;
+                usingHistoricalDtx = true;
+            }
+            
+            const dtxType = dtxValInput > 0 
+                ? (document.querySelector('input[name="dtx_type"]:checked')?.value || 'fpg')
+                : (selectedResident.lastDtxType || 'fpg');
             
             // Check if patient already has diabetes
             const hasDm = !selectedResident.needDm || (dtxType === 'fpg' ? dtx >= 126 : dtx >= 200);
@@ -1301,6 +1436,37 @@ if (!$isShell) {
                 display.style.color = 'var(--color-red)';
                 status.innerText = '🚨 ความเสี่ยงสูง (≥ 10%)';
             }
+
+            // Update detailed BP and DTX helper labels
+            const bpValDisplay = document.getElementById('cv-risk-bp-val');
+            const dtxValDisplay = document.getElementById('cv-risk-dtx-val');
+
+            if (bpValDisplay) {
+                if (sbp1 > 0 || sbp2 > 0) {
+                    const dia1 = parseFloat(document.getElementById('dia_bp1').value) || 0;
+                    const dia2 = parseFloat(document.getElementById('dia_bp2').value) || 0;
+                    const dispBp = (sbp1 > 0 && sbp2 > 0) 
+                        ? `${Math.round(sbp1)}/${Math.round(dia1)} และ ${Math.round(sbp2)}/${Math.round(dia2)}` 
+                        : (sbp1 > 0 ? `${Math.round(sbp1)}/${Math.round(dia1)}` : `${Math.round(sbp2)}/${Math.round(dia2)}`);
+                    bpValDisplay.innerText = `${dispBp} mmHg`;
+                } else if (usingHistoricalBp && selectedResident.lastSbp > 0) {
+                    bpValDisplay.innerText = `${selectedResident.lastSbp}/${selectedResident.lastDbp} mmHg (ประวัติเดิม)`;
+                } else {
+                    bpValDisplay.innerText = 'รอวัดความดัน';
+                }
+            }
+
+            if (dtxValDisplay) {
+                if (dtxValInput > 0) {
+                    const dtxTypeName = dtxType === 'fpg' ? 'งดอาหาร' : 'ไม่ได้งดอาหาร';
+                    dtxValDisplay.innerText = `${Math.round(dtxValInput)} mg/dL (${dtxTypeName})`;
+                } else if (usingHistoricalDtx && selectedResident.lastDtx > 0) {
+                    const histTypeName = selectedResident.lastDtxType === 'fpg' ? 'งดอาหาร' : 'ไม่ได้งดอาหาร';
+                    dtxValDisplay.innerText = `${Math.round(selectedResident.lastDtx)} mg/dL (${histTypeName}) (ประวัติเดิม)`;
+                } else {
+                    dtxValDisplay.innerText = 'รอตรวจน้ำตาล';
+                }
+            }
         }
 
         // Submit Screening Data
@@ -1327,6 +1493,7 @@ if (!$isShell) {
                 }
             }
 
+            /* ซ่อนส่วนค่าน้ำตาลไว้ชั่วคราวตามที่ผู้ใช้ร้องขอ จึงข้ามการตรวจสอบนี้
             if (selectedResident.needDm) {
                 const dtx = parseInt(document.getElementById('dtx_value').value) || 0;
                 if (dtx <= 0) {
@@ -1334,6 +1501,7 @@ if (!$isShell) {
                     return;
                 }
             }
+            */
 
             if (!checkCriticalValues()) {
                 return;

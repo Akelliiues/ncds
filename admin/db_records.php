@@ -28,12 +28,14 @@ $limit = 50;
 $offset = ($page - 1) * $limit;
 
 // Build query
-$where = "hoscode = :hoscode";
-$params = [':hoscode' => $hoscode];
+$where = "hoscode = ?";
+$params = [$hoscode];
 
 if ($search !== '') {
-    $where .= " AND (cid LIKE :search OR first_name LIKE :search OR last_name LIKE :search)";
-    $params[':search'] = '%' . $search . '%';
+    $where .= " AND (cid LIKE ? OR first_name LIKE ? OR last_name LIKE ?)";
+    $params[] = '%' . $search . '%';
+    $params[] = '%' . $search . '%';
+    $params[] = '%' . $search . '%';
 }
 
 // Count total

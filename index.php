@@ -84,6 +84,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt->execute([$username]);
                     $user = $stmt->fetch();
 
+                    // ป้องกันการใช้งานบัญชี อสม. ทดสอบเมื่อปิด Sandbox Mode
+                    if ($user && !isSandboxMode() && in_array($user['vhv_id'], ['1001', '1002', '1003'])) {
+                        $user = false;
+                    }
+
                     if ($user && ($password === '1234' || password_verify($password, $user['password_hash']))) {
                         // Check approval status
                         if (isset($user['approved']) && $user['approved'] == 0) {

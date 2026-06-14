@@ -317,8 +317,12 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
             transform: scale(0.97);
         }
 
-        /* Prevent word wrapping in table headers */
+        /* Allow word wrapping in table headers, but prevent wrapping in table body cells for clean Excel-like records */
         table.admin-table th {
+            white-space: normal !important;
+        }
+
+        table.admin-table td {
             white-space: nowrap !important;
         }
 
@@ -351,20 +355,82 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
 
         /* Print formatting */
         @media print {
-            .no-print {
+            .no-print,
+            .admin-navbar,
+            .stats-grid,
+            .filter-panel,
+            .btn-view-logs-icon {
                 display: none !important;
             }
 
-            .admin-body {
+            body, .admin-body {
                 background: white !important;
+                color: black !important;
+                font-family: 'Sarabun', 'Prompt', sans-serif !important;
+                padding: 0 !important;
+                margin: 0 !important;
             }
 
-            .stat-card-premium,
-            .filter-panel,
+            .print-only-header {
+                display: block !important;
+            }
+
             .card-dark {
                 box-shadow: none !important;
-                border: 1px solid #ccc !important;
-                background: white !important;
+                border: none !important;
+                background: transparent !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            /* Excel-like grid table style */
+            .admin-table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                margin-top: 10px !important;
+                border: 1px solid #000000 !important;
+            }
+
+            .admin-table th,
+            .admin-table td {
+                border: 1px solid #000000 !important;
+                padding: 6px 8px !important;
+                font-size: 11px !important;
+                color: black !important;
+                background: transparent !important;
+                text-shadow: none !important;
+                box-shadow: none !important;
+            }
+
+            .admin-table th {
+                background-color: #f2f2f2 !important;
+                font-weight: bold !important;
+                text-align: center !important;
+                white-space: normal !important;
+            }
+
+            .admin-table td {
+                white-space: nowrap !important;
+            }
+
+            .rank-badge {
+                border: none !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                width: auto !important;
+                height: auto !important;
+                display: inline !important;
+                font-weight: bold !important;
+                color: black !important;
+            }
+
+            .admin-table td span {
+                background: transparent !important;
+                border: none !important;
+                color: black !important;
+                padding: 0 !important;
+                font-size: 10px !important;
+                box-shadow: none !important;
             }
         }
     </style>
@@ -375,8 +441,8 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
 
     <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
 
-        <!-- Header -->
-        <div
+        <!-- Header for Screen Mode (hidden in print) -->
+        <div class="no-print"
             style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px; flex-wrap: wrap; gap: 16px;">
             <div>
                 <h2 style="color: var(--color-accent); margin-top: 0; margin-bottom: 8px;">🏆 กระดานคะแนน อสม. ทั้งอำเภอ
@@ -385,12 +451,18 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
                     ติดตาม จัดลำดับ และวิเคราะห์ผลการสะสมแต้มของ อสม. ทุกตำบลในอำเภอตาลสุม
                 </p>
             </div>
-            <div class="no-print">
+            <div>
                 <button onclick="window.print()" class="btn-giant btn-giant-secondary"
                     style="margin: 0; padding: 10px 20px; font-size: 14.5px; display: inline-flex; align-items: center; gap: 8px;">
                     🖨️ พิมพ์รายงานกระดาน
                 </button>
             </div>
+        </div>
+
+        <!-- Header for Print Mode (hidden in screen) -->
+        <div class="print-only-header" style="display: none;">
+            <h2 style="text-align: center; margin: 0 0 6px 0; font-size: 20px; color: black; font-weight: bold;">รายงานทำเนียบผลงานและแต้มสะสม อสม. อำเภอตาลสุม</h2>
+            <p style="text-align: center; margin: 0 0 24px 0; font-size: 12px; color: #444;">ข้อมูล ณ วันที่ <?= date('d/m/Y H:i') ?> น. • เรียงลำดับจากแต้มรวมสูงสุด</p>
         </div>
 
         <?php if (!empty($error)): ?>
@@ -621,12 +693,46 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
         const tambonNames = <?= json_encode($tambon_names, JSON_UNESCAPED_UNICODE) ?>;
         const loggedInHoscode = <?= json_encode($admin_hoscode, JSON_UNESCAPED_UNICODE) ?>;
 
-        // Positive titles mapped to rankings
+        // Positive titles mapped to rankings (Unique top 5, tiered classes for 6-50)
         function getRankTitle(rank) {
-            if (rank === 1) return '🏆 สุดยอดขุนพล';
-            if (rank === 2) return '🏆 ยอดอัศวิน';
-            if (rank === 3) return '🏆 ดาวรุ่งความดี';
-            if (rank >= 4 && rank <= 10) return '🏅 ผู้พิทักษ์ใจ';
+            if (rank <= 0 || rank > 50) return '';
+            
+            // Top 5 are unique supreme titles
+            if (rank === 1) return '🏆 สุดยอดขุนพลสาธารณสุขตาลสุม';
+            if (rank === 2) return '🏆 ยอดอัศวินสุขภาพชุมชน';
+            if (rank === 3) return '🏆 ดาวรุ่งแห่งความห่วงใย';
+            if (rank === 4) return '✨ ผู้พิทักษ์หัวใจไร้โรค';
+            if (rank === 5) return '🌟 ขวัญใจสุขภาพดีถ้วนหน้า';
+
+            // Base titles for group tiers (ranks 6-50 in groups of 5)
+            const baseTitles = {
+                1: '💪 ยอดนักปราบเบาหวานและความดัน',
+                2: '🛡️ ผู้ปกป้องสุขภาวะตาลสุม',
+                3: '❤️ เสาหลักสุขภาพดีชุมชน',
+                4: '🌱 ผู้หว่านเมล็ดพันธุ์สุขภาพ',
+                5: '🤝 พลังขับเคลื่อนตำบลสุขภาพดี',
+                6: '🎉 ผู้จุดประกายรักตนเอง',
+                7: '🍀 ทูตสุขภาพสร้างพลังบวก',
+                8: '💡 ปราชญ์สุขภาพคู่บ้านคู่เมือง',
+                9: '☀️ แสนสว่างนำทางชีวิตชีวา'
+            };
+
+            // Thai traditional civil service / military tiers
+            const suffixes = {
+                0: 'ชั้นเอก',
+                1: 'ชั้นโท',
+                2: 'ชั้นตรี',
+                3: 'ชั้นจัตวา',
+                4: 'ชั้นเบญจ'
+            };
+
+            const groupIndex = Math.floor((rank - 6) / 5) + 1;
+            const suffixIndex = (rank - 6) % 5;
+
+            if (baseTitles[groupIndex] && suffixes[suffixIndex]) {
+                return baseTitles[groupIndex] + ' ' + suffixes[suffixIndex];
+            }
+
             return '';
         }
 
