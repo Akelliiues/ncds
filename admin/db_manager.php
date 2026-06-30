@@ -217,13 +217,38 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
             <?php endif; ?>
         </div>
 
-        <div class="db-card">
-            <h3 style="color: var(--color-red); margin-top: 0;">⚠️ ข้อควรระวังในการเคลียร์ข้อมูล</h3>
-            <p style="color: var(--text-secondary); line-height: 1.6; font-size: 14px;">
-                การกดปุ่มเคลียร์ข้อมูล จะทำการลบข้อมูล <strong>กลุ่มเป้าหมาย (target_population), การมอบหมายงาน (task_assignments) และผลการคัดกรอง (screening_results)</strong> ของ รพ.สต. ที่เลือก <strong><u>อย่างถาวร</u></strong><br>
-                ระบบจะลบข้อมูลที่เกี่ยวโยงกันทั้งหมดโดยอัตโนมัติ กรุณาตรวจสอบให้แน่ใจก่อนดำเนินการ เหมาะสำหรับกรณีที่ต้องการล้างข้อมูลเพื่ออัปโหลดไฟล์ Excel ใหม่
-            </p>
-        </div>
+        <?php if ($admin_hoscode !== null): ?>
+            <!-- Area Admin: Hospital Details and info card -->
+            <div class="db-card" style="border-left: 4px solid var(--color-primary); background: rgba(13, 44, 84, 0.03);">
+                <h3 style="color: var(--color-primary); margin-top: 0; display: flex; align-items: center; gap: 8px;">
+                    ℹ️ ข้อมูลหน่วยบริการ & ขอบเขตความดูแล
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; font-size: 14px; color: var(--text-secondary);">
+                    <div>
+                        <strong>ชื่อหน่วยบริการ:</strong> <span style="color: var(--text-primary); font-weight: bold;"><?= htmlspecialchars($hcNames[$admin_hoscode] ?? 'ไม่ระบุ') ?></span>
+                    </div>
+                    <div>
+                        <strong>รหัสหน่วยบริการ:</strong> <span style="color: var(--text-primary); font-weight: bold;"><?= htmlspecialchars($admin_hoscode) ?></span>
+                    </div>
+                    <div>
+                        <strong>ขอบเขตสิทธิ์:</strong> <span style="color: var(--color-green); font-weight: bold;">ดูแลเฉพาะเขตพื้นที่ตนเอง (รพ.สต. Isolated)</span>
+                    </div>
+                </div>
+                <p style="color: var(--text-secondary); line-height: 1.6; font-size: 13.5px; margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 12px; margin-bottom: 0;">
+                    💡 <strong>คำชี้แจงในการควบคุมโหมดทดสอบ:</strong><br>
+                    การสลับเปิด/ปิดโหมดจำลอง (Sandbox Mode) ในหน้านี้จะมีผลควบคุมเฉพาะการแสดงผลของ อสม. และใบงานคัดกรองของประชากรที่สังกัด <strong><?= htmlspecialchars($hcNames[$admin_hoscode] ?? 'หน่วยบริการของท่าน') ?></strong> เท่านั้น โดยจะไม่มีผลกระทบใดๆ ต่อการคัดกรองหรือข้อมูลของ รพ.สต. แห่งอื่นในอำเภอตาลสุม
+                </p>
+            </div>
+        <?php else: ?>
+            <!-- Super Admin: Warning card -->
+            <div class="db-card">
+                <h3 style="color: var(--color-red); margin-top: 0;">⚠️ ข้อควรระวังในการเคลียร์ข้อมูล</h3>
+                <p style="color: var(--text-secondary); line-height: 1.6; font-size: 14px;">
+                    การกดปุ่มเคลียร์ข้อมูล จะทำการลบข้อมูล <strong>กลุ่มเป้าหมาย (target_population), การมอบหมายงาน (task_assignments) และผลการคัดกรอง (screening_results)</strong> ของ รพ.สต. ที่เลือก <strong><u>อย่างถาวร</u></strong><br>
+                    ระบบจะลบข้อมูลที่เกี่ยวโยงกันทั้งหมดโดยอัตโนมัติ กรุณาตรวจสอบให้แน่ใจก่อนดำเนินการ เหมาะสำหรับกรณีที่ต้องการล้างข้อมูลเพื่ออัปโหลดไฟล์ Excel ใหม่
+                </p>
+            </div>
+        <?php endif; ?>
 
         <div class="db-card">
             <table class="db-table">
@@ -235,8 +260,8 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
                         <th>ข้อมูลคัดกรองที่มี</th>
                         <?php if ($admin_hoscode === null): ?>
                             <th style="text-align: center;">โหมดทดสอบ (Sandbox)</th>
+                            <th>การจัดการ</th>
                         <?php endif; ?>
-                        <th>การจัดการ</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -256,21 +281,21 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
                                         <span class="slider"></span>
                                     </label>
                                 </td>
+                                <td>
+                                    <?php if ($row['total_targets'] > 0): ?>
+                                        <div style="display: flex; gap: 8px; align-items: center;">
+                                            <a href="db_records.php?hoscode=<?= urlencode($row['hoscode']) ?>" class="btn-manage">
+                                                ⚙️ จัดการรายบุคคล
+                                            </a>
+                                            <button class="btn-danger" onclick="clearData('<?= htmlspecialchars($row['hoscode']) ?>', '<?= $hcNames[$row['hoscode']] ?? $row['hoscode'] ?>')">
+                                                🗑️ ล้างข้อมูล รพ.สต.
+                                            </button>
+                                        </div>
+                                    <?php else: ?>
+                                        <span style="color: var(--text-muted); font-size: 13px;">ว่างเปล่า</span>
+                                    <?php endif; ?>
+                                </td>
                             <?php endif; ?>
-                            <td>
-                                <?php if ($row['total_targets'] > 0): ?>
-                                    <div style="display: flex; gap: 8px; align-items: center;">
-                                        <a href="db_records.php?hoscode=<?= urlencode($row['hoscode']) ?>" class="btn-manage">
-                                            ⚙️ จัดการรายบุคคล
-                                        </a>
-                                        <button class="btn-danger" onclick="clearData('<?= htmlspecialchars($row['hoscode']) ?>', '<?= $hcNames[$row['hoscode']] ?? $row['hoscode'] ?>')">
-                                            🗑️ ล้างข้อมูล รพ.สต.
-                                        </button>
-                                    </div>
-                                <?php else: ?>
-                                    <span style="color: var(--text-muted); font-size: 13px;">ว่างเปล่า</span>
-                                <?php endif; ?>
-                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
