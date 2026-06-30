@@ -128,7 +128,15 @@ try {
         $cvRiskScore = (float)($_POST['cv_risk_score'] ?? 0);
         $adviceGiven = $_POST['advice_given'] ?? '';
 
-        // 0. Delete any previous skipped entry to prevent duplicate rows for this assignment
+        // 0. ปกป้องคะแนน อสม. คนเก่าโดยการเซ็ตค่า FK ใน vhv_rewards เป็น NULL ก่อนทำการลบผลลัพธ์คัดกรองเก่า
+        $nullifyStmt = $pdo->prepare("
+            UPDATE vhv_rewards 
+            SET screening_id = NULL 
+            WHERE screening_id IN (SELECT screening_id FROM screening_results WHERE assignment_id = ?)
+        ");
+        $nullifyStmt->execute([$assignmentId]);
+
+        // Delete any previous skipped entry to prevent duplicate rows for this assignment
         $delStmt = $pdo->prepare("DELETE FROM screening_results WHERE assignment_id = ?");
         $delStmt->execute([$assignmentId]);
 

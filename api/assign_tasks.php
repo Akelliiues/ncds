@@ -61,10 +61,15 @@ try {
 
         if ($existing) {
             if ($existing['vhv_id'] !== $vhvId) {
-                // HARD BLOCK: Prevent reassigning completed or skipped tasks
+                // ปกป้องคะแนนของ อสม. คนเดิม: เซ็ตค่า screening_id ใน vhv_rewards ให้เป็น NULL ก่อนเปลี่ยนตัว
+                // เพื่อไม่ให้โดนลบคะแนนตามกลไก Cascade ในภายหลัง
                 if (in_array($existing['assignment_status'], ['completed', 'skipped'])) {
-                    $statusText = ($existing['assignment_status'] === 'completed') ? 'คัดกรองเสร็จสิ้นแล้ว' : 'ข้ามเคสแล้ว';
-                    throw new \Exception("ไม่สามารถเปลี่ยนตัว อสม. ของคุณ {$residentName} ได้ เนื่องจากงานนี้ได้รับการ{$statusText}ไปเรียบร้อยแล้ว");
+                    $nullifyStmt = $pdo->prepare("
+                        UPDATE vhv_rewards 
+                        SET screening_id = NULL 
+                        WHERE screening_id IN (SELECT screening_id FROM screening_results WHERE assignment_id = ?)
+                    ");
+                    $nullifyStmt->execute([$existing['assignment_id']]);
                 }
 
                 $oldVhvId = $existing['vhv_id'];
