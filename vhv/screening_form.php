@@ -1483,6 +1483,16 @@ if (!$isShell) {
                 return;
             }
 
+            // Verify GPS coordinates (Skip verification ONLY if in Sandbox Mode)
+            if (!isSandboxMode) {
+                const latVal = parseFloat(document.getElementById('screening_lat').value) || 0;
+                const lngVal = parseFloat(document.getElementById('screening_lng').value) || 0;
+                if (latVal === 0 || lngVal === 0) {
+                    alert("⚠️ ไม่พบพิกัดตำแหน่งมือถือของท่าน\n\nกรุณาเปิดระบบ GPS ในโทรศัพท์มือถือ หรือกดปุ่ม 'อนุญาต' (Allow) สิทธิ์ระบุพิกัดที่มุมจอ จากนั้นรอสักครู่จนกว่าจะขึ้นพิกัดตัวเลขตรงแถบ 📍 ด้านบน แล้วกดบันทึกส่งงานใหม่อีกครั้งครับ");
+                    return;
+                }
+            }
+
             // Validation logic
             const w = parseFloat(document.getElementById('weight').value) || 0;
             const h = parseFloat(document.getElementById('height').value) || 0;
@@ -1658,6 +1668,16 @@ if (!$isShell) {
         function submitSkipCase() {
             const reason = document.getElementById('skip_reason').value;
             const assignId = document.getElementById('assignment_id').value;
+
+            // Verify GPS coordinates (Skip verification ONLY if in Sandbox Mode)
+            if (!isSandboxMode) {
+                const latVal = parseFloat(gpsLocation.lat) || 0;
+                const lngVal = parseFloat(gpsLocation.lng) || 0;
+                if (latVal === 0 || lngVal === 0) {
+                    alert("⚠️ ไม่พบพิกัดตำแหน่งมือถือของท่าน\n\nกรุณาเปิดระบบ GPS ในโทรศัพท์มือถือ หรือกดปุ่ม 'อนุญาต' (Allow) สิทธิ์ระบุพิกัดที่มุมจอ เพื่อทำการส่งเรื่องข้ามเคสครับ");
+                    return;
+                }
+            }
 
             if (!navigator.onLine) {
                 const data = {
