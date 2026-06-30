@@ -464,7 +464,7 @@ try {
     </div>
 
     <script>
-        const isSandboxMode = <?= isSandboxMode() ? 'true' : 'false' ?>;
+        const isSandboxMode = <?= isSandboxMode($hoscode) ? 'true' : 'false' ?>;
         let currentTestHid = '';
         let currentTestCid = '';
         function openTestModal(houseNo, hid, cid) {

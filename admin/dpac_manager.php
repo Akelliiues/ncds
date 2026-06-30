@@ -21,8 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     
     if (!empty($enrollmentIds) && !empty($vhvId)) {
         $pdo->beginTransaction();
-        try {
-            $isSandboxVal = isSandboxMode() ? 1 : 0;
+            $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
+            $isSandboxVal = isSandboxMode($admin_hoscode) ? 1 : 0;
             $roundStmt = $pdo->prepare("SELECT IFNULL(MAX(round_number), 0) + 1 FROM dpac_followups WHERE enrollment_id = ?");
             $insertStmt = $pdo->prepare("INSERT INTO dpac_followups (enrollment_id, vhv_id, round_number, is_sandbox) VALUES (?, ?, ?, ?)");
             $updateEnrollStmt = $pdo->prepare("UPDATE dpac_enrollments SET assigned_vhv_id = ? WHERE enrollment_id = ?");

@@ -16,6 +16,7 @@ if (!$isShell && empty($fid)) {
 }
 
 $vhvId = $_SESSION['vhv_id'];
+$hoscode = $_SESSION['hoscode'] ?? null;
 $task = null;
 $riskType = '';
 $isDM = false;
@@ -56,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $healthRisk = $_POST['health_risk_level'] ?? '';
     $advice = $_POST['advice_given'] ?? '';
 
-    $isSandboxVal = isSandboxMode() ? 1 : 0;
+    $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
     $pdo->beginTransaction();
     try {
         if ($isSandboxVal) {

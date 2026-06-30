@@ -6,35 +6,46 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
     header("Location: ../index.php");
     exit();
 }
+require_once __DIR__ . '/../config/db.php';
 
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 $admin_username = $_SESSION['admin_username'] ?? '';
 
-// Only allow super admin (admin_hoscode is null and username is not adminsso)
-if ($admin_hoscode !== null || $admin_username === 'adminsso') {
-    die("<div style='padding: 20px; color: red; text-align: center;'><h2>เข้าถึงถูกปฏิเสธ (Access Denied)</h2><p>ฟังก์ชันนี้สงวนไว้สำหรับสิทธิ์การดูแลระดับอำเภอ (Super Admin) เท่านั้น</p><a href='index.php'>กลับหน้าหลัก</a></div>");
+// Fetch stats for Hoscodes
+if ($admin_hoscode !== null) {
+    $statsStmt = $pdo->prepare("
+        SELECT 
+            p.hoscode, 
+            COUNT(DISTINCT p.cid) as total_targets,
+            COUNT(DISTINCT a.assignment_id) as total_assignments,
+            COUNT(DISTINCT s.screening_id) as total_screenings
+        FROM target_population p
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid
+        LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
+        WHERE p.hoscode = ?
+        GROUP BY p.hoscode
+    ");
+    $statsStmt->execute([$admin_hoscode]);
+    $stats = $statsStmt->fetchAll();
+} else {
+    $statsQuery = "
+        SELECT 
+            p.hoscode, 
+            COUNT(DISTINCT p.cid) as total_targets,
+            COUNT(DISTINCT a.assignment_id) as total_assignments,
+            COUNT(DISTINCT s.screening_id) as total_screenings
+        FROM target_population p
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid
+        LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
+        GROUP BY p.hoscode
+        ORDER BY p.hoscode
+    ";
+    $stats = $pdo->query($statsQuery)->fetchAll();
 }
-
-require_once __DIR__ . '/../config/db.php';
-
-// Fetch stats for all Hoscodes
-$statsQuery = "
-    SELECT 
-        p.hoscode, 
-        COUNT(DISTINCT p.cid) as total_targets,
-        COUNT(DISTINCT a.assignment_id) as total_assignments,
-        COUNT(DISTINCT s.screening_id) as total_screenings
-    FROM target_population p
-    LEFT JOIN task_assignments a ON p.cid = a.target_cid
-    LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
-    GROUP BY p.hoscode
-    ORDER BY p.hoscode
-";
-$stats = $pdo->query($statsQuery)->fetchAll();
 
 $hcNames = get_health_units();
 
-$isSandbox = isSandboxMode();
+$isSandbox = isSandboxMode($admin_hoscode);
 $mockTargetCount = (int)$pdo->query("SELECT COUNT(*) FROM target_population WHERE cid IN ('1234567890111', '1234567890112', '1234567890113', '1234567890114')")->fetchColumn();
 $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN ('1001', '1002', '1003')")->fetchColumn();
 ?>
@@ -162,7 +173,9 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
             <div>
                 <h1 style="color: var(--color-accent); margin: 0; font-size: 28px;">⚙️ จัดการฐานข้อมูลระบบ (DB Manager)</h1>
-                <p style="color: var(--text-secondary); margin: 5px 0 0 0;">เฉพาะสิทธิ์ Super Admin (สสอ.ตาลสุม)</p>
+                <p style="color: var(--text-secondary); margin: 5px 0 0 0;">
+                    <?= $admin_hoscode !== null ? 'สิทธิ์แอดมินระดับหน่วยบริการ (Area Admin)' : 'สิทธิ์ผู้ดูแลระบบสูงสุดระดับอำเภอ (Super Admin - สสอ.ตาลสุม)' ?>
+                </p>
             </div>
             <a href="index.php" class="btn-giant btn-giant-secondary" style="margin: 0; padding: 10px 20px; font-size: 14px;">← กลับหน้าแดชบอร์ด</a>
         </div>
@@ -175,7 +188,7 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
                         🛡️ โหมดการทดสอบระบบ (Sandbox Mode)
                     </h3>
                     <p style="color: var(--text-secondary); margin: 5px 0 0 0; font-size: 13px;">
-                        เปิดโหมดจำลองเพื่อทดสอบระบบด้วยข้อมูลตัวอย่าง หรือปิดเมื่อต้องการใช้งานกับประชากรจริง
+                        <?= $admin_hoscode !== null ? 'เปิดโหมดจำลองเพื่อทดสอบระบบ/จัดอบรม อสม. ในเขต รพ.สต. ของท่าน หรือปิดเพื่อสลับคืนโหมดทำงานจริง' : 'เปิดปิดสถานะโหมดจำลองเริ่มต้นของทั้งอำเภอ (หาก รพ.สต. ใดไม่ได้สลับการทำงานส่วนตัว จะอิงตามโหมดเริ่มต้นนี้)' ?>
                     </p>
                 </div>
                 
@@ -185,7 +198,7 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
                         <?= $isSandbox ? '⚙️ โหมดจำลอง (Sandbox)' : '🚀 โหมดจริง (Production)' ?>
                     </span>
                     <label class="switch">
-                        <input type="checkbox" id="sandbox-toggle" onchange="toggleSandboxMode(this)" <?= $isSandbox ? 'checked' : '' ?>>
+                        <input type="checkbox" id="sandbox-toggle" onchange="toggleSandboxMode(this, '<?= htmlspecialchars($admin_hoscode ?? '') ?>')" <?= $isSandbox ? 'checked' : '' ?>>
                         <span class="slider"></span>
                     </label>
                 </div>
@@ -220,16 +233,30 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
                         <th>ชื่อหน่วยบริการ</th>
                         <th>จำนวนประชากร (เป้าหมาย)</th>
                         <th>ข้อมูลคัดกรองที่มี</th>
+                        <?php if ($admin_hoscode === null): ?>
+                            <th style="text-align: center;">โหมดทดสอบ (Sandbox)</th>
+                        <?php endif; ?>
                         <th>การจัดการ</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($stats as $row): ?>
+                        <?php 
+                        $hosSandbox = isSandboxMode($row['hoscode']);
+                        ?>
                         <tr>
                             <td><?= htmlspecialchars($row['hoscode']) ?></td>
                             <td><strong style="color: var(--color-primary);"><?= $hcNames[$row['hoscode']] ?? 'ไม่ระบุ' ?></strong></td>
                             <td><?= number_format($row['total_targets']) ?> ราย</td>
                             <td><?= number_format($row['total_screenings']) ?> รายการ</td>
+                            <?php if ($admin_hoscode === null): ?>
+                                <td style="text-align: center;">
+                                    <label class="switch">
+                                        <input type="checkbox" onchange="toggleSandboxMode(this, '<?= htmlspecialchars($row['hoscode']) ?>')" <?= $hosSandbox ? 'checked' : '' ?>>
+                                        <span class="slider"></span>
+                                    </label>
+                                </td>
+                            <?php endif; ?>
                             <td>
                                 <?php if ($row['total_targets'] > 0): ?>
                                     <div style="display: flex; gap: 8px; align-items: center;">
@@ -287,7 +314,7 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
             }
         }
 
-        function toggleSandboxMode(element) {
+        function toggleSandboxMode(element, targetHoscode = '') {
             const isChecked = element.checked;
             const modeVal = isChecked ? '1' : '0';
             
@@ -297,7 +324,8 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
                 body: new URLSearchParams({
-                    'sandbox_mode': modeVal
+                    'sandbox_mode': modeVal,
+                    'target_hoscode': targetHoscode
                 })
             })
             .then(res => res.json())

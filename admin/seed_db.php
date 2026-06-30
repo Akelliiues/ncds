@@ -3,8 +3,10 @@
 require_once __DIR__ . '/../config/session.php';
 require_once __DIR__ . '/../config/db.php';
 
+$admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
+
 // บล็อกเด็ดขาดหากไม่ได้เปิดโหมดจำลอง (Sandbox Mode)
-if (!isSandboxMode()) {
+if (!isSandboxMode($admin_hoscode)) {
     die("<div style='padding: 40px 20px; font-family: sans-serif; text-align: center;'><h2>เข้าถึงถูกปฏิเสธ (Access Denied)</h2><p>ฟังก์ชันนำเข้าข้อมูลจำลอง (Seed DB) ถูกปิดใช้งานอย่างถาวรเนื่องจากระบบกำลังทำงานในโหมดใช้งานจริง (Production Mode)</p><a href='index.php' style='display: inline-block; padding: 10px 20px; background-color: #0d2c54; color: white; border-radius: 8px; text-decoration: none; font-weight: bold;'>กลับหน้าหลักแอดมิน</a></div>");
 }
 

@@ -17,6 +17,7 @@ if (!$isShell && empty($hid) && empty($cid)) {
 }
 
 $vhvId = $_SESSION['vhv_id'];
+$hoscode = $_SESSION['hoscode'] ?? null;
 $residents = [];
 $history = [];
 
@@ -356,7 +357,7 @@ if (!$isShell) {
                         <div id="selected-resident-name" style="font-size: 20px; font-weight: 800; color: var(--color-accent); margin-top: 4px;"></div>
                     </div>
 
-                    <?php if (isSandboxMode() && isset($_GET['debug']) && $_GET['debug'] === 'true'): ?>
+                    <?php if (isSandboxMode($hoscode) && isset($_GET['debug']) && $_GET['debug'] === 'true'): ?>
                     <!-- GPS Mock Testing Tool -->
                     <div class="card-dark neumorph-flat" style="padding: 16px; margin-bottom: 20px; border: 1.5px dashed var(--color-primary); border-radius: var(--border-radius);">
                         <span style="color: var(--color-accent); font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
@@ -786,7 +787,7 @@ if (!$isShell) {
     </div>
 
     <script>
-        const isSandboxMode = <?= isSandboxMode() ? 'true' : 'false' ?>;
+        const isSandboxMode = <?= isSandboxMode($hoscode) ? 'true' : 'false' ?>;
         let selectedResident = null;
         let activeNumPad = null;
         let currentPickerInputId = null;

@@ -132,7 +132,7 @@ try {
         $delStmt = $pdo->prepare("DELETE FROM screening_results WHERE assignment_id = ?");
         $delStmt->execute([$assignmentId]);
 
-        $isSandboxVal = isSandboxMode() ? 1 : 0;
+        $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
 
         // 1. Insert into screening_results
         $screenStmt = $pdo->prepare("
@@ -330,7 +330,7 @@ try {
         $lat = (float)($_POST['lat'] ?? 0);
         $lng = (float)($_POST['lng'] ?? 0);
 
-        $isSandboxVal = isSandboxMode() ? 1 : 0;
+        $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
 
         // 1. Set task assignment status to 'skipped'
         if ($isSandboxVal) {

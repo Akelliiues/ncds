@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $user = $stmt->fetch();
 
                     // ป้องกันการใช้งานบัญชี อสม. ทดสอบเมื่อปิด Sandbox Mode
-                    if ($user && !isSandboxMode() && in_array($user['vhv_id'], ['1001', '1002', '1003'])) {
+                    if ($user && !isSandboxMode($user['hoscode']) && in_array($user['vhv_id'], ['1001', '1002', '1003'])) {
                         $user = false;
                     }
 

@@ -17,15 +17,6 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 $admin_username = $_SESSION['admin_username'] ?? '';
 
-// 2. ตรวจสอบสิทธิ์ระดับแอดมินสูงสุด (Super Admin)
-if ($admin_hoscode !== null || $admin_username === 'adminsso') {
-    echo json_encode([
-        'status' => 'error',
-        'message' => 'เข้าถึงถูกปฏิเสธ: ฟังก์ชันนี้สงวนไว้สำหรับสิทธิ์การดูแลระดับอำเภอ (Super Admin) เท่านั้น'
-    ]);
-    exit();
-}
-
 // 3. รับค่าและบันทึก
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $mode = isset($_POST['sandbox_mode']) ? trim($_POST['sandbox_mode']) : '';
@@ -38,50 +29,101 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     }
     
+    $target_hoscode = isset($_POST['target_hoscode']) ? trim($_POST['target_hoscode']) : '';
+    if ($admin_hoscode !== null) {
+        // Area Admin can only toggle their own hospital
+        $target_hoscode = $admin_hoscode;
+    }
+    
+    $setting_key = ($target_hoscode !== '') ? 'sandbox_mode_' . $target_hoscode : 'sandbox_mode';
+    
     try {
         $pdo->beginTransaction();
 
         $stmt = $pdo->prepare("
             INSERT INTO system_settings (setting_key, setting_value, description)
-            VALUES ('sandbox_mode', ?, 'โหมดทดสอบจำลองระบบ (0 = ปิด/ใช้งานจริง, 1 = เปิด/จำลอง)')
+            VALUES (?, ?, 'โหมดทดสอบจำลองระบบ')
             ON DUPLICATE KEY UPDATE setting_value = ?, updated_at = NOW()
         ");
-        $stmt->execute([$mode, $mode]);
+        $stmt->execute([$setting_key, $mode, $mode]);
         
         // If toggling OFF sandbox mode (mode = 0), perform database restore point cleanup
         if ($mode === '0') {
-            // 1. Delete sandboxed records (is_sandbox = 1)
-            $pdo->exec("DELETE FROM vhv_rewards WHERE is_sandbox = 1");
-            $pdo->exec("DELETE FROM screening_results WHERE is_sandbox = 1");
-            $pdo->exec("DELETE FROM task_assignments WHERE is_sandbox = 1");
-            $pdo->exec("DELETE FROM dpac_followups WHERE is_sandbox = 1");
+            if ($target_hoscode !== '') {
+                // 1. Delete sandboxed records (is_sandbox = 1) for this hoscode
+                $stmtDelScreen = $pdo->prepare("DELETE FROM screening_results WHERE is_sandbox = 1 AND hoscode = ?");
+                $stmtDelScreen->execute([$target_hoscode]);
 
-            // 2. Restore production task assignments touched in sandbox
-            $pdo->exec("
-                UPDATE task_assignments 
-                SET assignment_status = 'pending', 
-                    is_sandbox_completed = 0 
-                WHERE is_sandbox_completed = 1
-            ");
+                $stmtDelTasks = $pdo->prepare("DELETE FROM task_assignments WHERE is_sandbox = 1 AND hoscode = ?");
+                $stmtDelTasks->execute([$target_hoscode]);
 
-            // 3. Restore production DPAC followups touched in sandbox
-            $pdo->exec("
-                UPDATE dpac_followups 
-                SET status = 'pending', 
-                    completed_at = NULL, 
-                    weight = NULL, 
-                    height = NULL, 
-                    waist = NULL, 
-                    fbs = NULL, 
-                    bp_sys = NULL, 
-                    bp_dia = NULL, 
-                    health_risk_level = NULL, 
-                    advice_given = NULL, 
-                    skip_count = 0, 
-                    skipped_reason = NULL, 
-                    is_sandbox_completed = 0 
-                WHERE is_sandbox_completed = 1
-            ");
+                $stmtDelRewards = $pdo->prepare("DELETE FROM vhv_rewards WHERE is_sandbox = 1 AND vhv_id IN (SELECT vhv_id FROM vhvs WHERE hoscode = ?)");
+                $stmtDelRewards->execute([$target_hoscode]);
+
+                $stmtDelDpac = $pdo->prepare("DELETE FROM dpac_followups WHERE is_sandbox = 1 AND enrollment_id IN (SELECT enrollment_id FROM dpac_enrollments WHERE hoscode = ?)");
+                $stmtDelDpac->execute([$target_hoscode]);
+
+                // 2. Restore production task assignments touched in sandbox for this hoscode
+                $stmtUpdTasks = $pdo->prepare("
+                    UPDATE task_assignments 
+                    SET assignment_status = 'pending', 
+                        is_sandbox_completed = 0 
+                    WHERE is_sandbox_completed = 1 AND hoscode = ?
+                ");
+                $stmtUpdTasks->execute([$target_hoscode]);
+
+                // 3. Restore production DPAC followups touched in sandbox for this hoscode
+                $stmtUpdDpac = $pdo->prepare("
+                    UPDATE dpac_followups 
+                    SET status = 'pending', 
+                        completed_at = NULL, 
+                        weight = NULL, 
+                        height = NULL, 
+                        waist = NULL, 
+                        fbs = NULL, 
+                        bp_sys = NULL, 
+                        bp_dia = NULL, 
+                        health_risk_level = NULL, 
+                        advice_given = NULL, 
+                        skip_count = 0, 
+                        skipped_reason = NULL, 
+                        is_sandbox_completed = 0 
+                    WHERE is_sandbox_completed = 1
+                      AND enrollment_id IN (SELECT enrollment_id FROM dpac_enrollments WHERE hoscode = ?)
+                ");
+                $stmtUpdDpac->execute([$target_hoscode]);
+            } else {
+                // Global Switch Off -> cleanup all sandbox records
+                $pdo->exec("DELETE FROM vhv_rewards WHERE is_sandbox = 1");
+                $pdo->exec("DELETE FROM screening_results WHERE is_sandbox = 1");
+                $pdo->exec("DELETE FROM task_assignments WHERE is_sandbox = 1");
+                $pdo->exec("DELETE FROM dpac_followups WHERE is_sandbox = 1");
+
+                $pdo->exec("
+                    UPDATE task_assignments 
+                    SET assignment_status = 'pending', 
+                        is_sandbox_completed = 0 
+                    WHERE is_sandbox_completed = 1
+                ");
+
+                $pdo->exec("
+                    UPDATE dpac_followups 
+                    SET status = 'pending', 
+                        completed_at = NULL, 
+                        weight = NULL, 
+                        height = NULL, 
+                        waist = NULL, 
+                        fbs = NULL, 
+                        bp_sys = NULL, 
+                        bp_dia = NULL, 
+                        health_risk_level = NULL, 
+                        advice_given = NULL, 
+                        skip_count = 0, 
+                        skipped_reason = NULL, 
+                        is_sandbox_completed = 0 
+                    WHERE is_sandbox_completed = 1
+                ");
+            }
         }
 
         $pdo->commit();
@@ -91,11 +133,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode([
             'status' => 'success',
             'sandbox_mode' => (int)$mode,
+            'target_hoscode' => $target_hoscode,
             'message' => 'ปรับปรุงโหมดระบบสำเร็จ: ' . $modeText
         ]);
         exit();
         
     } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         echo json_encode([
             'status' => 'error',
             'message' => 'เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' . $e->getMessage()

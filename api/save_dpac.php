@@ -14,6 +14,7 @@ if (!isset($_SESSION['vhv_id'])) {
 }
 
 $vhvId = $_SESSION['vhv_id'];
+$hoscode = $_SESSION['hoscode'] ?? null;
 $fid = (int)($_POST['followup_id'] ?? 0);
 $action = $_POST['action'] ?? '';
 
@@ -60,7 +61,7 @@ try {
 
         $skippedReason = $_POST['skipped_reason'] ?? 'ไม่ระบุ';
 
-        $isSandboxVal = isSandboxMode() ? 1 : 0;
+        $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
 
         // Update skip count and reason
         if ($isSandboxVal) {
@@ -106,7 +107,7 @@ try {
         $healthRisk = $_POST['health_risk_level'] ?? '';
         $advice = $_POST['advice_given'] ?? '';
 
-        $isSandboxVal = isSandboxMode() ? 1 : 0;
+        $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
         if ($isSandboxVal) {
             $updateStmt = $pdo->prepare("
                 UPDATE dpac_followups 

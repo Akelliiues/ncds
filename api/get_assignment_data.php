@@ -21,6 +21,7 @@ if (empty($type) || empty($vhid)) {
 }
 
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
+$hoscode = $admin_hoscode ? $admin_hoscode : ($_GET['hoscode'] ?? null);
 
 try {
     if ($type === 'targets') {
@@ -43,7 +44,7 @@ try {
         }
         
         // กรองข้อมูลประชากรจำลองทดสอบออกในโหมดจริง
-        if (!isSandboxMode()) {
+        if (!isSandboxMode($hoscode)) {
             $query .= " AND p.cid NOT IN ('1234567890111', '1234567890112', '1234567890113', '1234567890114')";
         }
         
@@ -76,7 +77,7 @@ try {
         }
         
         // กรองข้อมูล อสม. จำลองทดสอบออกในโหมดจริง
-        if (!isSandboxMode()) {
+        if (!isSandboxMode($hoscode)) {
             $query .= " AND v.vhv_id NOT IN ('1001', '1002', '1003')";
         }
         

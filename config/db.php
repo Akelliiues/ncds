@@ -1604,7 +1604,18 @@ if (!function_exists('get_system_setting')) {
 }
 
 if (!function_exists('isSandboxMode')) {
-    function isSandboxMode() {
+    function isSandboxMode($hoscode = null) {
+        if ($hoscode === null && session_status() === PHP_SESSION_ACTIVE) {
+            if (isset($_SESSION['hoscode'])) {
+                $hoscode = $_SESSION['hoscode'];
+            } elseif (isset($_SESSION['admin_hoscode'])) {
+                $hoscode = $_SESSION['admin_hoscode'];
+            }
+        }
+        if ($hoscode !== null && $hoscode !== '') {
+            $globalVal = get_system_setting('sandbox_mode', '1');
+            return get_system_setting('sandbox_mode_' . $hoscode, $globalVal) === '1';
+        }
         return get_system_setting('sandbox_mode', '1') === '1';
     }
 }
