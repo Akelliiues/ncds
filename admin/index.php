@@ -653,6 +653,23 @@ if ($admin_hoscode) {
             </h3>
         </div>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; margin-bottom: 30px;">
+            <!-- กลุ่มเสี่ยง Both -->
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-red); position: relative; overflow: hidden;" onclick="showCardModal('targets_both')">
+                <div style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(239, 68, 68, 0.08);"></div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <span style="font-size: 22px;">🔴</span>
+                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">เป้าหมายคัดกรองร่วม (DM+HT)</span>
+                </div>
+                <div class="stat-val" style="color: var(--color-red);"><?= number_format($metrics['group_both']) ?> <span style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
+                <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                    ประชากรทั่วไป 35 ปีขึ้นไป (ต้องตรวจ 2 โรค)
+                </div>
+                <div style="margin-top: 6px; font-size: 12px; color: var(--color-red); font-weight: bold;">
+                    <?= $metrics['total_targets'] > 0 ? round(($metrics['group_both'] / $metrics['total_targets']) * 100, 1) : 0 ?>%
+                    ของเป้าหมายคัดกรอง
+                </div>
+            </div>
+
             <!-- กลุ่มเสี่ยง DM -->
             <div class="card-dark" style="cursor: pointer; border-left: 4px solid #f97316; position: relative; overflow: hidden;" onclick="showCardModal('targets_dm')">
                 <div style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(249, 115, 22, 0.08);"></div>
@@ -683,23 +700,6 @@ if ($admin_hoscode) {
                 </div>
                 <div style="margin-top: 6px; font-size: 12px; color: #06b6d4; font-weight: bold;">
                     <?= $metrics['total_targets'] > 0 ? round(($metrics['group_ht'] / $metrics['total_targets']) * 100, 1) : 0 ?>%
-                    ของเป้าหมายคัดกรอง
-                </div>
-            </div>
-
-            <!-- กลุ่มเสี่ยง Both -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-red); position: relative; overflow: hidden;" onclick="showCardModal('targets_both')">
-                <div style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(239, 68, 68, 0.08);"></div>
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 22px;">🔴</span>
-                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">เป้าหมายคัดกรองร่วม (DM+HT)</span>
-                </div>
-                <div class="stat-val" style="color: var(--color-red);"><?= number_format($metrics['group_both']) ?> <span style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
-                <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
-                    ประชากรทั่วไป 35 ปีขึ้นไป (ต้องตรวจ 2 โรค)
-                </div>
-                <div style="margin-top: 6px; font-size: 12px; color: var(--color-red); font-weight: bold;">
-                    <?= $metrics['total_targets'] > 0 ? round(($metrics['group_both'] / $metrics['total_targets']) * 100, 1) : 0 ?>%
                     ของเป้าหมายคัดกรอง
                 </div>
             </div>
