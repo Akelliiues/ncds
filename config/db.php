@@ -880,6 +880,83 @@ try {
 } catch (\PDOException $e) {
 }
 
+try {
+    // vhv_users hoscode index
+    $idxCheck = $pdo->query("SHOW INDEX FROM `vhv_users` WHERE Key_name = 'idx_vhv_hoscode'");
+    if ($idxCheck->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `vhv_users` ADD INDEX `idx_vhv_hoscode` (`hoscode`)");
+    }
+} catch (\PDOException $e) {
+}
+
+try {
+    // target_population covering index for screening targets
+    $idxCheck = $pdo->query("SHOW INDEX FROM `target_population` WHERE Key_name = 'idx_target_hos_screen'");
+    if ($idxCheck->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `target_population` ADD INDEX `idx_target_hos_screen` (`hoscode`, `need_screen_dm`, `need_screen_ht`)");
+    }
+} catch (\PDOException $e) {
+}
+
+try {
+    // dpac_enrollments indexes
+    $idxCheck = $pdo->query("SHOW INDEX FROM `dpac_enrollments` WHERE Key_name = 'idx_dpac_enroll_cid'");
+    if ($idxCheck->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `dpac_enrollments` ADD INDEX `idx_dpac_enroll_cid` (`cid`)");
+    }
+} catch (\PDOException $e) {
+}
+
+try {
+    $idxCheck = $pdo->query("SHOW INDEX FROM `dpac_enrollments` WHERE Key_name = 'idx_dpac_enroll_status'");
+    if ($idxCheck->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `dpac_enrollments` ADD INDEX `idx_dpac_enroll_status` (`status`)");
+    }
+} catch (\PDOException $e) {
+}
+
+try {
+    $idxCheck = $pdo->query("SHOW INDEX FROM `dpac_enrollments` WHERE Key_name = 'idx_dpac_enroll_vhv'");
+    if ($idxCheck->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `dpac_enrollments` ADD INDEX `idx_dpac_enroll_vhv` (`assigned_vhv_id`)");
+    }
+} catch (\PDOException $e) {
+}
+
+try {
+    // dpac_followups indexes
+    $idxCheck = $pdo->query("SHOW INDEX FROM `dpac_followups` WHERE Key_name = 'idx_dpac_follow_enroll'");
+    if ($idxCheck->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `dpac_followups` ADD INDEX `idx_dpac_follow_enroll` (`enrollment_id`)");
+    }
+} catch (\PDOException $e) {
+}
+
+try {
+    $idxCheck = $pdo->query("SHOW INDEX FROM `dpac_followups` WHERE Key_name = 'idx_dpac_follow_vhv'");
+    if ($idxCheck->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `dpac_followups` ADD INDEX `idx_dpac_follow_vhv` (`vhv_id`)");
+    }
+} catch (\PDOException $e) {
+}
+
+try {
+    $idxCheck = $pdo->query("SHOW INDEX FROM `dpac_followups` WHERE Key_name = 'idx_dpac_follow_status'");
+    if ($idxCheck->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `dpac_followups` ADD INDEX `idx_dpac_follow_status` (`status`)");
+    }
+} catch (\PDOException $e) {
+}
+
+try {
+    $idxCheck = $pdo->query("SHOW INDEX FROM `dpac_followups` WHERE Key_name = 'idx_dpac_follow_completed'");
+    if ($idxCheck->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `dpac_followups` ADD INDEX `idx_dpac_follow_completed` (`completed_at`)");
+    }
+} catch (\PDOException $e) {
+}
+
+
 // Auto-create jhcis_homes table if it doesn't exist
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS `jhcis_homes` (
