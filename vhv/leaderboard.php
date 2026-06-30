@@ -150,9 +150,11 @@ if (!empty($hoscode)) {
     $villQuery = "
         SELECT 
             p.moo,
+            MAX(v.village_name) as village_name,
             COUNT(DISTINCT p.cid) as total_targets,
             COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) as completed_targets
         FROM target_population p
+        LEFT JOIN villages v ON p.moo = v.moo AND p.hoscode = v.hoscode
         LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026
         WHERE p.hoscode = ? AND p.moo > 0 AND p.moo IS NOT NULL
         GROUP BY p.moo
@@ -329,7 +331,7 @@ $hcNames = get_health_units();
                     ?>
                         <div>
                             <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-primary);">
-                                <span>หมู่ที่ <?= htmlspecialchars($vStat['moo']) ?></span>
+                                <span>หมู่ที่ <?= htmlspecialchars($vStat['moo']) ?> <?= !empty($vStat['village_name']) ? htmlspecialchars($vStat['village_name']) : '' ?></span>
                                 <span style="color: <?= $barColor ?>;"><?= $done ?> / <?= $total ?> คน (<?= $pct ?>%)</span>
                             </div>
                             <div style="width: 100%; height: 12px; background: rgba(13, 44, 84, 0.08); border-radius: 6px; overflow: hidden; box-shadow: var(--neumorph-inset);">
