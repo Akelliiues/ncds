@@ -10,7 +10,17 @@ $is_work_active = in_array($current_page, ['assignment.php', 'vhv_approval.php',
 $is_reports_active = in_array($current_page, ['analytics.php', 'reports.php', 'security_log.php']);
 $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php', 'db_manager.php', 'user_manager.php', 'unit_house_manager.php']);
 ?>
+<script>
+    // Immediately apply theme before rendering
+    (function() {
+        const theme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+    })();
+</script>
 <style>
+.btn-theme-toggle:hover {
+    background-color: var(--bg-darker) !important;
+}
     /* Premium Categorized Dropdowns Style */
     .admin-nav-links {
         display: flex;
@@ -423,6 +433,19 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
             </div>
         <?php endif; ?>
 
+        <!-- Theme Toggle Button -->
+        <button id="theme-toggle-btn" class="btn-theme-toggle" onclick="toggleTheme()" style="background: none; border: none; cursor: pointer; color: var(--text-primary); display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; transition: background 0.3s; margin-right: 10px;" title="สลับโหมด มืด/สว่าง">
+            <!-- Sun Icon -->
+            <svg id="theme-toggle-sun" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display: none;">
+                <circle cx="12" cy="12" r="5"></circle>
+                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+            </svg>
+            <!-- Moon Icon -->
+            <svg id="theme-toggle-moon" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
+            </svg>
+        </button>
+
         <!-- 6. Standalone Logout button -->
         <a href="../logout.php" class="btn-logout-circle" data-tooltip="ออกจากระบบ">
             <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -457,4 +480,35 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
             behavior: 'smooth'
         });
     }
+
+    // Toggle theme functionality
+    function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateThemeIcons(newTheme);
+        // Reload to let charts and other dynamic assets re-render
+        window.location.reload();
+    }
+
+    function updateThemeIcons(theme) {
+        const sunIcon = document.getElementById('theme-toggle-sun');
+        const moonIcon = document.getElementById('theme-toggle-moon');
+        if (sunIcon && moonIcon) {
+            if (theme === 'dark') {
+                sunIcon.style.display = 'block';
+                moonIcon.style.display = 'none';
+            } else {
+                sunIcon.style.display = 'none';
+                moonIcon.style.display = 'block';
+            }
+        }
+    }
+
+    // Run on load
+    window.addEventListener('DOMContentLoaded', () => {
+        const theme = localStorage.getItem('theme') || 'light';
+        updateThemeIcons(theme);
+    });
 </script>

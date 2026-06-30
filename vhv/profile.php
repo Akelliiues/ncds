@@ -79,6 +79,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html lang="th">
 <head>
+    <script>
+        // Immediately apply theme before rendering
+        (function() {
+            const theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ข้อมูลส่วนตัว - อสม. นครตาลสุม</title>
@@ -118,6 +125,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?= htmlspecialchars($error) ?>
             </div>
         <?php endif; ?>
+
+        <!-- Theme Toggle Card (Mobile VHV) -->
+        <div class="card-dark" style="margin-bottom: 24px; padding: 20px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span id="vhv-theme-icon" style="font-size: 20px;">💡</span>
+                <div>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 800;">โหมด มืด/สว่าง</h3>
+                    <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-secondary);">สลับหน้าจอ ถนอมสายตา</p>
+                </div>
+            </div>
+            <button onclick="toggleVhvTheme()" style="background: var(--bg-darker); border: none; cursor: pointer; color: var(--text-primary); width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: var(--neumorph-inset); outline: none;" title="สลับโหมด">
+                <!-- Sun Icon -->
+                <svg id="vhv-theme-sun" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display: none;">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                </svg>
+                <!-- Moon Icon -->
+                <svg id="vhv-theme-moon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
+                </svg>
+            </button>
+        </div>
 
         <!-- Edit profile card -->
         <div class="card-dark" style="margin-bottom: 24px; padding: 20px;">
@@ -196,5 +225,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </a>
         </div>
     </div>
+<script>
+    function toggleVhvTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateVhvThemeIcons(newTheme);
+    }
+
+    function updateVhvThemeIcons(theme) {
+        const sunIcon = document.getElementById('vhv-theme-sun');
+        const moonIcon = document.getElementById('vhv-theme-moon');
+        const iconSpan = document.getElementById('vhv-theme-icon');
+        if (sunIcon && moonIcon) {
+            if (theme === 'dark') {
+                sunIcon.style.display = 'block';
+                moonIcon.style.display = 'none';
+                if (iconSpan) iconSpan.innerText = '🌙';
+            } else {
+                sunIcon.style.display = 'none';
+                moonIcon.style.display = 'block';
+                if (iconSpan) iconSpan.innerText = '💡';
+            }
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const theme = localStorage.getItem('theme') || 'light';
+        updateVhvThemeIcons(theme);
+    });
+</script>
 </body>
 </html>

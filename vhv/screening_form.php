@@ -101,6 +101,13 @@ if (!$isShell) {
 <!DOCTYPE html>
 <html lang="th">
 <head>
+    <script>
+        // Immediately apply theme before rendering
+        (function() {
+            const theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ฟอร์มคัดกรองโรคเรื้อรัง - อสม. ตาลสุม</title>

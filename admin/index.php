@@ -1242,7 +1242,7 @@ if ($admin_hoscode) {
                         background: 'transparent',
                         toolbar: { show: false }
                     },
-                    theme: { mode: 'dark' },
+                    theme: { mode: localStorage.getItem('theme') || 'light' },
                     colors: ['#4b5563', '#22c55e'],
                     legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
                     plotOptions: {
@@ -1260,7 +1260,7 @@ if ($admin_hoscode) {
                     yaxis: {
                         labels: { style: { colors: '#9ca3af' } }
                     },
-                    tooltip: { theme: 'dark' }
+                    tooltip: { theme: localStorage.getItem('theme') || 'light' }
                 };
                 new ApexCharts(document.querySelector("#chart-coverage"), optionsCoverage).render();
             } else {
@@ -1320,7 +1320,7 @@ if ($admin_hoscode) {
                         background: 'transparent',
                         toolbar: { show: false }
                     },
-                    theme: { mode: 'dark' },
+                    theme: { mode: localStorage.getItem('theme') || 'light' },
                     colors: ['#f59e0b', '#ef4444', '#4b5563'],
                     legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
                     plotOptions: { bar: { borderRadius: 2 } },
@@ -1331,7 +1331,7 @@ if ($admin_hoscode) {
                     yaxis: {
                         labels: { style: { colors: '#9ca3af' } }
                     },
-                    tooltip: { theme: 'dark' },
+                    tooltip: { theme: localStorage.getItem('theme') || 'light' },
                     fill: { opacity: 1 }
                 };
                 new ApexCharts(document.querySelector("#chart-risk"), optionsRisk).render();
@@ -1358,7 +1358,7 @@ if ($admin_hoscode) {
                         height: 350,
                         background: 'transparent'
                     },
-                    theme: { mode: 'dark' },
+                    theme: { mode: localStorage.getItem('theme') || 'light' },
                     labels: ['กลุ่มเสี่ยง', 'ป่วย/สงสัยเบาหวาน (DM)', 'ป่วย/สงสัยความดัน (HT)', 'ป่วย/สงสัยทั้ง HT และ DM'],
                     colors: ['#f59e0b', '#8b5cf6', '#3b82f6', '#ec4899'],
                     stroke: { show: false },
@@ -1372,7 +1372,7 @@ if ($admin_hoscode) {
                             return Math.round(val) + "%"
                         }
                     },
-                    tooltip: { theme: 'dark' }
+                    tooltip: { theme: localStorage.getItem('theme') || 'light' }
                 };
                 new ApexCharts(document.querySelector("#chart-disease"), optionsDisease).render();
             } else {
@@ -1397,7 +1397,7 @@ if ($admin_hoscode) {
                         background: 'transparent',
                         toolbar: { show: false }
                     },
-                    theme: { mode: 'dark' },
+                    theme: { mode: localStorage.getItem('theme') || 'light' },
                     colors: ['#0ea5e9'],
                     legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
                     dataLabels: { enabled: true },
@@ -1417,7 +1417,7 @@ if ($admin_hoscode) {
                     yaxis: {
                         labels: { style: { colors: '#9ca3af' } }
                     },
-                    tooltip: { theme: 'dark' },
+                    tooltip: { theme: localStorage.getItem('theme') || 'light' },
                     fill: {
                         type: 'gradient',
                         gradient: {
@@ -1474,7 +1474,7 @@ if ($admin_hoscode) {
                         background: 'transparent',
                         toolbar: { show: false }
                     },
-                    theme: { mode: 'dark' },
+                    theme: { mode: localStorage.getItem('theme') || 'light' },
                     plotOptions: {
                         bar: {
                             horizontal: true,
@@ -1495,7 +1495,7 @@ if ($admin_hoscode) {
                     yaxis: {
                         labels: { style: { colors: '#9ca3af', fontSize: '12px', fontWeight: 'bold' } }
                     },
-                    tooltip: { theme: 'dark' }
+                    tooltip: { theme: localStorage.getItem('theme') || 'light' }
                 };
                 new ApexCharts(document.querySelector("#chart-overall-progress"), optionsProgress).render();
             } else {
@@ -1516,7 +1516,7 @@ if ($admin_hoscode) {
                     series: screenedRiskSeries,
                     labels: ['ปกติ (เสี่ยงต่ำ)', 'เสี่ยงปานกลาง', 'เสี่ยงสูง (สงสัยป่วย)'],
                     chart: { type: 'pie', height: 280, background: 'transparent' },
-                    theme: { mode: 'dark' },
+                    theme: { mode: localStorage.getItem('theme') || 'light' },
                     colors: ['#22c55e', '#f59e0b', '#ef4444'],
                     stroke: { show: false },
                     legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
@@ -1534,7 +1534,7 @@ if ($admin_hoscode) {
                     series: skippedRaw.map(d => parseInt(d.count)),
                     labels: skippedRaw.map(d => d.skipped_reason || 'ไม่ระบุ'),
                     chart: { type: 'donut', height: 280, background: 'transparent' },
-                    theme: { mode: 'dark' },
+                    theme: { mode: localStorage.getItem('theme') || 'light' },
                     colors: ['#f59e0b', '#ef4444', '#8b5cf6', '#0ea5e9', '#64748b'],
                     stroke: { show: false },
                     legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
@@ -1552,7 +1552,7 @@ if ($admin_hoscode) {
                     series: dpacRaw.map(d => parseInt(d.count)),
                     labels: dpacRaw.map(d => d.risk_type == '1' ? 'กลุ่มเสี่ยงเบาหวาน' : (d.risk_type == '2' ? 'กลุ่มเสี่ยงความดันฯ' : (d.risk_type == '3' ? 'กลุ่มป่วย/อื่นๆ' : 'ไม่ระบุ'))),
                     chart: { type: 'pie', height: 280, background: 'transparent' },
-                    theme: { mode: 'dark' },
+                    theme: { mode: localStorage.getItem('theme') || 'light' },
                     colors: ['#22d3ee', '#c084fc', '#f43f5e', '#a8a29e'],
                     stroke: { show: false },
                     legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
@@ -1571,7 +1571,7 @@ if ($admin_hoscode) {
                 ],
                 labels: ['คัดกรองแล้ว', 'ยังไม่คัดกรอง'],
                 chart: { type: 'pie', height: 280, background: 'transparent' },
-                theme: { mode: 'dark' },
+                theme: { mode: localStorage.getItem('theme') || 'light' },
                 colors: ['#22c55e', '#4b5563'],
                 stroke: { show: false },
                 legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
@@ -1602,7 +1602,7 @@ if ($admin_hoscode) {
                     background: 'transparent',
                     toolbar: { show: false }
                 },
-                theme: { mode: 'dark' },
+                theme: { mode: localStorage.getItem('theme') || 'light' },
                 labels: ['เสี่ยงเบาหวาน', 'เสี่ยงความดัน', 'เสี่ยงคู่', 'สงสัยป่วยใหม่', 'กลุ่มเสี่ยงรวม', 'กลุ่มปกติ'],
                 stroke: { width: 2, colors: ['#0ea5e9'] },
                 fill: { opacity: 0.2, colors: ['#0ea5e9'] },

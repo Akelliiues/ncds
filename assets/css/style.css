@@ -29,6 +29,34 @@
     --neumorph-flat: 6px 6px 12px #d1d9e6, -6px -6px 12px #ffffff;
     --neumorph-inset: inset 4px 4px 8px #cbd5e1, inset -4px -4px 8px #ffffff;
     --shadow-premium: var(--neumorph-flat);
+    
+    --bg-dots: 
+        radial-gradient(rgba(13, 44, 84, 0.035) 1.5px, transparent 1.5px),
+        radial-gradient(rgba(13, 44, 84, 0.02) 1.5px, transparent 1.5px);
+}
+
+[data-theme="dark"] {
+    /* Soft Glassmorphic/Neumorphic Dark Theme Palette */
+    --bg-main: #0f172a;               /* Slate 900 */
+    --bg-card: #1e293b;               /* Slate 800 */
+    --bg-darker: #090d16;             /* Darker slate */
+    --border-color: rgba(255,255,255,0.06);
+    
+    --text-primary: #f8fafc;           /* Slate 50 */
+    --text-secondary: #cbd5e1;         /* Slate 300 */
+    --text-muted: #64748b;             /* Slate 500 */
+    
+    --color-primary: #38bdf8;          /* Primary Sky Blue */
+    --color-primary-hover: #0ea5e9;
+    --color-accent: #38bdf8;           /* Accent Sky Blue */
+    --color-accent-hover: #0ea5e9;
+    
+    --neumorph-flat: 6px 6px 16px #070a13, -6px -6px 16px #1c2738;
+    --neumorph-inset: inset 4px 4px 8px #070a13, inset -4px -4px 8px #1c2738;
+    
+    --bg-dots: 
+        radial-gradient(rgba(248, 250, 252, 0.03) 1.5px, transparent 1.5px),
+        radial-gradient(rgba(248, 250, 252, 0.015) 1.5px, transparent 1.5px);
 }
 
 /* Accessibility high-contrast & large-text reset for VHV pages */
@@ -52,9 +80,7 @@ body {
     font-family: var(--font-base);
     background-color: var(--bg-main);
     /* Subtle premium background dotted grid pattern */
-    background-image: 
-        radial-gradient(rgba(13, 44, 84, 0.035) 1.5px, transparent 1.5px),
-        radial-gradient(rgba(13, 44, 84, 0.02) 1.5px, transparent 1.5px);
+    background-image: var(--bg-dots);
     background-size: 24px 24px;
     background-position: 0 0, 12px 12px;
     color: var(--text-primary);

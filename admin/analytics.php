@@ -698,7 +698,7 @@ $mapInitialZoom = $coordCount > 0 ? 13 : 12;
                 background: 'transparent',
                 toolbar: { show: false }
             },
-            theme: { mode: 'dark' },
+            theme: { mode: localStorage.getItem('theme') || 'light' },
             colors: ['#3b82f6', '#10b981'],
             plotOptions: {
                 bar: {
@@ -750,7 +750,7 @@ $mapInitialZoom = $coordCount > 0 ? 13 : 12;
                 background: 'transparent',
                 toolbar: { show: false }
             },
-            theme: { mode: 'dark' },
+            theme: { mode: localStorage.getItem('theme') || 'light' },
             colors: ['#ef4444', '#eab308', '#10b981'],
             plotOptions: {
                 bar: {
