@@ -61,7 +61,7 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
         background-color: var(--color-primary);
         color: #ffffff !important;
         border-color: var(--color-primary);
-        box-shadow: var(--neumorph-inset);
+        box-shadow: none;
     }
 
     .nav-dropbtn .chevron {
