@@ -236,6 +236,20 @@ $hcNames = get_health_units();
             transform: scale(1.35) rotate(10deg);
             filter: drop-shadow(0 4px 12px rgba(99, 102, 241, 0.5)) brightness(1.08);
         }
+
+        /* Tab Styles */
+        .tab-btn.active {
+            background: var(--bg-card) !important;
+            color: var(--color-accent) !important;
+            box-shadow: var(--neumorph-flat) !important;
+        }
+        .tab-content {
+            animation: fadeIn 0.35s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 
@@ -284,12 +298,18 @@ $hcNames = get_health_units();
             <?php endif; ?>
         </div>
 
-        <!-- Village & Hospital League Standings -->
-        <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 16px;">
-            
-            <!-- Village Progress Board -->
+        <!-- Tab Bar for Mobile Responsiveness -->
+        <div class="tab-container" style="display: flex; gap: 8px; margin-top: 20px; margin-bottom: 20px; background: rgba(13,44,84,0.05); padding: 6px; border-radius: 14px; box-shadow: var(--neumorph-inset); overflow-x: auto; white-space: nowrap;">
+            <button onclick="switchTab('leaderboard')" id="btn-leaderboard" class="tab-btn active" style="flex: 1; padding: 10px 12px; border: none; border-radius: 10px; background: transparent; font-weight: bold; font-size: 13.5px; color: var(--text-secondary); cursor: pointer; transition: all 0.3s ease;">🏆 อันดับ อสม.</button>
+            <button onclick="switchTab('villages')" id="btn-villages" class="tab-btn" style="flex: 1; padding: 10px 12px; border: none; border-radius: 10px; background: transparent; font-weight: bold; font-size: 13.5px; color: var(--text-secondary); cursor: pointer; transition: all 0.3s ease;">🏘️ ผลงานหมู่บ้าน</button>
+            <button onclick="switchTab('hospitals')" id="btn-hospitals" class="tab-btn" style="flex: 1; padding: 10px 12px; border: none; border-radius: 10px; background: transparent; font-weight: bold; font-size: 13.5px; color: var(--text-secondary); cursor: pointer; transition: all 0.3s ease;">🏥 ลีก รพ.สต.</button>
+            <button onclick="switchTab('badges')" id="btn-badges" class="tab-btn" style="flex: 1; padding: 10px 12px; border: none; border-radius: 10px; background: transparent; font-weight: bold; font-size: 13.5px; color: var(--text-secondary); cursor: pointer; transition: all 0.3s ease;">🛡️ ตราเกียรติยศ</button>
+        </div>
+
+        <!-- Tab 2: Village Progress Board -->
+        <div id="content-villages" class="tab-content" style="display: none;">
             <?php if (!empty($villageStats)): ?>
-            <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat);">
+            <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
                 <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
                     🏘️ สมรภูมิคัดกรองรายหมู่บ้าน (เขตดูแลของคุณ)
                 </h4>
@@ -318,11 +338,17 @@ $hcNames = get_health_units();
                     <?php endforeach; ?>
                 </div>
             </div>
+            <?php else: ?>
+                <div class="card-dark" style="padding: 30px; text-align: center; color: var(--text-muted); margin-bottom: 20px;">
+                    ไม่พบข้อมูลประชากรเป้าหมายของ รพ.สต. คุณ
+                </div>
             <?php endif; ?>
+        </div>
 
-            <!-- Hospital / Zone League Standings -->
+        <!-- Tab 3: Hospital / Zone League Standings -->
+        <div id="content-hospitals" class="tab-content" style="display: none;">
             <?php if (!empty($hospitalStats)): ?>
-            <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat);">
+            <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
                 <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
                     🏥 ลีกหน่วยบริการ รพ.สต. (ทั้งอำเภอตาลสุม)
                 </h4>
@@ -363,9 +389,11 @@ $hcNames = get_health_units();
                 </div>
             </div>
             <?php endif; ?>
+        </div>
 
-            <!-- VHV Badges Explanations Card -->
-            <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat);">
+        <!-- Tab 4: VHV Badges Explanations Card -->
+        <div id="content-badges" class="tab-content" style="display: none;">
+            <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
                 <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
                     🛡️ ตำนานตราเกียรติยศ (อสม. คัดกรองดีเด่น)
                 </h4>
@@ -407,9 +435,10 @@ $hcNames = get_health_units();
                     </div>
                 </div>
             </div>
-
         </div>
 
+        <!-- Tab 1: Leaderboard List -->
+        <div id="content-leaderboard" class="tab-content">
         <!-- Leaderboard List -->
         <div style="margin-top: 20px;">
             <h4 style="color: var(--text-primary); font-size: 18px; margin-bottom: 12px; font-weight: 800;">50
@@ -516,6 +545,7 @@ $hcNames = get_health_units();
             endforeach;
             ?>
         </div>
+        </div>
 
         <!-- Bottom Navigation Bar -->
         <div class="bottom-nav">
@@ -551,6 +581,18 @@ $hcNames = get_health_units();
             </a>
         </div>
     </div>
+    <script>
+        function switchTab(tabId) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Show selected tab content and activate button
+            document.getElementById('content-' + tabId).style.display = 'block';
+            document.getElementById('btn-' + tabId).classList.add('active');
+        }
+    </script>
 </body>
 
 </html>
