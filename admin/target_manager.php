@@ -166,7 +166,8 @@ if (isset($_GET['action'])) {
                 (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = COALESCE(NULLIF(tp_real_pcu.cid, ''), NULLIF(tp_real_cid.cid, ''), t.cid) AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
             FROM target_population t
             LEFT JOIN target_population tp_real_pcu ON (
-                tp_real_pcu.hoscode = t.hoscode
+                (t.cid LIKE '0%' OR t.cid LIKE '%*%')
+                AND tp_real_pcu.hoscode = t.hoscode
                 AND tp_real_pcu.pid = t.pid
                 AND tp_real_pcu.cid NOT LIKE '0%'
                 AND tp_real_pcu.cid NOT LIKE '%*%'
@@ -200,13 +201,10 @@ if (isset($_GET['action'])) {
                     WHERE ht.hoscode IN ($inPlaceholders)
                 ) sub_staging
                 GROUP BY hoscode, pid
-            ) h ON (
-                (t.cid = h.cid AND h.cid NOT LIKE '%*%')
-                OR (t.hoscode = h.hoscode AND t.pid = h.pid AND t.pid IS NOT NULL AND t.pid != '')
-            )
+            ) h ON t.hoscode = h.hoscode AND t.pid = h.pid
             WHERE t.hoscode IN ($inPlaceholders) $mooCond1
             
-            UNION
+            UNION ALL
             
             -- ส่วนที่ 2: ดึงรายชื่อประชากรใน staging ของหมู่ที่เลือก แต่ยังไม่ได้เพิ่ม/ไม่มีชื่อใน target_population
             SELECT 
@@ -259,12 +257,10 @@ if (isset($_GET['action'])) {
                 ) sub_staging
                 GROUP BY hoscode, pid
             ) h
-            LEFT JOIN target_population t ON (
-                (t.cid = h.cid AND h.cid NOT LIKE '%*%')
-                OR (t.hoscode = h.hoscode AND t.pid = h.pid AND t.pid IS NOT NULL AND t.pid != '')
-            )
+            LEFT JOIN target_population t ON t.hoscode = h.hoscode AND t.pid = h.pid
             LEFT JOIN target_population tp_real_pcu ON (
-                tp_real_pcu.hoscode = h.hoscode
+                (h.cid LIKE '0%' OR h.cid LIKE '%*%')
+                AND tp_real_pcu.hoscode = h.hoscode
                 AND tp_real_pcu.pid = h.pid
                 AND tp_real_pcu.cid NOT LIKE '0%'
                 AND tp_real_pcu.cid NOT LIKE '%*%'

@@ -34,7 +34,7 @@ if ($admin_hoscode) {
             SUM(CASE WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 1 ELSE 0 END) as group_both,
             SUM(CASE WHEN need_screen_dm = 1 OR need_screen_ht = 1 THEN 1 ELSE 0 END) as group_risk,
             SUM(CASE WHEN health_status_origin = 'NORMAL' AND (need_screen_dm = 0 AND need_screen_ht = 0) THEN 1 ELSE 0 END) as group_normal,
-            SUM(CASE WHEN need_screen_dm = 0 AND need_screen_ht = 0 THEN 1 ELSE 0 END) as group_suspected
+            SUM(CASE WHEN health_status_origin = 'SUSPECT' THEN 1 ELSE 0 END) as group_suspected
         FROM target_population WHERE hoscode IN ($inPlaceholders)
     ");
     $groupStmt->execute($hoscodes);
@@ -47,19 +47,21 @@ if ($admin_hoscode) {
                 WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
                 WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
                 WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
+                WHEN health_status_origin = 'SUSPECT' THEN 'SUSPECT'
                 ELSE 'NORMAL'
             END as health_status_origin,
             COUNT(*) as count 
         FROM target_population 
-        WHERE hoscode IN ($inPlaceholders) AND (need_screen_dm = 1 OR need_screen_ht = 1)
+        WHERE hoscode IN ($inPlaceholders) AND (need_screen_dm = 1 OR need_screen_ht = 1 OR health_status_origin = 'SUSPECT')
         GROUP BY 
             CASE 
                 WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
                 WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
                 WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
+                WHEN health_status_origin = 'SUSPECT' THEN 'SUSPECT'
                 ELSE 'NORMAL'
             END
-        ORDER BY FIELD(health_status_origin, 'BOTH','DM_ONLY','HT_ONLY','NORMAL')
+        ORDER BY FIELD(health_status_origin, 'BOTH','DM_ONLY','HT_ONLY','SUSPECT','NORMAL')
     ");
     $groupDetailStmt->execute($hoscodes);
     $groupDetail = $groupDetailStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -108,11 +110,12 @@ if ($admin_hoscode) {
                 WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
                 WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
                 WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
+                WHEN health_status_origin = 'SUSPECT' THEN 'SUSPECT'
                 ELSE 'NORMAL'
             END as health_status_origin,
             COUNT(*) as count 
         FROM target_population 
-        WHERE hoscode IN ($inPlaceholders) AND (need_screen_dm = 1 OR need_screen_ht = 1) 
+        WHERE hoscode IN ($inPlaceholders) AND (need_screen_dm = 1 OR need_screen_ht = 1 OR health_status_origin = 'SUSPECT') 
         GROUP BY 
             hoscode, 
             moo,
@@ -120,6 +123,7 @@ if ($admin_hoscode) {
                 WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
                 WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
                 WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
+                WHEN health_status_origin = 'SUSPECT' THEN 'SUSPECT'
                 ELSE 'NORMAL'
             END
         ORDER BY moo
@@ -357,7 +361,7 @@ if ($admin_hoscode) {
             SUM(CASE WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 1 ELSE 0 END) as group_both,
             SUM(CASE WHEN need_screen_dm = 1 OR need_screen_ht = 1 THEN 1 ELSE 0 END) as group_risk,
             SUM(CASE WHEN health_status_origin = 'NORMAL' AND (need_screen_dm = 0 AND need_screen_ht = 0) THEN 1 ELSE 0 END) as group_normal,
-            SUM(CASE WHEN need_screen_dm = 0 AND need_screen_ht = 0 THEN 1 ELSE 0 END) as group_suspected
+            SUM(CASE WHEN health_status_origin = 'SUSPECT' THEN 1 ELSE 0 END) as group_suspected
         FROM target_population WHERE hoscode IN ($inPlaceholdersSa)
     ");
     $groupStmtSa->execute($valid_hoscodes);
@@ -376,19 +380,21 @@ if ($admin_hoscode) {
                 WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
                 WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
                 WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
+                WHEN health_status_origin = 'SUSPECT' THEN 'SUSPECT'
                 ELSE 'NORMAL'
             END as health_status_origin,
             COUNT(*) as count 
         FROM target_population 
-        WHERE hoscode IN ($inPlaceholdersSa) AND (need_screen_dm = 1 OR need_screen_ht = 1)
+        WHERE hoscode IN ($inPlaceholdersSa) AND (need_screen_dm = 1 OR need_screen_ht = 1 OR health_status_origin = 'SUSPECT')
         GROUP BY 
             CASE 
                 WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
                 WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
                 WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
+                WHEN health_status_origin = 'SUSPECT' THEN 'SUSPECT'
                 ELSE 'NORMAL'
             END
-        ORDER BY FIELD(health_status_origin, 'BOTH','DM_ONLY','HT_ONLY','NORMAL')
+        ORDER BY FIELD(health_status_origin, 'BOTH','DM_ONLY','HT_ONLY','SUSPECT','NORMAL')
     ");
     $groupDetailStmtSa->execute($valid_hoscodes);
     $groupDetail = $groupDetailStmtSa->fetchAll(PDO::FETCH_ASSOC);
@@ -401,17 +407,19 @@ if ($admin_hoscode) {
                 WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
                 WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
                 WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
+                WHEN health_status_origin = 'SUSPECT' THEN 'SUSPECT'
                 ELSE 'NORMAL'
             END as health_status_origin,
             COUNT(*) as count 
         FROM target_population 
-        WHERE hoscode IN ($inPlaceholdersSa) AND (need_screen_dm = 1 OR need_screen_ht = 1) 
+        WHERE hoscode IN ($inPlaceholdersSa) AND (need_screen_dm = 1 OR need_screen_ht = 1 OR health_status_origin = 'SUSPECT') 
         GROUP BY 
             hoscode,
             CASE 
                 WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
                 WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
                 WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
+                WHEN health_status_origin = 'SUSPECT' THEN 'SUSPECT'
                 ELSE 'NORMAL'
             END
         ORDER BY hoscode
@@ -637,90 +645,82 @@ if ($admin_hoscode) {
 
         <!-- Target Group Summary -->
         <div style="margin-bottom: 12px;">
-            <h3
-                style="color: var(--color-accent); margin-bottom: 8px; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+            <h3 style="color: var(--color-accent); margin-bottom: 8px; font-size: 16px; display: flex; align-items: center; gap: 8px;">
                 <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path
-                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z">
-                    </path>
+                    <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
                 </svg>
-                กลุ่มเป้าหมายการคัดกรอง
-                <span style="font-size: 13px; font-weight: normal; color: var(--text-secondary);">(รวมทั้งหมด
-                    <?= number_format($metrics['total_targets']) ?> ราย)</span>
+                กลุ่มเป้าหมายคัดกรองแยกตามประเภทโรค
             </h3>
         </div>
-        <div
-            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; margin-bottom: 30px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; margin-bottom: 30px;">
             <!-- กลุ่มเสี่ยง DM -->
-            <div class="card-dark"
-                style="cursor: pointer; border-left: 4px solid #f97316; position: relative; overflow: hidden;"
-                onclick="showCardModal('targets_dm')">
-                <div
-                    style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(249, 115, 22, 0.08);">
-                </div>
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #f97316; position: relative; overflow: hidden;" onclick="showCardModal('targets_dm')">
+                <div style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(249, 115, 22, 0.08);"></div>
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                     <span style="font-size: 22px;">🟠</span>
-                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">เสี่ยง
-                        (เบาหวาน)</span>
+                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">เป้าหมายคัดกรอง (เบาหวาน)</span>
                 </div>
-                <div class="stat-val" style="color: #f97316;"><?= number_format($metrics['group_dm']) ?> <span
-                        style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
+                <div class="stat-val" style="color: #f97316;"><?= number_format($metrics['group_dm']) ?> <span style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
                 <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
-                    เฉพาะเบาหวาน — คัดกรองซ้ำ
+                    เฉพาะเบาหวาน (เป็นผู้ป่วยความดันแล้ว)
                 </div>
                 <div style="margin-top: 6px; font-size: 12px; color: #f97316; font-weight: bold;">
                     <?= $metrics['total_targets'] > 0 ? round(($metrics['group_dm'] / $metrics['total_targets']) * 100, 1) : 0 ?>%
-                    ของเป้าหมาย
+                    ของเป้าหมายคัดกรอง
                 </div>
             </div>
 
             <!-- กลุ่มเสี่ยง HT -->
-            <div class="card-dark"
-                style="cursor: pointer; border-left: 4px solid #06b6d4; position: relative; overflow: hidden;"
-                onclick="showCardModal('targets_ht')">
-                <div
-                    style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(6, 182, 212, 0.08);">
-                </div>
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #06b6d4; position: relative; overflow: hidden;" onclick="showCardModal('targets_ht')">
+                <div style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(6, 182, 212, 0.08);"></div>
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                     <span style="font-size: 22px;">🔵</span>
-                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">เสี่ยง
-                        (ความดัน)</span>
+                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">เป้าหมายคัดกรอง (ความดัน)</span>
                 </div>
-                <div class="stat-val" style="color: #06b6d4;"><?= number_format($metrics['group_ht']) ?> <span
-                        style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
+                <div class="stat-val" style="color: #06b6d4;"><?= number_format($metrics['group_ht']) ?> <span style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
                 <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
-                    เฉพาะความดัน — คัดกรองซ้ำ
+                    เฉพาะความดัน (เป็นผู้ป่วยเบาหวานแล้ว)
                 </div>
                 <div style="margin-top: 6px; font-size: 12px; color: #06b6d4; font-weight: bold;">
                     <?= $metrics['total_targets'] > 0 ? round(($metrics['group_ht'] / $metrics['total_targets']) * 100, 1) : 0 ?>%
-                    ของเป้าหมาย
+                    ของเป้าหมายคัดกรอง
                 </div>
             </div>
 
-            <!-- กลุ่มเสี่ยง Both/High Risk -->
-            <div class="card-dark"
-                style="cursor: pointer; border-left: 4px solid var(--color-red); position: relative; overflow: hidden;"
-                onclick="showCardModal('targets_both')">
-                <div
-                    style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(239, 68, 68, 0.08);">
-                </div>
+            <!-- กลุ่มเสี่ยง Both -->
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-red); position: relative; overflow: hidden;" onclick="showCardModal('targets_both')">
+                <div style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(239, 68, 68, 0.08);"></div>
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                     <span style="font-size: 22px;">🔴</span>
-                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">เสี่ยง
-                        (เบาหวาน+ความดัน)</span>
+                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">เป้าหมายคัดกรองร่วม (DM+HT)</span>
                 </div>
-                <div class="stat-val" style="color: var(--color-red);"><?= number_format($metrics['group_both']) ?>
-                    <span style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
+                <div class="stat-val" style="color: var(--color-red);"><?= number_format($metrics['group_both']) ?> <span style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
                 <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
-                    เสี่ยงทั้งคู่/สูง — คัดกรองซ้ำ
+                    ประชากรทั่วไป 35 ปีขึ้นไป (ต้องตรวจ 2 โรค)
                 </div>
                 <div style="margin-top: 6px; font-size: 12px; color: var(--color-red); font-weight: bold;">
                     <?= $metrics['total_targets'] > 0 ? round(($metrics['group_both'] / $metrics['total_targets']) * 100, 1) : 0 ?>%
-                    ของเป้าหมาย
+                    ของเป้าหมายคัดกรอง
                 </div>
             </div>
 
 
+
+            <!-- กลุ่มสงสัยป่วยสะสม (Suspect) -->
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-yellow); position: relative; overflow: hidden;" onclick="showCardModal('targets_suspected')">
+                <div style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(234, 179, 8, 0.08);"></div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <span style="font-size: 22px;">🟡</span>
+                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">กลุ่มสงสัยป่วยสะสม (Suspect)</span>
+                </div>
+                <div class="stat-val" style="color: var(--color-yellow);"><?= number_format($metrics['group_suspected']) ?> <span style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
+                <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                    ผลตรวจผิดปกติปีก่อน (รอแพทย์วินิจฉัย)
+                </div>
+                <div style="margin-top: 6px; font-size: 12px; color: var(--color-yellow); font-weight: bold;">
+                    จากฐานข้อมูลระบบ HDC
+                </div>
+            </div>
         </div>
 
         <!-- Metrics Grid -->
@@ -2246,6 +2246,12 @@ if ($admin_hoscode) {
                         label: 'เสี่ยงทั้งคู่ (DM+HT)',
                         totalVal: <?= intval($metrics['group_both']) ?>,
                         color: 'var(--color-red)'
+                    },
+                    'targets_suspected': {
+                        origin: 'SUSPECT',
+                        label: 'สงสัยป่วยสะสม (Suspect)',
+                        totalVal: <?= intval($metrics['group_suspected']) ?>,
+                        color: 'var(--color-yellow)'
                     }
                 };
 
