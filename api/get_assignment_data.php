@@ -28,7 +28,7 @@ try {
         $query = "
             SELECT p.cid, p.first_name, p.last_name, p.house_no, p.birth, 
                    TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) AS age,
-                   v.vhv_name as assigned_vhv,
+                   v.vhv_name as assigned_vhv, a.assignment_status,
                    p.health_status_origin, p.need_screen_dm, p.need_screen_ht
             FROM target_population p
             LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026

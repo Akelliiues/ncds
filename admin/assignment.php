@@ -530,7 +530,18 @@ try {
 
             let html = '';
             currentTargets.forEach(t => {
-                const assignedText = t.assigned_vhv ? `<span style="color: var(--color-green); font-size: 12px; font-weight: bold;">(มอบหมายแล้ว: ${t.assigned_vhv})</span>` : '<span style="color: var(--color-yellow); font-size: 12px; font-weight: bold;">(ยังไม่มอบหมาย)</span>';
+                let assignedText = '';
+                if (t.assigned_vhv) {
+                    if (t.assignment_status === 'completed') {
+                        assignedText = `<span style="color: var(--color-green); font-size: 12px; font-weight: bold;">✅ คัดกรองแล้ว (อสม. ${t.assigned_vhv})</span>`;
+                    } else if (t.assignment_status === 'skipped') {
+                        assignedText = `<span style="color: var(--color-red); font-size: 12px; font-weight: bold;">❌ ข้ามเคสแล้ว (อสม. ${t.assigned_vhv})</span>`;
+                    } else {
+                        assignedText = `<span style="color: var(--color-yellow); font-size: 12px; font-weight: bold;">⏳ มอบหมายแล้ว (${t.assigned_vhv})</span>`;
+                    }
+                } else {
+                    assignedText = '<span style="color: var(--text-muted); font-size: 12px;">(ยังไม่มอบหมาย)</span>';
+                }
 
                 html += `
                     <div class="item-row">
@@ -591,6 +602,23 @@ try {
             if (cids.length === 0) {
                 alert("กรุณาเลือกประชากรเป้าหมายฝั่งซ้ายมือก่อนครับ");
                 return;
+            }
+
+            // Find selected targets that are already completed/skipped
+            const screenedTargets = currentTargets.filter(t => 
+                cids.includes(t.cid) && 
+                (t.assignment_status === 'completed' || t.assignment_status === 'skipped')
+            );
+
+            if (screenedTargets.length > 0) {
+                const names = screenedTargets.map(t => `- ${t.first_name} ${t.last_name} (${t.assignment_status === 'completed' ? 'คัดกรองเสร็จแล้ว' : 'ข้ามเคสแล้ว'})`).join('\n');
+                const confirmProceed = confirm(
+                    `⚠️ คำเตือนสำคัญ!\n\n` +
+                    `ตรวจพบกลุ่มเป้าหมายที่มีการกรอกผลงานเสร็จสิ้นไปแล้ว ดังนี้:\n${names}\n\n` +
+                    `หากเปลี่ยนตัว อสม. ผลการคัดกรองเดิมที่เคยบันทึกไว้จะถูกรีเซ็ตล้าง และ อสม. คนใหม่จะต้องทำการบันทึกข้อมูลใหม่อีกรอบ!\n\n` +
+                    `คุณแน่ใจหรือว่าต้องการเขียนทับและสลับตัว อสม. สำหรับเป้าหมายเหล่านี้?`
+                );
+                if (!confirmProceed) return;
             }
 
             if (confirm(`ยืนยันมอบหมายงาน ${cids.length} ราย ให้ อสม. ท่านนี้?`)) {
