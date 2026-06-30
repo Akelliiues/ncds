@@ -168,15 +168,15 @@ $hospitalStats = [];
 try {
     $hosQuery = "
         SELECT 
-            p.hoscode,
+            u.hoscode,
             COUNT(DISTINCT p.cid) as total_targets,
             COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) as completed_targets
-        FROM target_population p
+        FROM health_units u
+        LEFT JOIN target_population p ON u.hoscode = p.hoscode
         LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026
-        WHERE p.hoscode IS NOT NULL AND p.hoscode != ''
-        GROUP BY p.hoscode
+        GROUP BY u.hoscode
         HAVING total_targets > 0
-        ORDER BY (completed_targets / total_targets) DESC, p.hoscode ASC
+        ORDER BY (completed_targets / total_targets) DESC, u.hoscode ASC
     ";
     $hospitalStats = $pdo->query($hosQuery)->fetchAll();
 } catch (\Exception $e) {
@@ -299,12 +299,12 @@ $hcNames = get_health_units();
             <?php endif; ?>
         </div>
 
-        <!-- Tab Bar for Mobile Responsiveness -->
-        <div class="tab-container" style="display: flex; gap: 8px; margin-top: 20px; margin-bottom: 20px; background: rgba(13,44,84,0.05); padding: 6px; border-radius: 14px; box-shadow: var(--neumorph-inset); overflow-x: auto; white-space: nowrap;">
-            <button onclick="switchTab('leaderboard')" id="btn-leaderboard" class="tab-btn active" style="flex: 1; padding: 10px 12px; border: none; border-radius: 10px; background: transparent; font-weight: bold; font-size: 13.5px; color: var(--text-secondary); cursor: pointer; transition: all 0.3s ease;">🏆 อันดับ อสม.</button>
-            <button onclick="switchTab('villages')" id="btn-villages" class="tab-btn" style="flex: 1; padding: 10px 12px; border: none; border-radius: 10px; background: transparent; font-weight: bold; font-size: 13.5px; color: var(--text-secondary); cursor: pointer; transition: all 0.3s ease;">🏘️ ผลงานหมู่บ้าน</button>
-            <button onclick="switchTab('hospitals')" id="btn-hospitals" class="tab-btn" style="flex: 1; padding: 10px 12px; border: none; border-radius: 10px; background: transparent; font-weight: bold; font-size: 13.5px; color: var(--text-secondary); cursor: pointer; transition: all 0.3s ease;">🏥 ลีก รพ.สต.</button>
-            <button onclick="switchTab('badges')" id="btn-badges" class="tab-btn" style="flex: 1; padding: 10px 12px; border: none; border-radius: 10px; background: transparent; font-weight: bold; font-size: 13.5px; color: var(--text-secondary); cursor: pointer; transition: all 0.3s ease;">🛡️ ตราเกียรติยศ</button>
+        <!-- Tab Bar for Mobile Responsiveness (Icon-only to prevent horizontal scrolling) -->
+        <div class="tab-container" style="display: flex; gap: 8px; margin-top: 20px; margin-bottom: 20px; background: rgba(13,44,84,0.05); padding: 6px; border-radius: 14px; box-shadow: var(--neumorph-inset);">
+            <button onclick="switchTab('leaderboard')" id="btn-leaderboard" class="tab-btn active" style="flex: 1; padding: 12px; border: none; border-radius: 10px; background: transparent; font-size: 20px; cursor: pointer; transition: all 0.3s ease;" title="อันดับ อสม.">🏆</button>
+            <button onclick="switchTab('villages')" id="btn-villages" class="tab-btn" style="flex: 1; padding: 12px; border: none; border-radius: 10px; background: transparent; font-size: 20px; cursor: pointer; transition: all 0.3s ease;" title="ผลงานรายหมู่บ้าน">🏘️</button>
+            <button onclick="switchTab('hospitals')" id="btn-hospitals" class="tab-btn" style="flex: 1; padding: 12px; border: none; border-radius: 10px; background: transparent; font-size: 20px; cursor: pointer; transition: all 0.3s ease;" title="ลีก รพ.สต.">🏥</button>
+            <button onclick="switchTab('badges')" id="btn-badges" class="tab-btn" style="flex: 1; padding: 12px; border: none; border-radius: 10px; background: transparent; font-size: 20px; cursor: pointer; transition: all 0.3s ease;" title="เกณฑ์ตราเกียรติยศ">🛡️</button>
         </div>
 
         <!-- Tab 2: Village Progress Board -->
