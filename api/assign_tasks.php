@@ -40,13 +40,17 @@ try {
     $pdo->beginTransaction();
 
     foreach ($cids as $cid) {
-        // If sub-admin, check target's hoscode
+        $tStmt = $pdo->prepare("SELECT first_name, last_name, hoscode FROM target_population WHERE cid = ?");
+        $tStmt->execute([$cid]);
+        $tRow = $tStmt->fetch();
+        if (!$tRow) {
+            throw new \Exception("ไม่พบข้อมูลกลุ่มเป้าหมายรหัสบัตรประชาชน $cid");
+        }
+        $residentName = $tRow['first_name'] . ' ' . $tRow['last_name'];
+
         if ($admin_hoscode) {
-            $tStmt = $pdo->prepare("SELECT hoscode FROM target_population WHERE cid = ?");
-            $tStmt->execute([$cid]);
-            $tRow = $tStmt->fetch();
-            if (!$tRow || !in_array($tRow['hoscode'], $allowed_hoscodes)) {
-                throw new \Exception("มีกลุ่มเป้าหมายภายนอกเขตบริการปนอยู่ ไม่สามารถดำเนินการได้");
+            if (!in_array($tRow['hoscode'], $allowed_hoscodes)) {
+                throw new \Exception("กลุ่มเป้าหมาย {$residentName} อยู่นอกเขตบริการ ไม่สามารถดำเนินการได้");
             }
         }
 
@@ -57,6 +61,12 @@ try {
 
         if ($existing) {
             if ($existing['vhv_id'] !== $vhvId) {
+                // HARD BLOCK: Prevent reassigning completed or skipped tasks
+                if (in_array($existing['assignment_status'], ['completed', 'skipped'])) {
+                    $statusText = ($existing['assignment_status'] === 'completed') ? 'คัดกรองเสร็จสิ้นแล้ว' : 'ข้ามเคสแล้ว';
+                    throw new \Exception("ไม่สามารถเปลี่ยนตัว อสม. ของคุณ {$residentName} ได้ เนื่องจากงานนี้ได้รับการ{$statusText}ไปเรียบร้อยแล้ว");
+                }
+
                 $oldVhvId = $existing['vhv_id'];
                 
                 // Update assignment
