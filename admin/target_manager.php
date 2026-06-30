@@ -149,12 +149,12 @@ if (isset($_GET['action'])) {
         SELECT * FROM (
             -- ส่วนที่ 1: ดึงประชากรทั้งหมดจาก target_population ของหมู่ที่เลือก และ LEFT JOIN ข้อมูลผลแล็บจาก staging (ถ้ามี)
             SELECT 
-                COALESCE(NULLIF(tp_real.cid, ''), t.cid) as cid,
+                COALESCE(NULLIF(tp_real_pcu.cid, ''), NULLIF(tp_real_cid.cid, ''), t.cid) as cid,
                 t.pid,
                 t.hoscode,
                 t.prefix,
-                COALESCE(NULLIF(tp_real.first_name, ''), NULLIF(t.first_name, ''), 'ไม่ทราบชื่อ') as first_name,
-                COALESCE(NULLIF(tp_real.last_name, ''), NULLIF(t.last_name, ''), 'ไม่ทราบประวัติ') as last_name,
+                COALESCE(NULLIF(tp_real_pcu.first_name, ''), NULLIF(tp_real_cid.first_name, ''), NULLIF(t.first_name, ''), 'ไม่ทราบชื่อ') as first_name,
+                COALESCE(NULLIF(tp_real_pcu.last_name, ''), NULLIF(tp_real_cid.last_name, ''), NULLIF(t.last_name, ''), 'ไม่ทราบประวัติ') as last_name,
                 t.birth,
                 t.house_no,
                 TIMESTAMPDIFF(YEAR, t.birth, CURDATE()) as age,
@@ -163,23 +163,25 @@ if (isset($_GET['action'])) {
                 t.health_status_origin,
                 t.is_manual,
                 h.bslevel, h.bstest, h.sbp, h.dbp,
-                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = COALESCE(NULLIF(tp_real.cid, ''), t.cid) AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
+                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = COALESCE(NULLIF(tp_real_pcu.cid, ''), NULLIF(tp_real_cid.cid, ''), t.cid) AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
             FROM target_population t
-            LEFT JOIN target_population tp_real ON (
-                (tp_real.hoscode = t.hoscode AND tp_real.pid = t.pid)
-                OR (
-                    t.cid LIKE '%*%' 
-                    AND tp_real.cid NOT LIKE '%*%'
-                    AND LEFT(tp_real.cid, 9) = LEFT(t.cid, 9)
-                    AND tp_real.first_name LIKE REPLACE(t.first_name, '*', '%')
-                    AND tp_real.last_name LIKE REPLACE(t.last_name, '*', '%')
-                    AND tp_real.birth = t.birth
-                    AND tp_real.sex = t.sex
-                )
+            LEFT JOIN target_population tp_real_pcu ON (
+                tp_real_pcu.hoscode = t.hoscode
+                AND tp_real_pcu.pid = t.pid
+                AND tp_real_pcu.cid NOT LIKE '0%'
+                AND tp_real_pcu.cid NOT LIKE '%*%'
+                AND tp_real_pcu.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
             )
-            AND tp_real.cid NOT LIKE '0%'
-            AND tp_real.cid NOT LIKE '%*%'
-            AND tp_real.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
+            LEFT JOIN target_population tp_real_cid ON (
+                t.cid LIKE '%*%'
+                AND tp_real_cid.cid NOT LIKE '0%'
+                AND tp_real_cid.cid NOT LIKE '%*%'
+                AND tp_real_cid.cid LIKE REPLACE(t.cid, '*', '%')
+                AND tp_real_cid.birth = t.birth
+                AND tp_real_cid.sex = t.sex
+                AND tp_real_cid.first_name LIKE REPLACE(t.first_name, '*', '%')
+                AND tp_real_cid.last_name LIKE REPLACE(t.last_name, '*', '%')
+            )
             LEFT JOIN (
                 SELECT 
                     cid, pid, hoscode,
@@ -208,12 +210,12 @@ if (isset($_GET['action'])) {
             
             -- ส่วนที่ 2: ดึงรายชื่อประชากรใน staging ของหมู่ที่เลือก แต่ยังไม่ได้เพิ่ม/ไม่มีชื่อใน target_population
             SELECT 
-                COALESCE(NULLIF(tp_real.cid, ''), h.cid) as cid,
+                COALESCE(NULLIF(tp_real_pcu.cid, ''), NULLIF(tp_real_cid.cid, ''), h.cid) as cid,
                 h.pid,
                 h.hoscode,
                 NULL as prefix,
-                COALESCE(NULLIF(tp_real.first_name, ''), NULLIF(h.name, ''), 'ไม่ทราบชื่อ') as first_name,
-                COALESCE(NULLIF(tp_real.last_name, ''), NULLIF(h.lname, ''), 'ไม่ทราบประวัติ') as last_name,
+                COALESCE(NULLIF(tp_real_pcu.first_name, ''), NULLIF(tp_real_cid.first_name, ''), NULLIF(h.name, ''), 'ไม่ทราบชื่อ') as first_name,
+                COALESCE(NULLIF(tp_real_pcu.last_name, ''), NULLIF(tp_real_cid.last_name, ''), NULLIF(h.lname, ''), 'ไม่ทราบประวัติ') as last_name,
                 h.birth,
                 h.addr as house_no,
                 TIMESTAMPDIFF(YEAR, h.birth, CURDATE()) as age,
@@ -222,7 +224,7 @@ if (isset($_GET['action'])) {
                 h.health_status_origin,
                 0 as is_manual,
                 h.bslevel, h.bstest, h.sbp, h.dbp,
-                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = COALESCE(NULLIF(tp_real.cid, ''), h.cid) AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
+                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = COALESCE(NULLIF(tp_real_pcu.cid, ''), NULLIF(tp_real_cid.cid, ''), h.cid) AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
             FROM (
                 SELECT 
                     cid, pid, hoscode, name, lname, birth, addr, check_vhid,
@@ -261,20 +263,22 @@ if (isset($_GET['action'])) {
                 (t.cid = h.cid AND h.cid NOT LIKE '%*%')
                 OR (t.hoscode = h.hoscode AND t.pid = h.pid AND t.pid IS NOT NULL AND t.pid != '')
             )
-            LEFT JOIN target_population tp_real ON (
-                (tp_real.hoscode = h.hoscode AND tp_real.pid = h.pid)
-                OR (
-                    h.cid LIKE '%*%' 
-                    AND tp_real.cid NOT LIKE '%*%'
-                    AND LEFT(tp_real.cid, 9) = LEFT(h.cid, 9)
-                    AND tp_real.first_name LIKE REPLACE(h.name, '*', '%')
-                    AND tp_real.last_name LIKE REPLACE(h.lname, '*', '%')
-                    AND tp_real.birth = h.birth
-                )
+            LEFT JOIN target_population tp_real_pcu ON (
+                tp_real_pcu.hoscode = h.hoscode
+                AND tp_real_pcu.pid = h.pid
+                AND tp_real_pcu.cid NOT LIKE '0%'
+                AND tp_real_pcu.cid NOT LIKE '%*%'
+                AND tp_real_pcu.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
             )
-            AND tp_real.cid NOT LIKE '0%'
-            AND tp_real.cid NOT LIKE '%*%'
-            AND tp_real.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
+            LEFT JOIN target_population tp_real_cid ON (
+                h.cid LIKE '%*%'
+                AND tp_real_cid.cid NOT LIKE '0%'
+                AND tp_real_cid.cid NOT LIKE '%*%'
+                AND tp_real_cid.cid LIKE REPLACE(h.cid, '*', '%')
+                AND tp_real_cid.birth = h.birth
+                AND tp_real_cid.first_name LIKE REPLACE(h.name, '*', '%')
+                AND tp_real_cid.last_name LIKE REPLACE(h.lname, '*', '%')
+            )
             WHERE t.cid IS NULL
         ) main_result
         WHERE age >= 35
