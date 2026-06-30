@@ -1,11 +1,17 @@
 {
   "short_name": "NCD ตาลสุม",
-  "name": "NCD Prevention & screening - Tal Sum",
+  "name": "NCDs by อสม. อำเภอตาลสุม",
+  "description": "ระบบคัดกรองโรค NCDs และจัดอันดับคะแนนเชิงรุก สำหรับ อสม. อำเภอตาลสุม",
   "icons": [
     {
-      "src": "../assets/icon.png",
+      "src": "/assets/icon.png",
       "type": "image/png",
       "sizes": "192x192"
+    },
+    {
+      "src": "/assets/icon.png",
+      "type": "image/png",
+      "sizes": "512x512"
     }
   ],
   "start_url": "/vhv/index.php",
