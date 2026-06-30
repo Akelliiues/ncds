@@ -385,20 +385,20 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
             </div>
         </div>
 
-        <!-- 5. System Dropdown (Super Admin Only) -->
-        <?php if ($is_super_admin): ?>
-            <div class="nav-dropdown">
-                <button class="nav-dropbtn <?= $is_system_active ? 'active' : '' ?>">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                        <circle cx="12" cy="12" r="3"></circle>
-                    </svg>
-                    <span>จัดการระบบ</span>
-                    <svg class="chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                        <path d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
-                <div class="nav-dropdown-content">
+        <!-- 5. System Dropdown -->
+        <div class="nav-dropdown">
+            <button class="nav-dropbtn <?= $is_system_active ? 'active' : '' ?>">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <span>จัดการระบบ</span>
+                <svg class="chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <path d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
+            <div class="nav-dropdown-content">
+                <?php if ($is_super_admin): ?>
                     <a href="import_hdc.php" class="<?= $current_page == 'import_hdc.php' ? 'active' : '' ?>">
                         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                             <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
@@ -411,27 +411,29 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
                         </svg>
                         ประมวลผล ETL
                     </a>
-                    <a href="db_manager.php" class="<?= $current_page == 'db_manager.php' ? 'active' : '' ?>">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                            <path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path>
-                        </svg>
-                        จัดการฐานข้อมูลระบบ
-                    </a>
+                <?php endif; ?>
+                <a href="db_manager.php" class="<?= $current_page == 'db_manager.php' ? 'active' : '' ?>">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path>
+                    </svg>
+                    จัดการฐานข้อมูลระบบ / Sandbox
+                </a>
+                <?php if ($is_super_admin): ?>
                     <a href="user_manager.php" class="<?= $current_page == 'user_manager.php' ? 'active' : '' ?>">
                         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 11-8 0 4 4 0 018 0zm7-3a3 3 0 010 6M21 21v-2a4 4 0 00-3-3.87"></path>
                         </svg>
                         จัดการผู้ใช้งานระบบ
                     </a>
-                    <a href="unit_house_manager.php" class="<?= $current_page == 'unit_house_manager.php' ? 'active' : '' ?>">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                        จัดการหน่วยบริการ & บ้าน
-                    </a>
-                </div>
+                <?php endif; ?>
+                <a href="unit_house_manager.php" class="<?= $current_page == 'unit_house_manager.php' ? 'active' : '' ?>">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    จัดการหน่วยบริการ & บ้าน
+                </a>
             </div>
-        <?php endif; ?>
+        </div>
 
         <!-- Theme Toggle Button -->
         <button id="theme-toggle-btn" class="btn-theme-toggle" onclick="toggleTheme()" style="background: none; border: none; cursor: pointer; color: var(--text-primary); display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; transition: background 0.3s; margin-right: 10px;" title="สลับโหมด มืด/สว่าง">
