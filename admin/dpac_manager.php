@@ -21,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     
     if (!empty($enrollmentIds) && !empty($vhvId)) {
         $pdo->beginTransaction();
+        try {
             $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
             $isSandboxVal = isSandboxMode($admin_hoscode) ? 1 : 0;
             $roundStmt = $pdo->prepare("SELECT IFNULL(MAX(round_number), 0) + 1 FROM dpac_followups WHERE enrollment_id = ?");
