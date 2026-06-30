@@ -166,12 +166,20 @@ if (isset($_GET['action'])) {
                 (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = COALESCE(NULLIF(tp_real.cid, ''), t.cid) AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
             FROM target_population t
             LEFT JOIN target_population tp_real ON (
-                tp_real.hoscode = t.hoscode
-                AND tp_real.pid = t.pid
-                AND tp_real.cid NOT LIKE '0%'
-                AND tp_real.cid NOT LIKE '%*%'
-                AND tp_real.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
+                (tp_real.hoscode = t.hoscode AND tp_real.pid = t.pid)
+                OR (
+                    t.cid LIKE '%*%' 
+                    AND tp_real.cid NOT LIKE '%*%'
+                    AND LEFT(tp_real.cid, 9) = LEFT(t.cid, 9)
+                    AND tp_real.first_name LIKE REPLACE(t.first_name, '*', '%')
+                    AND tp_real.last_name LIKE REPLACE(t.last_name, '*', '%')
+                    AND tp_real.birth = t.birth
+                    AND tp_real.sex = t.sex
+                )
             )
+            AND tp_real.cid NOT LIKE '0%'
+            AND tp_real.cid NOT LIKE '%*%'
+            AND tp_real.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
             LEFT JOIN (
                 SELECT 
                     cid, pid, hoscode,
@@ -254,12 +262,19 @@ if (isset($_GET['action'])) {
                 OR (t.hoscode = h.hoscode AND t.pid = h.pid AND t.pid IS NOT NULL AND t.pid != '')
             )
             LEFT JOIN target_population tp_real ON (
-                tp_real.hoscode = h.hoscode
-                AND tp_real.pid = h.pid
-                AND tp_real.cid NOT LIKE '0%'
-                AND tp_real.cid NOT LIKE '%*%'
-                AND tp_real.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
+                (tp_real.hoscode = h.hoscode AND tp_real.pid = h.pid)
+                OR (
+                    h.cid LIKE '%*%' 
+                    AND tp_real.cid NOT LIKE '%*%'
+                    AND LEFT(tp_real.cid, 9) = LEFT(h.cid, 9)
+                    AND tp_real.first_name LIKE REPLACE(h.name, '*', '%')
+                    AND tp_real.last_name LIKE REPLACE(h.lname, '*', '%')
+                    AND tp_real.birth = h.birth
+                )
             )
+            AND tp_real.cid NOT LIKE '0%'
+            AND tp_real.cid NOT LIKE '%*%'
+            AND tp_real.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
             WHERE t.cid IS NULL
         ) main_result
         WHERE age >= 35
