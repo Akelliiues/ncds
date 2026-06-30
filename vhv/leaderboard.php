@@ -62,14 +62,19 @@ function getPositiveTitle($rank)
     return '';
 }
 
-// Query Top 50 VHVs across the village based on approved reward points
+// Query Top 50 VHVs with points breakdown and subqueries for badges calculation
 $leaderboardStmt = $pdo->query("
-    SELECT u.vhv_id, u.vhv_name, u.vhv_moo, u.is_hl_coach,
-           SUM(r.points_earned) as total_points
-     FROM vhv_users u
-     LEFT JOIN vhv_rewards r ON u.vhv_id = r.vhv_id AND r.approval_status = 'approved'
-     GROUP BY u.vhv_id, u.vhv_name, u.vhv_moo, u.is_hl_coach
-     ORDER BY total_points DESC, u.vhv_name ASC
+    SELECT 
+        u.vhv_id, 
+        u.vhv_name, 
+        u.vhv_moo, 
+        u.is_hl_coach,
+        (SELECT COALESCE(SUM(points_earned), 0) FROM vhv_rewards WHERE vhv_id = u.vhv_id AND approval_status = 'approved') as total_points,
+        (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026) as total_assigned,
+        (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026 AND assignment_status = 'completed') as completed,
+        (SELECT COUNT(*) FROM vhv_rewards WHERE vhv_id = u.vhv_id AND approval_status = 'waiting' AND is_sandbox = 0) as waiting_rewards
+    FROM vhv_users u
+    ORDER BY total_points DESC, u.vhv_name ASC
 ");
 $allLeaders = $leaderboardStmt->fetchAll();
 $totalVhvs = count($allLeaders);
@@ -88,6 +93,95 @@ foreach ($allLeaders as $index => $leader) {
 
 // Slice Top 50
 $topFifty = array_slice($allLeaders, 0, 50);
+
+// VHV Badges helper
+function getBadgesList($total_assigned, $completed, $waiting_rewards) {
+    $badges = [];
+    $total_assigned = (int)$total_assigned;
+    $completed = (int)$completed;
+    $waiting_rewards = (int)$waiting_rewards;
+    
+    if ($completed > 0) {
+        $badges[] = [
+            'icon' => '🚀',
+            'title' => 'ประเดิมผลงาน',
+            'desc' => 'คัดกรองสำเร็จอย่างน้อย 1 รายการ'
+        ];
+    }
+    
+    if ($total_assigned > 0) {
+        $rate = ($completed / $total_assigned) * 100;
+        if ($rate >= 100) {
+            $badges[] = [
+                'icon' => '🥇',
+                'title' => 'นักคัดกรองทองคำ',
+                'desc' => 'คัดกรองสำเร็จครบ 100%'
+            ];
+        } elseif ($rate >= 75) {
+            $badges[] = [
+                'icon' => '🥈',
+                'title' => 'นักคัดกรองเงิน',
+                'desc' => 'คัดกรองสำเร็จ 75% ขึ้นไป'
+            ];
+        } elseif ($rate >= 50) {
+            $badges[] = [
+                'icon' => '🥉',
+                'title' => 'นักคัดกรองทองแดง',
+                'desc' => 'คัดกรองสำเร็จ 50% ขึ้นไป'
+            ];
+        }
+    }
+    
+    if ($completed > 0 && $waiting_rewards === 0) {
+        $badges[] = [
+            'icon' => '📍',
+            'title' => 'ผู้พิทักษ์พิกัดจริง',
+            'desc' => 'คัดกรองพิกัดถูกต้องทุกเคส'
+        ];
+    }
+    
+    return $badges;
+}
+
+// 1. Query village (Moo) completion stats under current VHV's hospital (hoscode)
+$hoscode = $_SESSION['hoscode'] ?? '';
+$villageStats = [];
+if (!empty($hoscode)) {
+    $villQuery = "
+        SELECT 
+            p.moo,
+            COUNT(DISTINCT p.cid) as total_targets,
+            COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) as completed_targets
+        FROM target_population p
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026
+        WHERE p.hoscode = ?
+        GROUP BY p.moo
+        ORDER BY p.moo ASC
+    ";
+    $villStmt = $pdo->prepare($villQuery);
+    $villStmt->execute([$hoscode]);
+    $villageStats = $villStmt->fetchAll();
+}
+
+// 2. Query hospital progress comparison (Tansum Health Center League)
+$hospitalStats = [];
+try {
+    $hosQuery = "
+        SELECT 
+            p.hoscode,
+            COUNT(DISTINCT p.cid) as total_targets,
+            COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) as completed_targets
+        FROM target_population p
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026
+        WHERE p.hoscode IS NOT NULL AND p.hoscode != ''
+        GROUP BY p.hoscode
+        ORDER BY (completed_targets / total_targets) DESC, p.hoscode ASC
+    ";
+    $hospitalStats = $pdo->query($hosQuery)->fetchAll();
+} catch (\Exception $e) {
+    // Fail silently
+}
+$hcNames = get_health_units();
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -190,6 +284,132 @@ $topFifty = array_slice($allLeaders, 0, 50);
             <?php endif; ?>
         </div>
 
+        <!-- Village & Hospital League Standings -->
+        <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 16px;">
+            
+            <!-- Village Progress Board -->
+            <?php if (!empty($villageStats)): ?>
+            <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat);">
+                <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                    🏘️ สมรภูมิคัดกรองรายหมู่บ้าน (เขตดูแลของคุณ)
+                </h4>
+                <p style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 16px 0;">เปรียบเทียบอัตราความสำเร็จในการคัดกรองเป้าหมายในตำบลของคุณ</p>
+                <div style="display: flex; flex-direction: column; gap: 14px;">
+                    <?php foreach ($villageStats as $vStat): 
+                        $total = (int)$vStat['total_targets'];
+                        $done = (int)$vStat['completed_targets'];
+                        $pct = $total > 0 ? round(($done / $total) * 100, 1) : 0;
+                        
+                        // Select indicator color based on progress
+                        $barColor = 'var(--color-yellow)';
+                        if ($pct >= 100) $barColor = 'var(--color-green)';
+                        elseif ($pct >= 50) $barColor = 'var(--color-accent)';
+                        elseif ($pct < 20) $barColor = 'var(--color-red)';
+                    ?>
+                        <div>
+                            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-primary);">
+                                <span>หมู่ที่ <?= htmlspecialchars($vStat['moo']) ?></span>
+                                <span style="color: <?= $barColor ?>;"><?= $done ?> / <?= $total ?> คน (<?= $pct ?>%)</span>
+                            </div>
+                            <div style="width: 100%; height: 12px; background: rgba(13, 44, 84, 0.08); border-radius: 6px; overflow: hidden; box-shadow: var(--neumorph-inset);">
+                                <div style="width: <?= $pct ?>%; height: 100%; background: <?= $barColor ?>; border-radius: 6px; transition: width 0.8s ease-in-out;"></div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- Hospital / Zone League Standings -->
+            <?php if (!empty($hospitalStats)): ?>
+            <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat);">
+                <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                    🏥 ลีกหน่วยบริการ รพ.สต. (ทั้งอำเภอตาลสุม)
+                </h4>
+                <p style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 16px 0;">อันดับอัตราการคัดกรองสูงสุดแยกตามเขตรับผิดชอบของแต่ละ รพ.สต.</p>
+                <div style="display: flex; flex-direction: column; gap: 14px;">
+                    <?php 
+                    $hRank = 1;
+                    foreach ($hospitalStats as $hStat): 
+                        $total = (int)$hStat['total_targets'];
+                        $done = (int)$hStat['completed_targets'];
+                        $pct = $total > 0 ? round(($done / $total) * 100, 1) : 0;
+                        $hName = $hcNames[$hStat['hoscode']] ?? $hStat['hoscode'];
+                        
+                        $isMyHos = ($hStat['hoscode'] === $hoscode);
+                        
+                        $barColor = 'var(--color-accent)';
+                        if ($pct >= 100) $barColor = 'var(--color-green)';
+                        
+                        $rankIcon = '';
+                        if ($hRank === 1) $rankIcon = '🥇';
+                        elseif ($hRank === 2) $rankIcon = '🥈';
+                        elseif ($hRank === 3) $rankIcon = '🥉';
+                        else $rankIcon = '🏅';
+                    ?>
+                        <div style="<?= $isMyHos ? 'background: rgba(13, 44, 84, 0.04); border: 1px dashed var(--color-accent); padding: 8px; border-radius: 12px;' : '' ?>">
+                            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-primary);">
+                                <span><?= $rankIcon ?> #<?= $hRank ?> <?= htmlspecialchars($hName) ?> <?= $isMyHos ? '<span style="color:var(--color-accent);font-size:11px;">(รพ.สต. ของคุณ)</span>' : '' ?></span>
+                                <span><?= $pct ?>%</span>
+                            </div>
+                            <div style="width: 100%; height: 8px; background: rgba(13, 44, 84, 0.08); border-radius: 4px; overflow: hidden;">
+                                <div style="width: <?= $pct ?>%; height: 100%; background: <?= $barColor ?>; border-radius: 4px; transition: width 0.8s ease-in-out;"></div>
+                            </div>
+                        </div>
+                    <?php 
+                        $hRank++;
+                    endforeach; 
+                    ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- VHV Badges Explanations Card -->
+            <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat);">
+                <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                    🛡️ ตำนานตราเกียรติยศ (อสม. คัดกรองดีเด่น)
+                </h4>
+                <div style="display: grid; grid-template-columns: 1fr; gap: 12px; font-size: 12px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 20px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: rgba(251, 191, 36, 0.1); border-radius: 50%;">🥇</span>
+                        <div>
+                            <strong>นักคัดกรองทองคำ:</strong>
+                            <span style="color: var(--text-secondary);">คัดกรองเป้าหมายสำเร็จครบ 100%</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 20px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: rgba(156, 163, 175, 0.1); border-radius: 50%;">🥈</span>
+                        <div>
+                            <strong>นักคัดกรองเงิน:</strong>
+                            <span style="color: var(--text-secondary);">คัดกรองเป้าหมายสำเร็จ 75% ขึ้นไป</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 20px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: rgba(180, 100, 30, 0.1); border-radius: 50%;">🥉</span>
+                        <div>
+                            <strong>นักคัดกรองทองแดง:</strong>
+                            <span style="color: var(--text-secondary);">คัดกรองเป้าหมายสำเร็จ 50% ขึ้นไป</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 20px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: rgba(59, 130, 246, 0.1); border-radius: 50%;">📍</span>
+                        <div>
+                            <strong>ผู้พิทักษ์พิกัดจริง:</strong>
+                            <span style="color: var(--text-secondary);">บันทึกข้อมูลหน้าบ้านเป้าหมายในระยะ 100 เมตรสำเร็จครบทุกเคส</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 20px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: rgba(16, 185, 129, 0.1); border-radius: 50%;">🚀</span>
+                        <div>
+                            <strong>ประเดิมผลงาน:</strong>
+                            <span style="color: var(--text-secondary);">คัดกรองส่งงานเรียบร้อยแล้วอย่างน้อย 1 เคส</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
         <!-- Leaderboard List -->
         <div style="margin-top: 20px;">
             <h4 style="color: var(--text-primary); font-size: 18px; margin-bottom: 12px; font-weight: 800;">50
@@ -252,9 +472,19 @@ $topFifty = array_slice($allLeaders, 0, 50);
                         <?= $trophyHtml ?>
                     </div>
 
+                    <?php 
+                    $badges = getBadgesList($leader['total_assigned'], $leader['completed'], $leader['waiting_rewards']);
+                    ?>
                     <div class="leader-info" style="position: relative; z-index: 2;">
                         <strong
-                            style="color: var(--text-primary); font-size: 16px;"><?= htmlspecialchars($leader['vhv_name']) ?></strong>
+                            style="color: var(--text-primary); font-size: 16px;">
+                            <?= htmlspecialchars($leader['vhv_name']) ?>
+                            <?php foreach ($badges as $badge): ?>
+                                <span class="badge-icon" style="background: rgba(13,44,84,0.05); font-size: 14px;" title="<?= htmlspecialchars($badge['title']) ?>: <?= htmlspecialchars($badge['desc']) ?>">
+                                    <?= $badge['icon'] ?>
+                                </span>
+                            <?php endforeach; ?>
+                        </strong>
                         <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">
                             หมู่ที่ <?= $leader['vhv_moo'] ?>
                         </p>

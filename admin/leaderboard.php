@@ -38,7 +38,7 @@ try {
     // Fallback
 }
 
-// Fetch all VHVs with their points breakdown
+// Fetch all VHVs with their points breakdown and progress subqueries for achievements
 $sql = "
     SELECT 
         u.vhv_id, 
@@ -50,7 +50,10 @@ $sql = "
         u.approved,
         COALESCE(SUM(CASE WHEN r.screening_id IS NOT NULL THEN r.points_earned ELSE 0 END), 0) as screening_points,
         COALESCE(SUM(CASE WHEN r.followup_id IS NOT NULL THEN r.points_earned ELSE 0 END), 0) as dpac_points,
-        COALESCE(SUM(r.points_earned), 0) as total_points
+        COALESCE(SUM(r.points_earned), 0) as total_points,
+        (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026) as total_assigned,
+        (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026 AND assignment_status = 'completed') as completed,
+        (SELECT COUNT(*) FROM vhv_rewards WHERE vhv_id = u.vhv_id AND approval_status = 'waiting' AND is_sandbox = 0) as waiting_rewards
     FROM vhv_users u
     LEFT JOIN vhv_rewards r ON u.vhv_id = r.vhv_id AND r.approval_status = 'approved'
     GROUP BY u.vhv_id, u.vhv_name, u.vhv_moo, u.vhid_code, u.hoscode, u.is_hl_coach, u.approved
@@ -782,6 +785,34 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
             renderLeaderboard();
         }
 
+        function getAchievementsHtml(vhv) {
+            let html = '';
+            const totalAssigned = parseInt(vhv.total_assigned) || 0;
+            const completed = parseInt(vhv.completed) || 0;
+            const waitingRewards = parseInt(vhv.waiting_rewards) || 0;
+            
+            if (completed > 0) {
+                html += `<span style="background: rgba(13,44,84,0.05); font-size: 13px; display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; margin-left: 4px; cursor: help;" title="ประเดิมผลงาน: คัดกรองสำเร็จอย่างน้อย 1 รายการ">🚀</span>`;
+            }
+            
+            if (totalAssigned > 0) {
+                const rate = (completed / totalAssigned) * 100;
+                if (rate >= 100) {
+                    html += `<span style="background: rgba(13,44,84,0.05); font-size: 13px; display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; margin-left: 4px; cursor: help;" title="นักคัดกรองทองคำ: คัดกรองสำเร็จครบ 100%">🥇</span>`;
+                } else if (rate >= 75) {
+                    html += `<span style="background: rgba(13,44,84,0.05); font-size: 13px; display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; margin-left: 4px; cursor: help;" title="นักคัดกรองเงิน: คัดกรองสำเร็จ 75% ขึ้นไป">🥈</span>`;
+                } else if (rate >= 50) {
+                    html += `<span style="background: rgba(13,44,84,0.05); font-size: 13px; display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; margin-left: 4px; cursor: help;" title="นักคัดกรองทองแดง: คัดกรองสำเร็จ 50% ขึ้นไป">🥉</span>`;
+                }
+            }
+            
+            if (completed > 0 && waitingRewards === 0) {
+                html += `<span style="background: rgba(13,44,84,0.05); font-size: 13px; display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; margin-left: 4px; cursor: help;" title="ผู้พิทักษ์พิกัดจริง: คัดกรองพิกัดถูกต้องทุกเคส">📍</span>`;
+            }
+            
+            return html;
+        }
+
         // Main client-side sorting and filtering engine
         function renderLeaderboard() {
             const query = document.getElementById('search-input').value.trim().toLowerCase();
@@ -887,7 +918,7 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
 
                 row.innerHTML = `
                     <td style="text-align: center;">${rankHtml}</td>
-                    <td style="font-weight: 800; color: var(--text-primary);">${escapeHtml(vhv.vhv_name)}</td>
+                    <td style="font-weight: 800; color: var(--text-primary);">${escapeHtml(vhv.vhv_name)}${getAchievementsHtml(vhv)}</td>
                     <td style="text-align: center; font-weight: bold;">${parseInt(vhv.vhv_moo)}</td>
                     <td style="white-space: nowrap;">${escapeHtml(tambonName)}</td>
                     <td style="font-size: 13.5px; color: var(--text-secondary); white-space: nowrap;">${escapeHtml(hosName)}</td>
