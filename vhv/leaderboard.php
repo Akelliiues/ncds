@@ -154,7 +154,7 @@ if (!empty($hoscode)) {
             COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) as completed_targets
         FROM target_population p
         LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026
-        WHERE p.hoscode = ?
+        WHERE p.hoscode = ? AND p.moo > 0 AND p.moo IS NOT NULL
         GROUP BY p.moo
         ORDER BY p.moo ASC
     ";
@@ -175,6 +175,7 @@ try {
         LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026
         WHERE p.hoscode IS NOT NULL AND p.hoscode != ''
         GROUP BY p.hoscode
+        HAVING total_targets > 0
         ORDER BY (completed_targets / total_targets) DESC, p.hoscode ASC
     ";
     $hospitalStats = $pdo->query($hosQuery)->fetchAll();
