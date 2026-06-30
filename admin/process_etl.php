@@ -394,6 +394,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
               AND t.need_screen_ht = 0 
               AND (t.is_manual IS NULL OR t.is_manual = 0)
               AND ta.assignment_id IS NULL
+              AND (t.cid LIKE '%*%' OR t.cid LIKE '0%' OR t.first_name LIKE '%*%')
         ");
 
         $pdo->commit();
