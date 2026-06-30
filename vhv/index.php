@@ -237,6 +237,22 @@ try {
             font-weight: 800;
             box-shadow: var(--neumorph-flat);
         }
+
+        @keyframes float-bubble {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(8deg); }
+        }
+        @keyframes pulse-green-ring {
+            0% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4), var(--neumorph-inset);
+            }
+            70% {
+                box-shadow: 0 0 0 14px rgba(16, 185, 129, 0), var(--neumorph-inset);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0), var(--neumorph-inset);
+            }
+        }
     </style>
 </head>
 <body class="vhv-accessibility">
@@ -321,8 +337,28 @@ try {
         <!-- Pending Tasks List -->
         <div id="pending-list" class="tab-content">
             <?php if (empty($pendingTasks)): ?>
-                <div style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
-                    🎉 เยี่ยมมาก! ไม่มีงานค้างในเขตรับผิดชอบของคุณ
+                <div class="card-dark" style="text-align: center; padding: 36px 20px; box-shadow: var(--neumorph-flat); margin-top: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; border-radius: var(--border-radius); overflow: hidden; position: relative;">
+                    <!-- Floating celebratory background elements -->
+                    <div style="position: absolute; top: 10px; left: 10%; font-size: 24px; opacity: 0.15; animation: float-bubble 4s ease-in-out infinite;">✨</div>
+                    <div style="position: absolute; bottom: 15px; right: 8%; font-size: 28px; opacity: 0.15; animation: float-bubble 5s ease-in-out infinite 1s;">❤️</div>
+                    <div style="position: absolute; top: 20%; right: 12%; font-size: 20px; opacity: 0.12; animation: float-bubble 6s ease-in-out infinite 0.5s;">🩺</div>
+                    <div style="position: absolute; bottom: 30%; left: 15%; font-size: 22px; opacity: 0.12; animation: float-bubble 4.5s ease-in-out infinite 1.5s;">💪</div>
+                    
+                    <!-- Pulse badge -->
+                    <div style="width: 80px; height: 80px; border-radius: 50%; background: rgba(16, 185, 129, 0.1); border: 2px solid rgba(16, 185, 129, 0.25); display: flex; align-items: center; justify-content: center; box-shadow: var(--neumorph-inset); position: relative; animation: pulse-green-ring 2.5s infinite;">
+                        <span style="font-size: 38px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));">🏆</span>
+                    </div>
+                    
+                    <div>
+                        <h4 style="color: var(--color-green); font-size: 18px; font-weight: 800; margin: 0 0 6px 0; letter-spacing: 0.5px; text-size-adjust: none; -webkit-text-size-adjust: none;">ภารกิจคัดกรองสำเร็จครบถ้วน!</h4>
+                        <p style="font-size: 14px; color: var(--text-primary); font-weight: bold; margin: 0 0 4px 0; line-height: 1.5; text-size-adjust: none; -webkit-text-size-adjust: none;">ไม่มีงานค้างในเขตรับผิดชอบของคุณ</p>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.4; text-size-adjust: none; -webkit-text-size-adjust: none;">ขอบคุณที่เป็นส่วนสำคัญในการร่วมดูแลสุขภาพชุมชนอำเภอตาลสุม</p>
+                    </div>
+
+                    <!-- Shortcut Action -->
+                    <a href="leaderboard.php" style="margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; background: rgba(30, 64, 175, 0.08); border-radius: 50px; text-decoration: none; color: var(--color-accent); font-weight: 800; font-size: 13px; box-shadow: var(--neumorph-flat); transition: all 0.3s ease; text-size-adjust: none; -webkit-text-size-adjust: none;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
+                        🥇 ดูแต้มสะสมและตรารางวัล อสม.
+                    </a>
                 </div>
             <?php else: ?>
                 <?php foreach ($pendingTasks as $pt): ?>
