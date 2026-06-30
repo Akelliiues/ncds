@@ -177,8 +177,8 @@ try {
         LEFT JOIN target_population p ON u.hoscode = p.hoscode
         LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026
         GROUP BY u.hoscode
-        HAVING total_targets > 0
-        ORDER BY (completed_targets / total_targets) DESC, u.hoscode ASC
+        HAVING COUNT(DISTINCT p.cid) > 0
+        ORDER BY (COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) / COUNT(DISTINCT p.cid)) DESC, u.hoscode ASC
     ";
     $hospitalStats = $pdo->query($hosQuery)->fetchAll();
 } catch (\Exception $e) {
