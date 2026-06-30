@@ -148,18 +148,27 @@ try {
             padding: 6px;
             margin-bottom: 20px;
             box-shadow: var(--neumorph-inset);
+
+            /* Prevent accessibility text scaling from breaking main tab selectors */
+            text-size-adjust: none;
+            -webkit-text-size-adjust: none;
+            -moz-text-size-adjust: none;
+            -ms-text-size-adjust: none;
         }
         .tab-btn {
             flex: 1;
             background: none;
             border: none;
             color: var(--text-secondary);
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 800;
-            padding: 12px;
+            padding: 12px 6px;
             cursor: pointer;
             border-radius: calc(var(--border-radius) - 6px);
             transition: all var(--transition-speed);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .tab-btn.active {
             background-color: var(--bg-main);
@@ -239,19 +248,19 @@ try {
         <?php endif; ?>
 
         <!-- VHV Info Header -->
-        <div class="vhv-header" style="display: flex; align-items: center; gap: 16px; padding: 20px 16px;">
-            <a href="../about.php" title="เกี่ยวกับระบบและผู้พัฒนา">
+        <div class="vhv-header" style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 20px 16px;">
+            <a href="../about.php" title="เกี่ยวกับระบบและผู้พัฒนา" style="flex-shrink: 0;">
                 <img src="../assets/icon.png" alt="NCDs Prevention Logo" style="width: 60px; height: 60px; border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
             </a>
-            <div style="flex-grow: 1;">
-                <h3 style="color: var(--color-accent); margin: 0; font-size: 14px; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-                    <span>อสม. ประจำบ้าน ตาลสุม</span>
-                    <a href="manual.php" style="color: var(--color-accent); text-decoration: none; font-size: 13px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; background: rgba(30, 64, 175, 0.08); padding: 4px 10px; border-radius: 50px;">
+            <div style="flex-grow: 1; min-width: 200px;">
+                <h3 style="color: var(--color-accent); margin: 0; font-size: 14px; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; text-size-adjust: none; -webkit-text-size-adjust: none;">
+                    <span style="white-space: nowrap;">อสม. ประจำบ้าน ตาลสุม</span>
+                    <a href="manual.php" style="color: var(--color-accent); text-decoration: none; font-size: 13px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; background: rgba(30, 64, 175, 0.08); padding: 4px 10px; border-radius: 50px; white-space: nowrap; text-size-adjust: none; -webkit-text-size-adjust: none;">
                         📖 คู่มือการใช้งาน
                     </a>
                 </h3>
-                <h2 style="color: var(--text-primary); margin: 4px 0; font-size: 20px; font-weight: 800;"><?= htmlspecialchars($vhvName) ?></h2>
-                <p style="color: var(--text-secondary); margin: 0; font-size: 13px;">
+                <h2 style="color: var(--text-primary); margin: 4px 0; font-size: 20px; font-weight: 800; word-break: break-word;"><?= htmlspecialchars($vhvName) ?></h2>
+                <p style="color: var(--text-secondary); margin: 0; font-size: 13px; text-size-adjust: none; -webkit-text-size-adjust: none; line-height: 1.4;">
                     หมู่ที่ <?= $vhvMoo ?> • สังกัดรพ.สต. [<?= htmlspecialchars($hoscode) ?>]
                     <?php if ($isLeader == 1): ?>
                         • <span style="color: var(--color-accent); font-weight: bold;">ประธาน อสม. หมู่บ้าน</span>

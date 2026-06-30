@@ -365,7 +365,9 @@ h1, h2, h3, h4, h5, h6 {
     transform: translateX(-50%);
     width: calc(100% - 32px);
     max-width: 440px;
-    height: 72px;
+    min-height: 72px;
+    height: auto;
+    padding: 6px 0;
     background-color: var(--bg-card);
     border: none;
     border-radius: 36px;
@@ -374,6 +376,12 @@ h1, h2, h3, h4, h5, h6 {
     align-items: center;
     z-index: 1000;
     box-shadow: 8px 8px 20px #cbd5e1, -8px -8px 20px #ffffff;
+
+    /* Prevent layout breaks under system-wide text scaling / accessibility zooming */
+    text-size-adjust: none;
+    -webkit-text-size-adjust: none;
+    -moz-text-size-adjust: none;
+    -ms-text-size-adjust: none;
 }
 
 .nav-link {
@@ -385,6 +393,8 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 13px;
     font-weight: 800;
     transition: color var(--transition-speed), transform var(--transition-speed);
+    text-align: center;
+    white-space: nowrap; /* Prevent wrapping onto multiple lines */
 }
 
 .nav-link.active {
@@ -396,6 +406,7 @@ h1, h2, h3, h4, h5, h6 {
     width: 24px;
     height: 24px;
     margin-bottom: 4px;
+    flex-shrink: 0;
 }
 
 /* Custom styling for the prominent Scan Floating Action Button (FAB) */
