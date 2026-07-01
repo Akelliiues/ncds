@@ -51,16 +51,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($mode === '0') {
             if ($target_hoscode !== '') {
                 // 1. Delete sandboxed records (is_sandbox = 1) for this hoscode
-                $stmtDelScreen = $pdo->prepare("DELETE FROM screening_results WHERE is_sandbox = 1 AND hoscode = ?");
+                $stmtDelScreen = $pdo->prepare("
+                    DELETE FROM screening_results 
+                    WHERE is_sandbox = 1 
+                      AND assignment_id IN (
+                          SELECT a.assignment_id 
+                          FROM task_assignments a 
+                          JOIN target_population p ON a.target_cid = p.cid 
+                          WHERE p.hoscode = ?
+                      )
+                ");
                 $stmtDelScreen->execute([$target_hoscode]);
 
-                $stmtDelTasks = $pdo->prepare("DELETE FROM task_assignments WHERE is_sandbox = 1 AND hoscode = ?");
+                $stmtDelTasks = $pdo->prepare("
+                    DELETE FROM task_assignments 
+                    WHERE is_sandbox = 1 
+                      AND target_cid IN (
+                          SELECT cid FROM target_population WHERE hoscode = ?
+                      )
+                ");
                 $stmtDelTasks->execute([$target_hoscode]);
 
-                $stmtDelRewards = $pdo->prepare("DELETE FROM vhv_rewards WHERE is_sandbox = 1 AND vhv_id IN (SELECT vhv_id FROM vhvs WHERE hoscode = ?)");
+                $stmtDelRewards = $pdo->prepare("
+                    DELETE FROM vhv_rewards 
+                    WHERE is_sandbox = 1 
+                      AND vhv_id IN (
+                          SELECT vhv_id 
+                          FROM vhv_users 
+                          WHERE hoscode = ?
+                      )
+                ");
                 $stmtDelRewards->execute([$target_hoscode]);
 
-                $stmtDelDpac = $pdo->prepare("DELETE FROM dpac_followups WHERE is_sandbox = 1 AND enrollment_id IN (SELECT enrollment_id FROM dpac_enrollments WHERE hoscode = ?)");
+                $stmtDelDpac = $pdo->prepare("
+                    DELETE FROM dpac_followups 
+                    WHERE is_sandbox = 1 
+                      AND enrollment_id IN (
+                          SELECT e.enrollment_id 
+                          FROM dpac_enrollments e 
+                          JOIN target_population p ON e.cid = p.cid 
+                          WHERE p.hoscode = ?
+                      )
+                ");
                 $stmtDelDpac->execute([$target_hoscode]);
 
                 // 2. Restore production task assignments touched in sandbox for this hoscode
@@ -68,7 +100,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     UPDATE task_assignments 
                     SET assignment_status = 'pending', 
                         is_sandbox_completed = 0 
-                    WHERE is_sandbox_completed = 1 AND hoscode = ?
+                    WHERE is_sandbox_completed = 1 
+                      AND target_cid IN (
+                          SELECT cid FROM target_population WHERE hoscode = ?
+                      )
                 ");
                 $stmtUpdTasks->execute([$target_hoscode]);
 
@@ -89,7 +124,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         skipped_reason = NULL, 
                         is_sandbox_completed = 0 
                     WHERE is_sandbox_completed = 1
-                      AND enrollment_id IN (SELECT enrollment_id FROM dpac_enrollments WHERE hoscode = ?)
+                      AND enrollment_id IN (
+                          SELECT e.enrollment_id 
+                          FROM dpac_enrollments e 
+                          JOIN target_population p ON e.cid = p.cid 
+                          WHERE p.hoscode = ?
+                      )
                 ");
                 $stmtUpdDpac->execute([$target_hoscode]);
             } else {
