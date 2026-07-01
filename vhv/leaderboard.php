@@ -69,11 +69,13 @@ $leaderboardStmt = $pdo->query("
         u.vhv_name, 
         u.vhv_moo, 
         u.is_hl_coach,
+        v.village_name,
         (SELECT COALESCE(SUM(points_earned), 0) FROM vhv_rewards WHERE vhv_id = u.vhv_id AND approval_status = 'approved') as total_points,
         (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026) as total_assigned,
         (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026 AND assignment_status = 'completed') as completed,
         (SELECT COUNT(*) FROM vhv_rewards WHERE vhv_id = u.vhv_id AND approval_status = 'waiting' AND is_sandbox = 0) as waiting_rewards
     FROM vhv_users u
+    LEFT JOIN villages v ON u.vhid_code = v.vhid_code
     ORDER BY total_points DESC, u.vhv_name ASC
 ");
 $allLeaders = $leaderboardStmt->fetchAll();
@@ -518,7 +520,7 @@ $hcNames = get_health_units();
                             <?php endforeach; ?>
                         </strong>
                         <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">
-                            หมู่ที่ <?= $leader['vhv_moo'] ?>
+                            หมู่ที่ <?= $leader['vhv_moo'] ?><?= !empty($leader['village_name']) ? ' ' . htmlspecialchars($leader['village_name']) : '' ?>
                         </p>
                         <?php if (!empty($leader['is_hl_coach'])): ?>
                             <div
