@@ -10,6 +10,40 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 require_once __DIR__ . '/../config/db.php';
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 
+// Self-healing normalization: check and normalize hoscodes and PIDs if a new import occurred
+try {
+    $checkUnnormalized = $pdo->query("
+        SELECT 1 FROM target_population 
+        WHERE LENGTH(hoscode) < 5 
+           OR pid LIKE '0%' 
+           OR (cid LIKE '0%' AND (pid IS NULL OR pid = '' OR pid = '0'))
+        LIMIT 1
+    ");
+    if ($checkUnnormalized->fetch()) {
+        $pdo->beginTransaction();
+        $pdo->exec("UPDATE target_population SET hoscode = LPAD(hoscode, 5, '0') WHERE LENGTH(hoscode) < 5");
+        $pdo->exec("UPDATE staging_hdc_dm SET hoscode = LPAD(hoscode, 5, '0') WHERE LENGTH(hoscode) < 5");
+        $pdo->exec("UPDATE staging_hdc_ht SET hoscode = LPAD(hoscode, 5, '0') WHERE LENGTH(hoscode) < 5");
+        
+        $pdo->exec("
+            UPDATE target_population 
+            SET pid = TRIM(LEADING '0' FROM SUBSTRING(cid, 6)) 
+            WHERE cid LIKE '0%' 
+              AND (pid IS NULL OR pid = '' OR pid = '0')
+              AND LENGTH(cid) >= 10
+        ");
+        
+        $pdo->exec("UPDATE target_population SET pid = TRIM(LEADING '0' FROM pid) WHERE pid LIKE '0%'");
+        $pdo->exec("UPDATE staging_hdc_dm SET pid = TRIM(LEADING '0' FROM pid) WHERE pid LIKE '0%'");
+        $pdo->exec("UPDATE staging_hdc_ht SET pid = TRIM(LEADING '0' FROM pid) WHERE pid LIKE '0%'");
+        $pdo->commit();
+    }
+} catch (\Exception $e) {
+    if (isset($pdo) && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+}
+
 // Self-healing merge: merge any newly imported masked target duplicates with unmasked JHCIS records
 try {
     $dupesQuery = $pdo->query("
