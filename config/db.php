@@ -1421,6 +1421,23 @@ try {
         // Fail silently
     }
     
+    // Migration: Add index on birth to speed up fuzzy matching
+    try {
+        $stmtMigrationCheck4 = $pdo->prepare("SELECT 1 FROM sys_migrations WHERE migration_name = ?");
+        $stmtMigrationCheck4->execute(['add_idx_target_birth_20260701_v2']);
+        if (!$stmtMigrationCheck4->fetch()) {
+            try {
+                $pdo->exec("ALTER TABLE target_population ADD INDEX idx_target_birth (birth)");
+            } catch (\Exception $e) {
+                // Index might already exist, ignore
+            }
+            $stmtInsert4 = $pdo->prepare("INSERT INTO sys_migrations (migration_name) VALUES (?)");
+            $stmtInsert4->execute(['add_idx_target_birth_20260701_v2']);
+        }
+    } catch (\Exception $e) {
+        // Fail silently
+    }
+    
     // Check if run
     $stmtMigrationCheck = $pdo->prepare("SELECT 1 FROM sys_migrations WHERE migration_name = ?");
     $stmtMigrationCheck->execute(['merge_masked_duplicates_20260611_v2']);

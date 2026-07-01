@@ -9,37 +9,6 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 
 require_once __DIR__ . '/../config/db.php';
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
-
-// TEMPORARY DIAGNOSTIC LOGGING
-try {
-    $diag_pids = ['443', '6172', '355', '212', '7591', '4630', '377', '384'];
-    $log_content = "DIAGNOSTIC LOG FOR HOSCODE 03757\n";
-    foreach ($diag_pids as $dpid) {
-        $log_content .= "\nPID: $dpid\n";
-        $st = $pdo->prepare("SELECT cid, first_name, last_name, hoscode, pid FROM target_population WHERE hoscode = '03757' AND pid = ?");
-        $st->execute([$dpid]);
-        $rows = $st->fetchAll(PDO::FETCH_ASSOC);
-        $log_content .= "  Found in target_population: " . count($rows) . " rows\n";
-        foreach ($rows as $row) {
-            $log_content .= sprintf("    CID: %s | NAME: %s %s | HOS: %s | PID: %s\n", $row['cid'], $row['first_name'], $row['last_name'], $row['hoscode'], $row['pid']);
-        }
-        
-        $prefix = isset($rows[0]['first_name']) ? mb_substr($rows[0]['first_name'], 0, 2) : '';
-        if ($prefix) {
-            $st2 = $pdo->prepare("SELECT cid, first_name, last_name, hoscode, pid FROM target_population WHERE hoscode = '03757' AND first_name LIKE ? AND cid NOT LIKE '0%'");
-            $st2->execute([$prefix . '%']);
-            $rows2 = $st2->fetchAll(PDO::FETCH_ASSOC);
-            $log_content .= "  Fuzzy matches starting with '$prefix' (unmasked): " . count($rows2) . " rows\n";
-            foreach ($rows2 as $row2) {
-                $log_content .= sprintf("    CID: %s | NAME: %s %s | HOS: %s | PID: %s\n", $row2['cid'], $row2['first_name'], $row2['last_name'], $row2['hoscode'], $row2['pid']);
-            }
-        }
-    }
-    file_put_contents(__DIR__ . '/../diagnose_log.txt', $log_content);
-} catch (\Exception $ex) {
-    file_put_contents(__DIR__ . '/../diagnose_log.txt', "ERROR: " . $ex->getMessage());
-}
-
 // Self-healing normalization: check and normalize hoscodes and PIDs if a new import occurred
 try {
     $checkUnnormalized = $pdo->query("
@@ -363,12 +332,12 @@ if (isset($_GET['action'])) {
         SELECT * FROM (
             -- ส่วนที่ 1: ดึงประชากรทั้งหมดจาก target_population ของหมู่ที่เลือก และ LEFT JOIN ข้อมูลผลแล็บจาก staging (ถ้ามี)
             SELECT 
-                COALESCE(NULLIF(tp_real_pcu.cid, ''), t.cid) as cid,
+                COALESCE(NULLIF(tp_real_pcu.cid, ''), NULLIF(tp_real_fuzzy.cid, ''), t.cid) as cid,
                 t.pid,
                 t.hoscode,
                 t.prefix,
-                COALESCE(NULLIF(tp_real_pcu.first_name, ''), NULLIF(t.first_name, ''), 'ไม่ทราบชื่อ') as first_name,
-                COALESCE(NULLIF(tp_real_pcu.last_name, ''), NULLIF(t.last_name, ''), 'ไม่ทราบประวัติ') as last_name,
+                COALESCE(NULLIF(tp_real_pcu.first_name, ''), NULLIF(tp_real_fuzzy.first_name, ''), NULLIF(t.first_name, ''), 'ไม่ทราบชื่อ') as first_name,
+                COALESCE(NULLIF(tp_real_pcu.last_name, ''), NULLIF(tp_real_fuzzy.last_name, ''), NULLIF(t.last_name, ''), 'ไม่ทราบประวัติ') as last_name,
                 t.birth,
                 t.house_no,
                 TIMESTAMPDIFF(YEAR, t.birth, CURDATE()) as age,
@@ -377,7 +346,7 @@ if (isset($_GET['action'])) {
                 t.health_status_origin,
                 t.is_manual,
                 h.bslevel, h.bstest, h.sbp, h.dbp,
-                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = COALESCE(NULLIF(tp_real_pcu.cid, ''), t.cid) AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
+                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = COALESCE(NULLIF(tp_real_pcu.cid, ''), NULLIF(tp_real_fuzzy.cid, ''), t.cid) AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
             FROM target_population t
             LEFT JOIN target_population tp_real_pcu ON (
                 (t.cid LIKE '0%' OR t.cid LIKE '%*%')
@@ -386,6 +355,16 @@ if (isset($_GET['action'])) {
                 AND tp_real_pcu.cid NOT LIKE '0%'
                 AND tp_real_pcu.cid NOT LIKE '%*%'
                 AND tp_real_pcu.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
+            )
+            LEFT JOIN target_population tp_real_fuzzy ON (
+                (t.cid LIKE '0%' OR t.cid LIKE '%*%')
+                AND tp_real_pcu.cid IS NULL
+                AND tp_real_fuzzy.birth = t.birth
+                AND tp_real_fuzzy.sex = t.sex
+                AND tp_real_fuzzy.cid NOT LIKE '0%'
+                AND tp_real_fuzzy.cid NOT LIKE '%*%'
+                AND tp_real_fuzzy.first_name LIKE REPLACE(t.first_name, '*', '%')
+                AND tp_real_fuzzy.last_name LIKE REPLACE(t.last_name, '*', '%')
             )
             LEFT JOIN (
                 SELECT 
@@ -412,12 +391,12 @@ if (isset($_GET['action'])) {
             
             -- ส่วนที่ 2: ดึงรายชื่อประชากรใน staging ของหมู่ที่เลือก แต่ยังไม่ได้เพิ่ม/ไม่มีชื่อใน target_population
             SELECT 
-                COALESCE(NULLIF(tp_real_pcu.cid, ''), h.cid) as cid,
+                COALESCE(NULLIF(tp_real_pcu.cid, ''), NULLIF(tp_real_fuzzy.cid, ''), h.cid) as cid,
                 h.pid,
                 h.hoscode,
                 NULL as prefix,
-                COALESCE(NULLIF(tp_real_pcu.first_name, ''), NULLIF(h.name, ''), 'ไม่ทราบชื่อ') as first_name,
-                COALESCE(NULLIF(tp_real_pcu.last_name, ''), NULLIF(h.lname, ''), 'ไม่ทราบประวัติ') as last_name,
+                COALESCE(NULLIF(tp_real_pcu.first_name, ''), NULLIF(tp_real_fuzzy.first_name, ''), NULLIF(h.name, ''), 'ไม่ทราบชื่อ') as first_name,
+                COALESCE(NULLIF(tp_real_pcu.last_name, ''), NULLIF(tp_real_fuzzy.last_name, ''), NULLIF(h.lname, ''), 'ไม่ทราบประวัติ') as last_name,
                 h.birth,
                 h.addr as house_no,
                 TIMESTAMPDIFF(YEAR, h.birth, CURDATE()) as age,
@@ -426,7 +405,7 @@ if (isset($_GET['action'])) {
                 h.health_status_origin,
                 0 as is_manual,
                 h.bslevel, h.bstest, h.sbp, h.dbp,
-                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = COALESCE(NULLIF(tp_real_pcu.cid, ''), h.cid) AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
+                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = COALESCE(NULLIF(tp_real_pcu.cid, ''), NULLIF(tp_real_fuzzy.cid, ''), h.cid) AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
             FROM (
                 SELECT 
                     cid, pid, hoscode, name, lname, birth, addr, check_vhid,
@@ -469,6 +448,15 @@ if (isset($_GET['action'])) {
                 AND tp_real_pcu.cid NOT LIKE '0%'
                 AND tp_real_pcu.cid NOT LIKE '%*%'
                 AND tp_real_pcu.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
+            )
+            LEFT JOIN target_population tp_real_fuzzy ON (
+                (h.cid LIKE '0%' OR h.cid LIKE '%*%')
+                AND tp_real_pcu.cid IS NULL
+                AND tp_real_fuzzy.birth = h.birth
+                AND tp_real_fuzzy.cid NOT LIKE '0%'
+                AND tp_real_fuzzy.cid NOT LIKE '%*%'
+                AND tp_real_fuzzy.first_name LIKE REPLACE(h.name, '*', '%')
+                AND tp_real_fuzzy.last_name LIKE REPLACE(h.lname, '*', '%')
             )
             WHERE t.cid IS NULL
         ) main_result
