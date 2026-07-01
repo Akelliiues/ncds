@@ -10,6 +10,36 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 require_once __DIR__ . '/../config/db.php';
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 
+// TEMPORARY DIAGNOSTIC LOGGING
+try {
+    $diag_pids = ['443', '6172', '355', '212', '7591', '4630', '377', '384'];
+    $log_content = "DIAGNOSTIC LOG FOR HOSCODE 03757\n";
+    foreach ($diag_pids as $dpid) {
+        $log_content .= "\nPID: $dpid\n";
+        $st = $pdo->prepare("SELECT cid, first_name, last_name, hoscode, pid FROM target_population WHERE hoscode = '03757' AND pid = ?");
+        $st->execute([$dpid]);
+        $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+        $log_content .= "  Found in target_population: " . count($rows) . " rows\n";
+        foreach ($rows as $row) {
+            $log_content .= sprintf("    CID: %s | NAME: %s %s | HOS: %s | PID: %s\n", $row['cid'], $row['first_name'], $row['last_name'], $row['hoscode'], $row['pid']);
+        }
+        
+        $prefix = isset($rows[0]['first_name']) ? mb_substr($rows[0]['first_name'], 0, 2) : '';
+        if ($prefix) {
+            $st2 = $pdo->prepare("SELECT cid, first_name, last_name, hoscode, pid FROM target_population WHERE hoscode = '03757' AND first_name LIKE ? AND cid NOT LIKE '0%'");
+            $st2->execute([$prefix . '%']);
+            $rows2 = $st2->fetchAll(PDO::FETCH_ASSOC);
+            $log_content .= "  Fuzzy matches starting with '$prefix' (unmasked): " . count($rows2) . " rows\n";
+            foreach ($rows2 as $row2) {
+                $log_content .= sprintf("    CID: %s | NAME: %s %s | HOS: %s | PID: %s\n", $row2['cid'], $row2['first_name'], $row2['last_name'], $row2['hoscode'], $row2['pid']);
+            }
+        }
+    }
+    file_put_contents(__DIR__ . '/../diagnose_log.txt', $log_content);
+} catch (\Exception $ex) {
+    file_put_contents(__DIR__ . '/../diagnose_log.txt', "ERROR: " . $ex->getMessage());
+}
+
 // Self-healing normalization: check and normalize hoscodes and PIDs if a new import occurred
 try {
     $checkUnnormalized = $pdo->query("
