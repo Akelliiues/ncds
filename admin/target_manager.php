@@ -195,15 +195,11 @@ if (isset($_GET['action'])) {
             FROM target_population t
             LEFT JOIN target_population tp_real_pcu ON (
                 (t.cid LIKE '0%' OR t.cid LIKE '%*%')
-                AND (tp_real_pcu.hoscode = t.hoscode OR tp_real_pcu.hoscode = TRIM(LEADING '0' FROM t.hoscode) OR tp_real_pcu.hoscode = LPAD(t.hoscode, 5, '0'))
+                AND tp_real_pcu.hoscode = t.hoscode
+                AND tp_real_pcu.pid = t.pid
                 AND tp_real_pcu.cid NOT LIKE '0%'
                 AND tp_real_pcu.cid NOT LIKE '%*%'
                 AND tp_real_pcu.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
-                AND (
-                    (t.pid IS NOT NULL AND t.pid != 0 AND t.pid != '' AND (tp_real_pcu.pid = t.pid OR tp_real_pcu.pid = TRIM(LEADING '0' FROM t.pid) OR tp_real_pcu.pid = LPAD(t.pid, 7, '0') OR tp_real_pcu.pid = LPAD(t.pid, 8, '0')))
-                    OR
-                    ((t.pid IS NULL OR t.pid = 0 OR t.pid = '') AND t.cid LIKE '0%' AND (tp_real_pcu.pid = TRIM(LEADING '0' FROM SUBSTRING(t.cid, 6)) OR tp_real_pcu.pid = SUBSTRING(t.cid, 6)))
-                )
             )
             LEFT JOIN (
                 SELECT 
@@ -282,15 +278,11 @@ if (isset($_GET['action'])) {
             LEFT JOIN target_population t ON t.hoscode = h.hoscode AND t.pid = h.pid
             LEFT JOIN target_population tp_real_pcu ON (
                 (h.cid LIKE '0%' OR h.cid LIKE '%*%')
-                AND (tp_real_pcu.hoscode = h.hoscode OR tp_real_pcu.hoscode = TRIM(LEADING '0' FROM h.hoscode) OR tp_real_pcu.hoscode = LPAD(h.hoscode, 5, '0'))
+                AND tp_real_pcu.hoscode = h.hoscode
+                AND tp_real_pcu.pid = h.pid
                 AND tp_real_pcu.cid NOT LIKE '0%'
                 AND tp_real_pcu.cid NOT LIKE '%*%'
                 AND tp_real_pcu.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
-                AND (
-                    (h.pid IS NOT NULL AND h.pid != 0 AND h.pid != '' AND (tp_real_pcu.pid = h.pid OR tp_real_pcu.pid = TRIM(LEADING '0' FROM h.pid) OR tp_real_pcu.pid = LPAD(h.pid, 7, '0') OR tp_real_pcu.pid = LPAD(h.pid, 8, '0')))
-                    OR
-                    ((h.pid IS NULL OR h.pid = 0 OR h.pid = '') AND h.cid LIKE '0%' AND (tp_real_pcu.pid = TRIM(LEADING '0' FROM SUBSTRING(h.cid, 6)) OR tp_real_pcu.pid = SUBSTRING(h.cid, 6)))
-                )
             )
             WHERE t.cid IS NULL
         ) main_result

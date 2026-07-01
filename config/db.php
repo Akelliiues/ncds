@@ -1389,6 +1389,30 @@ try {
             $stmtInsert2 = $pdo->prepare("INSERT INTO sys_migrations (migration_name) VALUES (?)");
             $stmtInsert2->execute(['strip_pid_leading_zeros_20260612']);
         }
+    // Migration: Normalize hoscodes and PIDs and populate missing PIDs from CID
+    try {
+        $stmtMigrationCheck3 = $pdo->prepare("SELECT 1 FROM sys_migrations WHERE migration_name = ?");
+        $stmtMigrationCheck3->execute(['normalize_hoscode_pid_20260701']);
+        if (!$stmtMigrationCheck3->fetch()) {
+            $pdo->exec("UPDATE target_population SET hoscode = LPAD(hoscode, 5, '0') WHERE LENGTH(hoscode) < 5");
+            $pdo->exec("UPDATE staging_hdc_dm SET hoscode = LPAD(hoscode, 5, '0') WHERE LENGTH(hoscode) < 5");
+            $pdo->exec("UPDATE staging_hdc_ht SET hoscode = LPAD(hoscode, 5, '0') WHERE LENGTH(hoscode) < 5");
+            
+            $pdo->exec("
+                UPDATE target_population 
+                SET pid = TRIM(LEADING '0' FROM SUBSTRING(cid, 6)) 
+                WHERE cid LIKE '0%' 
+                  AND (pid IS NULL OR pid = '' OR pid = '0')
+                  AND LENGTH(cid) >= 10
+            ");
+            
+            $pdo->exec("UPDATE target_population SET pid = TRIM(LEADING '0' FROM pid) WHERE pid LIKE '0%'");
+            $pdo->exec("UPDATE staging_hdc_dm SET pid = TRIM(LEADING '0' FROM pid) WHERE pid LIKE '0%'");
+            $pdo->exec("UPDATE staging_hdc_ht SET pid = TRIM(LEADING '0' FROM pid) WHERE pid LIKE '0%'");
+            
+            $stmtInsert3 = $pdo->prepare("INSERT INTO sys_migrations (migration_name) VALUES (?)");
+            $stmtInsert3->execute(['normalize_hoscode_pid_20260701']);
+        }
     } catch (\Exception $e) {
         // Fail silently
     }
