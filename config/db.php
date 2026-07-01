@@ -1389,6 +1389,10 @@ try {
             $stmtInsert2 = $pdo->prepare("INSERT INTO sys_migrations (migration_name) VALUES (?)");
             $stmtInsert2->execute(['strip_pid_leading_zeros_20260612']);
         }
+    } catch (\Exception $e) {
+        // Fail silently
+    }
+    
     // Migration: Normalize hoscodes and PIDs and populate missing PIDs from CID
     try {
         $stmtMigrationCheck3 = $pdo->prepare("SELECT 1 FROM sys_migrations WHERE migration_name = ?");
