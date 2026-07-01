@@ -116,6 +116,18 @@ if (isset($_GET['action'])) {
         
         $isAllMoo = ($moo === 'all' || $moo === '');
 
+        $vhid_code = '';
+        if (!$isAllMoo) {
+            try {
+                $inPlaceholdersV = implode(',', array_fill(0, count($hoscodes), '?'));
+                $stmtV = $pdo->prepare("SELECT vhid_code FROM villages WHERE hoscode IN ($inPlaceholdersV) AND moo = ? LIMIT 1");
+                $stmtV->execute(array_merge($hoscodes, [intval($moo)]));
+                $vhid_code = $stmtV->fetchColumn();
+            } catch (Exception $e) {
+                $vhid_code = '';
+            }
+        }
+
         if ($isAllMoo) {
             $params = array_merge(
                 $hoscodes, // dm ใน ส่วนที่ 1
@@ -128,21 +140,37 @@ if (isset($_GET['action'])) {
             $mooCond2 = "";
             $mooCond3 = "";
         } else {
-            $moo_str = sprintf('%02d', intval($moo));
             $moo_int = intval($moo);
-            $params = array_merge(
-                $hoscodes, // dm ใน ส่วนที่ 1
-                $hoscodes, // ht ใน ส่วนที่ 1
-                $hoscodes, // target_population ใน ส่วนที่ 1
-                [$moo_int], // moo_int ใน ส่วนที่ 1
-                $hoscodes, // dm ใน ส่วนที่ 2
-                [$moo_str], // moo_str ใน ส่วนที่ 2 dm
-                $hoscodes, // ht ใน ส่วนที่ 2
-                [$moo_str]  // moo_str ใน ส่วนที่ 2 ht
-            );
-            $mooCond1 = " AND t.moo = ?";
-            $mooCond2 = " AND RIGHT(dm.check_vhid, 2) = ?";
-            $mooCond3 = " AND RIGHT(ht.check_vhid, 2) = ?";
+            if (!empty($vhid_code)) {
+                $params = array_merge(
+                    $hoscodes, // dm ใน ส่วนที่ 1
+                    $hoscodes, // ht ใน ส่วนที่ 1
+                    $hoscodes, // target_population ใน ส่วนที่ 1
+                    [$moo_int], // moo_int ใน ส่วนที่ 1
+                    $hoscodes, // dm ใน ส่วนที่ 2
+                    [$vhid_code], // check_vhid ใน ส่วนที่ 2 dm
+                    $hoscodes, // ht ใน ส่วนที่ 2
+                    [$vhid_code]  // check_vhid ใน ส่วนที่ 2 ht
+                );
+                $mooCond1 = " AND t.moo = ?";
+                $mooCond2 = " AND dm.check_vhid = ?";
+                $mooCond3 = " AND ht.check_vhid = ?";
+            } else {
+                $moo_str = sprintf('%02d', $moo_int);
+                $params = array_merge(
+                    $hoscodes, // dm ใน ส่วนที่ 1
+                    $hoscodes, // ht ใน ส่วนที่ 1
+                    $hoscodes, // target_population ใน ส่วนที่ 1
+                    [$moo_int], // moo_int ใน ส่วนที่ 1
+                    $hoscodes, // dm ใน ส่วนที่ 2
+                    [$moo_str], // moo_str ใน ส่วนที่ 2 dm
+                    $hoscodes, // ht ใน ส่วนที่ 2
+                    [$moo_str]  // moo_str ใน ส่วนที่ 2 ht
+                );
+                $mooCond1 = " AND t.moo = ?";
+                $mooCond2 = " AND RIGHT(dm.check_vhid, 2) = ?";
+                $mooCond3 = " AND RIGHT(ht.check_vhid, 2) = ?";
+            }
         }
 
         $sql = "
