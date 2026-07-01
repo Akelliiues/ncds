@@ -10,6 +10,128 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 require_once __DIR__ . '/../config/db.php';
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 
+// Self-healing merge: merge any newly imported masked target duplicates with unmasked JHCIS records
+try {
+    $dupesQuery = $pdo->query("
+        SELECT 
+            t1.cid AS masked_cid, t1.need_screen_dm AS masked_dm, t1.need_screen_ht AS masked_ht, t1.health_status_origin AS masked_status,
+            t2.cid AS real_cid
+        FROM target_population t1
+        JOIN target_population t2 
+          ON t1.hoscode = t2.hoscode 
+         AND t1.pid = t2.pid
+        WHERE (
+            t1.cid LIKE '%*%' 
+            OR t1.first_name LIKE '%*%' 
+            OR t1.cid LIKE '0%' 
+            OR t1.cid = CONCAT(t1.hoscode, LPAD(t1.pid, 8, '0'))
+            OR t1.cid = CONCAT(t1.hoscode, t1.pid)
+          )
+          AND (
+            t2.cid NOT LIKE '%*%' 
+            AND t2.first_name NOT LIKE '%*%' 
+            AND t2.cid NOT LIKE '0%' 
+            AND t2.cid <> CONCAT(t2.hoscode, LPAD(t2.pid, 8, '0'))
+            AND t2.cid <> CONCAT(t2.hoscode, t2.pid)
+          )
+          AND t1.cid <> t2.cid
+          AND t1.pid IS NOT NULL AND t1.pid != ''
+    ");
+    $dupes = $dupesQuery->fetchAll();
+    
+    if (!empty($dupes)) {
+        $pdo->beginTransaction();
+        $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
+        
+        $stmtUpdateReal = $pdo->prepare("
+            UPDATE target_population 
+            SET 
+                need_screen_dm = CASE WHEN ? = 1 THEN 1 ELSE need_screen_dm END,
+                need_screen_ht = CASE WHEN ? = 1 THEN 1 ELSE need_screen_ht END,
+                health_status_origin = CASE WHEN health_status_origin = 'NORMAL' OR health_status_origin = '' OR health_status_origin IS NULL THEN ? ELSE health_status_origin END,
+                updated_at = NOW()
+            WHERE cid = ?
+        ");
+        
+        $stmtGetAssign = $pdo->prepare("SELECT * FROM task_assignments WHERE target_cid = ?");
+        $stmtDeleteAssign = $pdo->prepare("DELETE FROM task_assignments WHERE assignment_id = ?");
+        $stmtUpdateAssignCid = $pdo->prepare("UPDATE task_assignments SET target_cid = ? WHERE assignment_id = ?");
+        
+        $stmtGetDpac = $pdo->prepare("SELECT * FROM dpac_enrollments WHERE cid = ?");
+        $stmtDeleteDpac = $pdo->prepare("DELETE FROM dpac_enrollments WHERE enrollment_id = ?");
+        $stmtUpdateDpacCid = $pdo->prepare("UPDATE dpac_enrollments SET cid = ? WHERE enrollment_id = ?");
+        
+        $stmtDeleteTarget = $pdo->prepare("DELETE FROM target_population WHERE cid = ?");
+        
+        foreach ($dupes as $dup) {
+            $mCid = $dup['masked_cid'];
+            $rCid = $dup['real_cid'];
+            
+            $stmtUpdateReal->execute([$dup['masked_dm'], $dup['masked_ht'], $dup['masked_status'], $rCid]);
+            
+            $stmtGetAssign->execute([$mCid]);
+            $mAssigns = $stmtGetAssign->fetchAll();
+            
+            $stmtGetAssign->execute([$rCid]);
+            $rAssigns = $stmtGetAssign->fetchAll();
+            
+            $rByYear = [];
+            foreach ($rAssigns as $ra) {
+                $rByYear[$ra['budget_year']] = $ra;
+            }
+            
+            foreach ($mAssigns as $ma) {
+                $year = $ma['budget_year'];
+                if (isset($rByYear[$year])) {
+                    $ra = $rByYear[$year];
+                    $checkScreen = $pdo->prepare("SELECT COUNT(*) FROM screening_results WHERE assignment_id = ?");
+                    $checkScreen->execute([$ma['assignment_id']]);
+                    $hasScreening = $checkScreen->fetchColumn() > 0;
+                    
+                    if ($hasScreening) {
+                        $moveScreen = $pdo->prepare("UPDATE screening_results SET assignment_id = ? WHERE assignment_id = ?");
+                        $moveScreen->execute([$ra['assignment_id'], $ma['assignment_id']]);
+                    }
+                    $stmtDeleteAssign->execute([$ma['assignment_id']]);
+                } else {
+                    $stmtUpdateAssignCid->execute([$rCid, $ma['assignment_id']]);
+                }
+            }
+            
+            $stmtGetDpac->execute([$mCid]);
+            $mDpac = $stmtGetDpac->fetchAll();
+            
+            $stmtGetDpac->execute([$rCid]);
+            $rDpac = $stmtGetDpac->fetchAll();
+            
+            $rDpacByYear = [];
+            foreach ($rDpac as $rd) {
+                $rDpacByYear[$rd['budget_year']] = $rd;
+            }
+            
+            foreach ($mDpac as $md) {
+                $year = $md['budget_year'];
+                if (isset($rDpacByYear[$year])) {
+                    $moveFollowups = $pdo->prepare("UPDATE dpac_followups SET enrollment_id = ? WHERE enrollment_id = ?");
+                    $moveFollowups->execute([$rDpacByYear[$year]['enrollment_id'], $md['enrollment_id']]);
+                    $stmtDeleteDpac->execute([$md['enrollment_id']]);
+                } else {
+                    $stmtUpdateDpacCid->execute([$rCid, $md['enrollment_id']]);
+                }
+            }
+            
+            $stmtDeleteTarget->execute([$mCid]);
+        }
+        
+        $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
+        $pdo->commit();
+    }
+} catch (\Exception $e) {
+    if (isset($pdo) && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+}
+
 $jsData = [];
 $subsList = [];
 try {
