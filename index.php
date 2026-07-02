@@ -167,6 +167,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             letter-spacing: 1px;
             text-transform: uppercase;
         }
+
+        .brand-logo {
+            width: 80px;
+            height: auto;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
+            animation: float 4s ease-in-out infinite;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.4s ease;
+            cursor: pointer;
+        }
+
+        .brand-logo:hover {
+            transform: scale(1.15) rotate(4deg) translateY(-2px);
+            filter: drop-shadow(0 12px 20px rgba(245, 158, 11, 0.45));
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0px) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-6px) rotate(1deg);
+            }
+            100% {
+                transform: translateY(0px) rotate(0deg);
+            }
+        }
     </style>
 </head>
 
@@ -174,8 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="login-container">
         <div class="login-brand"
             style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 12px;">
-            <img src="assets/icon.png" alt="NCDs Prevention Logo"
-                style="width: 80px; height: auto; margin-bottom: 8px; filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));">
+            <img src="assets/icon.png" alt="NCDs Prevention Logo" class="brand-logo">
             <span>สำนักงานสาธารณสุขอำเภอตาลสุม</span>
             <h1>ระบบคัดกรอง NCD Portal</h1>
         </div>
