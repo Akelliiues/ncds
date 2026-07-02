@@ -30,6 +30,29 @@ try {
     ];
 }
 
+// ดึงข้อมูลความสัมพันธ์หมู่บ้านและ รพ.สต. เพื่อใช้ในการกรองข้อมูลให้ตรงกับที่ตั้งค่าในระบบ
+$relations = [];
+try {
+    $stmtV = $pdo->query("SELECT vhid_code, sub_district_code, moo, village_name, hoscode FROM villages ORDER BY hoscode ASC, moo ASC");
+    $allVillages = $stmtV->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($allVillages as $v) {
+        $hc = $v['hoscode'];
+        if (empty($hc)) continue;
+        if (!isset($relations[$hc])) {
+            $relations[$hc] = [
+                'tambon' => $v['sub_district_code'],
+                'villages' => []
+            ];
+        }
+        $relations[$hc]['villages'][] = [
+            'moo' => intval($v['moo']),
+            'name' => $v['village_name']
+        ];
+    }
+} catch (\Exception $e) {
+    // ปล่อยว่างไว้
+}
+
 // Parameters from request
 $filter_hoscode = $_GET['hoscode'] ?? '';
 $filter_tambon = $_GET['tambon'] ?? '';
@@ -1273,107 +1296,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
     </div>
 
     <script>
-        const relations = {
-            "10957": {
-                tambon: "341801",
-                villages: [
-                    { moo: 1, name: "บ้านม่วงโคน" },
-                    { moo: 2, name: "บ้านดอนรังกา" },
-                    { moo: 3, name: "บ้านนาห้วยแคน" },
-                    { moo: 5, name: "บ้านนามน" },
-                    { moo: 10, name: "บ้านนามน" },
-                    { moo: 11, name: "บ้านตาลสุม" },
-                    { moo: 12, name: "บ้านคำไม้ตาย" }
-                ]
-            },
-            "03751": {
-                tambon: "341801",
-                villages: [
-                    { moo: 4, name: "บ้านดอนพันชาด" },
-                    { moo: 6, name: "บ้านดอนตะลี" },
-                    { moo: 7, name: "บ้านปากห้วย" },
-                    { moo: 8, name: "บ้านโนนค้อ" },
-                    { moo: 9, name: "บ้านแก่งกบ" },
-                    { moo: 13, name: "บ้านปากเซ" },
-                    { moo: 14, name: "บ้านโนนสวรรค์" },
-                    { moo: 15, name: "บ้านทุ่งเจริญ" }
-                ]
-            },
-            "03752": {
-                tambon: "341802",
-                villages: [
-                    { moo: 1, name: "บ้านสำโรงใหญ่" },
-                    { moo: 2, name: "บ้านสำโรงกลาง" },
-                    { moo: 3, name: "บ้านนาโพธิ์" },
-                    { moo: 4, name: "บ้านสำโรงใต้" },
-                    { moo: 5, name: "บ้านนาแพง" },
-                    { moo: 6, name: "บ้านหนองโน" },
-                    { moo: 7, name: "บ้านหนองสะเดา" },
-                    { moo: 8, name: "บ้านทุ่งเจริญ" }
-                ]
-            },
-            "03753": {
-                tambon: "341803",
-                villages: [
-                    { moo: 1, name: "บ้านจิกเทิง" },
-                    { moo: 2, name: "บ้านจิกลุ่ม" },
-                    { moo: 3, name: "บ้านเชียงแก้ว" },
-                    { moo: 4, name: "บ้านเชียงแก้ว" },
-                    { moo: 5, name: "บ้านดอนโด่" },
-                    { moo: 6, name: "บ้านดอนยูง" },
-                    { moo: 7, name: "บ้านค้อ" },
-                    { moo: 8, name: "บ้านดอนแป้นลม" },
-                    { moo: 9, name: "บ้านสร้างคำ" }
-                ]
-            },
-            "03754": {
-                tambon: "341804",
-                villages: [
-                    { moo: 1, name: "บ้านหนองกุงใหญ่" },
-                    { moo: 2, name: "บ้านหนองกุงน้อย" },
-                    { moo: 3, name: "บ้านคำแคน" },
-                    { moo: 4, name: "บ้านสร้างแสง" },
-                    { moo: 5, name: "บ้านคำเตยใต้" },
-                    { moo: 6, name: "บ้านสร้างหว้า" },
-                    { moo: 7, name: "บ้านคำเตยเหนือ" },
-                    { moo: 8, name: "บ้านสร้างหว้าพัฒนา" }
-                ]
-            },
-            "03755": {
-                tambon: "341805",
-                villages: [
-                    { moo: 1, name: "บ้านนาคาย" },
-                    { moo: 2, name: "บ้านโนนจิก" },
-                    { moo: 3, name: "บ้านหนองเป็ด" },
-                    { moo: 4, name: "บ้านโนนยาง" },
-                    { moo: 5, name: "บ้านดอนขวาง" },
-                    { moo: 6, name: "บ้านดอนหวาย" }
-                ]
-            },
-            "03756": {
-                tambon: "341805",
-                villages: [
-                    { moo: 7, name: "บ้านโคกคล้าย" },
-                    { moo: 8, name: "บ้านคำหนามแท่ง" },
-                    { moo: 9, name: "บ้านคำผักหนอก" },
-                    { moo: 10, name: "บ้านคำฮี" },
-                    { moo: 11, name: "บ้านห่องแดง" },
-                    { moo: 12, name: "บ้านโนนสำราญ" },
-                    { moo: 13, name: "บ้านโนนเจริญ" }
-                ]
-            },
-            "03757": {
-                tambon: "341806",
-                villages: [
-                    { moo: 1, name: "บ้านคำหว้า" },
-                    { moo: 2, name: "บ้านคำหว้า" },
-                    { moo: 3, name: "บ้านห้วยดู่" },
-                    { moo: 4, name: "บ้านนาทมเหนือ" },
-                    { moo: 5, name: "บ้านไฮหย่อง" },
-                    { moo: 6, name: "บ้านนาทมใต้" }
-                ]
-            }
-        };
+        const relations = <?= json_encode($relations, JSON_UNESCAPED_UNICODE) ?>;
 
         function onHoscodeChange() {
             const hSelect = document.getElementById('hoscode');
