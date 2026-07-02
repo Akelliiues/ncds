@@ -19,10 +19,24 @@ document.addEventListener('DOMContentLoaded', () => {
         navigator.serviceWorker.register(swPath, { scope: swScope })
             .then(reg => {
                 console.log('SW: Registered successfully with scope:', reg.scope);
+                // Check for updates periodically (every 5 minutes)
+                setInterval(() => {
+                    reg.update().catch(e => console.log('SW: Update check failed', e));
+                }, 5 * 60 * 1000);
             })
             .catch(err => {
                 console.error('SW: Registration failed:', err);
             });
+
+        // Auto reload when new SW is activated
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!refreshing) {
+                refreshing = true;
+                console.log('SW: New version activated, reloading...');
+                window.location.reload();
+            }
+        });
     }
 
     // 2. Custom PWA Install Banner for Android/Chrome

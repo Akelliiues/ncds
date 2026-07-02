@@ -1,6 +1,6 @@
 // vhv/service-worker.js
 
-const CACHE_NAME = 'ncd-tansum-v5';
+const CACHE_NAME = 'ncd-tansum-v6_20260702';
 const ASSETS_TO_CACHE = [
     'login.php',
     'index.php',
