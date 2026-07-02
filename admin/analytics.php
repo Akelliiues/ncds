@@ -229,6 +229,122 @@ foreach ($mapTargets as $t) {
 $mapCenterLat = $coordCount > 0 ? $latSum / $coordCount : 15.4294;
 $mapCenterLng = $coordCount > 0 ? $lngSum / $coordCount : 104.9922;
 $mapInitialZoom = $coordCount > 0 ? 13 : 12;
+
+// 4. Spatial Prevalence Analysis (Prevalence Hotspots)
+$spatialPrevalenceStmt = $pdo->prepare("
+    SELECT 
+        p.hoscode, p.moo,
+        COUNT(DISTINCT a.assignment_id) as total_screened,
+        SUM(CASE WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN 1 ELSE 0 END) as high_risk,
+        SUM(CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) 
+                  AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as moderate_risk
+    FROM task_assignments a
+    JOIN target_population p ON a.target_cid = p.cid
+    JOIN screening_results s ON a.assignment_id = s.assignment_id
+    WHERE a.assignment_status = 'completed' AND p.hoscode IN ($inPlaceholders)
+    GROUP BY p.hoscode, p.moo
+");
+$spatialPrevalenceStmt->execute($hoscodes);
+$spatialPrevalenceData = $spatialPrevalenceStmt->fetchAll(PDO::FETCH_ASSOC);
+
+$prevalenceList = [];
+foreach ($spatialPrevalenceData as $row) {
+    $total_screened = intval($row['total_screened']);
+    if ($total_screened === 0) continue;
+    
+    $risk_count = intval($row['high_risk']) + intval($row['moderate_risk']);
+    $rate = ($risk_count / $total_screened) * 100;
+    
+    $village_only = $hoscode_villages[$row['hoscode']]['villages'][intval($row['moo'])] ?? get_village_only_name($hoscode_villages[$row['hoscode']]['tambon'], $row['moo']);
+    $village_name = $village_only ?: 'หมู่ที่ ' . $row['moo'];
+    
+    $display_name = $admin_hoscode ? $village_name : ($hc_names[$row['hoscode']] ?? $row['hoscode']) . " (" . $village_name . ")";
+    
+    $prevalenceList[] = [
+        'name' => $display_name,
+        'total_screened' => $total_screened,
+        'risk_count' => $risk_count,
+        'rate' => $rate
+    ];
+}
+
+// Sort by rate DESC for highest prevalence hotspots
+usort($prevalenceList, function($a, $b) {
+    return $b['rate'] <=> $a['rate'];
+});
+$highestPrevalence = array_slice($prevalenceList, 0, 3);
+
+$improvementList = [];
+foreach ($villageImprovementData as $row) {
+    $completed = intval($row['completed_followups']);
+    if ($completed === 0) continue;
+    
+    $improved = intval($row['improved_count']);
+    $rate = ($improved / $completed) * 100;
+    
+    $village_only = $hoscode_villages[$row['hoscode']]['villages'][intval($row['moo'])] ?? get_village_only_name($hoscode_villages[$row['hoscode']]['tambon'], $row['moo']);
+    $village_name = $village_only ?: 'หมู่ที่ ' . $row['moo'];
+    
+    $display_name = $admin_hoscode ? $village_name : ($hc_names[$row['hoscode']] ?? $row['hoscode']) . " (" . $village_name . ")";
+    
+    $improvementList[] = [
+        'name' => $display_name,
+        'completed' => $completed,
+        'improved' => $improved,
+        'rate' => $rate
+    ];
+}
+
+// Sort by rate DESC for best improvement
+usort($improvementList, function($a, $b) {
+    return $b['rate'] <=> $a['rate'];
+});
+$bestImprovement = array_slice($improvementList, 0, 3);
+
+// Sort by rate ASC for concerning areas (lowest improvement rate)
+$tempList = $improvementList;
+usort($tempList, function($a, $b) {
+    return $a['rate'] <=> $b['rate'];
+});
+$concerningAreas = array_slice($tempList, 0, 3);
+
+
+// 5. Monthly Trend data for forecasting
+$monthlyTrendStmt = $pdo->prepare("
+    SELECT 
+        DATE_FORMAT(combined.created_at, '%Y-%m') as month_year,
+        SUM(CASE WHEN combined.risk_level = 'HIGH' THEN 1 ELSE 0 END) as high_risk,
+        SUM(CASE WHEN combined.risk_level = 'MODERATE' THEN 1 ELSE 0 END) as moderate_risk
+    FROM (
+        SELECT s.created_at,
+               CASE 
+                   WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN 'HIGH'
+                   WHEN ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 'MODERATE'
+                   ELSE 'NORMAL'
+               END AS risk_level
+        FROM screening_results s
+        JOIN task_assignments a ON s.assignment_id = a.assignment_id
+        JOIN target_population p ON a.target_cid = p.cid
+        WHERE a.assignment_status = 'completed' AND p.hoscode IN ($inPlaceholders)
+
+        UNION ALL
+
+        SELECT f.completed_at AS created_at,
+               CASE 
+                   WHEN f.health_risk_level = 'เสี่ยงสูง' THEN 'HIGH'
+                   WHEN f.health_risk_level = 'เสี่ยง' THEN 'MODERATE'
+                   ELSE 'NORMAL'
+               END AS risk_level
+        FROM dpac_followups f
+        JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
+        JOIN target_population p ON e.cid = p.cid
+        WHERE f.status = 'completed' AND p.hoscode IN ($inPlaceholders)
+    ) AS combined
+    GROUP BY DATE_FORMAT(combined.created_at, '%Y-%m')
+    ORDER BY month_year ASC
+");
+$monthlyTrendStmt->execute(array_merge($hoscodes, $hoscodes));
+$monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -364,6 +480,103 @@ $mapInitialZoom = $coordCount > 0 ? 13 : 12;
         <p style="color: var(--text-secondary); margin-bottom: 30px; font-size: 15px;">
             หน่วยบริการผู้รับผิดชอบ: <strong style="color: var(--color-accent);"><?= htmlspecialchars($admin_title) ?></strong>
         </p>
+
+        <!-- AI-Powered Executive Summary Diagnostic Card -->
+        <div class="card-dark" style="margin-bottom: 30px; border-left: 4px solid var(--color-primary); padding: 24px;">
+            <h3 style="color: var(--color-primary); margin-top: 0; margin-bottom: 16px; font-size: 17px; display: flex; align-items: center; gap: 8px;">
+                <span>🔮 บทวิเคราะห์เชิงรุกและชี้เป้าทางระบาดวิทยา (Spatial & Predictive Insights)</span>
+            </h3>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 20px;">
+                <!-- Hotspots Card -->
+                <div style="background: rgba(239, 68, 68, 0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(239, 68, 68, 0.15);">
+                    <div style="font-weight: bold; color: #ef4444; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                        <span>🔴 จุดวิกฤตชุกชุมกลุ่มเสี่ยงสูงสุด (Prevalence Hotspots)</span>
+                    </div>
+                    <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.8;">
+                        <?php if (empty($highestPrevalence)): ?>
+                            <li>ยังไม่มีข้อมูลการประเมินคัดกรอง</li>
+                        <?php else: ?>
+                            <?php foreach ($highestPrevalence as $idx => $p): ?>
+                                <li>
+                                    <strong>อันดับ <?= $idx + 1 ?>:</strong> <?= htmlspecialchars($p['name']) ?> 
+                                    <span style="color: #ef4444; font-weight: bold;"><?= number_format($p['rate'], 1) ?>%</span> 
+                                    <span style="font-size: 11px; color: var(--text-muted);">(พบเสี่ยง <?= $p['risk_count'] ?> จาก <?= $p['total_screened'] ?> ราย)</span>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </ul>
+                </div>
+
+                <!-- Best Improvement -->
+                <div style="background: rgba(34, 197, 94, 0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(34, 197, 94, 0.15);">
+                    <div style="font-weight: bold; color: #22c55e; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                        <span>🟢 พื้นที่แนวโน้มพัฒนาการสุขภาพสูงสุด (Most Improved)</span>
+                    </div>
+                    <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.8;">
+                        <?php if (empty($bestImprovement)): ?>
+                            <li>ยังไม่มีข้อมูลผู้เข้าร่วมโครงการติดตามผล</li>
+                        <?php else: ?>
+                            <?php foreach ($bestImprovement as $idx => $bi): ?>
+                                <li>
+                                    <strong>อันดับ <?= $idx + 1 ?>:</strong> <?= htmlspecialchars($bi['name']) ?> 
+                                    <span style="color: #22c55e; font-weight: bold;"><?= number_format($bi['rate'], 1) ?>%</span>
+                                    <span style="font-size: 11px; color: var(--text-muted);">(ดีขึ้น <?= $bi['improved'] ?> จาก <?= $bi['completed'] ?> ราย)</span>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </ul>
+                </div>
+
+                <!-- Concerning Areas -->
+                <div style="background: rgba(245, 158, 11, 0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(245, 158, 11, 0.15);">
+                    <div style="font-weight: bold; color: #f59e0b; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                        <span>⚠️ พื้นที่ที่ยังทรงตัว/ควรเฝ้าระวังเพิ่ม (Concerning Areas)</span>
+                    </div>
+                    <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.8;">
+                        <?php if (empty($concerningAreas)): ?>
+                            <li>ยังไม่มีข้อมูลผู้เข้าร่วมโครงการติดตามผล</li>
+                        <?php else: ?>
+                            <?php foreach ($concerningAreas as $idx => $ca): ?>
+                                <li>
+                                    <strong>อันดับ <?= $idx + 1 ?>:</strong> <?= htmlspecialchars($ca['name']) ?> 
+                                    <span style="color: #f59e0b; font-weight: bold;"><?= number_format($ca['rate'], 1) ?>%</span>
+                                    <span style="font-size: 11px; color: var(--text-muted);">(ดีขึ้น <?= $ca['improved'] ?> จาก <?= $ca['completed'] ?> ราย)</span>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </ul>
+                </div>
+            </div>
+            
+            <div style="margin-top: 18px; font-size: 13px; color: var(--text-muted); line-height: 1.6; border-top: 1px dashed var(--border-color); padding-top: 12px;">
+                💡 <strong>คำแนะนำเชิงกลยุทธ์:</strong> 
+                <?php if (!empty($highestPrevalence)): ?>
+                    ควรพิจารณาส่งทีมแพทย์เคลื่อนที่เร็วหรือจัดสรรงบประมาณลงตรวจคัดกรองซ้ำ ณ <strong><?= htmlspecialchars($highestPrevalence[0]['name']) ?></strong> เนื่องจากพบอัตราความชุกกลุ่มเสี่ยง/ป่วยสูงที่สุด และควรส่ง อสม. ประกบแนะนำการปรับเปลี่ยนพฤติกรรมในเขต 
+                <?php endif; ?>
+                <?php if (!empty($concerningAreas)): ?>
+                    <strong><?= htmlspecialchars($concerningAreas[0]['name']) ?></strong> เพื่อปรับแผนโภชนาการและการออกกำลังกายใหม่ เนื่องจากมีอัตราสุขภาพพัฒนาดีขึ้นค่อนข้างต่ำ
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- AI-Powered Trend Forecasting Card -->
+        <div class="card-dark" style="margin-bottom: 30px; padding: 24px;">
+            <h3 style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+                <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: rgba(236, 72, 153, 0.15); color: #ec4899;">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                </span>
+                <span>แผนภูมิพยากรณ์และวิเคราะห์คาดการณ์แนวโน้มกลุ่มเสี่ยงสะสมล่วงหน้า (Predictive Risk Trend Forecasting)</span>
+            </h3>
+            <div id="chart-forecast" style="margin-bottom: 20px;"></div>
+            
+            <div style="background: rgba(14, 165, 233, 0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(14, 165, 233, 0.15); font-size: 13.5px; color: var(--text-secondary); line-height: 1.6;" id="forecast-insights">
+                🔍 <strong>บทวิเคราะห์แนวโน้มการคาดการณ์เชิงสถิติ:</strong>
+                <span id="forecast-insight-text">กำลังประมวลผลข้อมูลและคาดการณ์จากประวัติ...</span>
+            </div>
+        </div>
 
         <!-- DPAC Intervention Outcome Summary Cards -->
         <h3 style="color: var(--color-accent); margin-bottom: 16px; font-size: 18px; display: flex; align-items: center; gap: 8px;">
@@ -531,6 +744,80 @@ $mapInitialZoom = $coordCount > 0 ? 13 : 12;
     </div>
 
     <script>
+        // Trend data for forecasting
+        const trendRawData = <?= json_encode($monthlyTrend) ?>;
+
+        // Function to run Linear Regression and project next N months
+        function forecastTrend(data, N = 3) {
+            if (data.length === 0) return { months: [], actual: [], forecast: [], slope: 0 };
+            
+            // Sort chronologically
+            data.sort((a, b) => a.month_year.localeCompare(b.month_year));
+            
+            const months = data.map(d => d.month_year);
+            const actual = data.map(d => parseInt(d.high_risk) + parseInt(d.moderate_risk));
+            
+            // Fallback if data is too small
+            if (data.length < 2) {
+                const lastVal = actual[0] || 0;
+                const forecast = [lastVal];
+                const nextMonths = [];
+                if (months.length > 0) {
+                    let [y, m] = months[0].split('-').map(Number);
+                    for(let i=1; i<=N; i++) {
+                        m++; if (m > 12) { m = 1; y++; }
+                        nextMonths.push(`${y}-${String(m).padStart(2, '0')}`);
+                        forecast.push(lastVal);
+                    }
+                }
+                return {
+                    months: [...months, ...nextMonths],
+                    actual: [...actual, ...Array(N).fill(null)],
+                    forecast: [...Array(months.length - 1).fill(null), lastVal, ...forecast.slice(1)],
+                    slope: 0
+                };
+            }
+            
+            // Least Squares linear regression: y = mx + c
+            const x = Array.from({ length: actual.length }, (_, i) => i);
+            const n = actual.length;
+            
+            const sumX = x.reduce((a, b) => a + b, 0);
+            const sumY = actual.reduce((a, b) => a + b, 0);
+            const sumXY = x.reduce((sum, xi, i) => sum + xi * actual[i], 0);
+            const sumXX = x.reduce((sum, xi) => sum + xi * xi, 0);
+            
+            const denominator = (n * sumXX - sumX * sumX);
+            const slope = denominator === 0 ? 0 : (n * sumXY - sumX * sumY) / denominator;
+            const intercept = (sumY - slope * sumX) / n;
+            
+            // Generate actual & forecast lines
+            const forecast = [];
+            for (let i = 0; i < n; i++) {
+                forecast.push(null);
+            }
+            forecast[n - 1] = actual[n - 1]; // Connect actual and forecast lines
+            
+            // Project future N months
+            const nextMonths = [];
+            let [y, m] = months[n - 1].split('-').map(Number);
+            for (let i = 1; i <= N; i++) {
+                m++; if (m > 12) { m = 1; y++; }
+                const nextMonthStr = `${y}-${String(m).padStart(2, '0')}`;
+                nextMonths.push(nextMonthStr);
+                
+                const predictedVal = Math.max(0, Math.round(slope * (n - 1 + i) + intercept));
+                forecast.push(predictedVal);
+            }
+            
+            return {
+                months: [...months, ...nextMonths],
+                actual: [...actual, ...Array(N).fill(null)],
+                forecast: forecast,
+                slope: slope
+            };
+        }
+
         // Chronological screening + DPAC events
         const records = <?= json_encode($historyRecords) ?>;
         // Targets with coordinates
@@ -773,6 +1060,66 @@ $mapInitialZoom = $coordCount > 0 ? 13 : 12;
 
         var chartTransition = new ApexCharts(document.querySelector("#chart-risk-transition"), optionsTransition);
         chartTransition.render();
+
+        // ------------------ FORECAST CHART ------------------
+        const forecastData = forecastTrend(trendRawData, 3);
+        const forecastMonthLabels = forecastData.months.map(m => {
+            const parts = m.split('-');
+            const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+            const mmIdx = parseInt(parts[1]) - 1;
+            return (thaiMonths[mmIdx] || parts[1]) + ' ' + (parseInt(parts[0]) + 543 - 2500);
+        });
+
+        var optionsForecast = {
+            series: [
+                {
+                    name: 'ข้อมูลจริง (Actual)',
+                    data: forecastData.actual
+                },
+                {
+                    name: 'คาดการณ์แนวโน้ม (Forecast)',
+                    data: forecastData.forecast
+                }
+            ],
+            chart: {
+                height: 320,
+                type: 'line',
+                background: 'transparent',
+                toolbar: { show: false }
+            },
+            stroke: {
+                width: [3, 3],
+                curve: 'smooth',
+                dashArray: [0, 5]
+            },
+            colors: ['#0ea5e9', '#ec4899'],
+            xaxis: {
+                categories: forecastMonthLabels,
+                labels: { style: { colors: '#9ca3af' } }
+            },
+            yaxis: {
+                title: { text: 'จำนวนประชากรกลุ่มเสี่ยง (ราย)', style: { color: '#9ca3af' } },
+                labels: { style: { colors: '#9ca3af' } }
+            },
+            legend: { labels: { colors: '#9ca3af' } },
+            tooltip: { theme: localStorage.getItem('theme') || 'light' }
+        };
+
+        var chartForecast = new ApexCharts(document.querySelector("#chart-forecast"), optionsForecast);
+        chartForecast.render();
+
+        // Update insight text dynamically based on the slope of the forecast
+        const insightElement = document.getElementById('forecast-insight-text');
+        if (insightElement) {
+            const slope = forecastData.slope;
+            if (slope > 0.5) {
+                insightElement.innerHTML = `แนวโน้มอัตราการเกิดกลุ่มเสี่ยงและผู้ป่วยรายใหม่มีทิศทาง **เพิ่มขึ้น** (ความชัน: +${slope.toFixed(2)} รายต่อเดือน) แนะนำให้ รพ.สต. และ อสม. จัดกิจกรรมกระตุ้นพฤติกรรมสุขภาพ หรือเพิ่มความเข้มข้นในการคัดกรองและการดำเนินกิจกรรมในคลินิก DPAC เป็นพิเศษเพื่อชะลอการเกิดของกลุ่มผู้ป่วยรายใหม่`;
+            } else if (slope < -0.5) {
+                insightElement.innerHTML = `แนวโน้มอัตราการเกิดกลุ่มเสี่ยงรายใหม่มีทิศทาง **ลดลง** อย่างต่อเนื่อง (ความชัน: ${slope.toFixed(2)} รายต่อเดือน) แสดงถึงผลลัพธ์ที่ดีเยี่ยมจากการจัดกิจกรรมควบคุมโรคและการร่วมมือดูแลสุขภาพในพื้นที่ แนะนำให้คงมาตรการเฝ้าระวังเชิงรุกและการติดตามพฤติกรรมนี้ไว้เพื่อความยั่งยืน`;
+            } else {
+                insightElement.innerHTML = `แนวโน้มอัตราการเกิดกลุ่มเสี่ยงรายใหม่ค่อนข้าง **คงที่และทรงตัว** (ความชัน: ${slope.toFixed(2)} รายต่อเดือน) สถานการณ์ภาพรวมอยู่ในระดับคงตัวและสามารถควบคุมได้ตามมาตรฐาน แนะนำให้รักษารอบการเยี่ยมบ้านและการติดตามผลตามตารางปกติ`;
+            }
+        }
     </script>
 </body>
 </html>
