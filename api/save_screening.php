@@ -172,8 +172,8 @@ try {
         if ($assignment['home_lat'] && $assignment['home_lng'] && $lat && $lng) {
             $distance = getDistanceMeters($assignment['home_lat'], $assignment['home_lng'], $lat, $lng);
             if ($distance > 100) {
-                // If coordinates discrepancy exceeds 100 meters, set status to 'waiting' for supervisor review
-                $approvalStatus = 'waiting';
+                // If coordinates discrepancy exceeds 100 meters, set status to 'approved' immediately as requested, but log the discrepancy
+                $approvalStatus = 'approved';
                 $reasonLog = 'พิกัดสแกนจริงห่างจากบ้านจดทะเบียน ' . round($distance, 1) . ' เมตร (เกินระยะ 100 เมตร)';
             }
         } else {

@@ -70,7 +70,7 @@ $leaderboardStmt = $pdo->query("
         u.vhv_moo, 
         u.is_hl_coach,
         v.village_name,
-        (SELECT COALESCE(SUM(points_earned), 0) FROM vhv_rewards WHERE vhv_id = u.vhv_id AND approval_status = 'approved') as total_points,
+        (SELECT COALESCE(SUM(points_earned), 0) FROM vhv_rewards WHERE vhv_id = u.vhv_id AND approval_status IN ('approved', 'waiting')) as total_points,
         (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026) as total_assigned,
         (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026 AND assignment_status = 'completed') as completed,
         (SELECT COUNT(*) FROM vhv_rewards WHERE vhv_id = u.vhv_id AND approval_status = 'waiting' AND is_sandbox = 0) as waiting_rewards

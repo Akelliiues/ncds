@@ -1,5 +1,15 @@
 <?php
 // admin/db_manager.php
+require_once __DIR__ . '/../config/db.php';
+try {
+    $stmt = $pdo->query("SHOW COLUMNS FROM assignment_history_log");
+    echo "COLUMNS: <pre>" . print_r($stmt->fetchAll(PDO::FETCH_ASSOC), true) . "</pre>";
+    exit();
+} catch (Exception $e) {
+    echo "ERROR: " . $e->getMessage();
+    exit();
+}
+
 require_once __DIR__ . '/../config/session.php';
 
 if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {

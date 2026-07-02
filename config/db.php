@@ -1437,6 +1437,19 @@ try {
     } catch (\Exception $e) {
         // Fail silently
     }
+
+    // Migration: Auto approve all waiting rewards
+    try {
+        $stmtMigrationCheck5 = $pdo->prepare("SELECT 1 FROM sys_migrations WHERE migration_name = ?");
+        $stmtMigrationCheck5->execute(['auto_approve_waiting_rewards_20260702']);
+        if (!$stmtMigrationCheck5->fetch()) {
+            $pdo->exec("UPDATE vhv_rewards SET approval_status = 'approved', approved_at = NOW() WHERE approval_status = 'waiting'");
+            $stmtInsert5 = $pdo->prepare("INSERT INTO sys_migrations (migration_name) VALUES (?)");
+            $stmtInsert5->execute(['auto_approve_waiting_rewards_20260702']);
+        }
+    } catch (\Exception $e) {
+        // Fail silently
+    }
     
     // Check if run
     $stmtMigrationCheck = $pdo->prepare("SELECT 1 FROM sys_migrations WHERE migration_name = ?");

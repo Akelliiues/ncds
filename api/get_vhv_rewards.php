@@ -59,7 +59,7 @@ try {
         JOIN screening_results s ON r.screening_id = s.screening_id
         JOIN task_assignments a ON s.assignment_id = a.assignment_id
         JOIN target_population t ON a.target_cid = t.cid
-        WHERE r.vhv_id = ? AND r.approval_status = 'approved'
+        WHERE r.vhv_id = ? AND r.approval_status IN ('approved', 'waiting')
 
         UNION ALL
 
@@ -75,7 +75,7 @@ try {
         JOIN dpac_followups f ON r.followup_id = f.followup_id
         JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
         JOIN target_population t ON e.cid = t.cid
-        WHERE r.vhv_id = ? AND r.approval_status = 'approved'
+        WHERE r.vhv_id = ? AND r.approval_status IN ('approved', 'waiting')
 
         ORDER BY created_at DESC
     ");
