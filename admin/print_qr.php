@@ -89,7 +89,7 @@ function maskName($firstName, $lastName)
 
         .qr-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
             gap: 20px;
             margin-top: 30px;
         }
@@ -98,17 +98,28 @@ function maskName($firstName, $lastName)
             background: white;
             border: 2px solid #333;
             border-radius: 8px;
-            padding: 20px;
+            padding: 16px;
             text-align: center;
             color: black;
             page-break-inside: avoid;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
+        .qr-card-header {
+            font-size: 12px;
+            font-weight: bold;
+            color: #0f172a;
+            border-bottom: 1.5px solid #cbd5e1;
+            padding-bottom: 6px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
         .qr-code-img {
-            margin: 15px auto;
-            width: 150px;
-            height: 150px;
+            margin: 10px auto;
+            width: 120px;
+            height: 120px;
             background: #f0f0f0;
             display: flex;
             align-items: center;
@@ -121,14 +132,44 @@ function maskName($firstName, $lastName)
         }
 
         .house-details {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }
 
         .house-members {
-            font-size: 14px;
-            color: #555;
+            font-size: 13.5px;
+            color: #334155;
+            font-weight: 500;
+        }
+
+        .qr-card-id {
+            font-size: 11px;
+            margin-top: 4px;
+            color: #64748b;
+        }
+
+        .qr-card-id-manual {
+            font-size: 10px;
+            margin-top: 4px;
+            color: #d97706;
+            font-weight: bold;
+        }
+
+        .qr-card-footer {
+            border-top: 1px dashed #cbd5e1;
+            padding-top: 8px;
+            margin-top: 10px;
+            font-size: 11px;
+            color: #0284c7;
+            font-weight: bold;
+            line-height: 1.4;
+        }
+
+        .qr-card-footer-sub {
+            font-size: 10px;
+            font-weight: normal;
+            color: #475569;
         }
 
         /* Print Styles */
@@ -143,17 +184,63 @@ function maskName($firstName, $lastName)
             }
 
             .qr-grid {
-                gap: 10px;
+                display: grid !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 10px !important;
+                margin-top: 0 !important;
             }
 
             .qr-card {
-                border: 1px solid #000;
-                box-shadow: none;
-                margin-bottom: 15px;
+                border: 1px solid #000 !important;
+                box-shadow: none !important;
+                padding: 10px 8px !important;
+                border-radius: 6px !important;
+                margin-bottom: 0 !important;
+            }
+
+            .qr-card-header {
+                font-size: 10px !important;
+                margin-bottom: 6px !important;
+                padding-bottom: 4px !important;
+            }
+
+            .house-details {
+                font-size: 12px !important;
+                margin-bottom: 2px !important;
+            }
+
+            .house-members {
+                font-size: 11px !important;
+            }
+
+            .qr-code-img {
+                margin: 6px auto !important;
+                width: 100px !important;
+                height: 100px !important;
+            }
+
+            .qr-code-img img {
+                width: 100px !important;
+                height: 100px !important;
+            }
+
+            .qr-card-id, .qr-card-id-manual {
+                font-size: 9px !important;
+                margin-top: 2px !important;
+            }
+
+            .qr-card-footer {
+                margin-top: 6px !important;
+                padding-top: 6px !important;
+                font-size: 9.5px !important;
+            }
+
+            .qr-card-footer-sub {
+                font-size: 8.5px !important;
             }
 
             @page {
-                margin: 1cm;
+                margin: 0.8cm;
                 size: A4;
             }
         }
