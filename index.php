@@ -116,45 +116,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>เข้าสู่ระบบ NCDs ตาลสุม - คัดกรอง ดูแล ป้องกันเพื่อสุขภาพที่ดีอย่างยั่งยืน</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <link rel="manifest" href="vhv/manifest.json">
     <style>
+        html, body {
+            overflow: hidden;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             background-color: var(--bg-main);
             color: var(--text-primary);
             font-family: var(--font-base);
-            margin: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
         }
 
         .login-container {
             width: 100%;
-            max-width: 440px;
-            padding: 20px;
+            max-width: 420px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
         }
 
         .login-brand {
             text-align: center;
-            margin-bottom: 24px;
+            margin-bottom: 12px;
         }
 
         .login-brand h1 {
-            font-size: 28px;
+            font-size: 22px;
             font-weight: 800;
             color: var(--text-primary);
-            margin: 8px 0;
+            margin: 4px 0;
         }
 
         .login-brand span {
             color: var(--color-accent);
-            font-size: 14px;
+            font-size: 11px;
             font-weight: bold;
-            letter-spacing: 1.5px;
+            letter-spacing: 1px;
             text-transform: uppercase;
         }
     </style>
@@ -163,64 +173,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class="vhv-accessibility">
     <div class="login-container">
         <div class="login-brand"
-            style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 24px;">
+            style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 12px;">
             <img src="assets/icon.png" alt="NCDs Prevention Logo"
-                style="width: 160px; height: auto; margin-bottom: 16px; filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.15));">
-            <span
-                style="color: var(--color-accent); font-size: 14px; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase;">สำนักงานสาธารณสุขอำเภอตาลสุม</span>
-            <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 8px 0;">ระบบคัดกรอง NCD
-                Portal</h1>
+                style="width: 80px; height: auto; margin-bottom: 8px; filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));">
+            <span>สำนักงานสาธารณสุขอำเภอตาลสุม</span>
+            <h1>ระบบคัดกรอง NCD Portal</h1>
         </div>
 
-        <div class="card-dark" style="margin-bottom: 0;">
-            <h3 style="text-align: center; margin-bottom: 24px; color: var(--color-accent); font-weight: 800;">
+        <div class="card-dark" style="margin-bottom: 0; padding: 20px;">
+            <h3 style="text-align: center; margin-top: 0; margin-bottom: 16px; color: var(--color-accent); font-weight: 800; font-size: 18px;">
                 ลงชื่อเข้าใช้งานระบบ</h3>
 
             <?php if (!empty($error)): ?>
                 <div
-                    style="background-color: rgba(239, 68, 68, 0.15); border: 2px solid var(--color-red); color: var(--color-red); padding: 12px; border-radius: var(--border-radius); margin-bottom: 20px; font-size: 15px; text-align: center; font-weight: bold;">
+                    style="background-color: rgba(239, 68, 68, 0.15); border: 1.5px solid var(--color-red); color: var(--color-red); padding: 8px; border-radius: var(--border-radius); margin-bottom: 12px; font-size: 13.5px; text-align: center; font-weight: bold;">
                     <?= htmlspecialchars($error) ?>
                 </div>
             <?php endif; ?>
 
             <form action="" method="POST">
-                <div style="margin-bottom: 20px;">
+                <div style="margin-bottom: 12px;">
                     <label for="username"
-                        style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-weight: 600;">ชื่อผู้ใช้
-                        หรือ รหัส อสม.</label>
+                        style="display: block; margin-bottom: 6px; color: var(--text-secondary); font-weight: 600; font-size: 13.5px;">ชื่อผู้ใช้ หรือ รหัส อสม.</label>
                     <input type="text" name="username" id="username" class="input-large"
-                        placeholder="ชื่อผู้ใช้งาน / รหัส อสม. 10 หลัก" required autocomplete="username">
+                        placeholder="ชื่อผู้ใช้งาน / รหัส อสม. 10 หลัก" required autocomplete="username" style="padding: 10px 14px; font-size: 14px; height: auto;">
                 </div>
 
-                <div style="margin-bottom: 30px;">
+                <div style="margin-bottom: 18px;">
                     <label for="password"
-                        style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-weight: 600;">รหัสผ่าน</label>
+                        style="display: block; margin-bottom: 6px; color: var(--text-secondary); font-weight: 600; font-size: 13.5px;">รหัสผ่าน</label>
                     <input type="password" name="password" id="password" class="input-large"
-                        placeholder="รหัสผ่านเข้าใช้งาน" required autocomplete="current-password">
+                        placeholder="รหัสผ่านเข้าใช้งาน" required autocomplete="current-password" style="padding: 10px 14px; font-size: 14px; height: auto;">
                 </div>
 
-                <button type="submit" class="btn-giant btn-giant-primary" style="margin-bottom: 16px;">
+                <button type="submit" class="btn-giant btn-giant-primary" style="margin-bottom: 12px; padding: 12px; font-size: 16px; height: auto;">
                     เข้าสู่ระบบ
                 </button>
             </form>
             <div style="text-align: center;">
                 <a href="vhv/register.php"
-                    style="color: var(--color-accent); text-decoration: none; font-weight: bold; font-size: 15px; display: inline-block; margin-top: 8px;">
+                    style="color: var(--color-accent); text-decoration: none; font-weight: bold; font-size: 14px; display: inline-block;">
                     📝 ลงทะเบียน อสม. ใหม่
                 </a>
             </div>
         </div>
 
-        <div style="text-align: center; margin-top: 30px; color: var(--text-muted); font-size: 13px;">
+        <div style="text-align: center; margin-top: 16px; color: var(--text-muted); font-size: 11px; line-height: 1.4;">
             ระบบจัดการคัดกรองโรคเรื้อรังเชิงรุก NCDs 2026<br>
             อำเภอตาลสุม จังหวัดอุบลราชธานี<br>
-            <a href="about.php" style="color: var(--color-accent); text-decoration: none; font-weight: bold; font-size: 13px; display: inline-block; margin-top: 10px;">
-                ℹ️ เกี่ยวกับระบบและผู้พัฒนา
-            </a>
-            <span style="color: var(--text-muted); margin: 0 8px;">|</span>
-            <a href="manual.php" style="color: var(--color-accent); text-decoration: none; font-weight: bold; font-size: 13px; display: inline-block; margin-top: 10px;">
-                📖 คู่มือการใช้งานระบบ
-            </a>
+            <div style="margin-top: 6px; display: flex; justify-content: center; gap: 12px; align-items: center;">
+                <a href="about.php" style="color: var(--color-accent); text-decoration: none; font-weight: bold;">
+                    ℹ️ เกี่ยวกับผู้พัฒนา
+                </a>
+                <span style="color: var(--border-color); font-size: 10px;">|</span>
+                <a href="manual.php" style="color: var(--color-accent); text-decoration: none; font-weight: bold;">
+                    📖 คู่มือการใช้งานระบบ
+                </a>
+            </div>
         </div>
     </div>
 </body>
