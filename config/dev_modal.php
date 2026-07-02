@@ -5,6 +5,14 @@ $last_update_str = '2 กรกฎาคม 2569';
 $build_number = '2.6.0';
 $system_updates = [];
 
+// Dynamic path prefix depending on execution directory context
+$path_prefix = '';
+if (file_exists('assets/aboutus.png')) {
+    $path_prefix = '';
+} else {
+    $path_prefix = '../';
+}
+
 $json_file = __DIR__ . '/../changelog.json';
 if (file_exists($json_file)) {
     $json_data = json_decode(file_get_contents($json_file), true);
@@ -287,7 +295,7 @@ if (file_exists($json_file)) {
             <!-- Left Side: Profile and App Logo -->
             <div class="dev-modal-left">
                 <div class="dev-app-logo-wrapper">
-                    <img src="../assets/aboutus.png" alt="App Logo" class="dev-app-logo">
+                    <img src="<?= $path_prefix ?>assets/aboutus.png" alt="App Logo" class="dev-app-logo">
                 </div>
                 <h2 class="dev-app-title">NCDs Prevention Portal</h2>
                 <p class="dev-app-subtitle">สำนักงานสาธารณสุขอำเภอตาลสุม</p>
@@ -295,7 +303,7 @@ if (file_exists($json_file)) {
                 <div class="dev-divider"></div>
                 
                 <div class="dev-profile-section">
-                    <img src="../assets/developer.jpg" alt="Developer Avatar" class="dev-avatar">
+                    <img src="<?= $path_prefix ?>assets/developer.jpg" alt="Developer Avatar" class="dev-avatar">
                     <div class="dev-profile-info">
                         <span class="dev-badge">ผู้พัฒนาระบบ</span>
                         <h4 class="dev-name">นายบุญธรรม พันธ์ใหญ่</h4>
@@ -376,6 +384,16 @@ function handleContainerClick(e) {
         // แอดมินสามารถคลิกอ่านข้อความโดยไม่ปิด (คลิกข้างนอกค่อยปิด)
         e.stopPropagation();
     }
+}
+
+function openDevModal(e) {
+    if (e) e.preventDefault();
+    const modal = document.getElementById('dev-portal-modal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    modal.offsetHeight; // Force reflow
+    modal.classList.add('show');
+    document.body.style.overflow = 'hidden';
 }
 
 function closeDevModal() {

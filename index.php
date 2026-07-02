@@ -228,7 +228,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ระบบจัดการคัดกรองโรคเรื้อรังเชิงรุก NCDs 2026<br>
             อำเภอตาลสุม จังหวัดอุบลราชธานี<br>
             <div style="margin-top: 6px; display: flex; justify-content: center; gap: 12px; align-items: center;">
-                <a href="about.php" style="color: var(--color-accent); text-decoration: none; font-weight: bold;">
+                <a href="about.php" onclick="openDevModal(event)" style="color: var(--color-accent); text-decoration: none; font-weight: bold;">
                     ℹ️ เกี่ยวกับผู้พัฒนา
                 </a>
                 <span style="color: var(--border-color); font-size: 10px;">|</span>
@@ -238,6 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
     </div>
+    <?php require_once __DIR__ . '/config/dev_modal.php'; ?>
 </body>
 
 </html>
