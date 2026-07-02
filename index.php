@@ -172,26 +172,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             width: 80px;
             height: auto;
             margin-bottom: 8px;
-            filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
-            animation: float 4s ease-in-out infinite;
+            animation: float 4s ease-in-out infinite, logo-pulse 2.5s infinite;
             transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.4s ease;
             cursor: pointer;
         }
 
         .brand-logo:hover {
             transform: scale(1.15) rotate(4deg) translateY(-2px);
-            filter: drop-shadow(0 12px 20px rgba(245, 158, 11, 0.45));
+            animation-play-state: paused;
+            filter: drop-shadow(0 12px 24px rgba(245, 158, 11, 0.65)) !important;
         }
 
         @keyframes float {
-            0% {
+            0%, 100% {
                 transform: translateY(0px) rotate(0deg);
             }
             50% {
                 transform: translateY(-6px) rotate(1deg);
             }
+        }
+
+        @keyframes logo-pulse {
+            0% {
+                filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15)) drop-shadow(0 0 0px rgba(245, 158, 11, 0.35));
+            }
+            70% {
+                filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15)) drop-shadow(0 0 12px rgba(245, 158, 11, 0.55));
+            }
             100% {
-                transform: translateY(0px) rotate(0deg);
+                filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15)) drop-shadow(0 0 0px rgba(245, 158, 11, 0));
             }
         }
     </style>
