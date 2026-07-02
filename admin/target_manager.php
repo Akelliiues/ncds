@@ -349,20 +349,22 @@ if (isset($_GET['action'])) {
                 (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = COALESCE(NULLIF(tp_real_pcu.cid, ''), NULLIF(tp_real_fuzzy.cid, ''), t.cid) AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
             FROM target_population t
             LEFT JOIN target_population tp_real_pcu ON (
-                (t.cid LIKE '0%' OR t.cid LIKE '%*%')
+                (t.cid LIKE '%*%' OR t.cid = CONCAT(t.hoscode, LPAD(t.pid, 8, '0')) OR t.cid = CONCAT(t.hoscode, t.pid))
                 AND tp_real_pcu.hoscode = t.hoscode
                 AND tp_real_pcu.pid = t.pid
-                AND tp_real_pcu.cid NOT LIKE '0%'
                 AND tp_real_pcu.cid NOT LIKE '%*%'
+                AND tp_real_pcu.cid <> CONCAT(tp_real_pcu.hoscode, LPAD(tp_real_pcu.pid, 8, '0'))
+                AND tp_real_pcu.cid <> CONCAT(tp_real_pcu.hoscode, tp_real_pcu.pid)
                 AND tp_real_pcu.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
             )
             LEFT JOIN target_population tp_real_fuzzy ON (
-                (t.cid LIKE '0%' OR t.cid LIKE '%*%')
+                (t.cid LIKE '%*%' OR t.cid = CONCAT(t.hoscode, LPAD(t.pid, 8, '0')) OR t.cid = CONCAT(t.hoscode, t.pid))
                 AND tp_real_pcu.cid IS NULL
                 AND tp_real_fuzzy.birth = t.birth
                 AND tp_real_fuzzy.sex = t.sex
-                AND tp_real_fuzzy.cid NOT LIKE '0%'
                 AND tp_real_fuzzy.cid NOT LIKE '%*%'
+                AND tp_real_fuzzy.cid <> CONCAT(tp_real_fuzzy.hoscode, LPAD(tp_real_fuzzy.pid, 8, '0'))
+                AND tp_real_fuzzy.cid <> CONCAT(tp_real_fuzzy.hoscode, tp_real_fuzzy.pid)
                 AND tp_real_fuzzy.first_name LIKE REPLACE(t.first_name, '*', '%')
                 AND tp_real_fuzzy.last_name LIKE REPLACE(t.last_name, '*', '%')
             )
@@ -442,19 +444,21 @@ if (isset($_GET['action'])) {
             ) h
             LEFT JOIN target_population t ON t.hoscode = h.hoscode AND t.pid = h.pid
             LEFT JOIN target_population tp_real_pcu ON (
-                (h.cid LIKE '0%' OR h.cid LIKE '%*%')
+                (h.cid LIKE '%*%' OR h.cid = CONCAT(h.hoscode, LPAD(h.pid, 8, '0')) OR h.cid = CONCAT(h.hoscode, h.pid))
                 AND tp_real_pcu.hoscode = h.hoscode
                 AND tp_real_pcu.pid = h.pid
-                AND tp_real_pcu.cid NOT LIKE '0%'
                 AND tp_real_pcu.cid NOT LIKE '%*%'
+                AND tp_real_pcu.cid <> CONCAT(tp_real_pcu.hoscode, LPAD(tp_real_pcu.pid, 8, '0'))
+                AND tp_real_pcu.cid <> CONCAT(tp_real_pcu.hoscode, tp_real_pcu.pid)
                 AND tp_real_pcu.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
             )
             LEFT JOIN target_population tp_real_fuzzy ON (
-                (h.cid LIKE '0%' OR h.cid LIKE '%*%')
+                (h.cid LIKE '%*%' OR h.cid = CONCAT(h.hoscode, LPAD(h.pid, 8, '0')) OR h.cid = CONCAT(h.hoscode, h.pid))
                 AND tp_real_pcu.cid IS NULL
                 AND tp_real_fuzzy.birth = h.birth
-                AND tp_real_fuzzy.cid NOT LIKE '0%'
                 AND tp_real_fuzzy.cid NOT LIKE '%*%'
+                AND tp_real_fuzzy.cid <> CONCAT(tp_real_fuzzy.hoscode, LPAD(tp_real_fuzzy.pid, 8, '0'))
+                AND tp_real_fuzzy.cid <> CONCAT(tp_real_fuzzy.hoscode, tp_real_fuzzy.pid)
                 AND tp_real_fuzzy.first_name LIKE REPLACE(h.name, '*', '%')
                 AND tp_real_fuzzy.last_name LIKE REPLACE(h.lname, '*', '%')
             )
