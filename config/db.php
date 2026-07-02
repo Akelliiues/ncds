@@ -447,7 +447,7 @@ try {
     // Fail silently or handle
 }
 
-// Auto-create and auto-correct assignment_history_log table if it doesn't exist or is missing assignment_id
+// Auto-create and auto-correct assignment_history_log table if it doesn't exist or is missing fields
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS `assignment_history_log` (
         `log_id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -457,9 +457,19 @@ try {
         `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
 
-    $checkHistoryCol = $pdo->query("SHOW COLUMNS FROM `assignment_history_log` LIKE 'assignment_id'");
-    if ($checkHistoryCol->rowCount() === 0) {
-        $pdo->exec("ALTER TABLE `assignment_history_log` ADD COLUMN `assignment_id` INT NOT NULL AFTER `log_id`");
+    // Check and add missing columns dynamically
+    $colsToCheck = [
+        'assignment_id' => 'INT NOT NULL AFTER `log_id`',
+        'action' => 'VARCHAR(50) NOT NULL AFTER `assignment_id`',
+        'note' => 'TEXT NULL AFTER `action`',
+        'created_at' => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER `note`'
+    ];
+
+    foreach ($colsToCheck as $colName => $definition) {
+        $checkCol = $pdo->query("SHOW COLUMNS FROM `assignment_history_log` LIKE '$colName'");
+        if ($checkCol->rowCount() === 0) {
+            $pdo->exec("ALTER TABLE `assignment_history_log` ADD COLUMN `$colName` $definition");
+        }
     }
 } catch (\PDOException $e) {
     // Fail silently

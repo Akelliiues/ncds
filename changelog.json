@@ -1,6 +1,6 @@
 [
   {
-    "title": "แก้ไขข้อผิดพลาด SQL ในระบบเปลี่ยนผู้รับผิดชอบงาน อสม. (Database Error Column assignment_id not found)",
+    "title": "แก้ไขข้อผิดพลาด SQL ในระบบเปลี่ยนผู้รับผิดชอบงาน อสม. (Database Error Column assignment_id และ action not found)",
     "date": "2026-07-02",
     "type": "fix"
   },
