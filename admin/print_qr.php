@@ -179,6 +179,12 @@ function maskName($firstName, $lastName)
                 color: black;
             }
 
+            .print-container {
+                margin: 0 !important;
+                padding: 0 !important;
+                max-width: 100% !important;
+            }
+
             .no-print {
                 display: none !important;
             }
@@ -186,7 +192,7 @@ function maskName($firstName, $lastName)
             .qr-grid {
                 display: grid !important;
                 grid-template-columns: repeat(3, 1fr) !important;
-                gap: 8mm !important;
+                gap: 4mm !important;
                 margin-top: 0 !important;
             }
 
@@ -196,7 +202,7 @@ function maskName($firstName, $lastName)
                 padding: 8px 6px !important;
                 border-radius: 6px !important;
                 margin-bottom: 0 !important;
-                height: 60mm !important;
+                height: 58mm !important;
                 box-sizing: border-box !important;
                 display: flex !important;
                 flex-direction: column !important;
@@ -275,7 +281,7 @@ function maskName($firstName, $lastName)
 
     <?php include 'navbar.php'; ?>
 
-    <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
+    <div class="print-container" style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
         <h2 style="margin-bottom: 4px;" class="no-print">พิมพ์ QR Code รายบุคคล (Individual QR)</h2>
         <p style="color: var(--text-secondary); margin-bottom: 30px; font-size: 15px;" class="no-print">
             ผู้รับผิดชอบ: <strong style="color: var(--color-accent);"><?= htmlspecialchars($admin_title) ?></strong>
