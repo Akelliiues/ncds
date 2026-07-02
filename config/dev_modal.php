@@ -1,8 +1,71 @@
 <?php
 // config/dev_modal.php
+date_default_timezone_set('Asia/Bangkok');
 
-$last_update_str = '2 กรกฎาคม 2569';
-$build_number = '2.6.0';
+function get_system_last_update_modal() {
+    $last_update = null;
+    if (function_exists('shell_exec')) {
+        $git_time = @shell_exec('git log -1 --format=%ct 2>/dev/null');
+        if ($git_time) {
+            $last_update = intval(trim($git_time));
+        }
+    }
+    if (!$last_update) {
+        $max_time = 0;
+        $paths = [
+            '*.php',
+            'admin/*.php',
+            'vhv/*.php',
+            'api/*.php',
+            'assets/css/*.css',
+            'assets/js/*.js'
+        ];
+        foreach ($paths as $path) {
+            $files = glob(__DIR__ . '/../' . $path);
+            if (is_array($files)) {
+                foreach ($files as $file) {
+                    if (file_exists($file)) {
+                        $mtime = filemtime($file);
+                        if ($mtime > $max_time) {
+                            $max_time = $mtime;
+                        }
+                    }
+                }
+            }
+        }
+        $last_update = $max_time ? $max_time : filemtime(__FILE__);
+    }
+    return $last_update;
+}
+
+function get_system_build_number_modal($last_update_ts) {
+    $commit_count = null;
+    if (function_exists('shell_exec')) {
+        $count = @shell_exec('git rev-list --count HEAD 2>/dev/null');
+        if ($count !== null && trim($count) !== '') {
+            $commit_count = trim($count);
+        }
+    }
+    $time_code = date('ymd.Hi', $last_update_ts);
+    if ($commit_count) {
+        return "{$commit_count}.{$time_code}";
+    }
+    return $time_code;
+}
+
+$last_update_ts = get_system_last_update_modal();
+$build_number = get_system_build_number_modal($last_update_ts);
+
+// Format last update string for UI
+$thai_months = [
+    1 => 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+];
+$day = date('j', $last_update_ts);
+$month = $thai_months[intval(date('n', $last_update_ts))];
+$year = date('Y', $last_update_ts) + 543;
+$last_update_str = "$day $month $year";
+
 $system_updates = [];
 
 // Dynamic path prefix depending on execution directory context
@@ -336,7 +399,7 @@ if (file_exists($json_file)) {
                 
                 <div>
                     <div class="dev-version-info">
-                        <span>เวอร์ชัน: <strong>2.6.0</strong></span>
+                        <span>เวอร์ชัน: <strong>2.6.0 (Build <?= htmlspecialchars($build_number) ?>)</strong></span>
                         <span>สสอ.ตาลสุม</span>
                     </div>
                     
