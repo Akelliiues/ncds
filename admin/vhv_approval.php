@@ -202,6 +202,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                     $pdo->commit();
                     $message = "ลบข้อมูลการลงทะเบียน อสม. เรียบร้อยแล้ว";
+                } elseif ($action === 'reset_password') {
+                    $new_hash = password_hash('1234', PASSWORD_DEFAULT);
+                    $stmt = $pdo->prepare("UPDATE vhv_users SET password_hash = ? WHERE vhv_id = ?");
+                    $stmt->execute([$new_hash, $target_vhv_id]);
+                    $message = "รีเซ็ตรหัสผ่านของ อสม. รายนี้กลับเป็น '1234' เรียบร้อยแล้ว";
                 } elseif ($action === 'toggle_hl_coach') {
                     $stmt = $pdo->prepare("UPDATE vhv_users SET is_hl_coach = NOT is_hl_coach WHERE vhv_id = ?");
                     $stmt->execute([$target_vhv_id]);
@@ -969,9 +974,12 @@ try {
                     </select>
                 </div>
 
-                <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <div style="display: flex; gap: 12px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
                     <button type="button" onclick="closeEditModal()" class="btn-giant btn-giant-secondary" style="height: 44px; line-height: 44px; padding: 0 24px; font-size: 15px; margin: 0; width: auto; background-color: var(--text-muted); color: white;">
                         ยกเลิก
+                    </button>
+                    <button type="button" onclick="resetPassword()" class="btn-giant btn-giant-secondary" style="height: 44px; line-height: 44px; padding: 0 20px; font-size: 15px; margin: 0; width: auto; background-color: var(--color-yellow); color: #0f172a; font-weight: bold; border: none; cursor: pointer; border-radius: 22px; display: inline-flex; align-items: center; gap: 6px;">
+                        🔑 รีเซ็ตรหัสผ่านเป็น 1234
                     </button>
                     <button type="submit" class="btn-giant btn-giant-primary" style="height: 44px; line-height: 44px; padding: 0 24px; font-size: 15px; margin: 0; width: auto; background-color: var(--color-green);">
                         บันทึกการแก้ไข
@@ -1067,6 +1075,34 @@ try {
             const hiddenInput = document.getElementById('modal_is_leader_hidden');
             if (hiddenInput) hiddenInput.remove();
             originalIsLeader = 0;
+        }
+
+        function resetPassword() {
+            const oldVhvId = document.getElementById('modal_old_vhv_id').value;
+            const vhvName = document.getElementById('modal_vhv_name').value;
+            if (!oldVhvId) return;
+
+            if (confirm(`คุณต้องการรีเซ็ตรหัสผ่านของ อสม. ${vhvName} ให้กลับไปเป็น '1234' ใช่หรือไม่?`)) {
+                // Create form dynamically and submit
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '';
+                
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = 'reset_password';
+                form.appendChild(actionInput);
+                
+                const targetInput = document.createElement('input');
+                targetInput.type = 'hidden';
+                targetInput.name = 'target_vhv_id';
+                targetInput.value = oldVhvId;
+                form.appendChild(targetInput);
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
         }
 
         // Close modal when clicking outside content

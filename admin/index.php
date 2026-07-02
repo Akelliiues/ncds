@@ -16,7 +16,7 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 
 $hc_names = get_health_units();
 
-$admin_title = $admin_hoscode ? ($hc_names[$admin_hoscode] ?? 'รพ.สต.') : (($_SESSION['admin_username'] ?? '') === 'adminsso' ? 'ผู้รับผิดชอบระดับอำเภอ' : 'แอดมินหลัก (ทุก รพ.สต.)');
+$admin_title = $admin_hoscode ? ($hc_names[$admin_hoscode] ?? 'รพ.สต.') : (($_SESSION['admin_username'] ?? '') === 'adminsso' ? 'ผู้รับผิดชอบระดับอำเภอ' : '☠️ ข้าคือชะตาที่มิอาจเลี่ยง!!');
 
 if ($admin_hoscode) {
     $hoscodes = get_query_hoscodes($admin_hoscode);
@@ -766,7 +766,7 @@ if ($admin_hoscode) {
                 <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">แต้มรางวัลสะสม
                     อสม.</span>
                 <div class="stat-val" style="color: var(--color-primary);">
-                    <?= ( (float)($metrics['total_points'] ?? 0) == (int)($metrics['total_points'] ?? 0) ? number_format($metrics['total_points'] ?? 0) : number_format($metrics['total_points'] ?? 0, 2) ) ?> <span
+                    <?= ((float)($metrics['total_points'] ?? 0) == (int)($metrics['total_points'] ?? 0) ? number_format($metrics['total_points'] ?? 0) : number_format($metrics['total_points'] ?? 0, 2)) ?> <span
                         style="font-size: 16px; color: var(--text-secondary);">แต้ม</span>
                 </div>
                 <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);">
@@ -1020,7 +1020,7 @@ if ($admin_hoscode) {
                             $recentScreens = $recentScreenQuery->fetchAll();
                         }
                         if (empty($recentScreens)):
-                            ?>
+                        ?>
                             <tr>
                                 <td colspan="10" style="text-align: center; color: var(--text-secondary); padding: 24px;">
                                     ยังไม่มีข้อมูลผลการคัดกรองในระบบ</td>
@@ -1038,7 +1038,7 @@ if ($admin_hoscode) {
                                                 📋 <?= htmlspecialchars($rs['activity_type']) ?>
                                             </span>
                                         <?php endif; ?>
-                                        <?php 
+                                        <?php
                                         $timestamp = strtotime($rs['created_at']);
                                         $date_thai = date('d/m/', $timestamp) . (date('Y', $timestamp) + 543) . ' ' . date('H:i', $timestamp);
                                         ?>
@@ -1190,7 +1190,7 @@ if ($admin_hoscode) {
                                     ?>
                                     <option value="<?= htmlspecialchars($et['cid']) ?>" data-lat="<?= $et['latitude'] ?>"
                                         data-lng="<?= $et['longitude'] ?>">
-                                        <?= $hasCoord ?> หมู่ <?= $et['moo'] ?>     <?= htmlspecialchars($village_only) ?> -
+                                        <?= $hasCoord ?> หมู่ <?= $et['moo'] ?> <?= htmlspecialchars($village_only) ?> -
                                         บ้านเลขที่ <?= htmlspecialchars($et['house_no']) ?> |
                                         <?= htmlspecialchars($et['first_name'] . ' ' . $et['last_name']) ?>
                                     </option>
@@ -1220,7 +1220,7 @@ if ($admin_hoscode) {
             const isRegularAdmin = <?= json_encode($admin_hoscode !== null) ?>;
 
             // Custom pie/donut chart data label formatter to prevent deceptive 100% rounding when small values exist
-            const pieLabelFormatter = function (val, opts) {
+            const pieLabelFormatter = function(val, opts) {
                 const rawVal = opts.w.config.series[opts.seriesIndex];
                 if (rawVal === 0) return '';
                 if (val > 0 && val < 1) return val.toFixed(2) + "%";
@@ -1249,11 +1249,20 @@ if ($admin_hoscode) {
                         type: 'bar',
                         height: 350,
                         background: 'transparent',
-                        toolbar: { show: false }
+                        toolbar: {
+                            show: false
+                        }
                     },
-                    theme: { mode: localStorage.getItem('theme') || 'light' },
+                    theme: {
+                        mode: localStorage.getItem('theme') || 'light'
+                    },
                     colors: ['#4b5563', '#22c55e'],
-                    legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            colors: '#9ca3af'
+                        }
+                    },
                     plotOptions: {
                         bar: {
                             horizontal: false,
@@ -1261,15 +1270,27 @@ if ($admin_hoscode) {
                             borderRadius: 4
                         },
                     },
-                    dataLabels: { enabled: false },
+                    dataLabels: {
+                        enabled: false
+                    },
                     xaxis: {
                         categories: covCategories,
-                        labels: { style: { colors: '#9ca3af' } }
+                        labels: {
+                            style: {
+                                colors: '#9ca3af'
+                            }
+                        }
                     },
                     yaxis: {
-                        labels: { style: { colors: '#9ca3af' } }
+                        labels: {
+                            style: {
+                                colors: '#9ca3af'
+                            }
+                        }
                     },
-                    tooltip: { theme: localStorage.getItem('theme') || 'light' }
+                    tooltip: {
+                        theme: localStorage.getItem('theme') || 'light'
+                    }
                 };
                 new ApexCharts(document.querySelector("#chart-coverage"), optionsCoverage).render();
             } else {
@@ -1279,9 +1300,8 @@ if ($admin_hoscode) {
             // Risk Data
             const riskRaw = <?= json_encode($chartRiskData) ?>;
 
-            const riskCategories = isRegularAdmin
-                ? coverageRaw.map(d => d.village_name || "หมู่ " + d.moo)
-                : [...new Set(coverageRaw.map(d => d.hoscode))].map(hc => hcNamesChart[hc] || hc);
+            const riskCategories = isRegularAdmin ?
+                coverageRaw.map(d => d.village_name || "หมู่ " + d.moo) : [...new Set(coverageRaw.map(d => d.hoscode))].map(hc => hcNamesChart[hc] || hc);
 
             const riskNormal = [];
             const riskModerate = [];
@@ -1290,7 +1310,12 @@ if ($admin_hoscode) {
 
             if (isRegularAdmin) {
                 coverageRaw.forEach(covRow => {
-                    const match = riskRaw.find(d => d.moo === covRow.moo && d.sub_district_code === covRow.sub_district_code) || { normal: 0, moderate_risk: 0, high_risk: 0, unscreened: 0 };
+                    const match = riskRaw.find(d => d.moo === covRow.moo && d.sub_district_code === covRow.sub_district_code) || {
+                        normal: 0,
+                        moderate_risk: 0,
+                        high_risk: 0,
+                        unscreened: 0
+                    };
                     riskNormal.push(parseInt(match.normal) || 0);
                     riskModerate.push(parseInt(match.moderate_risk) || 0);
                     riskHigh.push(parseInt(match.high_risk) || 0);
@@ -1299,7 +1324,12 @@ if ($admin_hoscode) {
             } else {
                 const allHoscodesRaw = [...new Set(coverageRaw.map(d => d.hoscode))];
                 allHoscodesRaw.forEach(hc => {
-                    const match = riskRaw.find(d => d.hoscode === hc) || { normal: 0, moderate_risk: 0, high_risk: 0, unscreened: 0 };
+                    const match = riskRaw.find(d => d.hoscode === hc) || {
+                        normal: 0,
+                        moderate_risk: 0,
+                        high_risk: 0,
+                        unscreened: 0
+                    };
                     riskNormal.push(parseInt(match.normal) || 0);
                     riskModerate.push(parseInt(match.moderate_risk) || 0);
                     riskHigh.push(parseInt(match.high_risk) || 0);
@@ -1327,21 +1357,46 @@ if ($admin_hoscode) {
                         stacked: true,
                         stackType: '100%',
                         background: 'transparent',
-                        toolbar: { show: false }
+                        toolbar: {
+                            show: false
+                        }
                     },
-                    theme: { mode: localStorage.getItem('theme') || 'light' },
+                    theme: {
+                        mode: localStorage.getItem('theme') || 'light'
+                    },
                     colors: ['#f59e0b', '#ef4444', '#4b5563'],
-                    legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
-                    plotOptions: { bar: { borderRadius: 2 } },
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            colors: '#9ca3af'
+                        }
+                    },
+                    plotOptions: {
+                        bar: {
+                            borderRadius: 2
+                        }
+                    },
                     xaxis: {
                         categories: riskCategories,
-                        labels: { style: { colors: '#9ca3af' } }
+                        labels: {
+                            style: {
+                                colors: '#9ca3af'
+                            }
+                        }
                     },
                     yaxis: {
-                        labels: { style: { colors: '#9ca3af' } }
+                        labels: {
+                            style: {
+                                colors: '#9ca3af'
+                            }
+                        }
                     },
-                    tooltip: { theme: localStorage.getItem('theme') || 'light' },
-                    fill: { opacity: 1 }
+                    tooltip: {
+                        theme: localStorage.getItem('theme') || 'light'
+                    },
+                    fill: {
+                        opacity: 1
+                    }
                 };
                 new ApexCharts(document.querySelector("#chart-risk"), optionsRisk).render();
             } else {
@@ -1368,22 +1423,28 @@ if ($admin_hoscode) {
                         height: 350,
                         background: 'transparent'
                     },
-                    theme: { mode: localStorage.getItem('theme') || 'light' },
+                    theme: {
+                        mode: localStorage.getItem('theme') || 'light'
+                    },
                     labels: ['ปกติ (เสี่ยงต่ำ)', 'กลุ่มเสี่ยง', 'ป่วย/สงสัยเบาหวาน (DM)', 'ป่วย/สงสัยความดัน (HT)', 'ป่วย/สงสัยทั้ง HT และ DM'],
                     colors: ['#22c55e', '#f59e0b', '#8b5cf6', '#3b82f6', '#ec4899'],
-                    stroke: { show: false },
+                    stroke: {
+                        show: false
+                    },
                     legend: {
                         position: 'bottom',
-                        labels: { colors: '#9ca3af' }
+                        labels: {
+                            colors: '#9ca3af'
+                        }
                     },
                     dataLabels: {
                         enabled: true,
                         formatter: pieLabelFormatter
                     },
-                    tooltip: { 
+                    tooltip: {
                         theme: localStorage.getItem('theme') || 'light',
                         y: {
-                            formatter: function (val) {
+                            formatter: function(val) {
                                 return val.toLocaleString() + " ราย";
                             }
                         }
@@ -1410,18 +1471,34 @@ if ($admin_hoscode) {
                         type: 'area',
                         height: 350,
                         background: 'transparent',
-                        toolbar: { show: false }
+                        toolbar: {
+                            show: false
+                        }
                     },
-                    theme: { mode: localStorage.getItem('theme') || 'light' },
+                    theme: {
+                        mode: localStorage.getItem('theme') || 'light'
+                    },
                     colors: ['#0ea5e9'],
-                    legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
-                    dataLabels: { enabled: true },
-                    stroke: { curve: 'smooth', width: 2 },
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            colors: '#9ca3af'
+                        }
+                    },
+                    dataLabels: {
+                        enabled: true
+                    },
+                    stroke: {
+                        curve: 'smooth',
+                        width: 2
+                    },
                     xaxis: {
                         categories: trendCategories,
                         labels: {
-                            style: { colors: '#9ca3af' },
-                            formatter: function (val) {
+                            style: {
+                                colors: '#9ca3af'
+                            },
+                            formatter: function(val) {
                                 if (!val) return '';
                                 const parts = val.split('-');
                                 if (parts.length < 3) return val;
@@ -1430,9 +1507,15 @@ if ($admin_hoscode) {
                         }
                     },
                     yaxis: {
-                        labels: { style: { colors: '#9ca3af' } }
+                        labels: {
+                            style: {
+                                colors: '#9ca3af'
+                            }
+                        }
                     },
-                    tooltip: { theme: localStorage.getItem('theme') || 'light' },
+                    tooltip: {
+                        theme: localStorage.getItem('theme') || 'light'
+                    },
                     fill: {
                         type: 'gradient',
                         gradient: {
@@ -1487,30 +1570,55 @@ if ($admin_hoscode) {
                         height: 350,
                         type: 'bar',
                         background: 'transparent',
-                        toolbar: { show: false }
+                        toolbar: {
+                            show: false
+                        }
                     },
-                    theme: { mode: localStorage.getItem('theme') || 'light' },
+                    theme: {
+                        mode: localStorage.getItem('theme') || 'light'
+                    },
                     plotOptions: {
                         bar: {
                             horizontal: true,
                             borderRadius: 4,
-                            dataLabels: { position: 'top' }
+                            dataLabels: {
+                                position: 'top'
+                            }
                         }
                     },
                     dataLabels: {
                         enabled: true,
                         offsetX: 20,
-                        style: { colors: ['#9ca3af'] },
-                        formatter: function (val) { return val + "%" }
+                        style: {
+                            colors: ['#9ca3af']
+                        },
+                        formatter: function(val) {
+                            return val + "%"
+                        }
                     },
                     xaxis: {
                         max: 100,
-                        labels: { style: { colors: '#9ca3af' }, formatter: function (val) { return val + "%" } }
+                        labels: {
+                            style: {
+                                colors: '#9ca3af'
+                            },
+                            formatter: function(val) {
+                                return val + "%"
+                            }
+                        }
                     },
                     yaxis: {
-                        labels: { style: { colors: '#9ca3af', fontSize: '12px', fontWeight: 'bold' } }
+                        labels: {
+                            style: {
+                                colors: '#9ca3af',
+                                fontSize: '12px',
+                                fontWeight: 'bold'
+                            }
+                        }
                     },
-                    tooltip: { theme: localStorage.getItem('theme') || 'light' }
+                    tooltip: {
+                        theme: localStorage.getItem('theme') || 'light'
+                    }
                 };
                 new ApexCharts(document.querySelector("#chart-overall-progress"), optionsProgress).render();
             } else {
@@ -1530,12 +1638,28 @@ if ($admin_hoscode) {
                 var optionsScreenedRisk = {
                     series: screenedRiskSeries,
                     labels: ['ปกติ (เสี่ยงต่ำ)', 'เสี่ยงปานกลาง', 'เสี่ยงสูง (สงสัยป่วย)'],
-                    chart: { type: 'pie', height: 280, background: 'transparent' },
-                    theme: { mode: localStorage.getItem('theme') || 'light' },
+                    chart: {
+                        type: 'pie',
+                        height: 280,
+                        background: 'transparent'
+                    },
+                    theme: {
+                        mode: localStorage.getItem('theme') || 'light'
+                    },
                     colors: ['#22c55e', '#f59e0b', '#ef4444'],
-                    stroke: { show: false },
-                    legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
-                    dataLabels: { enabled: true, formatter: pieLabelFormatter }
+                    stroke: {
+                        show: false
+                    },
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            colors: '#9ca3af'
+                        }
+                    },
+                    dataLabels: {
+                        enabled: true,
+                        formatter: pieLabelFormatter
+                    }
                 };
                 new ApexCharts(document.querySelector("#chart-screened-risk-pie"), optionsScreenedRisk).render();
             } else {
@@ -1548,12 +1672,28 @@ if ($admin_hoscode) {
                 var optionsSkipped = {
                     series: skippedRaw.map(d => parseInt(d.count)),
                     labels: skippedRaw.map(d => d.skipped_reason || 'ไม่ระบุ'),
-                    chart: { type: 'donut', height: 280, background: 'transparent' },
-                    theme: { mode: localStorage.getItem('theme') || 'light' },
+                    chart: {
+                        type: 'donut',
+                        height: 280,
+                        background: 'transparent'
+                    },
+                    theme: {
+                        mode: localStorage.getItem('theme') || 'light'
+                    },
                     colors: ['#f59e0b', '#ef4444', '#8b5cf6', '#0ea5e9', '#64748b'],
-                    stroke: { show: false },
-                    legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
-                    dataLabels: { enabled: true, formatter: pieLabelFormatter }
+                    stroke: {
+                        show: false
+                    },
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            colors: '#9ca3af'
+                        }
+                    },
+                    dataLabels: {
+                        enabled: true,
+                        formatter: pieLabelFormatter
+                    }
                 };
                 new ApexCharts(document.querySelector("#chart-skipped"), optionsSkipped).render();
             } else {
@@ -1566,12 +1706,28 @@ if ($admin_hoscode) {
                 var optionsDpac = {
                     series: dpacRaw.map(d => parseInt(d.count)),
                     labels: dpacRaw.map(d => d.risk_type == '1' ? 'กลุ่มเสี่ยงเบาหวาน' : (d.risk_type == '2' ? 'กลุ่มเสี่ยงความดันฯ' : (d.risk_type == '3' ? 'กลุ่มป่วย/อื่นๆ' : 'ไม่ระบุ'))),
-                    chart: { type: 'pie', height: 280, background: 'transparent' },
-                    theme: { mode: localStorage.getItem('theme') || 'light' },
+                    chart: {
+                        type: 'pie',
+                        height: 280,
+                        background: 'transparent'
+                    },
+                    theme: {
+                        mode: localStorage.getItem('theme') || 'light'
+                    },
                     colors: ['#22d3ee', '#c084fc', '#f43f5e', '#a8a29e'],
-                    stroke: { show: false },
-                    legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
-                    dataLabels: { enabled: true, formatter: pieLabelFormatter }
+                    stroke: {
+                        show: false
+                    },
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            colors: '#9ca3af'
+                        }
+                    },
+                    dataLabels: {
+                        enabled: true,
+                        formatter: pieLabelFormatter
+                    }
                 };
                 new ApexCharts(document.querySelector("#chart-dpac"), optionsDpac).render();
             } else {
@@ -1584,15 +1740,31 @@ if ($admin_hoscode) {
                     Math.max(0, <?= intval($metrics['total_targets']) ?> - <?= intval($metrics['screened_count']) ?>)
                 ],
                 labels: ['คัดกรองแล้ว', 'ยังไม่คัดกรอง'],
-                chart: { type: 'pie', height: 280, background: 'transparent' },
-                theme: { mode: localStorage.getItem('theme') || 'light' },
+                chart: {
+                    type: 'pie',
+                    height: 280,
+                    background: 'transparent'
+                },
+                theme: {
+                    mode: localStorage.getItem('theme') || 'light'
+                },
                 colors: ['#22c55e', '#4b5563'],
-                stroke: { show: false },
-                legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
-                dataLabels: { enabled: true, formatter: pieLabelFormatter },
+                stroke: {
+                    show: false
+                },
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        colors: '#9ca3af'
+                    }
+                },
+                dataLabels: {
+                    enabled: true,
+                    formatter: pieLabelFormatter
+                },
                 tooltip: {
                     y: {
-                        formatter: function (val) {
+                        formatter: function(val) {
                             return val.toLocaleString() + " ราย";
                         }
                     }
@@ -1621,18 +1793,36 @@ if ($admin_hoscode) {
                     height: 280,
                     type: 'radar',
                     background: 'transparent',
-                    toolbar: { show: false }
+                    toolbar: {
+                        show: false
+                    }
                 },
-                theme: { mode: localStorage.getItem('theme') || 'light' },
+                theme: {
+                    mode: localStorage.getItem('theme') || 'light'
+                },
                 labels: ['เสี่ยงเบาหวาน', 'เสี่ยงความดัน', 'เสี่ยงคู่', 'สงสัยป่วยใหม่', 'กลุ่มเสี่ยงรวม', 'กลุ่มปกติ'],
-                stroke: { width: 2, colors: ['#0ea5e9'] },
-                fill: { opacity: 0.2, colors: ['#0ea5e9'] },
-                markers: { size: 4, colors: ['#fff'], strokeColors: '#0ea5e9', strokeWidth: 2 },
-                yaxis: { show: false },
-                legend: { show: false }
+                stroke: {
+                    width: 2,
+                    colors: ['#0ea5e9']
+                },
+                fill: {
+                    opacity: 0.2,
+                    colors: ['#0ea5e9']
+                },
+                markers: {
+                    size: 4,
+                    colors: ['#fff'],
+                    strokeColors: '#0ea5e9',
+                    strokeWidth: 2
+                },
+                yaxis: {
+                    show: false
+                },
+                legend: {
+                    show: false
+                }
             };
             new ApexCharts(document.querySelector("#chart-cockpit-radar"), optionsRadar).render();
-
         </script>
 
         <!-- Map Script Initialization -->
@@ -1642,7 +1832,7 @@ if ($admin_hoscode) {
             var hcNames = <?= json_encode($hc_names) ?>;
 
             // Classify risk for each target
-            allMapData.forEach(function (t) {
+            allMapData.forEach(function(t) {
                 if (t.sys_bp1 !== null) {
                     // Has screening results
                     var sbp = parseInt(t.sys_bp1) || 0;
@@ -1662,8 +1852,16 @@ if ($admin_hoscode) {
                 }
             });
 
-            var riskColors = { high: '#ef4444', moderate: '#f59e0b', normal: '#22c55e' };
-            var riskLabels = { high: '🔴 เสี่ยงสูง', moderate: '🟡 เสี่ยงปานกลาง', normal: '🟢 ปกติ' };
+            var riskColors = {
+                high: '#ef4444',
+                moderate: '#f59e0b',
+                normal: '#22c55e'
+            };
+            var riskLabels = {
+                high: '🔴 เสี่ยงสูง',
+                moderate: '🟡 เสี่ยงปานกลาง',
+                normal: '🟢 ปกติ'
+            };
 
             // ============== MAP INIT ==============
             var streetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -1694,14 +1892,18 @@ if ($admin_hoscode) {
 
             function classifyPopupGroupHTML(groupData) {
                 // Determine group risk (highest risk in the house)
-                var hasHigh = groupData.some(function(t) { return t.risk === 'high'; });
-                var hasMod = groupData.some(function(t) { return t.risk === 'moderate'; });
+                var hasHigh = groupData.some(function(t) {
+                    return t.risk === 'high';
+                });
+                var hasMod = groupData.some(function(t) {
+                    return t.risk === 'moderate';
+                });
                 var groupRisk = hasHigh ? 'high' : (hasMod ? 'moderate' : 'normal');
                 var groupColor = riskColors[groupRisk];
-                
+
                 var firstT = groupData[0];
                 var villageName = firstT.house_no ? 'บ้านเลขที่ ' + firstT.house_no : '';
-                
+
                 var html = '<div style="color: black; font-size: 13px; min-width: 250px; max-height: 300px; overflow-y: auto;">';
                 html += '<div style="position: sticky; top: 0; background: white; padding-bottom: 5px; border-bottom: 1px solid #ccc; margin-bottom: 8px;">';
                 html += '<strong>' + villageName + ' หมู่ที่ ' + firstT.moo + '</strong><br>';
@@ -1714,7 +1916,7 @@ if ($admin_hoscode) {
                     html += '<div style="margin-bottom: 10px; padding: 5px; background: #f9f9f9; border-radius: 4px;">';
                     html += '<strong>' + (t.first_name || '') + ' ' + (t.last_name || '') + '</strong><br>';
                     html += '<span style="font-weight: bold; font-size: 12px;">สถานะ: ' + riskLabel + '</span><br>';
-                    
+
                     if (t.sys_bp1 !== null) {
                         var bpColor = (parseInt(t.sys_bp1) >= 140 || parseInt(t.dia_bp1) >= 90) ? 'red' : 'green';
                         html += 'ความดัน: <span style="color: ' + bpColor + '; font-weight: bold;">' + t.sys_bp1 + '/' + t.dia_bp1 + '</span> mmHg<br>';
@@ -1748,18 +1950,18 @@ if ($admin_hoscode) {
                 function isMasked(str) {
                     return str && (str.indexOf('*') !== -1 || str.indexOf('X') !== -1);
                 }
-                
+
                 var maskedFirstIsMasked = isMasked(masked.first_name);
                 var maskedLastIsMasked = isMasked(masked.last_name);
-                
+
                 var unmaskedFirstIsMasked = isMasked(unmasked.first_name);
                 var unmaskedLastIsMasked = isMasked(unmasked.last_name);
-                
+
                 // If masked name is not masked, or unmasked name is actually masked, they are not a pair
                 if (!(maskedFirstIsMasked || maskedLastIsMasked) || (unmaskedFirstIsMasked || unmaskedLastIsMasked)) {
                     return false;
                 }
-                
+
                 // Helper to extract non-masked prefix
                 function getPrefix(str) {
                     if (!str) return "";
@@ -1771,35 +1973,40 @@ if ($admin_hoscode) {
                     else idx = idxX;
                     return idx > 0 ? str.substring(0, idx) : str.substring(0, 1);
                 }
-                
+
                 var mFirstPrefix = getPrefix(masked.first_name);
                 var mLastPrefix = getPrefix(masked.last_name);
-                
+
                 if (!mFirstPrefix || !mLastPrefix) return false;
-                
+
                 var uFirst = unmasked.first_name || "";
                 var uLast = unmasked.last_name || "";
-                
+
                 // Both first name and last name must match prefix
                 var firstMatch = uFirst.startsWith(mFirstPrefix);
                 var lastMatch = uLast.startsWith(mLastPrefix);
-                
+
                 return firstMatch && lastMatch;
             }
 
             function buildMarkers(adjustView) {
                 // Clear existing
-                markers.forEach(function (m) { map.removeLayer(m.marker); });
+                markers.forEach(function(m) {
+                    map.removeLayer(m.marker);
+                });
                 markers = [];
-                if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
+                if (heatLayer) {
+                    map.removeLayer(heatLayer);
+                    heatLayer = null;
+                }
 
                 var heatPoints = [];
                 var bounds = [];
-                
+
                 // Group data by coordinates
                 var groupedData = {};
 
-                allMapData.forEach(function (t) {
+                allMapData.forEach(function(t) {
                     if (!t.latitude || !t.longitude) return;
 
                     // Apply filters
@@ -1816,7 +2023,7 @@ if ($admin_hoscode) {
                     var lat = latVal.toFixed(6);
                     var lng = lngVal.toFixed(6);
                     var key = lat + ',' + lng;
-                    
+
                     if (!groupedData[key]) {
                         groupedData[key] = [];
                     }
@@ -1834,7 +2041,7 @@ if ($admin_hoscode) {
                                 if (i === j) continue;
                                 var t1 = group[i]; // potential masked duplicate
                                 var t2 = group[j]; // potential unmasked real target
-                                
+
                                 if (isMaskedDuplicate(t1, t2)) {
                                     // Merge screening results if t1 has results but t2 doesn't
                                     if (t1.sys_bp1 !== null && t2.sys_bp1 === null) {
@@ -1856,7 +2063,7 @@ if ($admin_hoscode) {
                             });
                         }
                     }
-                    
+
                     // Update visibleCount
                     visibleCount += groupedData[key].length;
                 });
@@ -1869,12 +2076,16 @@ if ($admin_hoscode) {
                     var parts = key.split(',');
                     var lat = parseFloat(parts[0]);
                     var lng = parseFloat(parts[1]);
-                    
+
                     // Determine highest risk in group for marker color
-                    var hasHigh = group.some(function(t) { return t.risk === 'high'; });
-                    var hasMod = group.some(function(t) { return t.risk === 'moderate'; });
+                    var hasHigh = group.some(function(t) {
+                        return t.risk === 'high';
+                    });
+                    var hasMod = group.some(function(t) {
+                        return t.risk === 'moderate';
+                    });
                     var groupRisk = hasHigh ? 'high' : (hasMod ? 'moderate' : 'normal');
-                    
+
                     var color = riskColors[groupRisk];
                     var radius = groupRisk === 'high' ? 7 : (groupRisk === 'moderate' ? 5 : 4);
                     // Make it slightly larger if multiple people
@@ -1892,7 +2103,10 @@ if ($admin_hoscode) {
                         fillOpacity: opacity
                     }).addTo(map).bindPopup(classifyPopupGroupHTML(group));
 
-                    markers.push({ marker: marker, data: group });
+                    markers.push({
+                        marker: marker,
+                        data: group
+                    });
 
                     // Populating bounds and heatPoints only for coordinates within Tan Sum boundary
                     if (lat >= 15.20 && lat <= 15.60 && lng >= 104.70 && lng <= 105.40) {
@@ -1911,7 +2125,13 @@ if ($admin_hoscode) {
                         radius: 25,
                         blur: 15,
                         maxZoom: 15,
-                        gradient: { 0.2: '#22c55e', 0.4: '#a3e635', 0.6: '#f59e0b', 0.8: '#f97316', 1.0: '#ef4444' }
+                        gradient: {
+                            0.2: '#22c55e',
+                            0.4: '#a3e635',
+                            0.6: '#f59e0b',
+                            0.8: '#f97316',
+                            1.0: '#ef4444'
+                        }
                     }).addTo(map);
                 }
 
@@ -1921,7 +2141,7 @@ if ($admin_hoscode) {
                         // Calculate centroid (average coordinates) of all visible points
                         var latSum = 0;
                         var lngSum = 0;
-                        bounds.forEach(function (c) {
+                        bounds.forEach(function(c) {
                             latSum += c[0];
                             lngSum += c[1];
                         });
@@ -1959,7 +2179,7 @@ if ($admin_hoscode) {
                 currentRiskFilter = risk;
 
                 // Update button styles
-                document.querySelectorAll('[id^="btn-risk-"]').forEach(function (btn) {
+                document.querySelectorAll('[id^="btn-risk-"]').forEach(function(btn) {
                     btn.classList.remove('active');
                     btn.style.background = 'transparent';
                     btn.style.color = btn.getAttribute('data-color') || 'var(--text-secondary)';
@@ -1989,7 +2209,7 @@ if ($admin_hoscode) {
                 currentHosFilter = hoscode;
 
                 // Update button styles
-                document.querySelectorAll('[id^="btn-hos-"]').forEach(function (btn) {
+                document.querySelectorAll('[id^="btn-hos-"]').forEach(function(btn) {
                     btn.classList.remove('active');
                     btn.style.background = 'transparent';
                     btn.style.color = 'var(--color-accent)';
@@ -2074,7 +2294,7 @@ if ($admin_hoscode) {
                 }
             }
 
-            map.on('click', function (e) {
+            map.on('click', function(e) {
                 if (!editMode) return;
 
                 var cid = document.getElementById('edit-target-select').value;
@@ -2085,7 +2305,11 @@ if ($admin_hoscode) {
 
                 var lat = e.latlng.lat;
                 var lng = e.latlng.lng;
-                pendingCoord = { cid: cid, latitude: lat, longitude: lng };
+                pendingCoord = {
+                    cid: cid,
+                    latitude: lat,
+                    longitude: lng
+                };
 
                 // Show/update preview marker
                 if (editMarker) {
@@ -2099,10 +2323,13 @@ if ($admin_hoscode) {
                     iconAnchor: [10, 10]
                 });
 
-                editMarker = L.marker([lat, lng], { icon: pulseIcon, draggable: true }).addTo(map);
+                editMarker = L.marker([lat, lng], {
+                    icon: pulseIcon,
+                    draggable: true
+                }).addTo(map);
                 editMarker.bindPopup('<div style="color: black; font-weight: bold;">📍 ตำแหน่งใหม่<br>' + lat.toFixed(6) + ', ' + lng.toFixed(6) + '</div>').openPopup();
 
-                editMarker.on('dragend', function (e) {
+                editMarker.on('dragend', function(e) {
                     var pos = e.target.getLatLng();
                     pendingCoord.latitude = pos.lat;
                     pendingCoord.longitude = pos.lng;
@@ -2122,17 +2349,23 @@ if ($admin_hoscode) {
                 btn.disabled = true;
 
                 fetch('../api/update_coordinates.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(pendingCoord)
-                })
-                    .then(function (res) { return res.json(); })
-                    .then(function (data) {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(pendingCoord)
+                    })
+                    .then(function(res) {
+                        return res.json();
+                    })
+                    .then(function(data) {
                         if (data.success) {
                             document.getElementById('edit-status').innerHTML = '<span style="color: var(--color-green); font-weight: bold;">✅ ' + data.message + '</span>';
 
                             // Update local data
-                            var found = allMapData.find(function (t) { return t.cid === pendingCoord.cid; });
+                            var found = allMapData.find(function(t) {
+                                return t.cid === pendingCoord.cid;
+                            });
                             if (found) {
                                 found.latitude = pendingCoord.latitude.toString();
                                 found.longitude = pendingCoord.longitude.toString();
@@ -2159,7 +2392,10 @@ if ($admin_hoscode) {
 
                             buildMarkers(false);
 
-                            if (editMarker) { map.removeLayer(editMarker); editMarker = null; }
+                            if (editMarker) {
+                                map.removeLayer(editMarker);
+                                editMarker = null;
+                            }
                             pendingCoord = null;
                             btn.style.display = 'none';
                         } else {
@@ -2169,7 +2405,7 @@ if ($admin_hoscode) {
                         btn.textContent = '💾 บันทึกพิกัด';
                         btn.disabled = false;
                     })
-                    .catch(function (err) {
+                    .catch(function(err) {
                         document.getElementById('edit-status').innerHTML = '<span style="color: var(--color-red);">❌ เกิดข้อผิดพลาด: ' + err.message + '</span>';
                         btn.textContent = '💾 บันทึกพิกัด';
                         btn.disabled = false;
@@ -2204,11 +2440,11 @@ if ($admin_hoscode) {
             style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(13, 44, 84, 0.4); backdrop-filter: blur(4px); z-index: 2000; align-items: center; justify-content: center;">
             <div class="card-dark"
                 style="position: relative; width: 90%; max-width: 500px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.1); border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 24px; margin-bottom: 0;">
-                <button onclick="closeDetailsModal()" 
-                        style="position: absolute; top: 24px; right: 24px; background: none; border: none; color: var(--text-muted); cursor: pointer; transition: color var(--transition-speed); padding: 4px; display: inline-flex; align-items: center; justify-content: center;"
-                        onmouseover="this.style.color='var(--color-red)'"
-                        onmouseout="this.style.color='var(--text-muted)'"
-                        title="ปิด">
+                <button onclick="closeDetailsModal()"
+                    style="position: absolute; top: 24px; right: 24px; background: none; border: none; color: var(--text-muted); cursor: pointer; transition: color var(--transition-speed); padding: 4px; display: inline-flex; align-items: center; justify-content: center;"
+                    onmouseover="this.style.color='var(--color-red)'"
+                    onmouseout="this.style.color='var(--text-muted)'"
+                    title="ปิด">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -2280,7 +2516,7 @@ if ($admin_hoscode) {
                     var config = cardTargetFilters[type];
                     var origin = config.origin;
                     title = '📊 กลุ่มเป้าหมาย ' + config.label;
-                    
+
                     html = '<div style="margin-bottom: 16px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px; border-left: 4px solid ' + config.color + ';">';
                     html += '<span style="color: var(--text-secondary); font-size: 14px;">จำนวนเป้าหมายทั้งหมดในกลุ่มนี้</span>';
                     html += '<div style="font-size: 24px; font-weight: bold; color: ' + config.color + '; margin-top: 4px;">' + config.totalVal.toLocaleString() + ' ราย</div>';
@@ -2290,7 +2526,7 @@ if ($admin_hoscode) {
                     html += '<h4 style="margin-top: 20px; color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">แยกตามพื้นที่</h4>';
                     html += '<div style="border-radius: 12px; overflow: hidden; border: 1px solid rgba(0,0,0,0.05);">';
                     html += '<table class="admin-table"><thead><tr><th>พื้นที่</th><th style="text-align: right;">จำนวน (ราย)</th></tr></thead><tbody>';
-                    
+
                     var filteredDetails = targetsDetail.filter(function(row) {
                         return row.health_status_origin === origin;
                     });
@@ -2300,7 +2536,7 @@ if ($admin_hoscode) {
                         if (filteredDetails.length === 0) {
                             html += '<tr><td colspan="2" style="text-align: center;">ไม่มีข้อมูล</td></tr>';
                         } else {
-                            filteredDetails.forEach(function (row) {
+                            filteredDetails.forEach(function(row) {
                                 totalCount += Number(row.count);
                                 html += '<tr><td>' + (hcNamesChart[row.hoscode] || row.hoscode) + '</td><td style="text-align: right; font-weight: bold;">' + Number(row.count).toLocaleString() + ' ราย</td></tr>';
                             });
@@ -2309,7 +2545,7 @@ if ($admin_hoscode) {
                         if (filteredDetails.length === 0) {
                             html += '<tr><td colspan="2" style="text-align: center;">ไม่มีข้อมูล</td></tr>';
                         } else {
-                            filteredDetails.forEach(function (row) {
+                            filteredDetails.forEach(function(row) {
                                 totalCount += Number(row.count);
                                 html += '<tr><td>' + (row.village_name || ('หมู่ที่ ' + row.moo)) + '</td><td style="text-align: right; font-weight: bold;">' + Number(row.count).toLocaleString() + ' ราย</td></tr>';
                             });
@@ -2324,7 +2560,7 @@ if ($admin_hoscode) {
                     if (groupDetail.length === 0) {
                         html += '<tr><td colspan="2" style="text-align: center;">ไม่มีข้อมูล</td></tr>';
                     } else {
-                        groupDetail.forEach(function (row) {
+                        groupDetail.forEach(function(row) {
                             var label = groupLabels[row.health_status_origin] || row.health_status_origin;
                             var color = groupColors[row.health_status_origin] || 'var(--text-primary)';
                             html += '<tr><td style="color: ' + color + '; font-weight: bold;">' + label + '</td><td style="text-align: right; font-weight: bold; color: ' + color + ';">' + Number(row.count).toLocaleString() + ' ราย</td></tr>';
@@ -2337,9 +2573,9 @@ if ($admin_hoscode) {
                     html += '<h4 style="margin-top: 20px; color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">แยกตามพื้นที่</h4>';
                     html += '<div style="border-radius: 12px; overflow: hidden; border: 1px solid rgba(0,0,0,0.05);">';
                     html += '<table class="admin-table"><thead><tr><th>พื้นที่</th><th style="text-align: right;">จำนวน (ราย)</th></tr></thead><tbody>';
-                    
+
                     var areaCounts = {};
-                    targetsDetail.forEach(function (row) {
+                    targetsDetail.forEach(function(row) {
                         var areaKey = <?php echo !$admin_hoscode ? 'row.hoscode' : "row.hoscode + '_' + row.moo"; ?>;
                         if (!areaCounts[areaKey]) {
                             areaCounts[areaKey] = {
@@ -2354,13 +2590,15 @@ if ($admin_hoscode) {
 
                     var areaList = Object.values(areaCounts);
                     <?php if ($admin_hoscode): ?>
-                        areaList.sort(function(a, b) { return Number(a.moo) - Number(b.moo); });
+                        areaList.sort(function(a, b) {
+                            return Number(a.moo) - Number(b.moo);
+                        });
                     <?php endif; ?>
 
                     if (areaList.length === 0) {
                         html += '<tr><td colspan="2" style="text-align: center;">ไม่มีข้อมูล</td></tr>';
                     } else {
-                        areaList.forEach(function (row) {
+                        areaList.forEach(function(row) {
                             <?php if (!$admin_hoscode): ?>
                                 html += '<tr><td>' + (hcNamesChart[row.hoscode] || row.hoscode) + '</td><td style="text-align: right; font-weight: bold;">' + Number(row.count).toLocaleString() + ' ราย</td></tr>';
                             <?php else: ?>
@@ -2390,7 +2628,7 @@ if ($admin_hoscode) {
                     if (skippedDetail.length === 0) {
                         html += '<tr><td colspan="2" style="text-align: center;">ไม่มีเคสถูกข้าม</td></tr>';
                     } else {
-                        skippedDetail.forEach(function (row) {
+                        skippedDetail.forEach(function(row) {
                             html += '<tr><td>' + (row.skipped_reason || 'ไม่อยู่บ้าน/ไม่มีผู้ให้ประวัติ') + '</td><td style="text-align: right; font-weight: bold;">' + Number(row.count).toLocaleString() + ' เคส</td></tr>';
                         });
                     }
@@ -2403,7 +2641,7 @@ if ($admin_hoscode) {
                     if (pendingDetail.length === 0) {
                         html += '<tr><td colspan="2" style="text-align: center;">ไม่มีงานรอดำเนินการค้างในระบบ</td></tr>';
                     } else {
-                        pendingDetail.forEach(function (row) {
+                        pendingDetail.forEach(function(row) {
                             totalPending += Number(row.count);
                             <?php if (!$admin_hoscode): ?>
                                 html += '<tr><td>' + (hcNamesChart[row.hoscode] || row.hoscode) + '</td><td style="text-align: right; font-weight: bold; color: var(--color-primary);">' + Number(row.count).toLocaleString() + ' ราย</td></tr>';
@@ -2421,7 +2659,7 @@ if ($admin_hoscode) {
                     if (rewardsDetail.length === 0) {
                         html += '<tr><td colspan="2" style="text-align: center;">ยังไม่มีการบันทึกผลงานสะสม</td></tr>';
                     } else {
-                        rewardsDetail.forEach(function (row) {
+                        rewardsDetail.forEach(function(row) {
                             html += '<tr><td style="font-weight: bold; color: var(--text-primary);">' + row.vhv_name + '</td><td style="text-align: right; font-weight: bold; color: var(--color-green);">' + Number(row.total_points).toLocaleString() + ' แต้ม</td></tr>';
                         });
                     }

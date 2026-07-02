@@ -293,10 +293,10 @@ try {
                         + เพิ่มแมนนวล
                     </button>
                 </div>
-                
+
                 <!-- Search Input Field -->
                 <div style="margin-top: 12px;">
-                    <input type="text" id="search-target" placeholder="🔍 พิมพ์ชื่อ-นามสกุล หรือบ้านเลขที่เพื่อค้นหา..." 
+                    <input type="text" id="search-target" placeholder="🔍 พิมพ์ชื่อ-นามสกุล หรือบ้านเลขที่เพื่อค้นหา..."
                         style="width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-color); background-color: var(--bg-main); color: var(--text-primary); font-size: 14px; box-sizing: border-box; box-shadow: var(--neumorph-inset); transition: all 0.3s;"
                         oninput="onSearchInput()">
                 </div>
@@ -366,7 +366,7 @@ try {
         <div class="modal-content">
             <h3
                 style="color: var(--color-accent); margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
-                เพิ่มประชากรเป้าหมาย (แมนนวล)</h3>
+                เพิ่มประชากรเป้าหมาย (Manual)</h3>
             <form id="manual-form" onsubmit="saveManualTarget(event)">
                 <div class="form-group">
                     <label class="form-label">เลขบัตรประชาชน (13 หลัก)</label>
@@ -433,7 +433,10 @@ try {
             mSelect.innerHTML = '<option value="">-- เลือกพื้นที่ก่อน --</option>';
             hContainer.style.display = 'none';
 
-            if (!tCode) { fetchData(); return; }
+            if (!tCode) {
+                fetchData();
+                return;
+            }
 
             const tInfo = tambonData[tCode];
             if (tInfo.hasSubUnits) {
@@ -588,7 +591,7 @@ try {
                 `;
             });
             list.innerHTML = html;
-            
+
             // Check if all filtered items are in selectedCids to toggle the header checkbox
             const allChecked = filteredTargets.every(t => selectedCids.has(t.cid));
             document.getElementById('select-all').checked = allChecked && filteredTargets.length > 0;
@@ -627,7 +630,7 @@ try {
                 selectedCids.delete(cid);
             }
             updateSelectedCount();
-            
+
             // Adjust the select-all header checkbox state
             const list = document.getElementById('target-list');
             const visibleCheckboxes = Array.from(list.querySelectorAll('.item-cb'));
@@ -662,8 +665,8 @@ try {
             }
 
             // Find selected targets that are already completed/skipped
-            const screenedTargets = currentTargets.filter(t => 
-                cids.includes(t.cid) && 
+            const screenedTargets = currentTargets.filter(t =>
+                cids.includes(t.cid) &&
                 (t.assignment_status === 'completed' || t.assignment_status === 'skipped')
             );
 
@@ -681,10 +684,15 @@ try {
 
             if (confirm(`ยืนยันมอบหมายงาน ${cids.length} ราย ให้ อสม. ท่านนี้?`)) {
                 fetch('../api/assign_tasks.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ vhv_id: vhvId, target_cids: cids })
-                })
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            vhv_id: vhvId,
+                            target_cids: cids
+                        })
+                    })
                     .then(r => r.json())
                     .then(data => {
                         if (data.status === 'success') {
@@ -707,10 +715,14 @@ try {
 
             if (confirm(`ยืนยันเปิดสิทธิ์คัดกรองประชากรที่เลือกจำนวน ${cids.length} ราย?`)) {
                 fetch('../api/activate_suspect_targets.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cids: cids })
-                })
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            cids: cids
+                        })
+                    })
                     .then(r => r.json())
                     .then(data => {
                         if (data.status === 'success') {
@@ -727,9 +739,13 @@ try {
         // Modal Logic
         function openManualModal() {
             const moo = document.getElementById('moo').value;
-            if (!moo) { alert("กรุณาเลือกตำบลและหมู่บ้านก่อนเพิ่มข้อมูลครับ"); return; }
+            if (!moo) {
+                alert("กรุณาเลือกตำบลและหมู่บ้านก่อนเพิ่มข้อมูลครับ");
+                return;
+            }
             document.getElementById('manual-modal').style.display = 'flex';
         }
+
         function closeManualModal() {
             document.getElementById('manual-modal').style.display = 'none';
             document.getElementById('manual-form').reset();
@@ -764,10 +780,12 @@ try {
             };
 
             fetch('../api/save_manual_target.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                })
                 .then(r => r.json())
                 .then(data => {
                     if (data.status === 'success') {
