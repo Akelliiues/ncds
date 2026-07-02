@@ -905,6 +905,9 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
             'UNSCREENED': 'ยังไม่ได้ตรวจ ⚪'
         };
 
+        // Create feature group to track bounds
+        const markerGroup = L.featureGroup();
+
         // Create circles
         targets.forEach(t => {
             const marker = L.circleMarker([t.latitude, t.longitude], {
@@ -924,7 +927,13 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
             `);
 
             markers[t.cid] = marker;
+            markerGroup.addLayer(marker);
         });
+
+        // Fit map bounds automatically if there are markers
+        if (targets.length > 0) {
+            map.fitBounds(markerGroup.getBounds(), { padding: [30, 30] });
+        }
 
         // Quarter playback
         let activeQuarterIndex = 0;
