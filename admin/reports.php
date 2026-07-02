@@ -252,7 +252,23 @@ if ($filter_source === 'screened') {
     if ($filter_hoscode) {
         $hoscodes = get_query_hoscodes($filter_hoscode);
         $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
- } elseif ($filter_source === 'summary_stats') {
+        $sql .= " AND v.hoscode IN ($inPlaceholders)";
+        $params = array_merge($params, $hoscodes);
+    }
+
+    if ($filter_tambon) {
+        $sql .= " AND v.vhid_code LIKE ?";
+        $params[] = $filter_tambon . '%';
+    }
+
+    if ($filter_moo) {
+        $sql .= " AND v.vhv_moo = ?";
+        $params[] = $filter_moo;
+    }
+
+    $sql .= " ORDER BY v.hoscode, v.vhv_moo, v.vhv_name";
+
+} elseif ($filter_source === 'summary_stats') {
     // Query Village-level Target and Screening Summary
     $sql = "
         SELECT MAX(p.sub_district_code) as sub_district_code, p.moo, COALESCE(v.hoscode, p.hoscode) as hoscode,
