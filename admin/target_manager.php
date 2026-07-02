@@ -47,8 +47,9 @@ try {
 try {
     $dupesQuery = $pdo->query("
         SELECT 
-            t1.cid AS masked_cid, t1.need_screen_dm AS masked_dm, t1.need_screen_ht AS masked_ht, t1.health_status_origin AS masked_status,
-            t2.cid AS real_cid
+            t1.cid AS masked_cid, t1.pid AS masked_pid, t1.hoscode AS masked_hos,
+            t1.need_screen_dm AS masked_dm, t1.need_screen_ht AS masked_ht, t1.health_status_origin AS masked_status,
+            t2.cid AS real_cid, t2.pid AS real_pid, t2.first_name AS real_first, t2.last_name AS real_last
         FROM target_population t1
         JOIN target_population t2 
           ON t1.hoscode = t2.hoscode 
@@ -93,6 +94,11 @@ try {
         $stmtGetDpac = $pdo->prepare("SELECT * FROM dpac_enrollments WHERE cid = ?");
         $stmtDeleteDpac = $pdo->prepare("DELETE FROM dpac_enrollments WHERE enrollment_id = ?");
         $stmtUpdateDpacCid = $pdo->prepare("UPDATE dpac_enrollments SET cid = ? WHERE enrollment_id = ?");
+        
+        $stmtUpdateStagingDM = $pdo->prepare("UPDATE staging_hdc_dm SET pid = ?, cid = ?, name = ?, lname = ? WHERE hoscode = ? AND pid = ?");
+        $stmtUpdateStagingHT = $pdo->prepare("UPDATE staging_hdc_ht SET pid = ?, cid = ?, name = ?, lname = ? WHERE hoscode = ? AND pid = ?");
+        $stmtUpdateStagingDMCid = $pdo->prepare("UPDATE staging_hdc_dm SET pid = ?, cid = ?, name = ?, lname = ? WHERE cid = ?");
+        $stmtUpdateStagingHTCid = $pdo->prepare("UPDATE staging_hdc_ht SET pid = ?, cid = ?, name = ?, lname = ? WHERE cid = ?");
         
         $stmtDeleteTarget = $pdo->prepare("DELETE FROM target_population WHERE cid = ?");
         
@@ -153,6 +159,12 @@ try {
                 }
             }
             
+            // Sync staging tables
+            $stmtUpdateStagingDM->execute([$dup['real_pid'], $dup['real_cid'], $dup['real_first'], $dup['real_last'], $dup['masked_hos'], $dup['masked_pid']]);
+            $stmtUpdateStagingHT->execute([$dup['real_pid'], $dup['real_cid'], $dup['real_first'], $dup['real_last'], $dup['masked_hos'], $dup['masked_pid']]);
+            $stmtUpdateStagingDMCid->execute([$dup['real_pid'], $dup['real_cid'], $dup['real_first'], $dup['real_last'], $mCid]);
+            $stmtUpdateStagingHTCid->execute([$dup['real_pid'], $dup['real_cid'], $dup['real_first'], $dup['real_last'], $mCid]);
+            
             $stmtDeleteTarget->execute([$mCid]);
         }
         
@@ -176,8 +188,9 @@ try {
     if ($hasMasked) {
         $fuzzyDupesQuery = $pdo->query("
             SELECT 
-                t1.cid AS masked_cid, t1.need_screen_dm AS masked_dm, t1.need_screen_ht AS masked_ht, t1.health_status_origin AS masked_status,
-                t2.cid AS real_cid
+                t1.cid AS masked_cid, t1.pid AS masked_pid, t1.hoscode AS masked_hos,
+                t1.need_screen_dm AS masked_dm, t1.need_screen_ht AS masked_ht, t1.health_status_origin AS masked_status,
+                t2.cid AS real_cid, t2.pid AS real_pid, t2.first_name AS real_first, t2.last_name AS real_last
             FROM target_population t1
             JOIN target_population t2 
               ON t1.hoscode = t2.hoscode 
@@ -224,6 +237,11 @@ try {
             $stmtGetDpac = $pdo->prepare("SELECT * FROM dpac_enrollments WHERE cid = ?");
             $stmtDeleteDpac = $pdo->prepare("DELETE FROM dpac_enrollments WHERE enrollment_id = ?");
             $stmtUpdateDpacCid = $pdo->prepare("UPDATE dpac_enrollments SET cid = ? WHERE enrollment_id = ?");
+            
+            $stmtUpdateStagingDM = $pdo->prepare("UPDATE staging_hdc_dm SET pid = ?, cid = ?, name = ?, lname = ? WHERE hoscode = ? AND pid = ?");
+            $stmtUpdateStagingHT = $pdo->prepare("UPDATE staging_hdc_ht SET pid = ?, cid = ?, name = ?, lname = ? WHERE hoscode = ? AND pid = ?");
+            $stmtUpdateStagingDMCid = $pdo->prepare("UPDATE staging_hdc_dm SET pid = ?, cid = ?, name = ?, lname = ? WHERE cid = ?");
+            $stmtUpdateStagingHTCid = $pdo->prepare("UPDATE staging_hdc_ht SET pid = ?, cid = ?, name = ?, lname = ? WHERE cid = ?");
             
             $stmtDeleteTarget = $pdo->prepare("DELETE FROM target_population WHERE cid = ?");
             
@@ -283,6 +301,12 @@ try {
                         $stmtUpdateDpacCid->execute([$rCid, $md['enrollment_id']]);
                     }
                 }
+                
+                // Sync staging tables
+                $stmtUpdateStagingDM->execute([$dup['real_pid'], $dup['real_cid'], $dup['real_first'], $dup['real_last'], $dup['masked_hos'], $dup['masked_pid']]);
+                $stmtUpdateStagingHT->execute([$dup['real_pid'], $dup['real_cid'], $dup['real_first'], $dup['real_last'], $dup['masked_hos'], $dup['masked_pid']]);
+                $stmtUpdateStagingDMCid->execute([$dup['real_pid'], $dup['real_cid'], $dup['real_first'], $dup['real_last'], $mCid]);
+                $stmtUpdateStagingHTCid->execute([$dup['real_pid'], $dup['real_cid'], $dup['real_first'], $dup['real_last'], $mCid]);
                 
                 $stmtDeleteTarget->execute([$mCid]);
             }
