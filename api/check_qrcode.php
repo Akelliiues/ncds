@@ -80,18 +80,26 @@ try {
     $incidentType = 'CROSS_DISTRICT_UNAUTHORIZED_SCAN_BLOCKED';
     
     if (!$houseInfo) {
-        // House not found in staging database, lock it
+        // ไม่พบรหัสบ้านหรือเลขบัตรนี้ในฐานข้อมูล
         $isAuthorized = false;
         $incidentType = 'UNAUTHORIZED_SCAN';
     } else {
-        // If the house village (vhid_code) or hospital (hoscode) doesn't match the VHV's village/hospital
-        // OR no assignment exists for this VHV for this house
-        if ($houseInfo['vhid_code'] !== $vhidCode) {
-            $isAuthorized = false;
-            $incidentType = 'CROSS_DISTRICT_UNAUTHORIZED_SCAN_BLOCKED';
-        } elseif (empty($assignments)) {
+        if (!empty($assignments)) {
+            // หากแอดมินมอบหมายงานนี้ให้ อสม. คนนี้แล้ว ถือว่ามีสิทธิ์ทำงาน (Authorized)
+            $isAuthorized = true;
+        } else {
+            // หากไม่พบงานมอบหมาย ให้ทำการล็อกและแสดงเหตุผลที่ถูกต้อง
             $isAuthorized = false;
             $incidentType = 'NO_ASSIGNMENT';
+            
+            // เปรียบเทียบรหัสหมู่บ้านโดยแปลงค่าคำนำหน้าเพื่อป้องกันความคลาดเคลื่อน (3420 -> 3418)
+            $houseVhid = $houseInfo['vhid_code'];
+            $normalizedHouseVhid = (strpos($houseVhid, '3420') === 0) ? '3418' . substr($houseVhid, 4) : $houseVhid;
+            $normalizedVhvVhid = (strpos($vhidCode, '3420') === 0) ? '3418' . substr($vhidCode, 4) : $vhidCode;
+            
+            if ($normalizedHouseVhid !== $normalizedVhvVhid) {
+                $incidentType = 'CROSS_DISTRICT_UNAUTHORIZED_SCAN_BLOCKED';
+            }
         }
     }
 
