@@ -186,27 +186,40 @@ function maskName($firstName, $lastName)
             .qr-grid {
                 display: grid !important;
                 grid-template-columns: repeat(3, 1fr) !important;
-                gap: 10px !important;
+                gap: 8mm !important;
                 margin-top: 0 !important;
             }
 
             .qr-card {
                 border: 1px solid #000 !important;
                 box-shadow: none !important;
-                padding: 10px 8px !important;
+                padding: 8px 6px !important;
                 border-radius: 6px !important;
                 margin-bottom: 0 !important;
+                height: 60mm !important;
+                box-sizing: border-box !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            /* Enforce page break exactly after every 12th card (3x4 grid) */
+            .qr-card:nth-child(12n) {
+                page-break-after: always !important;
+                break-after: page !important;
             }
 
             .qr-card-header {
                 font-size: 10px !important;
-                margin-bottom: 6px !important;
-                padding-bottom: 4px !important;
+                margin-bottom: 4px !important;
+                padding-bottom: 2px !important;
             }
 
             .house-details {
                 font-size: 12px !important;
-                margin-bottom: 2px !important;
+                margin-bottom: 1px !important;
             }
 
             .house-members {
@@ -214,29 +227,29 @@ function maskName($firstName, $lastName)
             }
 
             .qr-code-img {
-                margin: 6px auto !important;
-                width: 100px !important;
-                height: 100px !important;
+                margin: 2px auto !important;
+                width: 90px !important;
+                height: 90px !important;
             }
 
             .qr-code-img img {
-                width: 100px !important;
-                height: 100px !important;
+                width: 90px !important;
+                height: 90px !important;
             }
 
             .qr-card-id, .qr-card-id-manual {
                 font-size: 9px !important;
-                margin-top: 2px !important;
+                margin-top: 1px !important;
             }
 
             .qr-card-footer {
-                margin-top: 6px !important;
-                padding-top: 6px !important;
-                font-size: 9.5px !important;
+                margin-top: 4px !important;
+                padding-top: 4px !important;
+                font-size: 9px !important;
             }
 
             .qr-card-footer-sub {
-                font-size: 8.5px !important;
+                font-size: 8px !important;
             }
 
             @page {
