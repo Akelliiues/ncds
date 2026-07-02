@@ -15,7 +15,7 @@ $error = '';
 
 $hc_names = get_health_units();
 
-$admin_title = $admin_hoscode ? ($hc_names[$admin_hoscode] ?? 'รพ.สต.') : (($_SESSION['admin_username'] ?? '') === 'adminsso' ? 'ผู้รับผิดชอบระดับอำเภอ' : '☠️ ข้าคือชะตาที่มิอาจเลี่ยง!!');
+$admin_title = get_admin_title();
 
 function get_village_full_name($vhid_code, $moo) {
     $tambon = substr($vhid_code, 0, 6);

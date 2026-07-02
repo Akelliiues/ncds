@@ -1706,4 +1706,37 @@ if (!function_exists('isSandboxMode')) {
     }
 }
 
+if (!function_exists('get_admin_title')) {
+    function get_admin_title() {
+        global $pdo;
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
+        $username = $_SESSION['admin_username'] ?? null;
+        
+        if ($admin_hoscode) {
+            $hc_names = get_health_units();
+            return $hc_names[$admin_hoscode] ?? 'รพ.สต.';
+        }
+        
+        if ($username === 'adminsso') {
+            return 'ผู้รับผิดชอบระดับอำเภอ';
+        }
+        
+        if ($username) {
+            try {
+                $stmt = $pdo->prepare("SELECT admin_name FROM admin_users WHERE username = ?");
+                $stmt->execute([$username]);
+                $name = $stmt->fetchColumn();
+                if ($name !== false && $name !== null && trim($name) !== '') {
+                    return $name;
+                }
+            } catch (\Exception $e) {}
+        }
+        
+        return '☠️ ข้าคือชะตาที่มิอาจเลี่ยง!!';
+    }
+}
+
 

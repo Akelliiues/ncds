@@ -13,7 +13,7 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 
 $hc_names = get_health_units();
 
-$admin_title = $admin_hoscode ? ($hc_names[$admin_hoscode] ?? 'รพ.สต.') : (($_SESSION['admin_username'] ?? '') === 'adminsso' ? 'ผู้รับผิดชอบระดับอำเภอ' : '☠️ ข้าคือชะตาที่มิอาจเลี่ยง!!');
+$admin_title = get_admin_title();
 
 $filter_hoscode = $_GET['hoscode'] ?? ($admin_hoscode ?: '');
 $filter_moo = $_GET['moo'] ?? '';
