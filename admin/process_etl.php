@@ -328,7 +328,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
 
         $stagedPersonsQuery = $pdo->query("SELECT * FROM staging_jhcis_person");
         while ($sp = $stagedPersonsQuery->fetch(PDO::FETCH_ASSOC)) {
-            $checkVhid = $sp['vhid_code'];
+            $checkVhid = (string)($sp['vhid_code'] ?? '');
             if (strlen($checkVhid) === 8) {
                 $moo = (int)substr($checkVhid, 6, 2);
                 $subDistrictCode = substr($checkVhid, 0, 6);
@@ -339,18 +339,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
             }
             
             $stmtInsertPerson->execute([
-                $sp['cid'],
-                $sp['hid'],
-                $sp['pid'],
-                $sp['first_name'],
-                $sp['last_name'],
-                $sp['sex'],
-                $sp['birth'],
-                $sp['house_no'],
+                (string)($sp['cid'] ?? ''),
+                $sp['hid'] !== null ? (string)$sp['hid'] : null,
+                (string)($sp['pid'] ?? ''),
+                (string)($sp['first_name'] ?? ''),
+                (string)($sp['last_name'] ?? ''),
+                (string)($sp['sex'] ?? '1'),
+                $sp['birth'] !== null ? (string)$sp['birth'] : null,
+                $sp['house_no'] !== null ? (string)$sp['house_no'] : null,
                 $moo,
                 $subDistrictCode,
                 $checkVhid,
-                $sp['hoscode']
+                (string)($sp['hoscode'] ?? '')
             ]);
         }
 
@@ -514,7 +514,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
         header("Location: process_etl.php");
         exit();
 
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         $pdo->rollBack();
         $error = "เกิดข้อผิดพลาดในการประมวลผล: " . $e->getMessage();
     }
@@ -645,7 +645,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_merge'])) {
 
                     $pdo->commit();
                     $merged++;
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     if ($pdo->inTransaction()) $pdo->rollBack();
                     $errors[] = "CID $masked_cid: " . $e->getMessage();
                     $skipped++;
@@ -677,7 +677,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_merge'])) {
             $_SESSION['merge_results'] = ['merged' => $merged, 'skipped' => $skipped, 'errors' => $errors, 'updated_names' => $updNames];
             header("Location: process_etl.php");
             exit();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
             $error = "เกิดข้อผิดพลาด: " . $e->getMessage();
         }
