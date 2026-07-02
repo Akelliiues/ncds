@@ -1130,7 +1130,7 @@ if (!$isShell) {
             const dtxSection = document.getElementById('section-dtx');
 
             bpSection.style.display = needHt ? 'block' : 'none';
-            dtxSection.style.display = 'none'; // ซ่อนส่วนวัดระดับน้ำตาล (DTX) ชั่วคราวตามที่ผู้ใช้ร้องขอ
+            dtxSection.style.display = needDm ? 'block' : 'none';
 
             // Display historical BP and DTX values in UI
             const lastBpInfo = document.getElementById('last-bp-info');
