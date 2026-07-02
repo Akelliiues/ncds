@@ -168,62 +168,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             text-transform: uppercase;
         }
 
-        .logo-wrapper {
-            position: relative;
-            width: 80px;
-            height: 80px;
-            margin-bottom: 8px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .logo-wrapper::before {
-            content: '';
-            position: absolute;
-            top: 5px;
-            left: 5px;
-            width: 70px;
-            height: 70px;
-            background-color: var(--color-accent);
-            border-radius: 50%;
-            filter: blur(14px);
-            opacity: 0.15;
-            animation: logo-glow-pulse 2.5s infinite ease-in-out;
-            pointer-events: none;
-            z-index: 1;
-        }
-
         .brand-logo {
-            width: 76px;
+            width: 80px;
             height: auto;
-            position: relative;
-            z-index: 2;
+            margin-bottom: 8px;
             filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.12));
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            cursor: pointer;
-        }
-
-        .brand-logo:hover {
-            transform: scale(1.1) rotate(4deg);
-        }
-
-        @keyframes logo-glow-pulse {
-            0% {
-                transform: scale(0.9);
-                opacity: 0.2;
-                filter: blur(10px);
-            }
-            50% {
-                transform: scale(1.3);
-                opacity: 0.6;
-                filter: blur(16px);
-            }
-            100% {
-                transform: scale(0.9);
-                opacity: 0.2;
-                filter: blur(10px);
-            }
         }
     </style>
 </head>
@@ -232,9 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="login-container">
         <div class="login-brand"
             style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 12px;">
-            <div class="logo-wrapper">
-                <img src="assets/icon.png" alt="NCDs Prevention Logo" class="brand-logo">
-            </div>
+            <img src="assets/icon.png" alt="NCDs Prevention Logo" class="brand-logo">
             <span>สำนักงานสาธารณสุขอำเภอตาลสุม</span>
             <h1>ระบบคัดกรอง NCD Portal</h1>
         </div>
