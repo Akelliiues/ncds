@@ -538,7 +538,7 @@ if (isset($_POST['action_confirm'])) {
             $existingPersonsByCid = [];
             $existingPersonsByHosPid = [];
             if ($importType === 'person') {
-                $allExisting = $pdo->query("SELECT cid, hoscode, pid, hid, house_no, moo, sub_district_code, vhid_code, first_name, last_name FROM target_population")->fetchAll();
+                $allExisting = $pdo->query("SELECT cid, hoscode, pid, hid, house_no, moo, sub_district_code, vhid_code FROM target_population")->fetchAll();
                 foreach ($allExisting as $p) {
                     $c = trim($p['cid']);
                     $h = str_pad(trim($p['hoscode']), 5, '0', STR_PAD_LEFT);
@@ -755,32 +755,8 @@ if (isset($_POST['action_confirm'])) {
                             $finalVhid = !empty($existing['vhid_code']) && $existing['vhid_code'] !== '34180101' ? $existing['vhid_code'] : $checkVhid;
 
                             $useOldCid = false;
-                            $oldCidHasStar = (strpos($oldCid, '*') !== false);
-                            $newCidHasStar = (strpos($newCid, '*') !== false);
-                            $oldCidIsMock = isMockHospitalCID($oldCid, $rowHoscode);
-                            $newCidIsMock = isMockHospitalCID($newCid, $rowHoscode);
-
-                            // If old CID is unmasked and real (no * and not mock), but new CID is masked or mock, keep the old CID!
-                            if (!$oldCidHasStar && !$oldCidIsMock && ($newCidHasStar || $newCidIsMock)) {
+                            if (isValidThaiCitizenIDMOD11($oldCid) && isMockHospitalCID($newCid, $rowHoscode)) {
                                 $useOldCid = true;
-                            }
-
-                            // Preserve existing unmasked names from database if the imported names are masked (contain *)
-                            $oldFn = $existing['first_name'] ?? '';
-                            $oldLn = $existing['last_name'] ?? '';
-                            $oldFnHasStar = (strpos($oldFn, '*') !== false);
-                            $oldLnHasStar = (strpos($oldLn, '*') !== false);
-                            $newFnHasStar = (strpos($firstName, '*') !== false);
-                            $newLnHasStar = (strpos($lastName, '*') !== false);
-                            
-                            $finalFirstName = $firstName;
-                            $finalLastName = $lastName;
-                            
-                            if (!$oldFnHasStar && !empty($oldFn) && !in_array($oldFn, ['ไม่ทราบชื่อ', 'ไม่ทราบ', 'Unknown', '']) && $newFnHasStar) {
-                                $finalFirstName = $oldFn;
-                            }
-                            if (!$oldLnHasStar && !empty($oldLn) && !in_array($oldLn, ['ไม่ทราบประวัติ', 'ไม่ทราบ', 'Unknown', '']) && $newLnHasStar) {
-                                $finalLastName = $oldLn;
                             }
 
                             if ($oldCid !== $newCid && !$useOldCid) {
@@ -805,8 +781,8 @@ if (isset($_POST['action_confirm'])) {
                                     $newCid,
                                     $finalHid,
                                     $pid,
-                                    $finalFirstName,
-                                    $finalLastName,
+                                    $firstName,
+                                    $lastName,
                                     $sex,
                                     $birthDate ?: null,
                                     $finalHouseNo,
@@ -824,8 +800,8 @@ if (isset($_POST['action_confirm'])) {
                                 $stmtUpdatePersonSimple->execute([
                                     $finalHid,
                                     $pid,
-                                    $finalFirstName,
-                                    $finalLastName,
+                                    $firstName,
+                                    $lastName,
                                     $sex,
                                     $birthDate ?: null,
                                     $finalHouseNo,

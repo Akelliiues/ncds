@@ -62,12 +62,6 @@ $enrolled_query = "
     JOIN target_population p ON e.cid = p.cid
     LEFT JOIN vhv_users v ON e.assigned_vhv_id = v.vhv_id
     WHERE e.budget_year = ? AND e.status = 'active'
-      AND p.cid NOT LIKE '%*%'
-      AND p.cid NOT LIKE '0%'
-      AND p.cid <> CONCAT(LPAD(p.hoscode, 5, '0'), LPAD(p.pid, 8, '0'))
-      AND p.cid <> CONCAT(LPAD(p.hoscode, 5, '0'), p.pid)
-      AND p.first_name NOT LIKE '%*%'
-      AND p.last_name NOT LIKE '%*%'
 ";
 $params = [$budgetYear];
 

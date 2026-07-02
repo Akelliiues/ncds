@@ -245,15 +245,12 @@ function maskName($firstName, $lastName)
                     <?php foreach ($people as $person): ?>
                         <div class="qr-card">
                             <!-- System Name & District Header -->
-                            <div
-                                style="font-size: 12px; font-weight: bold; color: #0f172a; border-bottom: 1.5px solid #cbd5e1; padding-bottom: 6px; margin-bottom: 10px; display: flex; justify-content: space-between;">
+                            <div class="qr-card-header">
                                 <span>🌞 NCDs Prevention</span>
                                 <span style="color: #475569;">อำเภอตาลสุม</span>
                             </div>
 
-                            <div class="house-details">บ้านเลขที่ <?= htmlspecialchars($person['house_no']) ?> หมู่
-                                <?= htmlspecialchars($person['moo']) ?>
-                            </div>
+                            <div class="house-details">บ้านเลขที่ <?= htmlspecialchars($person['house_no']) ?> หมู่ <?= htmlspecialchars($person['moo']) ?></div>
                             <div class="house-members">
                                 <?= htmlspecialchars(maskName($person['first_name'], $person['last_name'])) ?>
                             </div>
@@ -261,21 +258,15 @@ function maskName($firstName, $lastName)
                             <div class="qr-code-img" id="qr-<?= htmlspecialchars($person['cid']) ?>"></div>
 
                             <?php if (!empty($person['hid']) && $person['hid'] !== '000000000000000'): ?>
-                                <div style="font-size: 11px; margin-top: 5px; color: #777;">HID: <?= htmlspecialchars($person['hid']) ?>
-                                </div>
+                                <div class="qr-card-id">HID: <?= htmlspecialchars($person['hid']) ?></div>
                             <?php else: ?>
-                                <div style="font-size: 10px; margin-top: 5px; color: #f59e0b; font-weight: bold;">CID:
-                                    <?= htmlspecialchars(substr($person['cid'], 0, 4) . '***' . substr($person['cid'], -4)) ?> (Manual
-                                    Import)
-                                </div>
+                                <div class="qr-card-id-manual">CID: <?= htmlspecialchars(substr($person['cid'], 0, 4) . '***' . substr($person['cid'], -4)) ?> (Manual Import)</div>
                             <?php endif; ?>
 
                             <!-- Message of Care -->
-                            <div
-                                style="border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-top: 10px; font-size: 11px; font-style: bold; color: #0284c7; font-weight: bold; line-height: 1.4;">
+                            <div class="qr-card-footer">
                                 "ด้วยความห่วงใยในสุขภาพของท่าน"<br>
-                                <span style="font-size: 10px; font-weight: normal; color: #475569;">หลีกเลี่ยง หวาน มัน เค็ม
-                                    และตรวจเช็คสุขภาพสม่ำเสมอ</span>
+                                <span class="qr-card-footer-sub">หลีกเลี่ยง หวาน มัน เค็ม และตรวจเช็คสุขภาพสม่ำเสมอ</span>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -382,11 +373,11 @@ function maskName($firstName, $lastName)
                     ?>
                     new QRCode(document.getElementById("qr-<?= $person['cid'] ?>"), {
                         text: "<?= $qrText ?>",
-                        width: 150,
-                        height: 150,
+                        width: 120,
+                        height: 120,
                         colorDark: "#000000",
                         colorLight: "#ffffff",
-                        correctLevel: QRCode.CorrectLevel.H
+                        correctLevel: QRCode.CorrectLevel.M
                     });
                 <?php endforeach; ?>
             <?php endif; ?>
