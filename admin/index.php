@@ -78,7 +78,7 @@ if ($admin_hoscode) {
     $skipped->execute($hoscodes);
     $skipped_val = $skipped->fetchColumn();
 
-    $rewards = $pdo->prepare("SELECT SUM(points_earned) FROM vhv_rewards r JOIN vhv_users v ON r.vhv_id = v.vhv_id WHERE v.hoscode IN ($inPlaceholders)");
+    $rewards = $pdo->prepare("SELECT SUM(points_earned) FROM vhv_rewards r JOIN vhv_users v ON r.vhv_id = v.vhv_id WHERE v.hoscode IN ($inPlaceholders) AND v.approved = 1");
     $rewards->execute($hoscodes);
     $rewards_val = $rewards->fetchColumn() ?: 0;
 
@@ -345,7 +345,7 @@ if ($admin_hoscode) {
             (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'completed' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as screened_count,
             (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'pending' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as pending_count,
             (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as skipped_count,
-            (SELECT SUM(points_earned) FROM vhv_rewards r JOIN vhv_users v ON r.vhv_id = v.vhv_id WHERE v.hoscode IN ($inPlaceholdersSa)) as total_points,
+            (SELECT SUM(points_earned) FROM vhv_rewards r JOIN vhv_users v ON r.vhv_id = v.vhv_id WHERE v.hoscode IN ($inPlaceholdersSa) AND v.approved = 1) as total_points,
             (SELECT COUNT(*) FROM vhv_users WHERE hoscode IN ($inPlaceholdersSa)) as total_vhvs
     ");
     // Duplicate array parameters for the 6 subqueries
