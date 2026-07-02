@@ -1219,6 +1219,15 @@ if ($admin_hoscode) {
 
             const isRegularAdmin = <?= json_encode($admin_hoscode !== null) ?>;
 
+            // Custom pie/donut chart data label formatter to prevent deceptive 100% rounding when small values exist
+            const pieLabelFormatter = function (val, opts) {
+                const rawVal = opts.w.config.series[opts.seriesIndex];
+                if (rawVal === 0) return '';
+                if (val > 0 && val < 1) return val.toFixed(2) + "%";
+                if (val > 99 && val < 100) return val.toFixed(2) + "%";
+                return Math.round(val) + "%";
+            };
+
             // Coverage Data
             const coverageRaw = <?= json_encode($chartCoverageData) ?>;
             const covCategories = coverageRaw.map(d => isRegularAdmin ? (d.village_name || "หมู่ " + d.moo) : (hcNamesChart[d.hoscode] || d.hoscode));
@@ -1520,7 +1529,7 @@ if ($admin_hoscode) {
                     colors: ['#22c55e', '#f59e0b', '#ef4444'],
                     stroke: { show: false },
                     legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
-                    dataLabels: { enabled: true, formatter: function (val) { return Math.round(val) + "%" } }
+                    dataLabels: { enabled: true, formatter: pieLabelFormatter }
                 };
                 new ApexCharts(document.querySelector("#chart-screened-risk-pie"), optionsScreenedRisk).render();
             } else {
@@ -1538,7 +1547,7 @@ if ($admin_hoscode) {
                     colors: ['#f59e0b', '#ef4444', '#8b5cf6', '#0ea5e9', '#64748b'],
                     stroke: { show: false },
                     legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
-                    dataLabels: { enabled: true, formatter: function (val) { return Math.round(val) + "%" } }
+                    dataLabels: { enabled: true, formatter: pieLabelFormatter }
                 };
                 new ApexCharts(document.querySelector("#chart-skipped"), optionsSkipped).render();
             } else {
@@ -1556,14 +1565,13 @@ if ($admin_hoscode) {
                     colors: ['#22d3ee', '#c084fc', '#f43f5e', '#a8a29e'],
                     stroke: { show: false },
                     legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
-                    dataLabels: { enabled: true, formatter: function (val) { return Math.round(val) + "%" } }
+                    dataLabels: { enabled: true, formatter: pieLabelFormatter }
                 };
                 new ApexCharts(document.querySelector("#chart-dpac"), optionsDpac).render();
             } else {
                 document.querySelector("#chart-dpac").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 50px;">ไม่มีข้อมูลผู้เข้าร่วมโครงการ</div>';
             }
 
-            // Total vs Screened Pie Chart
             var optionsTotalPie = {
                 series: [
                     <?= intval($metrics['screened_count']) ?>,
@@ -1575,7 +1583,14 @@ if ($admin_hoscode) {
                 colors: ['#22c55e', '#4b5563'],
                 stroke: { show: false },
                 legend: { position: 'bottom', labels: { colors: '#9ca3af' } },
-                dataLabels: { enabled: true, formatter: function (val) { return Math.round(val) + "%" } }
+                dataLabels: { enabled: true, formatter: pieLabelFormatter },
+                tooltip: {
+                    y: {
+                        formatter: function (val) {
+                            return val.toLocaleString() + " ราย";
+                        }
+                    }
+                }
             };
             if (<?= intval($metrics['total_targets']) ?> > 0) {
                 new ApexCharts(document.querySelector("#chart-total-pie"), optionsTotalPie).render();
