@@ -293,6 +293,13 @@ try {
                         + เพิ่มแมนนวล
                     </button>
                 </div>
+                
+                <!-- Search Input Field -->
+                <div style="margin-top: 12px;">
+                    <input type="text" id="search-target" placeholder="🔍 พิมพ์ชื่อ-นามสกุล หรือบ้านเลขที่เพื่อค้นหา..." 
+                        style="width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-color); background-color: var(--bg-main); color: var(--text-primary); font-size: 14px; box-sizing: border-box; box-shadow: var(--neumorph-inset); transition: all 0.3s;"
+                        oninput="onSearchInput()">
+                </div>
 
                 <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
                     <label
@@ -462,9 +469,11 @@ try {
 
         let currentTargets = [];
         let currentTargetGroup = 'main';
+        const selectedCids = new Set();
 
         function switchTargetGroup(group) {
             currentTargetGroup = group;
+            selectedCids.clear();
 
             // Toggle active tab class
             document.getElementById('tab-group-main').classList.toggle('active', group === 'main');
@@ -482,6 +491,10 @@ try {
         }
 
         function fetchData() {
+            selectedCids.clear();
+            const searchInput = document.getElementById('search-target');
+            if (searchInput) searchInput.value = '';
+
             const tambon = document.getElementById('tambon').value;
             const moo = document.getElementById('moo').value;
             let hoscode = '';
@@ -518,18 +531,36 @@ try {
                 });
         }
 
+        function onSearchInput() {
+            renderTargets();
+        }
+
         function renderTargets() {
             const list = document.getElementById('target-list');
-            document.getElementById('target-count').innerText = `พบ ${currentTargets.length} ราย`;
+            const searchVal = (document.getElementById('search-target')?.value || '').trim().toLowerCase();
+
+            // Filter targets based on search query
+            const filteredTargets = currentTargets.filter(t => {
+                if (!searchVal) return true;
+                const fullName = `${t.first_name} ${t.last_name}`.toLowerCase();
+                const houseNo = (t.house_no || '').toString().toLowerCase();
+                return fullName.includes(searchVal) || houseNo.includes(searchVal);
+            });
+
+            if (searchVal) {
+                document.getElementById('target-count').innerText = `พบ ${filteredTargets.length} ราย (ค้นหา: "${searchVal}")`;
+            } else {
+                document.getElementById('target-count').innerText = `พบ ${currentTargets.length} ราย`;
+            }
             updateSelectedCount();
 
-            if (currentTargets.length === 0) {
-                list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">ไม่พบประชากรเป้าหมายในพื้นที่นี้</div>';
+            if (filteredTargets.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">ไม่พบประชากรเป้าหมายตามที่ค้นหา</div>';
                 return;
             }
 
             let html = '';
-            currentTargets.forEach(t => {
+            filteredTargets.forEach(t => {
                 let assignedText = '';
                 if (t.assigned_vhv) {
                     if (t.assignment_status === 'completed') {
@@ -546,7 +577,7 @@ try {
                 html += `
                     <div class="item-row">
                         <div style="display: flex; align-items: center; gap: 12px;">
-                            <input type="checkbox" class="target-checkbox item-cb" value="${t.cid}" onchange="updateSelectedCount()">
+                            <input type="checkbox" class="target-checkbox item-cb" value="${t.cid}" ${selectedCids.has(t.cid) ? 'checked' : ''} onchange="onCheckboxChange('${t.cid}', this.checked)">
                             <div class="item-info">
                                 <h4>${t.first_name} ${t.last_name}</h4>
                                 <p>บ้านเลขที่: ${t.house_no} | อายุ: ${t.age} ปี</p>
@@ -557,7 +588,10 @@ try {
                 `;
             });
             list.innerHTML = html;
-            document.getElementById('select-all').checked = false;
+            
+            // Check if all filtered items are in selectedCids to toggle the header checkbox
+            const allChecked = filteredTargets.every(t => selectedCids.has(t.cid));
+            document.getElementById('select-all').checked = allChecked && filteredTargets.length > 0;
         }
 
         function renderVhvs(vhvs) {
@@ -586,19 +620,42 @@ try {
             list.innerHTML = html;
         }
 
+        function onCheckboxChange(cid, checked) {
+            if (checked) {
+                selectedCids.add(cid);
+            } else {
+                selectedCids.delete(cid);
+            }
+            updateSelectedCount();
+            
+            // Adjust the select-all header checkbox state
+            const list = document.getElementById('target-list');
+            const visibleCheckboxes = Array.from(list.querySelectorAll('.item-cb'));
+            const allVisibleChecked = visibleCheckboxes.length > 0 && visibleCheckboxes.every(cb => cb.checked);
+            document.getElementById('select-all').checked = allVisibleChecked;
+        }
+
         function toggleSelectAll() {
             const isChecked = document.getElementById('select-all').checked;
-            document.querySelectorAll('.item-cb').forEach(cb => cb.checked = isChecked);
+            const list = document.getElementById('target-list');
+            list.querySelectorAll('.item-cb').forEach(cb => {
+                cb.checked = isChecked;
+                if (isChecked) {
+                    selectedCids.add(cb.value);
+                } else {
+                    selectedCids.delete(cb.value);
+                }
+            });
             updateSelectedCount();
         }
 
         function updateSelectedCount() {
-            const count = document.querySelectorAll('.item-cb:checked').length;
+            const count = selectedCids.size;
             document.getElementById('selected-count').innerText = `เลือก ${count} คน`;
         }
 
         function assignTasks(vhvId) {
-            const cids = Array.from(document.querySelectorAll('.item-cb:checked')).map(cb => cb.value);
+            const cids = Array.from(selectedCids);
             if (cids.length === 0) {
                 alert("กรุณาเลือกประชากรเป้าหมายฝั่งซ้ายมือก่อนครับ");
                 return;
@@ -642,7 +699,7 @@ try {
         }
 
         function activateSuspects() {
-            const cids = Array.from(document.querySelectorAll('.item-cb:checked')).map(cb => cb.value);
+            const cids = Array.from(selectedCids);
             if (cids.length === 0) {
                 alert("กรุณาเลือกประชากรป่วย/สงสัยป่วยที่ต้องการเปิดสิทธิ์ก่อนครับ");
                 return;
