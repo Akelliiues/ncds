@@ -87,18 +87,19 @@ $params = [];
 if ($filter_source === 'screened') {
     // Query VHV screened results
     $sql = "
-        SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.sub_district_code, p.hoscode,
+        SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.sub_district_code, COALESCE(v.hoscode, p.hoscode) as hoscode,
                s.sys_bp1, s.dia_bp1, s.dtx_value, s.bmi, s.cv_risk_score, s.created_at
         FROM screening_results s
         JOIN task_assignments a ON s.assignment_id = a.assignment_id
         JOIN target_population p ON a.target_cid = p.cid
+        LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
         WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ";
 
     if ($filter_hoscode) {
         $hoscodes = get_query_hoscodes($filter_hoscode);
         $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
-        $sql .= " AND p.hoscode IN ($inPlaceholders)";
+        $sql .= " AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholders)";
         $params = array_merge($params, $hoscodes);
     }
 
@@ -143,17 +144,18 @@ if ($filter_source === 'screened') {
 } elseif ($filter_source === 'unscreened') {
     // Query targets that have no completed screenings
     $sql = "
-        SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.sub_district_code, p.hoscode,
+        SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.sub_district_code, COALESCE(v.hoscode, p.hoscode) as hoscode,
                p.health_status_origin as risk, p.need_screen_dm, p.need_screen_ht
         FROM target_population p
         LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed'
+        LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
         WHERE a.assignment_id IS NULL AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ";
 
     if ($filter_hoscode) {
         $hoscodes = get_query_hoscodes($filter_hoscode);
         $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
-        $sql .= " AND p.hoscode IN ($inPlaceholders)";
+        $sql .= " AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholders)";
         $params = array_merge($params, $hoscodes);
     }
 
@@ -191,16 +193,17 @@ if ($filter_source === 'screened') {
 } elseif ($filter_source === 'baseline') {
     // Query HDC Baseline Targets
     $sql = "
-        SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.sub_district_code, p.hoscode,
+        SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.sub_district_code, COALESCE(v.hoscode, p.hoscode) as hoscode,
                p.health_status_origin as risk, p.need_screen_dm, p.need_screen_ht
         FROM target_population p
+        LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
         WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ";
 
     if ($filter_hoscode) {
         $hoscodes = get_query_hoscodes($filter_hoscode);
         $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
-        $sql .= " AND p.hoscode IN ($inPlaceholders)";
+        $sql .= " AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholders)";
         $params = array_merge($params, $hoscodes);
     }
 
@@ -249,26 +252,10 @@ if ($filter_source === 'screened') {
     if ($filter_hoscode) {
         $hoscodes = get_query_hoscodes($filter_hoscode);
         $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
-        $sql .= " AND v.hoscode IN ($inPlaceholders)";
-        $params = array_merge($params, $hoscodes);
-    }
-
-    if ($filter_tambon) {
-        $sql .= " AND v.vhid_code LIKE ?";
-        $params[] = $filter_tambon . '%';
-    }
-
-    if ($filter_moo) {
-        $sql .= " AND v.vhv_moo = ?";
-        $params[] = $filter_moo;
-    }
-
-    $sql .= " ORDER BY v.hoscode, v.vhv_moo, v.vhv_name";
-
-} elseif ($filter_source === 'summary_stats') {
+ } elseif ($filter_source === 'summary_stats') {
     // Query Village-level Target and Screening Summary
     $sql = "
-        SELECT MAX(p.sub_district_code) as sub_district_code, p.moo, p.hoscode,
+        SELECT MAX(p.sub_district_code) as sub_district_code, p.moo, COALESCE(v.hoscode, p.hoscode) as hoscode,
                COUNT(p.cid) as total_targets,
                SUM(CASE WHEN p.need_screen_dm = 1 THEN 1 ELSE 0 END) as targets_dm,
                SUM(CASE WHEN p.need_screen_ht = 1 THEN 1 ELSE 0 END) as targets_ht,
@@ -296,6 +283,7 @@ if ($filter_source === 'screened') {
                      AND s.sys_bp1 < 120 AND s.dia_bp1 < 80 AND (s.dtx_value < 100 OR s.dtx_value IS NULL) AND (s.cv_risk_score < 10 OR s.cv_risk_score IS NULL)
                ) THEN 1 ELSE 0 END) as normal_risk_count
          FROM target_population p
+         LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
          WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ";
 
@@ -305,7 +293,7 @@ if ($filter_source === 'screened') {
         $hoscodes = get_query_hoscodes();
     }
     $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
-    $sql .= " AND p.hoscode IN ($inPlaceholders)";
+    $sql .= " AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholders)";
     $params = array_merge($params, $hoscodes);
 
     if ($filter_tambon) {
@@ -319,13 +307,13 @@ if ($filter_source === 'screened') {
     }
 
     appendDemographicFilters($sql, 'p');
-    $sql .= " GROUP BY p.hoscode, p.moo";
-    $sql .= " ORDER BY p.hoscode, p.moo";
+    $sql .= " GROUP BY COALESCE(v.hoscode, p.hoscode), p.moo";
+    $sql .= " ORDER BY COALESCE(v.hoscode, p.hoscode), p.moo";
 
 } elseif ($filter_source === 'summary_hoscode') {
     // Query Hoscode-level Target and Screening Summary
     $sql = "
-        SELECT p.hoscode,
+        SELECT COALESCE(v.hoscode, p.hoscode) as hoscode,
                COUNT(p.cid) as total_targets,
                SUM(CASE WHEN p.need_screen_dm = 1 THEN 1 ELSE 0 END) as targets_dm,
                SUM(CASE WHEN p.need_screen_ht = 1 THEN 1 ELSE 0 END) as targets_ht,
@@ -353,6 +341,7 @@ if ($filter_source === 'screened') {
                      AND s.sys_bp1 < 120 AND s.dia_bp1 < 80 AND (s.dtx_value < 100 OR s.dtx_value IS NULL) AND (s.cv_risk_score < 10 OR s.cv_risk_score IS NULL)
                ) THEN 1 ELSE 0 END) as normal_risk_count
         FROM target_population p
+        LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
         WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ";
 
@@ -362,12 +351,12 @@ if ($filter_source === 'screened') {
         $hoscodes = get_query_hoscodes();
     }
     $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
-    $sql .= " AND p.hoscode IN ($inPlaceholders)";
+    $sql .= " AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholders)";
     $params = array_merge($params, $hoscodes);
 
     appendDemographicFilters($sql, 'p');
-    $sql .= " GROUP BY p.hoscode";
-    $sql .= " ORDER BY p.hoscode";
+    $sql .= " GROUP BY COALESCE(v.hoscode, p.hoscode)";
+    $sql .= " ORDER BY COALESCE(v.hoscode, p.hoscode)";
 }
 
 $reportData = [];
