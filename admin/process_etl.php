@@ -245,6 +245,99 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
         $screenedCids = $pdo->query("SELECT DISTINCT target_cid FROM task_assignments WHERE assignment_status IN ('completed', 'skipped') AND budget_year = 2026")->fetchAll(PDO::FETCH_COLUMN);
         $screenedCidsMap = array_flip($screenedCids);
 
+        // 1. Resolve mock-to-real CID transitions based on staging_jhcis_person
+        $stmtFindMockMatches = $pdo->query("
+            SELECT t.cid AS mock_cid, s.cid AS real_cid, t.hoscode, t.pid
+            FROM target_population t
+            JOIN staging_jhcis_person s ON t.hoscode = s.hoscode AND t.pid = s.pid
+            WHERE (t.cid LIKE '%*%' OR t.cid LIKE '0%') AND s.cid NOT LIKE '%*%' AND s.cid NOT LIKE '0%'
+        ");
+        $mockMatches = $stmtFindMockMatches->fetchAll(PDO::FETCH_ASSOC);
+
+        if (!empty($mockMatches)) {
+            $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
+            $stmtUpdateAssign = $pdo->prepare("UPDATE task_assignments SET target_cid = ? WHERE target_cid = ?");
+            $stmtUpdateDpac = $pdo->prepare("UPDATE dpac_enrollments SET cid = ? WHERE cid = ?");
+            $stmtUpdateTargetCid = $pdo->prepare("UPDATE target_population SET cid = ? WHERE cid = ?");
+            
+            foreach ($mockMatches as $match) {
+                // To prevent duplicate key constraint on target_population if the real CID already exists
+                $checkRealExists = $pdo->prepare("SELECT COUNT(*) FROM target_population WHERE cid = ?");
+                $checkRealExists->execute([$match['real_cid']]);
+                if ($checkRealExists->fetchColumn() > 0) {
+                    // Real CID already exists. Let's merge mock record's status to real, then delete mock
+                    $stmtMergeMock = $pdo->prepare("
+                        UPDATE target_population t_real
+                        JOIN target_population t_mock ON t_mock.cid = ?
+                        SET 
+                            t_real.need_screen_dm = CASE WHEN t_mock.need_screen_dm = 1 THEN 1 ELSE t_real.need_screen_dm END,
+                            t_real.need_screen_ht = CASE WHEN t_mock.need_screen_ht = 1 THEN 1 ELSE t_real.need_screen_ht END,
+                            t_real.health_status_origin = CASE WHEN t_real.health_status_origin = 'NORMAL' OR t_real.health_status_origin = '' OR t_real.health_status_origin IS NULL THEN t_mock.health_status_origin ELSE t_real.health_status_origin END
+                        WHERE t_real.cid = ?
+                    ");
+                    $stmtMergeMock->execute([$match['mock_cid'], $match['real_cid']]);
+                    
+                    $stmtUpdateAssign->execute([$match['real_cid'], $match['mock_cid']]);
+                    $stmtUpdateDpac->execute([$match['real_cid'], $match['mock_cid']]);
+                    $pdo->prepare("DELETE FROM target_population WHERE cid = ?")->execute([$match['mock_cid']]);
+                } else {
+                    $stmtUpdateAssign->execute([$match['real_cid'], $match['mock_cid']]);
+                    $stmtUpdateDpac->execute([$match['real_cid'], $match['mock_cid']]);
+                    $stmtUpdateTargetCid->execute([$match['real_cid'], $match['mock_cid']]);
+                }
+            }
+            $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
+        }
+
+        // 2. Insert/update all staging_jhcis_person records into target_population
+        $stmtInsertPerson = $pdo->prepare("
+            INSERT INTO target_population 
+              (cid, hid, pid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode, need_screen_dm, need_screen_ht)
+            VALUES 
+              (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
+            ON DUPLICATE KEY UPDATE
+              hid = CASE WHEN VALUES(hid) IS NOT NULL AND VALUES(hid) <> '' THEN VALUES(hid) ELSE hid END,
+              pid = VALUES(pid),
+              first_name = VALUES(first_name),
+              last_name = VALUES(last_name),
+              sex = VALUES(sex),
+              birth = VALUES(birth),
+              house_no = CASE WHEN VALUES(house_no) IS NOT NULL AND VALUES(house_no) <> '' THEN VALUES(house_no) ELSE house_no END,
+              moo = VALUES(moo),
+              sub_district_code = VALUES(sub_district_code),
+              vhid_code = VALUES(vhid_code),
+              hoscode = VALUES(hoscode),
+              updated_at = NOW()
+        ");
+
+        $stagedPersonsQuery = $pdo->query("SELECT * FROM staging_jhcis_person");
+        while ($sp = $stagedPersonsQuery->fetch(PDO::FETCH_ASSOC)) {
+            $checkVhid = $sp['vhid_code'];
+            if (strlen($checkVhid) === 8) {
+                $moo = (int)substr($checkVhid, 6, 2);
+                $subDistrictCode = substr($checkVhid, 0, 6);
+            } else {
+                $moo = 1;
+                $subDistrictCode = '341801';
+                $checkVhid = '34180101';
+            }
+            
+            $stmtInsertPerson->execute([
+                $sp['cid'],
+                $sp['hid'],
+                $sp['pid'],
+                $sp['first_name'],
+                $sp['last_name'],
+                $sp['sex'],
+                $sp['birth'],
+                $sp['house_no'],
+                $moo,
+                $subDistrictCode,
+                $checkVhid,
+                $sp['hoscode']
+            ]);
+        }
+
         // ดึงข้อมูลประชากรทั้งหมดพร้อมข้อมูลพิกัดบ้านมารอใน PHP Memory cache เพื่อความเร็วและ unmasked data mapping
         $targetPopByCid = [];
         $targetPopByHosPid = [];
@@ -396,6 +489,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
               AND ta.assignment_id IS NULL
               AND (t.cid LIKE '%*%' OR t.cid LIKE '0%' OR t.first_name LIKE '%*%')
         ");
+
+        $pdo->exec("TRUNCATE TABLE staging_jhcis_person");
 
         $pdo->commit();
         $_SESSION['etl_results'] = ['total' => count($allCids), 'inserted' => $inserted, 'updated' => $updated, 'excluded_dm' => $excluded_dm, 'skipped_invalid' => $skipped_invalid];

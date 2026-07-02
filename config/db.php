@@ -673,6 +673,26 @@ try {
         `hoscode` VARCHAR(10) DEFAULT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
 
+    // Auto-create staging_jhcis_person table if it doesn't exist
+    $pdo->exec("DROP TABLE IF EXISTS `staging_jhcis_person`;");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `staging_jhcis_person` (
+        `staging_id` INT AUTO_INCREMENT PRIMARY KEY,
+        `hoscode` VARCHAR(5) NOT NULL,
+        `pid` VARCHAR(15) NOT NULL,
+        `cid` VARCHAR(13) NOT NULL,
+        `first_name` VARCHAR(100) DEFAULT NULL,
+        `last_name` VARCHAR(100) DEFAULT NULL,
+        `sex` VARCHAR(1) DEFAULT NULL,
+        `birth` DATE DEFAULT NULL,
+        `hid` VARCHAR(15) DEFAULT NULL,
+        `house_no` VARCHAR(50) DEFAULT NULL,
+        `vhid_code` VARCHAR(8) DEFAULT NULL,
+        `typearea` VARCHAR(2) DEFAULT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY `uq_hos_pid` (`hoscode`, `pid`),
+        UNIQUE KEY `uq_cid` (`cid`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
     // Auto-seed default data
     $unitCount = $pdo->query("SELECT COUNT(*) FROM `health_units`")->fetchColumn();
     if ($unitCount == 0) {

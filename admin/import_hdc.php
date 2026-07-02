@@ -23,6 +23,11 @@ $linesImported = 0;
 $importType = 'dm'; // default
 $selectedHoscode = '10957'; // default Tal Sum Hospital
 
+$stagedPersonCount = 0;
+try {
+    $stagedPersonCount = (int) $pdo->query("SELECT COUNT(*) FROM staging_jhcis_person")->fetchColumn();
+} catch (\Exception $e) {}
+
 $hc_names = get_health_units();
 
 // Helper to translate risk/result text to numeric values for database staging
@@ -262,6 +267,16 @@ if (isset($_POST['action_cancel'])) {
         unlink($tempDir . '/' . basename($tempFile));
     }
     $step = 1;
+}
+
+// Action: Clear person staging table
+if (isset($_POST['action_clear_person'])) {
+    try {
+        $pdo->exec("TRUNCATE TABLE staging_jhcis_person");
+        $message = "ล้างข้อมูลพักนำเข้า PERSON.csv (อ้างอิง JHCIS) เรียบร้อยแล้ว";
+    } catch (\Exception $e) {
+        $error = "เกิดข้อผิดพลาดในการล้างข้อมูล: " . $e->getMessage();
+    }
 }
 
 // Action: Handle File Upload & Generate Preview
@@ -515,13 +530,21 @@ if (isset($_POST['action_confirm'])) {
                       longitude = VALUES(longitude)
                 ");
             } else {
-                // Type: person
-                $stmtCheckPerson = $pdo->prepare("SELECT * FROM target_population WHERE cid = ? OR (hoscode = ? AND pid = ?)");
-                $stmtUpdatePersonCid = $pdo->prepare("UPDATE target_population SET cid = ?, hid = ?, pid = ?, first_name = ?, last_name = ?, sex = ?, birth = ?, house_no = ?, moo = ?, sub_district_code = ?, vhid_code = ?, hoscode = ?, updated_at = NOW() WHERE cid = ?");
-                $stmtUpdatePersonSimple = $pdo->prepare("UPDATE target_population SET hid = ?, pid = ?, first_name = ?, last_name = ?, sex = ?, birth = ?, house_no = ?, moo = ?, sub_district_code = ?, vhid_code = ?, hoscode = ?, updated_at = NOW() WHERE cid = ?");
-                $stmtInsertPerson = $pdo->prepare("INSERT INTO target_population (cid, hid, pid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE hid=VALUES(hid), pid=VALUES(pid), first_name=VALUES(first_name), last_name=VALUES(last_name), sex=VALUES(sex), birth=VALUES(birth), house_no=VALUES(house_no), moo=VALUES(moo), sub_district_code=VALUES(sub_district_code), vhid_code=VALUES(vhid_code), hoscode=VALUES(hoscode), updated_at=NOW()");
-                $stmtUpdateAssignCid = $pdo->prepare("UPDATE task_assignments SET target_cid = ? WHERE target_cid = ?");
-                $stmtUpdateDpacCid = $pdo->prepare("UPDATE dpac_enrollments SET cid = ? WHERE cid = ?");
+                // Type: person -> staging_jhcis_person
+                $stmtInsertPerson = $pdo->prepare("
+                    INSERT INTO staging_jhcis_person 
+                    (hoscode, pid, cid, first_name, last_name, sex, birth, hid, house_no, vhid_code, typearea) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+                    ON DUPLICATE KEY UPDATE 
+                        first_name = VALUES(first_name), 
+                        last_name = VALUES(last_name), 
+                        sex = VALUES(sex), 
+                        birth = VALUES(birth), 
+                        hid = VALUES(hid), 
+                        house_no = VALUES(house_no), 
+                        vhid_code = VALUES(vhid_code), 
+                        typearea = VALUES(typearea)
+                ");
             }
             
             if ($selectedHoscode === 'ALL') {
@@ -720,131 +743,23 @@ if (isset($_POST['action_confirm'])) {
                         $lastName = $rowVals['last_name'];
                         $sex = $rowVals['sex'];
                         
-                        // Determine address defaults
-                        $checkVhid = $rowVals['vhid_code'] ?? '';
-                        $houseNo = $rowVals['house_no'] ?? '';
-                        if (strlen($checkVhid) === 8) {
-                            $moo = (int)substr($checkVhid, 6, 2);
-                            $subDistrictCode = substr($checkVhid, 0, 6);
-                        } else {
-                            $moo = 1;
-                            $subDistrictCode = '341801';
-                            $checkVhid = '34180101';
-                        }
-
-                        // Check if person exists by (hoscode and pid) OR (cid) using memory cache
-                        $existing = null;
-                        $cleanCid = trim($newCid);
-                        $cleanHoscode = str_pad(trim($rowHoscode), 5, '0', STR_PAD_LEFT);
-                        $cleanPid = ltrim(trim($pid), '0');
-
-                        if (isset($existingPersonsByCid[$cleanCid])) {
-                            $existing = $existingPersonsByCid[$cleanCid];
-                        } elseif (isset($existingPersonsByHosPid["{$cleanHoscode}|{$cleanPid}"])) {
-                            $existing = $existingPersonsByHosPid["{$cleanHoscode}|{$cleanPid}"];
-                        }
-
-                        if ($existing) {
-                            $oldCid = $existing['cid'];
-                            
-                            // Preserve existing address and coordinates from HDC if they already exist
-                            $finalHid = !empty($existing['hid']) ? $existing['hid'] : ($rowVals['hid'] ?: null);
-                            $finalHouseNo = !empty($existing['house_no']) ? $existing['house_no'] : ($houseNo ?: null);
-                            $finalMoo = !empty($existing['moo']) ? $existing['moo'] : $moo;
-                            $finalSubDistrict = !empty($existing['sub_district_code']) ? $existing['sub_district_code'] : $subDistrictCode;
-                            $finalVhid = !empty($existing['vhid_code']) && $existing['vhid_code'] !== '34180101' ? $existing['vhid_code'] : $checkVhid;
-
-                            $useOldCid = false;
-                            if (isValidThaiCitizenIDMOD11($oldCid) && isMockHospitalCID($newCid, $rowHoscode)) {
-                                $useOldCid = true;
-                            }
-
-                            if ($oldCid !== $newCid && !$useOldCid) {
-                                // Check if new CID already exists in database using cache to avoid PRIMARY KEY duplicate violation
-                                if (isset($existingPersonsByCid[$cleanCid])) {
-                                    $skippedCount++;
-                                    $skippedDetails[] = "ข้ามรายชื่อ: CID $newCid ซ้ำซ้อนกับประชากรรายอื่นที่มีอยู่ในระบบแล้ว (เดิมมี CID $oldCid)";
-                                    continue;
-                                }
-
-                                // Primary key change: disable foreign key checks temporarily
-                                $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
-                                
-                                // Update task assignments target_cid
-                                $stmtUpdateAssignCid->execute([$newCid, $oldCid]);
-                                
-                                // Update DPAC enrollments cid
-                                $stmtUpdateDpacCid->execute([$newCid, $oldCid]);
-                                
-                                // Update person record using the old CID as unique key for update
-                                $stmtUpdatePersonCid->execute([
-                                    $newCid,
-                                    $finalHid,
-                                    $pid,
-                                    $firstName,
-                                    $lastName,
-                                    $sex,
-                                    $birthDate ?: null,
-                                    $finalHouseNo,
-                                    $finalMoo,
-                                    $finalSubDistrict,
-                                    $finalVhid,
-                                    $rowHoscode,
-                                    $oldCid
-                                ]);
-                                
-                                $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
-                                $updatedCount++;
-                            } else {
-                                // Same CID or we are forcing keeping the old CID: update demographics and preserve address
-                                $stmtUpdatePersonSimple->execute([
-                                    $finalHid,
-                                    $pid,
-                                    $firstName,
-                                    $lastName,
-                                    $sex,
-                                    $birthDate ?: null,
-                                    $finalHouseNo,
-                                    $finalMoo,
-                                    $finalSubDistrict,
-                                    $finalVhid,
-                                    $rowHoscode,
-                                    $oldCid // Use old CID to perform update if we are keeping the old CID
-                                ]);
-                                $updatedCount++;
-                            }
-                        } else {
-                            // นำเข้ารายชื่อ unmasked จาก JHCIS ใหม่ได้ทันที ไม่ว่าจะใช้ delimiter ใด
-                            $stmtInsertPerson->execute([
-                                $newCid,
-                                $rowVals['hid'] ?: null,
-                                $pid,
-                                $firstName,
-                                $lastName,
-                                $sex,
-                                $birthDate ?: null,
-                                $houseNo ?: null,
-                                $moo,
-                                $subDistrictCode,
-                                $checkVhid,
-                                $rowHoscode
-                            ]);
-                            $insertedCount++;
-                        }
-
-                        // อัปเดตข้อมูลใน Cache Array เพื่อใช้ตรวจสอบแถวถัดๆ ไป
-                        $cacheEntry = [
-                            'cid' => $newCid,
-                            'hoscode' => $rowHoscode,
-                            'pid' => $pid,
-                            'hid' => $existing ? $finalHid : ($rowVals['hid'] ?: null),
-                            'house_no' => $existing ? $finalHouseNo : ($houseNo ?: null),
-                            'moo' => $existing ? $finalMoo : $moo,
-                            'sub_district_code' => $existing ? $finalSubDistrict : $subDistrictCode,
-                            'vhid_code' => $existing ? $finalVhid : $checkVhid,
-                        ];
-                        $existingPersonsByCid[$cleanCid] = $cacheEntry;
-                        $existingPersonsByHosPid["{$cleanHoscode}|{$cleanPid}"] = $cacheEntry;
+                        $checkVhid = $rowVals['vhid_code'] ?? null;
+                        $houseNo = $rowVals['house_no'] ?? null;
+                        
+                        $stmtInsertPerson->execute([
+                            $rowHoscode,
+                            $pid,
+                            $newCid,
+                            $firstName,
+                            $lastName,
+                            $sex,
+                            $birthDate ?: null,
+                            $rowVals['hid'] ?: null,
+                            $houseNo,
+                            $checkVhid,
+                            $rowVals['typearea'] ?: null
+                        ]);
+                        $insertedCount++;
                     }
                     $linesImported++;
                 } catch (\PDOException $e) {
@@ -1071,9 +986,36 @@ if (isset($_POST['action_confirm'])) {
                     นำเข้าข้อมูล HDC & 43 แฟ้มเข้าสู่ระบบ
                 </h2>
 
+                <?php if (!empty($message) && $message !== 'success'): ?>
+                    <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--color-green); color: var(--color-green); padding: 14px 18px; border-radius: 16px; margin-bottom: 20px; font-weight: 700;">
+                        ✅ <?= htmlspecialchars($message) ?>
+                    </div>
+                <?php endif; ?>
+
                 <?php if (!empty($error)): ?>
                     <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--color-red); color: var(--color-red); padding: 14px 18px; border-radius: 16px; margin-bottom: 20px; font-weight: 700;">
                         ❌ <?= htmlspecialchars($error) ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($stagedPersonCount > 0): ?>
+                    <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: 16px; padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="background: rgba(16, 185, 129, 0.1); color: var(--color-green); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                                📂
+                            </div>
+                            <div>
+                                <strong style="color: var(--text-primary); font-size: 14px; display: block;">ระบบพักข้อมูลประชากร JHCIS (PERSON.csv)</strong>
+                                <span style="color: var(--text-secondary); font-size: 12px; display: block; margin-top: 2px;">
+                                    ขณะนี้มีรายชื่อประชากรจริงรอการประมวลผล ETL อยู่ทั้งหมด <strong style="color: var(--color-green);"><?= number_format($stagedPersonCount) ?></strong> รายการ
+                                </span>
+                            </div>
+                        </div>
+                        <form action="" method="POST" style="margin: 0;" onsubmit="return confirm('คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลบุคคลในระบบพักทั้งหมด? ข้อมูลเดิมที่รอ ETL จะถูกลบออก');">
+                            <button type="submit" name="action_clear_person" value="1" class="btn-giant" style="background: rgba(239, 68, 68, 0.1); color: var(--color-red); border: 1px solid rgba(239, 68, 68, 0.2); padding: 8px 16px; font-size: 13px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+                                🗑️ ล้างข้อมูลพักเดิม
+                            </button>
+                        </form>
                     </div>
                 <?php endif; ?>
 
