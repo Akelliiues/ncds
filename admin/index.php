@@ -2416,6 +2416,7 @@ if ($admin_hoscode) {
                 document.getElementById('details-modal').style.display = 'none';
             }
         </script>
+        <?php include_once __DIR__ . '/../config/dev_modal.php'; ?>
 </body>
 
 </html>
