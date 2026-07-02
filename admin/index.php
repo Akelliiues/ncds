@@ -1351,6 +1351,7 @@ if ($admin_hoscode) {
             // Disease Data
             const diseaseRaw = <?= json_encode($chartDiseaseData) ?>;
             const diseaseSeries = [
+                parseInt(diseaseRaw?.normal_group || 0),
                 parseInt(diseaseRaw?.risk_group || 0),
                 parseInt(diseaseRaw?.dm_only || 0),
                 parseInt(diseaseRaw?.ht_only || 0),
@@ -1368,8 +1369,8 @@ if ($admin_hoscode) {
                         background: 'transparent'
                     },
                     theme: { mode: localStorage.getItem('theme') || 'light' },
-                    labels: ['กลุ่มเสี่ยง', 'ป่วย/สงสัยเบาหวาน (DM)', 'ป่วย/สงสัยความดัน (HT)', 'ป่วย/สงสัยทั้ง HT และ DM'],
-                    colors: ['#f59e0b', '#8b5cf6', '#3b82f6', '#ec4899'],
+                    labels: ['ปกติ (เสี่ยงต่ำ)', 'กลุ่มเสี่ยง', 'ป่วย/สงสัยเบาหวาน (DM)', 'ป่วย/สงสัยความดัน (HT)', 'ป่วย/สงสัยทั้ง HT และ DM'],
+                    colors: ['#22c55e', '#f59e0b', '#8b5cf6', '#3b82f6', '#ec4899'],
                     stroke: { show: false },
                     legend: {
                         position: 'bottom',
@@ -1377,11 +1378,16 @@ if ($admin_hoscode) {
                     },
                     dataLabels: {
                         enabled: true,
-                        formatter: function (val) {
-                            return Math.round(val) + "%"
-                        }
+                        formatter: pieLabelFormatter
                     },
-                    tooltip: { theme: localStorage.getItem('theme') || 'light' }
+                    tooltip: { 
+                        theme: localStorage.getItem('theme') || 'light',
+                        y: {
+                            formatter: function (val) {
+                                return val.toLocaleString() + " ราย";
+                            }
+                        }
+                    }
                 };
                 new ApexCharts(document.querySelector("#chart-disease"), optionsDisease).render();
             } else {
