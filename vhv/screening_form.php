@@ -320,7 +320,7 @@ if (!$isShell) {
                     <div id="residents-container">
                     <?php if (!$isShell): ?>
                         <?php foreach ($residents as $r): ?>
-                            <div class="resident-card" onclick="selectResident(<?= $r['assignment_id'] ?>, '<?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?>', '<?= $r['sex'] ?>', '<?= $r['birth'] ?>', <?= $r['need_screen_dm'] ? 'true' : 'false' ?>, <?= $r['need_screen_ht'] ? 'true' : 'false' ?>, <?= (float)($r['latitude'] ?? 0) ?>, <?= (float)($r['longitude'] ?? 0) ?>, <?= $r['last_sbp'] !== null ? (int)$r['last_sbp'] : 'null' ?>, <?= $r['last_dbp'] !== null ? (int)$r['last_dbp'] : 'null' ?>, <?= $r['last_dtx'] !== null ? (int)$r['last_dtx'] : 'null' ?>, '<?= htmlspecialchars($r['last_dtx_type'] ?? 'fpg') ?>', this)">
+                            <div class="resident-card" onclick="selectResident(<?= $r['assignment_id'] ?>, '<?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?>', '<?= $r['sex'] ?>', '<?= $r['birth'] ?>', <?= $r['need_screen_dm'] ? 'true' : 'false' ?>, <?= $r['need_screen_ht'] ? 'true' : 'false' ?>, '<?= htmlspecialchars($r['health_status_origin'] ?? 'NORMAL') ?>', <?= (float)($r['latitude'] ?? 0) ?>, <?= (float)($r['longitude'] ?? 0) ?>, <?= $r['last_sbp'] !== null ? (int)$r['last_sbp'] : 'null' ?>, <?= $r['last_dbp'] !== null ? (int)$r['last_dbp'] : 'null' ?>, <?= $r['last_dtx'] !== null ? (int)$r['last_dtx'] : 'null' ?>, '<?= htmlspecialchars($r['last_dtx_type'] ?? 'fpg') ?>', this)">
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                     <div>
                                         <strong style="font-size: 18px; color: var(--text-primary);"><?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?></strong>
@@ -1085,7 +1085,7 @@ if (!$isShell) {
             document.getElementById('screening_lng').value = gpsLocation.lng;
         }
 
-        function selectResident(assignId, name, sex, birth, needDm, needHt, latVal, lngVal, lastSbp, lastDbp, lastDtx, lastDtxType, card) {
+        function selectResident(assignId, name, sex, birth, needDm, needHt, origin, latVal, lngVal, lastSbp, lastDbp, lastDtx, lastDtxType, card) {
             // Deselect all
             document.querySelectorAll('.resident-card').forEach(c => {
                 c.classList.remove('selected');
@@ -1107,6 +1107,7 @@ if (!$isShell) {
                 age: age,
                 needDm: needDm,
                 needHt: needHt,
+                origin: origin,
                 homeLat: latVal,
                 homeLng: lngVal,
                 lastSbp: lastSbp ? parseInt(lastSbp) : null,
@@ -1130,7 +1131,8 @@ if (!$isShell) {
             const dtxSection = document.getElementById('section-dtx');
 
             bpSection.style.display = needHt ? 'block' : 'none';
-            dtxSection.style.display = needDm ? 'block' : 'none';
+            const showDtx = needDm || (origin === 'DM_ONLY' || origin === 'BOTH');
+            dtxSection.style.display = showDtx ? 'block' : 'none';
 
             // Display historical BP and DTX values in UI
             const lastBpInfo = document.getElementById('last-bp-info');
@@ -1390,8 +1392,9 @@ if (!$isShell) {
                 ? (document.querySelector('input[name="dtx_type"]:checked')?.value || 'fpg')
                 : (selectedResident.lastDtxType || 'fpg');
             
-            // Check if patient already has diabetes
-            const hasDm = !selectedResident.needDm || (dtxType === 'fpg' ? dtx >= 126 : dtx >= 200);
+            // Check if patient already has diabetes or screens positive for diabetes
+            const hasDm = (selectedResident.origin === 'DM_ONLY' || selectedResident.origin === 'BOTH') || 
+                          (selectedResident.needDm && (dtxType === 'fpg' ? dtx >= 126 : dtx >= 200));
 
             // Smoking
             let isSmoker = false;
