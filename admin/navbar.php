@@ -282,7 +282,7 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
                     </svg>
                     คู่มือการใช้งานระบบ
                 </a>
-                <a href="../about.php">
+                <a href="../about.php" onclick="openDevModal(event)">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
@@ -514,3 +514,4 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
         updateThemeIcons(theme);
     });
 </script>
+<?php include_once __DIR__ . '/../config/dev_modal.php'; ?>

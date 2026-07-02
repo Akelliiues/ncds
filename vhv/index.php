@@ -265,7 +265,7 @@ try {
 
         <!-- VHV Info Header -->
         <div class="vhv-header" style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 20px 16px;">
-            <a href="../about.php" title="เกี่ยวกับระบบและผู้พัฒนา" style="flex-shrink: 0;">
+            <a href="../about.php" onclick="openDevModal(event)" title="เกี่ยวกับระบบและผู้พัฒนา" style="flex-shrink: 0;">
                 <img src="../assets/icon.png" alt="NCDs Prevention Logo" style="width: 60px; height: 60px; border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
             </a>
             <div style="flex-grow: 1; min-width: 200px;">
