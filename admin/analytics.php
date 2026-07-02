@@ -215,15 +215,20 @@ $mapTargetsStmt = $pdo->prepare("
 $mapTargetsStmt->execute($hoscodes);
 $mapTargets = $mapTargetsStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Map centroid calculation
+// Map centroid calculation (filtered to Tansum District boundaries to ignore incorrect coordinate entries)
 $latSum = 0;
 $lngSum = 0;
 $coordCount = 0;
 foreach ($mapTargets as $t) {
     if ($t['latitude'] && $t['longitude']) {
-        $latSum += $t['latitude'];
-        $lngSum += $t['longitude'];
-        $coordCount++;
+        $lat = floatval($t['latitude']);
+        $lng = floatval($t['longitude']);
+        // Bounding box for Tansum, Ubon Ratchathani (Lat: 15.1 to 15.6, Lng: 104.8 to 105.3)
+        if ($lat >= 15.1 && $lat <= 15.6 && $lng >= 104.8 && $lng <= 105.3) {
+            $latSum += $lat;
+            $lngSum += $lng;
+            $coordCount++;
+        }
     }
 }
 $mapCenterLat = $coordCount > 0 ? $latSum / $coordCount : 15.4294;
@@ -927,11 +932,17 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
             `);
 
             markers[t.cid] = marker;
-            markerGroup.addLayer(marker);
+            
+            // Check if coordinates fall within Tansum, Ubon boundaries to ignore incorrect marks
+            const lat = parseFloat(t.latitude);
+            const lng = parseFloat(t.longitude);
+            if (lat >= 15.1 && lat <= 15.6 && lng >= 104.8 && lng <= 105.3) {
+                markerGroup.addLayer(marker);
+            }
         });
 
-        // Fit map bounds automatically if there are markers
-        if (targets.length > 0) {
+        // Fit map bounds automatically if there are valid markers
+        if (markerGroup.getLayers().length > 0) {
             map.fitBounds(markerGroup.getBounds(), { padding: [30, 30] });
         }
 
