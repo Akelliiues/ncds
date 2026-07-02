@@ -14,7 +14,7 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 $hc_names = get_health_units();
 
 
-$admin_title = $admin_hoscode ? ($hc_names[$admin_hoscode] ?? 'รพ.สต.') : (($_SESSION['admin_username'] ?? '') === 'adminsso' ? 'ผู้รับผิดชอบระดับอำเภอ' : 'แอดมินหลัก (ทุก รพ.สต.)');
+$admin_title = $admin_hoscode ? ($hc_names[$admin_hoscode] ?? 'รพ.สต.') : (($_SESSION['admin_username'] ?? '') === 'adminsso' ? 'ผู้รับผิดชอบระดับอำเภอ' : '☠️ ข้าคือชะตาที่มิอาจเลี่ยง!!');
 
 if ($admin_hoscode) {
     $hoscodes = get_query_hoscodes($admin_hoscode);
@@ -84,7 +84,7 @@ foreach ($beforeAfterData as $row) {
         $sbpAfterSum += $row['sbp_after'];
         $dbpBeforeSum += $row['dbp_before'];
         $dbpAfterSum += $row['dbp_after'];
-        
+
         if ($row['sbp_after'] < $row['sbp_before'] || ($row['sbp_after'] < 140 && $row['dbp_after'] < 90)) {
             $improvedBpCount++;
         }
@@ -102,7 +102,7 @@ foreach ($beforeAfterData as $row) {
 
     $before = $row['risk_before'];
     $after = $row['risk_after'];
-    
+
     if ($before === 'เสี่ยงสูง') {
         if ($after === 'เสี่ยงสูง') $highToHigh++;
         elseif ($after === 'เสี่ยง') $highToModerate++;
@@ -251,15 +251,15 @@ $prevalenceList = [];
 foreach ($spatialPrevalenceData as $row) {
     $total_screened = intval($row['total_screened']);
     if ($total_screened === 0) continue;
-    
+
     $risk_count = intval($row['high_risk']) + intval($row['moderate_risk']);
     $rate = ($risk_count / $total_screened) * 100;
-    
+
     $village_only = $hoscode_villages[$row['hoscode']]['villages'][intval($row['moo'])] ?? get_village_only_name($hoscode_villages[$row['hoscode']]['tambon'], $row['moo']);
     $village_name = $village_only ?: 'หมู่ที่ ' . $row['moo'];
-    
+
     $display_name = $admin_hoscode ? $village_name : ($hc_names[$row['hoscode']] ?? $row['hoscode']) . " (" . $village_name . ")";
-    
+
     $prevalenceList[] = [
         'name' => $display_name,
         'total_screened' => $total_screened,
@@ -269,7 +269,7 @@ foreach ($spatialPrevalenceData as $row) {
 }
 
 // Sort by rate DESC for highest prevalence hotspots
-usort($prevalenceList, function($a, $b) {
+usort($prevalenceList, function ($a, $b) {
     return $b['rate'] <=> $a['rate'];
 });
 $highestPrevalence = array_slice($prevalenceList, 0, 3);
@@ -278,15 +278,15 @@ $improvementList = [];
 foreach ($villageImprovementData as $row) {
     $completed = intval($row['completed_followups']);
     if ($completed === 0) continue;
-    
+
     $improved = intval($row['improved_count']);
     $rate = ($improved / $completed) * 100;
-    
+
     $village_only = $hoscode_villages[$row['hoscode']]['villages'][intval($row['moo'])] ?? get_village_only_name($hoscode_villages[$row['hoscode']]['tambon'], $row['moo']);
     $village_name = $village_only ?: 'หมู่ที่ ' . $row['moo'];
-    
+
     $display_name = $admin_hoscode ? $village_name : ($hc_names[$row['hoscode']] ?? $row['hoscode']) . " (" . $village_name . ")";
-    
+
     $improvementList[] = [
         'name' => $display_name,
         'completed' => $completed,
@@ -296,14 +296,14 @@ foreach ($villageImprovementData as $row) {
 }
 
 // Sort by rate DESC for best improvement
-usort($improvementList, function($a, $b) {
+usort($improvementList, function ($a, $b) {
     return $b['rate'] <=> $a['rate'];
 });
 $bestImprovement = array_slice($improvementList, 0, 3);
 
 // Sort by rate ASC for concerning areas (lowest improvement rate)
 $tempList = $improvementList;
-usort($tempList, function($a, $b) {
+usort($tempList, function ($a, $b) {
     return $a['rate'] <=> $b['rate'];
 });
 $concerningAreas = array_slice($tempList, 0, 3);
@@ -348,6 +348,7 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -367,6 +368,7 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
             margin-bottom: 16px;
             z-index: 1;
         }
+
         .play-controls {
             display: flex;
             align-items: center;
@@ -379,6 +381,7 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
             flex-wrap: wrap;
             gap: 12px;
         }
+
         .btn-control {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -393,22 +396,26 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
             gap: 8px;
             transition: all 0.2s;
         }
+
         .btn-control:hover {
             border-color: var(--color-accent);
             color: var(--color-accent);
             background: rgba(14, 165, 233, 0.05);
         }
+
         .btn-control.active-play {
             background: var(--color-accent);
             color: white;
             border-color: var(--color-accent);
             box-shadow: 0 0 10px rgba(14, 165, 233, 0.4);
         }
+
         .quarter-indicator {
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
         }
+
         .quarter-badge {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -420,17 +427,20 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
             cursor: pointer;
             transition: all 0.2s;
         }
+
         .quarter-badge.active {
             background: rgba(34, 197, 94, 0.15);
             color: var(--color-green);
             border-color: var(--color-green);
         }
+
         .stats-badge-container {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 12px;
             margin-bottom: 20px;
         }
+
         .stats-badge-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -439,32 +449,38 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
             text-align: center;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
+
         .stats-badge-card .num {
             font-size: 24px;
             font-weight: 800;
             margin-bottom: 4px;
         }
+
         .stats-badge-card .label {
             font-size: 12px;
             color: var(--text-secondary);
             font-weight: bold;
         }
+
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 24px;
             margin-bottom: 30px;
         }
+
         @media (max-width: 768px) {
             .dashboard-grid {
                 grid-template-columns: 1fr;
             }
+
             .stats-badge-container {
                 grid-template-columns: repeat(2, 1fr);
             }
         }
     </style>
 </head>
+
 <body class="admin-body dashboard-page">
     <?php include 'navbar.php'; ?>
 
@@ -486,7 +502,7 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
             <h3 style="color: var(--color-primary); margin-top: 0; margin-bottom: 16px; font-size: 17px; display: flex; align-items: center; gap: 8px;">
                 <span>🔮 บทวิเคราะห์เชิงรุกและชี้เป้าทางระบาดวิทยา (Spatial & Predictive Insights)</span>
             </h3>
-            
+
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 20px;">
                 <!-- Hotspots Card -->
                 <div style="background: rgba(239, 68, 68, 0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(239, 68, 68, 0.15);">
@@ -499,8 +515,8 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
                         <?php else: ?>
                             <?php foreach ($highestPrevalence as $idx => $p): ?>
                                 <li>
-                                    <strong>อันดับ <?= $idx + 1 ?>:</strong> <?= htmlspecialchars($p['name']) ?> 
-                                    <span style="color: #ef4444; font-weight: bold;"><?= number_format($p['rate'], 1) ?>%</span> 
+                                    <strong>อันดับ <?= $idx + 1 ?>:</strong> <?= htmlspecialchars($p['name']) ?>
+                                    <span style="color: #ef4444; font-weight: bold;"><?= number_format($p['rate'], 1) ?>%</span>
                                     <span style="font-size: 11px; color: var(--text-muted);">(พบเสี่ยง <?= $p['risk_count'] ?> จาก <?= $p['total_screened'] ?> ราย)</span>
                                 </li>
                             <?php endforeach; ?>
@@ -519,7 +535,7 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
                         <?php else: ?>
                             <?php foreach ($bestImprovement as $idx => $bi): ?>
                                 <li>
-                                    <strong>อันดับ <?= $idx + 1 ?>:</strong> <?= htmlspecialchars($bi['name']) ?> 
+                                    <strong>อันดับ <?= $idx + 1 ?>:</strong> <?= htmlspecialchars($bi['name']) ?>
                                     <span style="color: #22c55e; font-weight: bold;"><?= number_format($bi['rate'], 1) ?>%</span>
                                     <span style="font-size: 11px; color: var(--text-muted);">(ดีขึ้น <?= $bi['improved'] ?> จาก <?= $bi['completed'] ?> ราย)</span>
                                 </li>
@@ -539,7 +555,7 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
                         <?php else: ?>
                             <?php foreach ($concerningAreas as $idx => $ca): ?>
                                 <li>
-                                    <strong>อันดับ <?= $idx + 1 ?>:</strong> <?= htmlspecialchars($ca['name']) ?> 
+                                    <strong>อันดับ <?= $idx + 1 ?>:</strong> <?= htmlspecialchars($ca['name']) ?>
                                     <span style="color: #f59e0b; font-weight: bold;"><?= number_format($ca['rate'], 1) ?>%</span>
                                     <span style="font-size: 11px; color: var(--text-muted);">(ดีขึ้น <?= $ca['improved'] ?> จาก <?= $ca['completed'] ?> ราย)</span>
                                 </li>
@@ -548,11 +564,11 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
                     </ul>
                 </div>
             </div>
-            
+
             <div style="margin-top: 18px; font-size: 13px; color: var(--text-muted); line-height: 1.6; border-top: 1px dashed var(--border-color); padding-top: 12px;">
-                💡 <strong>คำแนะนำเชิงกลยุทธ์:</strong> 
+                💡 <strong>คำแนะนำเชิงกลยุทธ์:</strong>
                 <?php if (!empty($highestPrevalence)): ?>
-                    ควรพิจารณาส่งทีมแพทย์เคลื่อนที่เร็วหรือจัดสรรงบประมาณลงตรวจคัดกรองซ้ำ ณ <strong><?= htmlspecialchars($highestPrevalence[0]['name']) ?></strong> เนื่องจากพบอัตราความชุกกลุ่มเสี่ยง/ป่วยสูงที่สุด และควรส่ง อสม. ประกบแนะนำการปรับเปลี่ยนพฤติกรรมในเขต 
+                    ควรพิจารณาส่งทีมแพทย์เคลื่อนที่เร็วหรือจัดสรรงบประมาณลงตรวจคัดกรองซ้ำ ณ <strong><?= htmlspecialchars($highestPrevalence[0]['name']) ?></strong> เนื่องจากพบอัตราความชุกกลุ่มเสี่ยง/ป่วยสูงที่สุด และควรส่ง อสม. ประกบแนะนำการปรับเปลี่ยนพฤติกรรมในเขต
                 <?php endif; ?>
                 <?php if (!empty($concerningAreas)): ?>
                     <strong><?= htmlspecialchars($concerningAreas[0]['name']) ?></strong> เพื่อปรับแผนโภชนาการและการออกกำลังกายใหม่ เนื่องจากมีอัตราสุขภาพพัฒนาดีขึ้นค่อนข้างต่ำ
@@ -571,7 +587,7 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
                 <span>แผนภูมิพยากรณ์และวิเคราะห์คาดการณ์แนวโน้มกลุ่มเสี่ยงสะสมล่วงหน้า (Predictive Risk Trend Forecasting)</span>
             </h3>
             <div id="chart-forecast" style="margin-bottom: 20px;"></div>
-            
+
             <div style="background: rgba(14, 165, 233, 0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(14, 165, 233, 0.15); font-size: 13.5px; color: var(--text-secondary); line-height: 1.6;" id="forecast-insights">
                 🔍 <strong>บทวิเคราะห์แนวโน้มการคาดการณ์เชิงสถิติ:</strong>
                 <span id="forecast-insight-text">กำลังประมวลผลข้อมูลและคาดการณ์จากประวัติ...</span>
@@ -614,7 +630,7 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
             <div class="card-dark" style="border-left: 4px solid var(--color-green);">
                 <div style="color: var(--text-secondary); font-size: 13px; font-weight: bold; margin-bottom: 8px;">ควบคุมความดันสำเร็จ / ดีขึ้น</div>
                 <div class="stat-val" style="color: var(--color-green);">
-                    <?= $pctBpImprovement ?>% 
+                    <?= $pctBpImprovement ?>%
                     <span style="font-size: 14px; color: var(--text-secondary); font-weight: normal;">(<?= $improvedBpCount ?>/<?= $totalHtCases ?> ราย)</span>
                 </div>
                 <div style="font-size: 12px; margin-top: 8px; color: var(--text-muted);">
@@ -649,7 +665,7 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
         <h3 style="color: var(--color-accent); margin-bottom: 16px; font-size: 18px; display: flex; align-items: center; gap: 8px;">
             <span>⏱️ แผนที่ระบุระดับพิกัดความเสี่ยงรายไตรมาส (Temporal Geographic Risk Heatmap)</span>
         </h3>
-        
+
         <div class="play-controls">
             <button type="button" id="btn-play" onclick="togglePlay()" class="btn-control">
                 ▶️ เล่นภาพเคลื่อนไหว
@@ -749,14 +765,19 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Function to run Linear Regression and project next N months
         function forecastTrend(data, N = 3) {
-            if (data.length === 0) return { months: [], actual: [], forecast: [], slope: 0 };
-            
+            if (data.length === 0) return {
+                months: [],
+                actual: [],
+                forecast: [],
+                slope: 0
+            };
+
             // Sort chronologically
             data.sort((a, b) => a.month_year.localeCompare(b.month_year));
-            
+
             const months = data.map(d => d.month_year);
             const actual = data.map(d => parseInt(d.high_risk) + parseInt(d.moderate_risk));
-            
+
             // Fallback if data is too small
             if (data.length < 2) {
                 const lastVal = actual[0] || 0;
@@ -764,8 +785,12 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
                 const nextMonths = [];
                 if (months.length > 0) {
                     let [y, m] = months[0].split('-').map(Number);
-                    for(let i=1; i<=N; i++) {
-                        m++; if (m > 12) { m = 1; y++; }
+                    for (let i = 1; i <= N; i++) {
+                        m++;
+                        if (m > 12) {
+                            m = 1;
+                            y++;
+                        }
                         nextMonths.push(`${y}-${String(m).padStart(2, '0')}`);
                         forecast.push(lastVal);
                     }
@@ -777,39 +802,45 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
                     slope: 0
                 };
             }
-            
+
             // Least Squares linear regression: y = mx + c
-            const x = Array.from({ length: actual.length }, (_, i) => i);
+            const x = Array.from({
+                length: actual.length
+            }, (_, i) => i);
             const n = actual.length;
-            
+
             const sumX = x.reduce((a, b) => a + b, 0);
             const sumY = actual.reduce((a, b) => a + b, 0);
             const sumXY = x.reduce((sum, xi, i) => sum + xi * actual[i], 0);
             const sumXX = x.reduce((sum, xi) => sum + xi * xi, 0);
-            
+
             const denominator = (n * sumXX - sumX * sumX);
             const slope = denominator === 0 ? 0 : (n * sumXY - sumX * sumY) / denominator;
             const intercept = (sumY - slope * sumX) / n;
-            
+
             // Generate actual & forecast lines
             const forecast = [];
             for (let i = 0; i < n; i++) {
                 forecast.push(null);
             }
             forecast[n - 1] = actual[n - 1]; // Connect actual and forecast lines
-            
+
             // Project future N months
             const nextMonths = [];
             let [y, m] = months[n - 1].split('-').map(Number);
             for (let i = 1; i <= N; i++) {
-                m++; if (m > 12) { m = 1; y++; }
+                m++;
+                if (m > 12) {
+                    m = 1;
+                    y++;
+                }
                 const nextMonthStr = `${y}-${String(m).padStart(2, '0')}`;
                 nextMonths.push(nextMonthStr);
-                
+
                 const predictedVal = Math.max(0, Math.round(slope * (n - 1 + i) + intercept));
                 forecast.push(predictedVal);
             }
-            
+
             return {
                 months: [...months, ...nextMonths],
                 actual: [...actual, ...Array(N).fill(null)],
@@ -822,7 +853,7 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
         const records = <?= json_encode($historyRecords) ?>;
         // Targets with coordinates
         const targets = <?= json_encode($mapTargets) ?>;
-        
+
         // Index records by CID for fast O(1) average lookup
         const recordsByCid = {};
         records.forEach(r => {
@@ -837,7 +868,7 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
             const endTime = new Date(endTimeStr).getTime();
             const userRecs = recordsByCid[cid];
             if (!userRecs) return 'UNSCREENED';
-            
+
             let latest = null;
             for (let i = 0; i < userRecs.length; i++) {
                 let rTime = new Date(userRecs[i].created_at).getTime();
@@ -883,7 +914,7 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
                 weight: 1.5,
                 fillOpacity: 0.85
             }).addTo(map);
-            
+
             marker.bindPopup(`
                 <div style="font-family: var(--font-sans); color: #1e293b; font-size: 13px;">
                     <strong style="color: #0ea5e9;">${t.first_name} ${t.last_name}</strong><br>
@@ -891,7 +922,7 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
                     <span id="pop-status-${t.cid}">สถานะ: โหลดข้อมูล...</span>
                 </div>
             `);
-            
+
             markers[t.cid] = marker;
         });
 
@@ -899,17 +930,28 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
         let activeQuarterIndex = 0;
         let playInterval = null;
 
-        const quarters = [
-            { name: 'ไตรมาส 1 (ต.ค. - ธ.ค. 2568)', end: '2025-12-31T23:59:59' },
-            { name: 'ไตรมาส 2 (ม.ค. - มี.ค. 2569)', end: '2026-03-31T23:59:59' },
-            { name: 'ไตรมาส 3 (เม.ย. - มิ.ย. 2569)', end: '2026-06-30T23:59:59' },
-            { name: 'ไตรมาส 4 (ก.ค. - ก.ย. 2569)', end: '2026-09-30T23:59:59' }
+        const quarters = [{
+                name: 'ไตรมาส 1 (ต.ค. - ธ.ค. 2568)',
+                end: '2025-12-31T23:59:59'
+            },
+            {
+                name: 'ไตรมาส 2 (ม.ค. - มี.ค. 2569)',
+                end: '2026-03-31T23:59:59'
+            },
+            {
+                name: 'ไตรมาส 3 (เม.ย. - มิ.ย. 2569)',
+                end: '2026-06-30T23:59:59'
+            },
+            {
+                name: 'ไตรมาส 4 (ก.ค. - ก.ย. 2569)',
+                end: '2026-09-30T23:59:59'
+            }
         ];
 
         function updateMapForQuarter(qIndex) {
             activeQuarterIndex = qIndex;
             const quarter = quarters[qIndex];
-            
+
             document.querySelectorAll('.quarter-badge').forEach((badge, idx) => {
                 if (idx === qIndex) {
                     badge.classList.add('active');
@@ -917,18 +959,25 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
                     badge.classList.remove('active');
                 }
             });
-            
+
             document.getElementById('active-quarter-title').innerText = quarter.name;
-            
-            let stats = { HIGH: 0, MODERATE: 0, NORMAL: 0, UNSCREENED: 0 };
-            
+
+            let stats = {
+                HIGH: 0,
+                MODERATE: 0,
+                NORMAL: 0,
+                UNSCREENED: 0
+            };
+
             targets.forEach(t => {
                 const status = getStatusAt(t.cid, quarter.end);
                 stats[status]++;
-                
+
                 const marker = markers[t.cid];
                 if (marker) {
-                    marker.setStyle({ fillColor: colors[status] });
+                    marker.setStyle({
+                        fillColor: colors[status]
+                    });
                     marker.getPopup().setContent(`
                         <div style="font-family: var(--font-sans); color: #1e293b; font-size: 13px;">
                             <strong style="color: #0ea5e9;">${t.first_name} ${t.last_name}</strong><br>
@@ -938,7 +987,7 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
                     `);
                 }
             });
-            
+
             document.getElementById('stat-unscreened').innerText = stats.UNSCREENED.toLocaleString() + ' ราย';
             document.getElementById('stat-normal').innerText = stats.NORMAL.toLocaleString() + ' ราย';
             document.getElementById('stat-moderate').innerText = stats.MODERATE.toLocaleString() + ' ราย';
@@ -983,9 +1032,13 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
                 type: 'bar',
                 height: 300,
                 background: 'transparent',
-                toolbar: { show: false }
+                toolbar: {
+                    show: false
+                }
             },
-            theme: { mode: localStorage.getItem('theme') || 'light' },
+            theme: {
+                mode: localStorage.getItem('theme') || 'light'
+            },
             colors: ['#3b82f6', '#10b981'],
             plotOptions: {
                 bar: {
@@ -994,25 +1047,50 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
                     borderRadius: 4
                 },
             },
-            dataLabels: { enabled: false },
-            stroke: { show: true, width: 2, colors: ['transparent'] },
+            dataLabels: {
+                enabled: false
+            },
+            stroke: {
+                show: true,
+                width: 2,
+                colors: ['transparent']
+            },
             xaxis: {
                 categories: ['SYS BP (mmHg)', 'DIA BP (mmHg)', 'Sugar FBS (mg/dL)'],
-                labels: { style: { colors: '#9ca3af' } }
+                labels: {
+                    style: {
+                        colors: '#9ca3af'
+                    }
+                }
             },
             yaxis: {
-                title: { text: 'ระดับผลตรวจสุขภาพ', style: { color: '#9ca3af' } },
-                labels: { style: { colors: '#9ca3af' } }
+                title: {
+                    text: 'ระดับผลตรวจสุขภาพ',
+                    style: {
+                        color: '#9ca3af'
+                    }
+                },
+                labels: {
+                    style: {
+                        colors: '#9ca3af'
+                    }
+                }
             },
-            fill: { opacity: 1 },
+            fill: {
+                opacity: 1
+            },
             tooltip: {
                 y: {
-                    formatter: function (val) {
+                    formatter: function(val) {
                         return val;
                     }
                 }
             },
-            legend: { labels: { colors: '#9ca3af' } }
+            legend: {
+                labels: {
+                    colors: '#9ca3af'
+                }
+            }
         };
 
         var chartOutcome = new ApexCharts(document.querySelector("#chart-outcome-comparison"), optionsOutcome);
@@ -1035,9 +1113,13 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
                 height: 300,
                 stacked: true,
                 background: 'transparent',
-                toolbar: { show: false }
+                toolbar: {
+                    show: false
+                }
             },
-            theme: { mode: localStorage.getItem('theme') || 'light' },
+            theme: {
+                mode: localStorage.getItem('theme') || 'light'
+            },
             colors: ['#ef4444', '#eab308', '#10b981'],
             plotOptions: {
                 bar: {
@@ -1046,15 +1128,27 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
             },
             xaxis: {
                 categories: ['ก่อนเข้าร่วมโครงการ', 'ประเมินผลรอบล่าสุด'],
-                labels: { style: { colors: '#9ca3af' } }
+                labels: {
+                    style: {
+                        colors: '#9ca3af'
+                    }
+                }
             },
             yaxis: {
-                labels: { style: { colors: '#9ca3af' } }
+                labels: {
+                    style: {
+                        colors: '#9ca3af'
+                    }
+                }
             },
-            fill: { opacity: 1 },
+            fill: {
+                opacity: 1
+            },
             legend: {
                 position: 'bottom',
-                labels: { colors: '#9ca3af' }
+                labels: {
+                    colors: '#9ca3af'
+                }
             }
         };
 
@@ -1071,8 +1165,7 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
         });
 
         var optionsForecast = {
-            series: [
-                {
+            series: [{
                     name: 'ข้อมูลจริง (Actual)',
                     data: forecastData.actual
                 },
@@ -1085,7 +1178,9 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
                 height: 320,
                 type: 'line',
                 background: 'transparent',
-                toolbar: { show: false }
+                toolbar: {
+                    show: false
+                }
             },
             stroke: {
                 width: [3, 3],
@@ -1095,14 +1190,33 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
             colors: ['#0ea5e9', '#ec4899'],
             xaxis: {
                 categories: forecastMonthLabels,
-                labels: { style: { colors: '#9ca3af' } }
+                labels: {
+                    style: {
+                        colors: '#9ca3af'
+                    }
+                }
             },
             yaxis: {
-                title: { text: 'จำนวนประชากรกลุ่มเสี่ยง (ราย)', style: { color: '#9ca3af' } },
-                labels: { style: { colors: '#9ca3af' } }
+                title: {
+                    text: 'จำนวนประชากรกลุ่มเสี่ยง (ราย)',
+                    style: {
+                        color: '#9ca3af'
+                    }
+                },
+                labels: {
+                    style: {
+                        colors: '#9ca3af'
+                    }
+                }
             },
-            legend: { labels: { colors: '#9ca3af' } },
-            tooltip: { theme: localStorage.getItem('theme') || 'light' }
+            legend: {
+                labels: {
+                    colors: '#9ca3af'
+                }
+            },
+            tooltip: {
+                theme: localStorage.getItem('theme') || 'light'
+            }
         };
 
         var chartForecast = new ApexCharts(document.querySelector("#chart-forecast"), optionsForecast);
@@ -1122,4 +1236,5 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
         }
     </script>
 </body>
+
 </html>
