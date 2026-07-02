@@ -165,6 +165,138 @@ try {
     }
 }
 
+// Self-healing fuzzy merge based on birth, sex, and fuzzy name matching (ignoring asterisks)
+try {
+    $hasMasked = $pdo->query("
+        SELECT 1 FROM target_population 
+        WHERE (cid LIKE '%*%' OR first_name LIKE '%*%' OR cid LIKE '0%') 
+        LIMIT 1
+    ")->fetchColumn();
+
+    if ($hasMasked) {
+        $fuzzyDupesQuery = $pdo->query("
+            SELECT 
+                t1.cid AS masked_cid, t1.need_screen_dm AS masked_dm, t1.need_screen_ht AS masked_ht, t1.health_status_origin AS masked_status,
+                t2.cid AS real_cid
+            FROM target_population t1
+            JOIN target_population t2 
+              ON t1.hoscode = t2.hoscode 
+             AND t1.birth = t2.birth 
+             AND t1.sex = t2.sex
+            WHERE (
+                t1.cid LIKE '%*%' 
+                OR t1.first_name LIKE '%*%' 
+                OR t1.cid LIKE '0%' 
+                OR t1.cid = CONCAT(t1.hoscode, LPAD(t1.pid, 8, '0'))
+                OR t1.cid = CONCAT(t1.hoscode, t1.pid)
+              )
+              AND (
+                t2.cid NOT LIKE '%*%' 
+                AND t2.first_name NOT LIKE '%*%' 
+                AND t2.cid NOT LIKE '0%' 
+                AND t2.cid <> CONCAT(t2.hoscode, LPAD(t2.pid, 8, '0'))
+                AND t2.cid <> CONCAT(t2.hoscode, t2.pid)
+              )
+              AND t1.cid <> t2.cid
+              AND REPLACE(t1.first_name, '*', '') = SUBSTRING(t2.first_name, 1, LENGTH(REPLACE(t1.first_name, '*', '')))
+              AND REPLACE(t1.last_name, '*', '') = SUBSTRING(t2.last_name, 1, LENGTH(REPLACE(t1.last_name, '*', '')))
+        ");
+        $fuzzyDupes = $fuzzyDupesQuery->fetchAll(PDO::FETCH_ASSOC);
+
+        if (!empty($fuzzyDupes)) {
+            $pdo->beginTransaction();
+            $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
+            
+            $stmtUpdateReal = $pdo->prepare("
+                UPDATE target_population 
+                SET 
+                    need_screen_dm = CASE WHEN ? = 1 THEN 1 ELSE need_screen_dm END,
+                    need_screen_ht = CASE WHEN ? = 1 THEN 1 ELSE need_screen_ht END,
+                    health_status_origin = CASE WHEN health_status_origin = 'NORMAL' OR health_status_origin = '' OR health_status_origin IS NULL THEN ? ELSE health_status_origin END,
+                    updated_at = NOW()
+                WHERE cid = ?
+            ");
+            
+            $stmtGetAssign = $pdo->prepare("SELECT * FROM task_assignments WHERE target_cid = ?");
+            $stmtDeleteAssign = $pdo->prepare("DELETE FROM task_assignments WHERE assignment_id = ?");
+            $stmtUpdateAssignCid = $pdo->prepare("UPDATE task_assignments SET target_cid = ? WHERE assignment_id = ?");
+            
+            $stmtGetDpac = $pdo->prepare("SELECT * FROM dpac_enrollments WHERE cid = ?");
+            $stmtDeleteDpac = $pdo->prepare("DELETE FROM dpac_enrollments WHERE enrollment_id = ?");
+            $stmtUpdateDpacCid = $pdo->prepare("UPDATE dpac_enrollments SET cid = ? WHERE enrollment_id = ?");
+            
+            $stmtDeleteTarget = $pdo->prepare("DELETE FROM target_population WHERE cid = ?");
+            
+            foreach ($fuzzyDupes as $dup) {
+                $mCid = $dup['masked_cid'];
+                $rCid = $dup['real_cid'];
+                
+                $stmtUpdateReal->execute([$dup['masked_dm'], $dup['masked_ht'], $dup['masked_status'], $rCid]);
+                
+                $stmtGetAssign->execute([$mCid]);
+                $mAssigns = $stmtGetAssign->fetchAll();
+                
+                $stmtGetAssign->execute([$rCid]);
+                $rAssigns = $stmtGetAssign->fetchAll();
+                
+                $rByYear = [];
+                foreach ($rAssigns as $ra) {
+                    $rByYear[$ra['budget_year']] = $ra;
+                }
+                
+                foreach ($mAssigns as $ma) {
+                    $year = $ma['budget_year'];
+                    if (isset($rByYear[$year])) {
+                        $ra = $rByYear[$year];
+                        $checkScreen = $pdo->prepare("SELECT COUNT(*) FROM screening_results WHERE assignment_id = ?");
+                        $checkScreen->execute([$ma['assignment_id']]);
+                        $hasScreening = $checkScreen->fetchColumn() > 0;
+                        
+                        if ($hasScreening) {
+                            $moveScreen = $pdo->prepare("UPDATE screening_results SET assignment_id = ? WHERE assignment_id = ?");
+                            $moveScreen->execute([$ra['assignment_id'], $ma['assignment_id']]);
+                        }
+                        $stmtDeleteAssign->execute([$ma['assignment_id']]);
+                    } else {
+                        $stmtUpdateAssignCid->execute([$rCid, $ma['assignment_id']]);
+                    }
+                }
+                
+                $stmtGetDpac->execute([$mCid]);
+                $mDpac = $stmtGetDpac->fetchAll();
+                
+                $stmtGetDpac->execute([$rCid]);
+                $rDpac = $stmtGetDpac->fetchAll();
+                
+                $rDpacByYear = [];
+                foreach ($rDpac as $rd) {
+                    $rDpacByYear[$rd['budget_year']] = $rd;
+                }
+                
+                foreach ($mDpac as $md) {
+                    $year = $md['budget_year'];
+                    if (isset($rDpacByYear[$year])) {
+                        $moveFollowups = $pdo->prepare("UPDATE dpac_followups SET enrollment_id = ? WHERE enrollment_id = ?");
+                        $moveFollowups->execute([$rDpacByYear[$year]['enrollment_id'], $md['enrollment_id']]);
+                        $stmtDeleteDpac->execute([$md['enrollment_id']]);
+                    } else {
+                        $stmtUpdateDpacCid->execute([$rCid, $md['enrollment_id']]);
+                    }
+                }
+                
+                $stmtDeleteTarget->execute([$mCid]);
+            }
+            
+            $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
+            $pdo->commit();
+        }
+    }
+} catch (\Exception $e) {
+    if (isset($pdo) && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+}
+
 $jsData = [];
 $subsList = [];
 try {
@@ -332,12 +464,12 @@ if (isset($_GET['action'])) {
         SELECT * FROM (
             -- ส่วนที่ 1: ดึงประชากรทั้งหมดจาก target_population ของหมู่ที่เลือก และ LEFT JOIN ข้อมูลผลแล็บจาก staging (ถ้ามี)
             SELECT 
-                COALESCE(NULLIF(tp_real_pcu.cid, ''), NULLIF(tp_real_fuzzy.cid, ''), t.cid) as cid,
+                t.cid,
                 t.pid,
                 t.hoscode,
                 t.prefix,
-                COALESCE(NULLIF(tp_real_pcu.first_name, ''), NULLIF(tp_real_fuzzy.first_name, ''), NULLIF(t.first_name, ''), 'ไม่ทราบชื่อ') as first_name,
-                COALESCE(NULLIF(tp_real_pcu.last_name, ''), NULLIF(tp_real_fuzzy.last_name, ''), NULLIF(t.last_name, ''), 'ไม่ทราบประวัติ') as last_name,
+                t.first_name,
+                t.last_name,
                 t.birth,
                 t.house_no,
                 TIMESTAMPDIFF(YEAR, t.birth, CURDATE()) as age,
@@ -346,28 +478,8 @@ if (isset($_GET['action'])) {
                 t.health_status_origin,
                 t.is_manual,
                 h.bslevel, h.bstest, h.sbp, h.dbp,
-                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = COALESCE(NULLIF(tp_real_pcu.cid, ''), NULLIF(tp_real_fuzzy.cid, ''), t.cid) AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
+                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = t.cid AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
             FROM target_population t
-            LEFT JOIN target_population tp_real_pcu ON (
-                (t.cid LIKE '%*%' OR t.cid = CONCAT(t.hoscode, LPAD(t.pid, 8, '0')) OR t.cid = CONCAT(t.hoscode, t.pid))
-                AND tp_real_pcu.hoscode = t.hoscode
-                AND tp_real_pcu.pid = t.pid
-                AND tp_real_pcu.cid NOT LIKE '%*%'
-                AND tp_real_pcu.cid <> CONCAT(tp_real_pcu.hoscode, LPAD(tp_real_pcu.pid, 8, '0'))
-                AND tp_real_pcu.cid <> CONCAT(tp_real_pcu.hoscode, tp_real_pcu.pid)
-                AND tp_real_pcu.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
-            )
-            LEFT JOIN target_population tp_real_fuzzy ON (
-                (t.cid LIKE '%*%' OR t.cid = CONCAT(t.hoscode, LPAD(t.pid, 8, '0')) OR t.cid = CONCAT(t.hoscode, t.pid))
-                AND tp_real_pcu.cid IS NULL
-                AND tp_real_fuzzy.birth = t.birth
-                AND tp_real_fuzzy.sex = t.sex
-                AND tp_real_fuzzy.cid NOT LIKE '%*%'
-                AND tp_real_fuzzy.cid <> CONCAT(tp_real_fuzzy.hoscode, LPAD(tp_real_fuzzy.pid, 8, '0'))
-                AND tp_real_fuzzy.cid <> CONCAT(tp_real_fuzzy.hoscode, tp_real_fuzzy.pid)
-                AND tp_real_fuzzy.first_name LIKE REPLACE(t.first_name, '*', '%')
-                AND tp_real_fuzzy.last_name LIKE REPLACE(t.last_name, '*', '%')
-            )
             LEFT JOIN (
                 SELECT 
                     cid, pid, hoscode,
@@ -393,24 +505,24 @@ if (isset($_GET['action'])) {
             
             -- ส่วนที่ 2: ดึงรายชื่อประชากรใน staging ของหมู่ที่เลือก แต่ยังไม่ได้เพิ่ม/ไม่มีชื่อใน target_population
             SELECT 
-                COALESCE(NULLIF(tp_real_pcu.cid, ''), NULLIF(tp_real_fuzzy.cid, ''), h.cid) as cid,
+                h.cid,
                 h.pid,
                 h.hoscode,
                 NULL as prefix,
-                COALESCE(NULLIF(tp_real_pcu.first_name, ''), NULLIF(tp_real_fuzzy.first_name, ''), NULLIF(h.name, ''), 'ไม่ทราบชื่อ') as first_name,
-                COALESCE(NULLIF(tp_real_pcu.last_name, ''), NULLIF(tp_real_fuzzy.last_name, ''), NULLIF(h.lname, ''), 'ไม่ทราบประวัติ') as last_name,
+                h.first_name,
+                h.last_name,
                 h.birth,
-                h.addr as house_no,
+                h.house_no,
                 TIMESTAMPDIFF(YEAR, h.birth, CURDATE()) as age,
                 0 as need_screen_dm,
                 0 as need_screen_ht,
                 h.health_status_origin,
                 0 as is_manual,
                 h.bslevel, h.bstest, h.sbp, h.dbp,
-                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = COALESCE(NULLIF(tp_real_pcu.cid, ''), NULLIF(tp_real_fuzzy.cid, ''), h.cid) AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
+                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = h.cid AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
             FROM (
                 SELECT 
-                    cid, pid, hoscode, name, lname, birth, addr, check_vhid,
+                    cid, pid, hoscode, name as first_name, lname as last_name, birth, addr as house_no, check_vhid,
                     MAX(bslevel) as bslevel, MAX(bstest) as bstest, MAX(sbp) as sbp, MAX(dbp) as dbp,
                     MAX(health_status_origin) as health_status_origin
                 FROM (
@@ -443,25 +555,6 @@ if (isset($_GET['action'])) {
                 GROUP BY hoscode, pid
             ) h
             LEFT JOIN target_population t ON t.hoscode = h.hoscode AND t.pid = h.pid
-            LEFT JOIN target_population tp_real_pcu ON (
-                (h.cid LIKE '%*%' OR h.cid = CONCAT(h.hoscode, LPAD(h.pid, 8, '0')) OR h.cid = CONCAT(h.hoscode, h.pid))
-                AND tp_real_pcu.hoscode = h.hoscode
-                AND tp_real_pcu.pid = h.pid
-                AND tp_real_pcu.cid NOT LIKE '%*%'
-                AND tp_real_pcu.cid <> CONCAT(tp_real_pcu.hoscode, LPAD(tp_real_pcu.pid, 8, '0'))
-                AND tp_real_pcu.cid <> CONCAT(tp_real_pcu.hoscode, tp_real_pcu.pid)
-                AND tp_real_pcu.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
-            )
-            LEFT JOIN target_population tp_real_fuzzy ON (
-                (h.cid LIKE '%*%' OR h.cid = CONCAT(h.hoscode, LPAD(h.pid, 8, '0')) OR h.cid = CONCAT(h.hoscode, h.pid))
-                AND tp_real_pcu.cid IS NULL
-                AND tp_real_fuzzy.birth = h.birth
-                AND tp_real_fuzzy.cid NOT LIKE '%*%'
-                AND tp_real_fuzzy.cid <> CONCAT(tp_real_fuzzy.hoscode, LPAD(tp_real_fuzzy.pid, 8, '0'))
-                AND tp_real_fuzzy.cid <> CONCAT(tp_real_fuzzy.hoscode, tp_real_fuzzy.pid)
-                AND tp_real_fuzzy.first_name LIKE REPLACE(h.name, '*', '%')
-                AND tp_real_fuzzy.last_name LIKE REPLACE(h.lname, '*', '%')
-            )
             WHERE t.cid IS NULL
         ) main_result
         WHERE age >= 35
