@@ -1,5 +1,21 @@
 <?php
 // admin/process_etl.php
+// Error logging diagnostic block
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/../scratch/etl_error_log.txt');
+register_shutdown_function(function() {
+    $error = error_get_last();
+    if ($error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+        file_put_contents(__DIR__ . '/../scratch/etl_error_log.txt', "SHUTDOWN FATAL: [" . $error['type'] . "] " . $error['message'] . " in " . $error['file'] . " on line " . $error['line'] . "\n", FILE_APPEND);
+    }
+});
+set_exception_handler(function($e) {
+    file_put_contents(__DIR__ . '/../scratch/etl_error_log.txt', "UNCAUGHT EXCEPTION: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine() . "\n" . $e->getTraceAsString() . "\n", FILE_APPEND);
+});
+
 require_once __DIR__ . '/../config/session.php';
 
 if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
