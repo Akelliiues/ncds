@@ -76,6 +76,7 @@ $leaderboardStmt = $pdo->query("
         (SELECT COUNT(*) FROM vhv_rewards WHERE vhv_id = u.vhv_id AND approval_status = 'waiting' AND is_sandbox = 0) as waiting_rewards
     FROM vhv_users u
     LEFT JOIN villages v ON u.vhid_code = v.vhid_code
+    WHERE u.approved = 1
     ORDER BY total_points DESC, u.vhv_name ASC
 ");
 $allLeaders = $leaderboardStmt->fetchAll();

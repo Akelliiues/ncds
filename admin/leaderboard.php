@@ -56,6 +56,7 @@ $sql = "
         (SELECT COUNT(*) FROM vhv_rewards WHERE vhv_id = u.vhv_id AND approval_status = 'waiting' AND is_sandbox = 0) as waiting_rewards
     FROM vhv_users u
     LEFT JOIN vhv_rewards r ON u.vhv_id = r.vhv_id AND r.approval_status IN ('approved', 'waiting')
+    WHERE u.approved = 1
     GROUP BY u.vhv_id, u.vhv_name, u.vhv_moo, u.vhid_code, u.hoscode, u.is_hl_coach, u.approved
     ORDER BY total_points DESC, u.vhv_name ASC
 ";
