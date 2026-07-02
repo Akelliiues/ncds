@@ -211,6 +211,17 @@ function maskName($firstName, $lastName)
                 break-after: page !important;
             }
 
+            /* Prevent trailing blank page when the card count is a multiple of 12 */
+            .qr-card:last-child {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+
+            /* Explicitly hide any floating back-to-top buttons on print */
+            #backToTopBtn, .back-to-top {
+                display: none !important;
+            }
+
             .qr-card-header {
                 font-size: 10px !important;
                 margin-bottom: 4px !important;

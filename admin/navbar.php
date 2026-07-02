@@ -458,7 +458,7 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
 </div>
 
 <!-- Floating Back to Top Button -->
-<button onclick="scrollToTop()" id="backToTopBtn" class="back-to-top" title="กลับขึ้นบนสุด">
+<button onclick="scrollToTop()" id="backToTopBtn" class="back-to-top no-print" title="กลับขึ้นบนสุด">
     ▲
 </button>
 
