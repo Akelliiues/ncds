@@ -113,15 +113,16 @@ if (file_exists($json_file)) {
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: rgba(11, 15, 25, 0.75);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
+        background-color: rgba(11, 15, 25, 0.7);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
         z-index: 99999;
         display: flex;
         align-items: center;
         justify-content: center;
         opacity: 0;
-        transition: opacity 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+        transition: opacity 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+        will-change: opacity;
         box-sizing: border-box;
     }
 
@@ -139,8 +140,9 @@ if (file_exists($json_file)) {
         box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6);
         position: relative;
         overflow: hidden;
-        transform: scale(0.9);
-        transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+        transform: scale(0.95);
+        transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+        will-change: transform;
         box-sizing: border-box;
     }
 
@@ -514,6 +516,6 @@ if (file_exists($json_file)) {
             // Save showing timestamp
             const today = new Date().toDateString();
             localStorage.setItem('ncd_dev_modal_last_shown', today);
-        }, 150);
+        }, 120);
     }
 </script>
