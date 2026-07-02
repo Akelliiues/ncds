@@ -187,7 +187,7 @@ if ($admin_hoscode) {
         SELECT v.vhv_name, SUM(r.points_earned) as total_points
         FROM vhv_rewards r
         JOIN vhv_users v ON r.vhv_id = v.vhv_id
-        WHERE v.hoscode IN ($inPlaceholders)
+        WHERE v.hoscode IN ($inPlaceholders) AND v.approved = 1
         GROUP BY v.vhv_id
         ORDER BY total_points DESC
         LIMIT 10
@@ -474,7 +474,7 @@ if ($admin_hoscode) {
         SELECT v.vhv_name, SUM(r.points_earned) as total_points
         FROM vhv_rewards r
         JOIN vhv_users v ON r.vhv_id = v.vhv_id
-        WHERE v.hoscode IN ($inPlaceholdersSa)
+        WHERE v.hoscode IN ($inPlaceholdersSa) AND v.approved = 1
         GROUP BY v.vhv_id
         ORDER BY total_points DESC
         LIMIT 10
