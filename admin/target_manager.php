@@ -332,12 +332,12 @@ if (isset($_GET['action'])) {
         SELECT * FROM (
             -- ส่วนที่ 1: ดึงประชากรทั้งหมดจาก target_population ของหมู่ที่เลือก และ LEFT JOIN ข้อมูลผลแล็บจาก staging (ถ้ามี)
             SELECT 
-                COALESCE(NULLIF(tp_real_pcu.cid, ''), NULLIF(tp_real_fuzzy.cid, ''), t.cid) as cid,
+                t.cid,
                 t.pid,
                 t.hoscode,
                 t.prefix,
-                COALESCE(NULLIF(tp_real_pcu.first_name, ''), NULLIF(tp_real_fuzzy.first_name, ''), NULLIF(t.first_name, ''), 'ไม่ทราบชื่อ') as first_name,
-                COALESCE(NULLIF(tp_real_pcu.last_name, ''), NULLIF(tp_real_fuzzy.last_name, ''), NULLIF(t.last_name, ''), 'ไม่ทราบประวัติ') as last_name,
+                t.first_name,
+                t.last_name,
                 t.birth,
                 t.house_no,
                 TIMESTAMPDIFF(YEAR, t.birth, CURDATE()) as age,
@@ -346,28 +346,8 @@ if (isset($_GET['action'])) {
                 t.health_status_origin,
                 t.is_manual,
                 h.bslevel, h.bstest, h.sbp, h.dbp,
-                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = COALESCE(NULLIF(tp_real_pcu.cid, ''), NULLIF(tp_real_fuzzy.cid, ''), t.cid) AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
+                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = t.cid AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
             FROM target_population t
-            LEFT JOIN target_population tp_real_pcu ON (
-                (t.cid LIKE '%*%' OR t.cid = CONCAT(LPAD(t.hoscode, 5, '0'), LPAD(t.pid, 8, '0')) OR t.cid = CONCAT(LPAD(t.hoscode, 5, '0'), t.pid))
-                AND tp_real_pcu.hoscode = t.hoscode
-                AND tp_real_pcu.pid = t.pid
-                AND tp_real_pcu.cid NOT LIKE '%*%'
-                AND tp_real_pcu.cid <> CONCAT(LPAD(tp_real_pcu.hoscode, 5, '0'), LPAD(tp_real_pcu.pid, 8, '0'))
-                AND tp_real_pcu.cid <> CONCAT(LPAD(tp_real_pcu.hoscode, 5, '0'), tp_real_pcu.pid)
-                AND tp_real_pcu.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
-            )
-            LEFT JOIN target_population tp_real_fuzzy ON (
-                (t.cid LIKE '%*%' OR t.cid = CONCAT(LPAD(t.hoscode, 5, '0'), LPAD(t.pid, 8, '0')) OR t.cid = CONCAT(LPAD(t.hoscode, 5, '0'), t.pid))
-                AND tp_real_pcu.cid IS NULL
-                AND tp_real_fuzzy.birth = t.birth
-                AND tp_real_fuzzy.sex = t.sex
-                AND tp_real_fuzzy.cid NOT LIKE '%*%'
-                AND tp_real_fuzzy.cid <> CONCAT(LPAD(tp_real_fuzzy.hoscode, 5, '0'), LPAD(tp_real_fuzzy.pid, 8, '0'))
-                AND tp_real_fuzzy.cid <> CONCAT(LPAD(tp_real_fuzzy.hoscode, 5, '0'), tp_real_fuzzy.pid)
-                AND tp_real_fuzzy.first_name LIKE REPLACE(t.first_name, '*', '%')
-                AND tp_real_fuzzy.last_name LIKE REPLACE(t.last_name, '*', '%')
-            )
             LEFT JOIN (
                 SELECT 
                     cid, pid, hoscode,
@@ -388,17 +368,23 @@ if (isset($_GET['action'])) {
                 GROUP BY hoscode, pid
             ) h ON t.hoscode = h.hoscode AND t.pid = h.pid
             WHERE t.hoscode IN ($inPlaceholders) $mooCond1
+              AND t.cid NOT LIKE '%*%'
+              AND t.cid NOT LIKE '0%'
+              AND t.cid <> CONCAT(LPAD(t.hoscode, 5, '0'), LPAD(t.pid, 8, '0'))
+              AND t.cid <> CONCAT(LPAD(t.hoscode, 5, '0'), t.pid)
+              AND t.first_name NOT LIKE '%*%'
+              AND t.last_name NOT LIKE '%*%'
             
             UNION ALL
             
             -- ส่วนที่ 2: ดึงรายชื่อประชากรใน staging ของหมู่ที่เลือก แต่ยังไม่ได้เพิ่ม/ไม่มีชื่อใน target_population
             SELECT 
-                COALESCE(NULLIF(tp_real_pcu.cid, ''), NULLIF(tp_real_fuzzy.cid, ''), h.cid) as cid,
+                h.cid,
                 h.pid,
                 h.hoscode,
                 NULL as prefix,
-                COALESCE(NULLIF(tp_real_pcu.first_name, ''), NULLIF(tp_real_fuzzy.first_name, ''), NULLIF(h.name, ''), 'ไม่ทราบชื่อ') as first_name,
-                COALESCE(NULLIF(tp_real_pcu.last_name, ''), NULLIF(tp_real_fuzzy.last_name, ''), NULLIF(h.lname, ''), 'ไม่ทราบประวัติ') as last_name,
+                h.name as first_name,
+                h.lname as last_name,
                 h.birth,
                 h.addr as house_no,
                 TIMESTAMPDIFF(YEAR, h.birth, CURDATE()) as age,
@@ -407,7 +393,7 @@ if (isset($_GET['action'])) {
                 h.health_status_origin,
                 0 as is_manual,
                 h.bslevel, h.bstest, h.sbp, h.dbp,
-                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = COALESCE(NULLIF(tp_real_pcu.cid, ''), NULLIF(tp_real_fuzzy.cid, ''), h.cid) AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
+                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = h.cid AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
             FROM (
                 SELECT 
                     cid, pid, hoscode, name, lname, birth, addr, check_vhid,
@@ -443,34 +429,15 @@ if (isset($_GET['action'])) {
                 GROUP BY hoscode, pid
             ) h
             LEFT JOIN target_population t ON t.hoscode = h.hoscode AND t.pid = h.pid
-            LEFT JOIN target_population tp_real_pcu ON (
-                (h.cid LIKE '%*%' OR h.cid = CONCAT(LPAD(h.hoscode, 5, '0'), LPAD(h.pid, 8, '0')) OR h.cid = CONCAT(LPAD(h.hoscode, 5, '0'), h.pid))
-                AND tp_real_pcu.hoscode = h.hoscode
-                AND tp_real_pcu.pid = h.pid
-                AND tp_real_pcu.cid NOT LIKE '%*%'
-                AND tp_real_pcu.cid <> CONCAT(LPAD(tp_real_pcu.hoscode, 5, '0'), LPAD(tp_real_pcu.pid, 8, '0'))
-                AND tp_real_pcu.cid <> CONCAT(LPAD(tp_real_pcu.hoscode, 5, '0'), tp_real_pcu.pid)
-                AND tp_real_pcu.first_name NOT IN ('ไม่ทราบชื่อ','ไม่ทราบ','Unknown','')
-            )
-            LEFT JOIN target_population tp_real_fuzzy ON (
-                (h.cid LIKE '%*%' OR h.cid = CONCAT(LPAD(h.hoscode, 5, '0'), LPAD(h.pid, 8, '0')) OR h.cid = CONCAT(LPAD(h.hoscode, 5, '0'), h.pid))
-                AND tp_real_pcu.cid IS NULL
-                AND tp_real_fuzzy.birth = h.birth
-                AND tp_real_fuzzy.cid NOT LIKE '%*%'
-                AND tp_real_fuzzy.cid <> CONCAT(LPAD(tp_real_fuzzy.hoscode, 5, '0'), LPAD(tp_real_fuzzy.pid, 8, '0'))
-                AND tp_real_fuzzy.cid <> CONCAT(LPAD(tp_real_fuzzy.hoscode, 5, '0'), tp_real_fuzzy.pid)
-                AND tp_real_fuzzy.first_name LIKE REPLACE(h.name, '*', '%')
-                AND tp_real_fuzzy.last_name LIKE REPLACE(h.lname, '*', '%')
-            )
             WHERE t.cid IS NULL
+              AND h.cid NOT LIKE '%*%'
+              AND h.cid NOT LIKE '0%'
+              AND h.cid <> CONCAT(LPAD(h.hoscode, 5, '0'), LPAD(h.pid, 8, '0'))
+              AND h.cid <> CONCAT(LPAD(h.hoscode, 5, '0'), h.pid)
+              AND h.name NOT LIKE '%*%'
+              AND h.lname NOT LIKE '%*%'
         ) main_result
         WHERE age >= 35
-          AND cid NOT LIKE '%*%'
-          AND cid NOT LIKE '0%'
-          AND cid <> CONCAT(LPAD(hoscode, 5, '0'), LPAD(pid, 8, '0'))
-          AND cid <> CONCAT(LPAD(hoscode, 5, '0'), pid)
-          AND first_name NOT LIKE '%*%'
-          AND last_name NOT LIKE '%*%'
         ";
 
         if ($status === 'target') {
