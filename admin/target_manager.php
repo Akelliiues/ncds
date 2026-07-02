@@ -465,6 +465,12 @@ if (isset($_GET['action'])) {
             WHERE t.cid IS NULL
         ) main_result
         WHERE age >= 35
+          AND cid NOT LIKE '%*%'
+          AND cid NOT LIKE '0%'
+          AND cid <> CONCAT(LPAD(hoscode, 5, '0'), LPAD(pid, 8, '0'))
+          AND cid <> CONCAT(LPAD(hoscode, 5, '0'), pid)
+          AND first_name NOT LIKE '%*%'
+          AND last_name NOT LIKE '%*%'
         ";
 
         if ($status === 'target') {
