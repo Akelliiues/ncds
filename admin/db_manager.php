@@ -58,114 +58,107 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
         /* Toggle Switch CSS */
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 26px;
-        }
-        .switch input { 
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
+        .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
         .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: var(--bg-main);
-            box-shadow: var(--neumorph-inset);
-            transition: .4s;
-            border-radius: 34px;
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--bg-main); box-shadow: var(--neumorph-inset);
+            transition: .4s; border-radius: 34px;
         }
         .slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 4px;
-            bottom: 4px;
-            background-color: var(--text-muted);
-            box-shadow: var(--neumorph-flat);
-            transition: .4s;
-            border-radius: 50%;
+            position: absolute; content: ""; height: 18px; width: 18px;
+            left: 4px; bottom: 4px; background-color: var(--text-muted);
+            box-shadow: var(--neumorph-flat); transition: .4s; border-radius: 50%;
         }
-        input:checked + .slider {
-            background-color: rgba(245, 158, 11, 0.2);
-        }
-        input:checked + .slider:before {
-            transform: translateX(24px);
-            background-color: var(--color-yellow);
-        }
+        input:checked + .slider { background-color: rgba(245, 158, 11, 0.2); }
+        input:checked + .slider:before { transform: translateX(24px); background-color: var(--color-yellow); }
 
         .db-card {
-            background-color: var(--bg-card);
-            border-radius: var(--border-radius);
-            padding: 20px;
-            box-shadow: var(--neumorph-flat);
-            margin-bottom: 20px;
+            background-color: var(--bg-card); border-radius: var(--border-radius);
+            padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;
         }
-        .db-table {
-            width: 100%;
-            border-collapse: collapse;
-            color: var(--text-primary);
-        }
+
+        /* ── Premium Table ──────────────────────────── */
+        .db-table { width: 100%; border-collapse: separate; border-spacing: 0; color: var(--text-primary); }
         .db-table th, .db-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
+            padding: 14px 18px; text-align: left; white-space: nowrap;
+            vertical-align: middle;
         }
-        .db-table th {
-            color: var(--text-secondary);
-            font-weight: 800;
+        .db-table thead th {
+            background: linear-gradient(135deg, rgba(13,44,84,0.06), rgba(59,130,246,0.04));
+            color: var(--text-secondary); font-weight: 700; font-size: 12.5px;
+            text-transform: uppercase; letter-spacing: 0.8px;
+            border-bottom: 2px solid var(--border-color);
         }
+        .db-table thead th:first-child { border-radius: 12px 0 0 0; }
+        .db-table thead th:last-child { border-radius: 0 12px 0 0; }
+        .db-table tbody tr { transition: background 0.2s ease; }
+        .db-table tbody tr:hover { background: rgba(59, 130, 246, 0.04); }
+        .db-table tbody td { border-bottom: 1px solid var(--border-color); }
+        .db-table tbody tr:last-child td { border-bottom: none; }
+
+        .hoscode-chip {
+            display: inline-block; background: var(--bg-main); color: var(--text-primary);
+            font-weight: 700; font-size: 13px; padding: 4px 12px; border-radius: 8px;
+            box-shadow: var(--neumorph-flat); font-family: 'Courier New', monospace;
+            letter-spacing: 1.5px;
+        }
+        .hosname-text { font-weight: 700; color: var(--color-primary); font-size: 14.5px; }
+        .stat-value { font-weight: 800; color: var(--color-accent, #3b82f6); font-size: 15px; }
+        .stat-label { font-weight: 400; color: var(--text-muted); font-size: 12px; margin-left: 3px; }
+
+        /* ── Icon Action Buttons ──────────────────────── */
+        .action-group { display: flex; align-items: center; gap: 8px; }
+        .icon-btn {
+            position: relative; display: inline-flex; align-items: center; justify-content: center;
+            width: 38px; height: 38px; border-radius: 10px; border: none;
+            cursor: pointer; transition: all 0.25s ease; text-decoration: none;
+        }
+        .icon-btn svg { width: 18px; height: 18px; pointer-events: none; }
+        .icon-btn-blue {
+            background: rgba(59,130,246,0.08); color: var(--color-accent, #3b82f6);
+            border: 1px solid rgba(59,130,246,0.2);
+        }
+        .icon-btn-blue:hover {
+            background: var(--color-accent, #3b82f6); color: #fff;
+            transform: translateY(-2px); box-shadow: 0 4px 14px rgba(59,130,246,0.35);
+        }
+        .icon-btn-red {
+            background: rgba(239,68,68,0.08); color: var(--color-red, #ef4444);
+            border: 1px solid rgba(239,68,68,0.2);
+        }
+        .icon-btn-red:hover {
+            background: var(--color-red, #ef4444); color: #fff;
+            transform: translateY(-2px); box-shadow: 0 4px 14px rgba(239,68,68,0.35);
+        }
+        /* Tooltip */
+        .icon-btn[data-tip]::after {
+            content: attr(data-tip); position: absolute; bottom: calc(100% + 8px);
+            left: 50%; transform: translateX(-50%) scale(0.85);
+            background: var(--bg-card, #1e293b); color: var(--text-primary);
+            font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 8px;
+            white-space: nowrap; pointer-events: none; opacity: 0;
+            transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 1px solid var(--border-color); z-index: 100;
+        }
+        .icon-btn[data-tip]::before {
+            content: ''; position: absolute; bottom: calc(100% + 2px);
+            left: 50%; transform: translateX(-50%) scale(0.85);
+            border: 5px solid transparent; border-top-color: var(--border-color);
+            pointer-events: none; opacity: 0; transition: all 0.2s ease; z-index: 100;
+        }
+        .icon-btn[data-tip]:hover::after,
+        .icon-btn[data-tip]:hover::before {
+            opacity: 1; transform: translateX(-50%) scale(1);
+        }
+
+        /* btn-danger for sandbox section */
         .btn-danger {
-            background-color: rgba(239, 68, 68, 0.1);
-            color: var(--color-red);
-            border: 1px solid var(--color-red);
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.2s;
+            background-color: rgba(239,68,68,0.1); color: var(--color-red);
+            border: 1px solid var(--color-red); padding: 7px 14px; border-radius: 8px;
+            cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s;
         }
-        .btn-danger:hover {
-            background-color: var(--color-red);
-            color: white;
-        }
-        .btn-manage {
-            background-color: rgba(13, 44, 84, 0.1);
-            color: var(--color-primary);
-            border: 1px solid var(--color-primary);
-            padding: 7px 14px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-        .btn-manage:hover {
-            background-color: var(--color-primary);
-            color: white;
-        }
-        .btn-danger {
-            background-color: rgba(239, 68, 68, 0.1);
-            color: var(--color-red);
-            border: 1px solid var(--color-red);
-            padding: 7px 14px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
+        .btn-danger:hover { background-color: var(--color-red); color: white; }
     </style>
 </head>
 <body class="admin-dashboard">
@@ -250,30 +243,28 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
             </div>
         <?php endif; ?>
 
-        <div class="db-card">
+        <div class="db-card" style="padding: 0; overflow: hidden;">
             <table class="db-table">
                 <thead>
                     <tr>
-                        <th>รหัส รพ.สต.</th>
+                        <th>รหัส</th>
                         <th>ชื่อหน่วยบริการ</th>
-                        <th>จำนวนประชากร (เป้าหมาย)</th>
-                        <th>ข้อมูลคัดกรองที่มี</th>
+                        <th>เป้าหมาย</th>
+                        <th>ผลคัดกรอง</th>
                         <?php if ($admin_hoscode === null): ?>
-                            <th style="text-align: center;">โหมดทดสอบ (Sandbox)</th>
-                            <th>การจัดการ</th>
+                            <th style="text-align: center;">Sandbox</th>
+                            <th style="text-align: center;">จัดการ</th>
                         <?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($stats as $row): ?>
-                        <?php 
-                        $hosSandbox = isSandboxMode($row['hoscode']);
-                        ?>
+                        <?php $hosSandbox = isSandboxMode($row['hoscode']); ?>
                         <tr>
-                            <td><?= htmlspecialchars($row['hoscode']) ?></td>
-                            <td><strong style="color: var(--color-primary);"><?= $hcNames[$row['hoscode']] ?? 'ไม่ระบุ' ?></strong></td>
-                            <td><?= number_format($row['total_targets']) ?> ราย</td>
-                            <td><?= number_format($row['total_screenings']) ?> รายการ</td>
+                            <td><span class="hoscode-chip"><?= htmlspecialchars($row['hoscode']) ?></span></td>
+                            <td><span class="hosname-text"><?= $hcNames[$row['hoscode']] ?? 'ไม่ระบุ' ?></span></td>
+                            <td><span class="stat-value"><?= number_format($row['total_targets']) ?></span><span class="stat-label">ราย</span></td>
+                            <td><span class="stat-value"><?= number_format($row['total_screenings']) ?></span><span class="stat-label">รายการ</span></td>
                             <?php if ($admin_hoscode === null): ?>
                                 <td style="text-align: center;">
                                     <label class="switch">
@@ -283,16 +274,16 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
                                 </td>
                                 <td>
                                     <?php if ($row['total_targets'] > 0): ?>
-                                        <div style="display: flex; gap: 8px; align-items: center;">
-                                            <a href="db_records.php?hoscode=<?= urlencode($row['hoscode']) ?>" class="btn-manage">
-                                                ⚙️ จัดการรายบุคคล
+                                        <div class="action-group" style="justify-content: center;">
+                                            <a href="db_records.php?hoscode=<?= urlencode($row['hoscode']) ?>" class="icon-btn icon-btn-blue" data-tip="จัดการรายบุคคล">
+                                                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                                             </a>
-                                            <button class="btn-danger" onclick="clearData('<?= htmlspecialchars($row['hoscode']) ?>', '<?= $hcNames[$row['hoscode']] ?? $row['hoscode'] ?>')">
-                                                🗑️ ล้างข้อมูล รพ.สต.
+                                            <button class="icon-btn icon-btn-red" data-tip="ล้างข้อมูล รพ.สต." onclick="clearData('<?= htmlspecialchars($row['hoscode']) ?>', '<?= $hcNames[$row['hoscode']] ?? $row['hoscode'] ?>')">
+                                                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                             </button>
                                         </div>
                                     <?php else: ?>
-                                        <span style="color: var(--text-muted); font-size: 13px;">ว่างเปล่า</span>
+                                        <div style="text-align: center;"><span style="color: var(--text-muted); font-size: 12px;">—</span></div>
                                     <?php endif; ?>
                                 </td>
                             <?php endif; ?>

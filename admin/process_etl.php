@@ -35,6 +35,9 @@ require_once __DIR__ . '/../config/db.php';
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
+function logETL($msg) {
+    file_put_contents(__DIR__ . '/../scratch/etl_debug.log', "[" . date('Y-m-d H:i:s') . "] " . $msg . "\r\n", FILE_APPEND);
+}
 function validateThaiCitizenID($id) {
     $id = preg_replace('/[^0-9*]/', '', $id);
     return strlen($id) === 13;
@@ -250,10 +253,32 @@ $error   = '';
 // ─────────────────────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
     try {
+        logETL("ETL STARTED: Transaction initiated.");
         $pdo->beginTransaction();
 
-        $cidsQuery = $pdo->query("SELECT DISTINCT cid FROM staging_hdc_dm UNION SELECT DISTINCT cid FROM staging_hdc_ht");
+        // Identify if we have staged JHCIS person records to isolate the ETL impact scope
+        $stagedHoscodes = [];
+        try {
+            $stagedHoscodes = $pdo->query("SELECT DISTINCT hoscode FROM staging_jhcis_person")->fetchAll(PDO::FETCH_COLUMN);
+        } catch (\Exception $e) {
+            logETL("Error fetching staged hoscodes: " . $e->getMessage());
+        }
+        logETL("Staged hoscodes: " . json_encode($stagedHoscodes));
+
+        if (!empty($stagedHoscodes)) {
+            $hoscodeList = implode(',', array_map(function($h) use ($pdo) { return $pdo->quote($h); }, $stagedHoscodes));
+            logETL("Querying HDC CIDs for hoscodes: " . $hoscodeList);
+            $cidsQuery = $pdo->query("
+                SELECT DISTINCT cid FROM staging_hdc_dm WHERE hoscode IN ($hoscodeList)
+                UNION 
+                SELECT DISTINCT cid FROM staging_hdc_ht WHERE hoscode IN ($hoscodeList)
+            ");
+        } else {
+            logETL("Querying all HDC CIDs globally.");
+            $cidsQuery = $pdo->query("SELECT DISTINCT cid FROM staging_hdc_dm UNION SELECT DISTINCT cid FROM staging_hdc_ht");
+        }
         $allCids = $cidsQuery->fetchAll(PDO::FETCH_COLUMN);
+        logETL("All HDC CIDs fetched: " . count($allCids));
 
         $inserted = 0; $updated = 0; $excluded_dm = 0; $skipped_invalid = 0;
 
@@ -266,9 +291,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
             SELECT t.cid AS mock_cid, s.cid AS real_cid, t.hoscode, t.pid
             FROM target_population t
             JOIN staging_jhcis_person s ON t.hoscode = s.hoscode AND t.pid = s.pid
-            WHERE (t.cid LIKE '%*%' OR t.cid LIKE '0%') AND s.cid NOT LIKE '%*%' AND s.cid NOT LIKE '0%'
+            WHERE (
+                t.cid LIKE '%*%' 
+                OR t.cid LIKE '0%' 
+                OR t.cid = CONCAT(LPAD(t.hoscode, 5, '0'), LPAD(t.pid, 8, '0'))
+            ) 
+            AND s.cid NOT LIKE '%*%' 
+            AND s.cid NOT LIKE '0%' 
+            AND s.cid <> CONCAT(LPAD(s.hoscode, 5, '0'), LPAD(s.pid, 8, '0'))
         ");
         $mockMatches = $stmtFindMockMatches->fetchAll(PDO::FETCH_ASSOC);
+        logETL("Mock Matches found: " . count($mockMatches));
 
         if (!empty($mockMatches)) {
             $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
@@ -303,6 +336,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
                 }
             }
             $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
+            logETL("Step 1 mock merges successfully completed.");
+        } else {
+            logETL("Step 1: No mock matches to resolve.");
         }
 
         // 2. Insert/update all staging_jhcis_person records into target_population
@@ -353,19 +389,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
                 (string)($sp['hoscode'] ?? '')
             ]);
         }
+        logETL("Step 2 (Staged JHCIS Person insertion) completed.");
 
         // ดึงข้อมูลประชากรทั้งหมดพร้อมข้อมูลพิกัดบ้านมารอใน PHP Memory cache เพื่อความเร็วและ unmasked data mapping
         $targetPopByCid = [];
         $targetPopByHosPid = [];
         
-        $allTargets = $pdo->query("
-            SELECT t.cid, t.hoscode, t.pid, t.hid, t.house_no, t.moo, t.sub_district_code, t.vhid_code,
-                   COALESCE(t.latitude, h.latitude) as latitude,
-                   COALESCE(t.longitude, h.longitude) as longitude,
-                   t.need_screen_dm, t.need_screen_ht
-            FROM target_population t
-            LEFT JOIN jhcis_homes h ON t.hoscode = h.hoscode AND t.hid = h.hid
-        ")->fetchAll();
+        if (!empty($stagedHoscodes)) {
+            $hoscodeList = implode(',', array_map(function($h) use ($pdo) { return $pdo->quote($h); }, $stagedHoscodes));
+            $allTargets = $pdo->query("
+                SELECT t.cid, t.hoscode, t.pid, t.hid, t.house_no, t.moo, t.sub_district_code, t.vhid_code,
+                       COALESCE(t.latitude, h.latitude) as latitude,
+                       COALESCE(t.longitude, h.longitude) as longitude,
+                       t.need_screen_dm, t.need_screen_ht
+                FROM target_population t
+                LEFT JOIN jhcis_homes h ON t.hoscode = h.hoscode AND t.hid = h.hid
+                WHERE t.hoscode IN ($hoscodeList)
+            ")->fetchAll();
+        } else {
+            $allTargets = $pdo->query("
+                SELECT t.cid, t.hoscode, t.pid, t.hid, t.house_no, t.moo, t.sub_district_code, t.vhid_code,
+                       COALESCE(t.latitude, h.latitude) as latitude,
+                       COALESCE(t.longitude, h.longitude) as longitude,
+                       t.need_screen_dm, t.need_screen_ht
+                FROM target_population t
+                LEFT JOIN jhcis_homes h ON t.hoscode = h.hoscode AND t.hid = h.hid
+            ")->fetchAll();
+        }
         
         foreach ($allTargets as $tg) {
             $c = trim($tg['cid']);
@@ -375,6 +425,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
             $targetPopByCid[$c] = $tg;
             $targetPopByHosPid["{$h}|{$p}"] = $tg;
         }
+        logETL("Cache loaded. Total targets cached: " . count($allTargets));
 
         foreach ($allCids as $cid) {
             if (!validateThaiCitizenID($cid)) { $skipped_invalid++; continue; }
@@ -496,26 +547,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
 
         // ทำความสะอาดฐานข้อมูล: ลบประชากรที่นำเข้ามาจาก JHCIS Person ในตอนแรก แต่ไม่มีชื่อ/สิทธิ์อยู่ใน HDC ปีนี้
         // และไม่มีประวัติผลคัดกรอง หรือการมอบหมายงาน อสม. ค้างอยู่ และไม่ได้เพิ่มด้วยระบบ Manual
-        $pdo->exec("
-            DELETE t FROM target_population t
-            LEFT JOIN task_assignments ta ON t.cid = ta.target_cid
-            WHERE t.need_screen_dm = 0 
-              AND t.need_screen_ht = 0 
-              AND (t.is_manual IS NULL OR t.is_manual = 0)
-              AND ta.assignment_id IS NULL
-              AND (t.cid LIKE '%*%' OR t.cid LIKE '0%' OR t.first_name LIKE '%*%')
-        ");
+        // จำกัดขอบเขตการลบเฉพาะหน่วยบริการที่อัปเดต เพื่อไม่ให้กระทบหน่วยบริการอื่น
+        if (!empty($stagedHoscodes)) {
+            $hoscodeList = implode(',', array_map(function($h) use ($pdo) { return $pdo->quote($h); }, $stagedHoscodes));
+            $pdo->exec("
+                DELETE t FROM target_population t
+                LEFT JOIN task_assignments ta ON t.cid = ta.target_cid
+                WHERE t.need_screen_dm = 0 
+                  AND t.need_screen_ht = 0 
+                  AND (t.is_manual IS NULL OR t.is_manual = 0)
+                  AND ta.assignment_id IS NULL
+                  AND (
+                      t.cid LIKE '%*%' 
+                      OR t.cid LIKE '0%' 
+                      OR t.first_name LIKE '%*%' 
+                      OR t.cid = CONCAT(LPAD(t.hoscode, 5, '0'), LPAD(t.pid, 8, '0'))
+                  )
+                  AND t.hoscode IN ($hoscodeList)
+            ");
+        } else {
+            $pdo->exec("
+                DELETE t FROM target_population t
+                LEFT JOIN task_assignments ta ON t.cid = ta.target_cid
+                WHERE t.need_screen_dm = 0 
+                  AND t.need_screen_ht = 0 
+                  AND (t.is_manual IS NULL OR t.is_manual = 0)
+                  AND ta.assignment_id IS NULL
+                  AND (
+                      t.cid LIKE '%*%' 
+                      OR t.cid LIKE '0%' 
+                      OR t.first_name LIKE '%*%' 
+                      OR t.cid = CONCAT(LPAD(t.hoscode, 5, '0'), LPAD(t.pid, 8, '0'))
+                  )
+            ");
+        }
 
-        $pdo->exec("TRUNCATE TABLE staging_jhcis_person");
+        logETL("HDC loop completed. Inserted: $inserted, Updated: $updated, Excluded DM: $excluded_dm, Skipped Invalid: $skipped_invalid");
+
+        // ใช้ DELETE FROM แทน TRUNCATE เพราะ TRUNCATE เป็น DDL ที่ทำ Implicit Commit ใน MySQL
+        // ซึ่งจะทำให้ Transaction จบก่อนเวลาและ $pdo->commit() จะพังด้วย "There is no active transaction"
+        $pdo->exec("DELETE FROM staging_jhcis_person");
+        logETL("staging_jhcis_person cleared.");
 
         $pdo->commit();
+        logETL("ETL Transaction successfully committed.");
+
+        // TRUNCATE หลัง commit เพื่อ reset auto_increment (ไม่จำเป็นอยู่ใน Transaction)
+        try { $pdo->exec("TRUNCATE TABLE staging_jhcis_person"); } catch (\Exception $e) {}
+
         $_SESSION['etl_results'] = ['total' => count($allCids), 'inserted' => $inserted, 'updated' => $updated, 'excluded_dm' => $excluded_dm, 'skipped_invalid' => $skipped_invalid];
         $_SESSION['etl_step'] = 2;
+        logETL("Redirecting to process_etl.php with step = 2.");
         header("Location: process_etl.php");
         exit();
 
     } catch (\Throwable $e) {
-        $pdo->rollBack();
+        logETL("ETL CRITICAL ERROR: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
+        try {
+            $pdo->rollBack();
+            logETL("Transaction successfully rolled back.");
+        } catch (\Exception $ex) {
+            logETL("Failed to rollback transaction: " . $ex->getMessage());
+        }
         $error = "เกิดข้อผิดพลาดในการประมวลผล: " . $e->getMessage();
     }
 }

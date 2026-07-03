@@ -577,6 +577,7 @@ if (isset($_POST['action_confirm'])) {
             $updatedCount = 0;
             $skippedCount = 0;
             $skippedDetails = [];
+            $importedHoscodes = [];
 
             while (($row = fgetcsv($handle, 1000, $delimiter)) !== false) {
                 if (empty(array_filter($row))) continue;
@@ -606,6 +607,7 @@ if (isset($_POST['action_confirm'])) {
                 if (is_numeric($rowHoscode) && strlen($rowHoscode) < 5) {
                     $rowHoscode = str_pad($rowHoscode, 5, '0', STR_PAD_LEFT);
                 }
+                $importedHoscodes[$rowHoscode] = true;
                 
                 if (!in_array($rowHoscode, $allowedHoscodes)) {
                     $skippedCount++;
@@ -775,7 +777,10 @@ if (isset($_POST['action_confirm'])) {
             fclose($handle);
             
             // Auto-synchronize address and coordinates from jhcis_homes to target_population
-            if ($importType === 'person' || $importType === 'home') {
+            // Restricted to only the imported hoscodes to prevent server timeout/crashing (503/504/timeout)
+            if (($importType === 'person' || $importType === 'home') && !empty($importedHoscodes)) {
+                $importedHoscodeList = array_keys($importedHoscodes);
+                $hoscodeList = implode(',', array_map(function($h) use ($pdo) { return $pdo->quote($h); }, $importedHoscodeList));
                 $pdo->exec("
                     UPDATE target_population t
                     JOIN jhcis_homes h ON t.hoscode = h.hoscode AND t.hid = h.hid
@@ -787,6 +792,7 @@ if (isset($_POST['action_confirm'])) {
                       t.latitude = CASE WHEN h.latitude IS NOT NULL AND h.latitude != 0 THEN h.latitude ELSE t.latitude END,
                       t.longitude = CASE WHEN h.longitude IS NOT NULL AND h.longitude != 0 THEN h.longitude ELSE t.longitude END,
                       t.updated_at = NOW()
+                    WHERE t.hoscode IN ($hoscodeList)
                 ");
             }
             

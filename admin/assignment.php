@@ -565,6 +565,7 @@ try {
             let html = '';
             filteredTargets.forEach(t => {
                 let assignedText = '';
+                let cancelBtn = '';
                 if (t.assigned_vhv) {
                     if (t.assignment_status === 'completed') {
                         assignedText = `<span style="color: var(--color-green); font-size: 12px; font-weight: bold;">✅ คัดกรองแล้ว (อสม. ${t.assigned_vhv})</span>`;
@@ -572,6 +573,11 @@ try {
                         assignedText = `<span style="color: var(--color-red); font-size: 12px; font-weight: bold;">❌ ข้ามเคสแล้ว (อสม. ${t.assigned_vhv})</span>`;
                     } else {
                         assignedText = `<span style="color: var(--color-yellow); font-size: 12px; font-weight: bold;">⏳ มอบหมายแล้ว (${t.assigned_vhv})</span>`;
+                        cancelBtn = `<button onclick="cancelAssignment('${t.cid}', '${(t.first_name + ' ' + t.last_name).replace(/'/g, "\\'")}')"
+                            style="margin-left:8px; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--color-red, #ef4444); background: transparent; color: var(--color-red, #ef4444); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+                            onmouseover="this.style.background='rgba(239,68,68,0.12)'"
+                            onmouseout="this.style.background='transparent'"
+                        >ยกเลิก</button>`;
                     }
                 } else {
                     assignedText = '<span style="color: var(--text-muted); font-size: 12px;">(ยังไม่มอบหมาย)</span>';
@@ -586,7 +592,7 @@ try {
                                 <p>บ้านเลขที่: ${t.house_no} | อายุ: ${t.age} ปี</p>
                             </div>
                         </div>
-                        <div>${assignedText}</div>
+                        <div style="display:flex; align-items:center; gap:4px;">${assignedText}${cancelBtn}</div>
                     </div>
                 `;
             });
@@ -734,6 +740,27 @@ try {
                     })
                     .catch(err => alert("เกิดข้อผิดพลาดในการเชื่อมต่อ"));
             }
+        }
+
+        function cancelAssignment(cid, name) {
+            if (!confirm(`ยืนยันยกเลิกการมอบหมายงานของ\n"${name}"\n\nรายชื่อนี้จะกลับสู่สถานะ "ยังไม่มอบหมาย" และ อสม. จะไม่เห็นงานนี้อีกต่อไป`)) {
+                return;
+            }
+
+            fetch('../api/cancel_assignment.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cid: cid })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        fetchData(); // refresh รายการ
+                    } else {
+                        alert('เกิดข้อผิดพลาด: ' + (data.message || 'ไม่ทราบสาเหตุ'));
+                    }
+                })
+                .catch(() => alert('เกิดข้อผิดพลาดในการเชื่อมต่อ'));
         }
 
         // Modal Logic
