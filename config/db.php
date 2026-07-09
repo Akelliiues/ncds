@@ -1256,28 +1256,28 @@ $hoscode_villages = [
 if (isset($pdo)) {
     try {
         $stmt_map = $pdo->query("
-            SELECT DISTINCT hoscode, sub_district_code, moo 
-            FROM target_population 
-            WHERE hoscode IS NOT NULL AND sub_district_code IS NOT NULL AND moo IS NOT NULL 
-              AND hoscode != '' AND sub_district_code != '' AND moo != ''
+            SELECT vhid_code, sub_district_code, moo, village_name, hoscode 
+            FROM villages 
+            WHERE hoscode IS NOT NULL AND hoscode != ''
+            ORDER BY hoscode ASC, moo ASC
         ");
+        $db_hoscode_villages = [];
         while ($row = $stmt_map->fetch(PDO::FETCH_ASSOC)) {
             $hc = trim($row['hoscode']);
             $sub = trim($row['sub_district_code']);
             $m = intval($row['moo']);
+            $vname = trim($row['village_name']);
 
-            if (!isset($hoscode_villages[$hc])) {
-                $hoscode_villages[$hc] = [
+            if (!isset($db_hoscode_villages[$hc])) {
+                $db_hoscode_villages[$hc] = [
                     'tambon' => $sub,
                     'villages' => []
                 ];
             }
-            if (!isset($hoscode_villages[$hc]['villages'][$m])) {
-                $vname = get_village_only_name($sub, $m);
-                if ($vname) {
-                    $hoscode_villages[$hc]['villages'][$m] = $vname;
-                }
-            }
+            $db_hoscode_villages[$hc]['villages'][$m] = $vname;
+        }
+        if (!empty($db_hoscode_villages)) {
+            $hoscode_villages = $db_hoscode_villages;
         }
     } catch (\Exception $e) {
         // Fail silently
