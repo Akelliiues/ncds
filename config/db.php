@@ -693,114 +693,141 @@ try {
         UNIQUE KEY `uq_cid` (`cid`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
 
-    // Auto-seed default data
-    $unitCount = $pdo->query("SELECT COUNT(*) FROM `health_units`")->fetchColumn();
-    if ($unitCount == 0) {
-        $defaultUnits = [
-            '10957' => 'โรงพยาบาลตาลสุม',
-            '03751' => 'รพ.สต.ดอนพันชาด',
-            '03752' => 'รพ.สต.บ้านสำโรง',
-            '03753' => 'รพ.สต.บ้านจิกเทิง',
-            '03754' => 'รพ.สต.บ้านหนองกุงใหญ่',
-            '03755' => 'รพ.สต.นาคาย',
-            '03756' => 'รพ.สต.คำหนามแท่ง',
-            '03757' => 'รพ.สต.คำหว้า'
-        ];
-        $stmt = $pdo->prepare("INSERT INTO `health_units` (hoscode, hosname) VALUES (?, ?)");
-        foreach ($defaultUnits as $code => $name) {
-            $stmt->execute([$code, $name]);
+    // Auto-create system_settings table early if it doesn't exist
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS system_settings (
+            setting_key VARCHAR(50) PRIMARY KEY,
+            setting_value VARCHAR(255) NOT NULL,
+            description VARCHAR(255) NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    } catch (\Exception $e) {}
+
+    // Auto-seed default data ONLY if not already initialized
+    $systemInitialized = false;
+    try {
+        $checkInit = $pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'system_initialized'");
+        if ($checkInit) {
+            $systemInitialized = ($checkInit->fetchColumn() === '1');
         }
-    }
+    } catch (\Exception $e) {}
 
-    $subDistrictCount = $pdo->query("SELECT COUNT(*) FROM `sub_districts`")->fetchColumn();
-    if ($subDistrictCount == 0) {
-        $defaultSubs = [
-            '341801' => 'ตาลสุม',
-            '341802' => 'สำโรง',
-            '341803' => 'จิกเทิง',
-            '341804' => 'หนองกุง',
-            '341805' => 'นาคาย',
-            '341806' => 'คำหว้า'
-        ];
-        $stmt = $pdo->prepare("INSERT INTO `sub_districts` (sub_district_code, sub_district_name) VALUES (?, ?)");
-        foreach ($defaultSubs as $code => $name) {
-            $stmt->execute([$code, $name]);
-        }
-    }
-
-    $villageCount = $pdo->query("SELECT COUNT(*) FROM `villages`")->fetchColumn();
-    if ($villageCount == 0) {
-        $seed_hoscode_villages = [
-            '10957' => [
-                'tambon' => '341801',
-                'villages' => [
-                    1 => 'บ้านม่วงโคน', 2 => 'บ้านดอนรังกา', 3 => 'บ้านนาห้วยแคน (เขตเทศบาล)',
-                    5 => 'บ้านนามน (เขตเทศบาล)', 10 => 'บ้านนามน (เขตเทศบาล)', 11 => 'บ้านตาลสุม (เขตเทศบาล)',
-                    12 => 'บ้านคำไม้ตาย', 13 => 'บ้านปากเซ'
-                ]
-            ],
-            '03751' => [
-                'tambon' => '341801',
-                'villages' => [
-                    4 => 'บ้านดอนพันชาด', 6 => 'บ้านดอนตะลี', 7 => 'บ้านปากห้วย',
-                    8 => 'บ้านโนนค้อ', 9 => 'บ้านแก่งกบ', 14 => 'บ้านโนนสวรรค์', 15 => 'บ้านทุ่งเจริญ'
-                ]
-            ],
-            '03752' => [
-                'tambon' => '341802',
-                'villages' => [
-                    1 => 'บ้านสำโรงใหญ่', 2 => 'บ้านสำโรงกลาง', 3 => 'บ้านนาโพธิ์',
-                    4 => 'บ้านสำโรงใต้', 5 => 'บ้านนาแพง', 6 => 'บ้านหนองโน',
-                    7 => 'บ้านหนองสะเดา', 8 => 'บ้านทุ่งเจริญ'
-                ]
-            ],
-            '03753' => [
-                'tambon' => '341803',
-                'villages' => [
-                    1 => 'บ้านจิกเทิง', 2 => 'บ้านจิกลุ่ม', 3 => 'บ้านเชียงแก้ว',
-                    4 => 'บ้านเชียงแก้ว', 5 => 'บ้านดอนโด่ (บ้านดอนโต)', 6 => 'บ้านดอนยูง',
-                    7 => 'บ้านค้อ', 8 => 'บ้านดอนแป้นลม', 9 => 'บ้านสร้างคำ'
-                ]
-            ],
-            '03754' => [
-                'tambon' => '341804',
-                'villages' => [
-                    1 => 'บ้านหนองกุงใหญ่', 2 => 'บ้านหนองกุงน้อย', 3 => 'บ้านคำแคน',
-                    4 => 'บ้านสร้างแสง', 5 => 'บ้านคำเตยใต้', 6 => 'บ้านสร้างหว้า',
-                    7 => 'บ้านคำเตยเหนือ', 8 => 'บ้านสร้างหว้าพัฒนา'
-                ]
-            ],
-            '03755' => [
-                'tambon' => '341805',
-                'villages' => [
-                    1 => 'บ้านนาคาย', 2 => 'บ้านโนนจิก', 3 => 'บ้านหนองเป็ด',
-                    4 => 'บ้านโนนยาง', 5 => 'บ้านดอนขวาง', 6 => 'บ้านดอนหวาย'
-                ]
-            ],
-            '03756' => [
-                'tambon' => '341805',
-                'villages' => [
-                    7 => 'บ้านโคกคล้าย', 8 => 'บ้านคำหนามแท่ง', 9 => 'บ้านคำผักหนอก',
-                    10 => 'บ้านคำฮี', 11 => 'บ้านห่องแดง', 12 => 'บ้านโนนสำราญ', 13 => 'บ้านโนนเจริญ'
-                ]
-            ],
-            '03757' => [
-                'tambon' => '341806',
-                'villages' => [
-                    1 => 'บ้านคำหว้า', 2 => 'บ้านคำหว้า', 3 => 'บ้านห้วยดู่',
-                    4 => 'บ้านนาทมเหนือ', 5 => 'บ้านไฮหย่อง', 6 => 'บ้านนาทมใต้'
-                ]
-            ]
-        ];
-
-        $stmt = $pdo->prepare("INSERT INTO `villages` (vhid_code, sub_district_code, moo, village_name, hoscode) VALUES (?, ?, ?, ?, ?)");
-        foreach ($seed_hoscode_villages as $hcode => $data) {
-            $tambon = $data['tambon'];
-            foreach ($data['villages'] as $moo => $vname) {
-                $vhid = $tambon . sprintf("%02d", $moo);
-                $stmt->execute([$vhid, $tambon, $moo, $vname, $hcode]);
+    if (!$systemInitialized) {
+        $unitCount = $pdo->query("SELECT COUNT(*) FROM `health_units`")->fetchColumn();
+        if ($unitCount == 0) {
+            $defaultUnits = [
+                '10957' => 'โรงพยาบาลตาลสุม',
+                '03751' => 'รพ.สต.ดอนพันชาด',
+                '03752' => 'รพ.สต.บ้านสำโรง',
+                '03753' => 'รพ.สต.บ้านจิกเทิง',
+                '03754' => 'รพ.สต.บ้านหนองกุงใหญ่',
+                '03755' => 'รพ.สต.นาคาย',
+                '03756' => 'รพ.สต.คำหนามแท่ง',
+                '03757' => 'รพ.สต.คำหว้า'
+            ];
+            $stmt = $pdo->prepare("INSERT INTO `health_units` (hoscode, hosname) VALUES (?, ?)");
+            foreach ($defaultUnits as $code => $name) {
+                $stmt->execute([$code, $name]);
             }
         }
+
+        $subDistrictCount = $pdo->query("SELECT COUNT(*) FROM `sub_districts`")->fetchColumn();
+        if ($subDistrictCount == 0) {
+            $defaultSubs = [
+                '341801' => 'ตาลสุม',
+                '341802' => 'สำโรง',
+                '341803' => 'จิกเทิง',
+                '341804' => 'หนองกุง',
+                '341805' => 'นาคาย',
+                '341806' => 'คำหว้า'
+            ];
+            $stmt = $pdo->prepare("INSERT INTO `sub_districts` (sub_district_code, sub_district_name) VALUES (?, ?)");
+            foreach ($defaultSubs as $code => $name) {
+                $stmt->execute([$code, $name]);
+            }
+        }
+
+        $villageCount = $pdo->query("SELECT COUNT(*) FROM `villages`")->fetchColumn();
+        if ($villageCount == 0) {
+            $seed_hoscode_villages = [
+                '10957' => [
+                    'tambon' => '341801',
+                    'villages' => [
+                        1 => 'บ้านม่วงโคน', 2 => 'บ้านดอนรังกา', 3 => 'บ้านนาห้วยแคน (เขตเทศบาล)',
+                        5 => 'บ้านนามน (เขตเทศบาล)', 10 => 'บ้านนามน (เขตเทศบาล)', 11 => 'บ้านตาลสุม (เขตเทศบาล)',
+                        12 => 'บ้านคำไม้ตาย', 13 => 'บ้านปากเซ'
+                    ]
+                ],
+                '03751' => [
+                    'tambon' => '341801',
+                    'villages' => [
+                        4 => 'บ้านดอนพันชาด', 6 => 'บ้านดอนตะลี', 7 => 'บ้านปากห้วย',
+                        8 => 'บ้านโนนค้อ', 9 => 'บ้านแก่งกบ', 14 => 'บ้านโนนสวรรค์', 15 => 'บ้านทุ่งเจริญ'
+                    ]
+                ],
+                '03752' => [
+                    'tambon' => '341802',
+                    'villages' => [
+                        1 => 'บ้านสำโรงใหญ่', 2 => 'บ้านสำโรงกลาง', 3 => 'บ้านนาโพธิ์',
+                        4 => 'บ้านสำโรงใต้', 5 => 'บ้านนาแพง', 6 => 'บ้านหนองโน',
+                        7 => 'บ้านหนองสะเดา', 8 => 'บ้านทุ่งเจริญ'
+                    ]
+                ],
+                '03753' => [
+                    'tambon' => '341803',
+                    'villages' => [
+                        1 => 'บ้านจิกเทิง', 2 => 'บ้านจิกลุ่ม', 3 => 'บ้านเชียงแก้ว',
+                        4 => 'บ้านเชียงแก้ว', 5 => 'บ้านดอนโด่ (บ้านดอนโต)', 6 => 'บ้านดอนยูง',
+                        7 => 'บ้านค้อ', 8 => 'บ้านดอนแป้นลม', 9 => 'บ้านสร้างคำ'
+                    ]
+                ],
+                '03754' => [
+                    'tambon' => '341804',
+                    'villages' => [
+                        1 => 'บ้านหนองกุงใหญ่', 2 => 'บ้านหนองกุงน้อย', 3 => 'บ้านคำแคน',
+                        4 => 'บ้านสร้างแสง', 5 => 'บ้านคำเตยใต้', 6 => 'บ้านสร้างหว้า',
+                        7 => 'บ้านคำเตยเหนือ', 8 => 'บ้านสร้างหว้าพัฒนา'
+                    ]
+                ],
+                '03755' => [
+                    'tambon' => '341805',
+                    'villages' => [
+                        1 => 'บ้านนาคาย', 2 => 'บ้านโนนจิก', 3 => 'บ้านหนองเป็ด',
+                        4 => 'บ้านโนนยาง', 5 => 'บ้านดอนขวาง', 6 => 'บ้านดอนหวาย'
+                    ]
+                ],
+                '03756' => [
+                    'tambon' => '341805',
+                    'villages' => [
+                        7 => 'บ้านโคกคล้าย', 8 => 'บ้านคำหนามแท่ง', 9 => 'บ้านคำผักหนอก',
+                        10 => 'บ้านคำฮี', 11 => 'บ้านห่องแดง', 12 => 'บ้านโนนสำราญ', 13 => 'บ้านโนนเจริญ'
+                    ]
+                ],
+                '03757' => [
+                    'tambon' => '341806',
+                    'villages' => [
+                        1 => 'บ้านคำหว้า', 2 => 'บ้านคำหว้า', 3 => 'บ้านห้วยดู่',
+                        4 => 'บ้านนาทมเหนือ', 5 => 'บ้านไฮหย่อง', 6 => 'บ้านนาทมใต้'
+                    ]
+                ]
+            ];
+
+            $stmt = $pdo->prepare("INSERT INTO `villages` (vhid_code, sub_district_code, moo, village_name, hoscode) VALUES (?, ?, ?, ?, ?)");
+            foreach ($seed_hoscode_villages as $hcode => $data) {
+                $tambon = $data['tambon'];
+                foreach ($data['villages'] as $moo => $vname) {
+                    $vhid = $tambon . sprintf("%02d", $moo);
+                    $stmt->execute([$vhid, $tambon, $moo, $vname, $hcode]);
+                }
+            }
+        }
+
+        // Insert system_initialized flag
+        try {
+            $pdo->exec("INSERT INTO system_settings (setting_key, setting_value, description) 
+                VALUES ('system_initialized', '1', 'ระบบทำงานแล้ว ป้องกันการ Re-seed ข้อมูลตัวอย่าง') 
+                ON DUPLICATE KEY UPDATE setting_value = '1'");
+        } catch (\Exception $ex) {}
     }
 } catch (\PDOException $e) {
     // Fail silently

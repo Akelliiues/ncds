@@ -496,6 +496,9 @@ if (isset($_GET['action'])) {
                 t.last_name,
                 t.birth,
                 t.house_no,
+                t.moo,
+                t.sub_district_code,
+                t.vhid_code,
                 TIMESTAMPDIFF(YEAR, t.birth, CURDATE()) as age,
                 t.need_screen_dm,
                 t.need_screen_ht,
@@ -537,6 +540,15 @@ if (isset($_GET['action'])) {
                 h.last_name,
                 h.birth,
                 h.house_no,
+                CASE 
+                    WHEN LENGTH(h.check_vhid) = 8 THEN CAST(SUBSTRING(h.check_vhid, 7, 2) AS UNSIGNED)
+                    ELSE 1
+                END as moo,
+                CASE 
+                    WHEN LENGTH(h.check_vhid) = 8 THEN SUBSTRING(h.check_vhid, 1, 6)
+                    ELSE '341801'
+                END as sub_district_code,
+                h.check_vhid as vhid_code,
                 TIMESTAMPDIFF(YEAR, h.birth, CURDATE()) as age,
                 0 as need_screen_dm,
                 0 as need_screen_ht,
@@ -906,7 +918,7 @@ if (isset($_GET['action'])) {
 
                     // Update target_population record (updates the Primary Key)
                     $stmt = $pdo->prepare("UPDATE target_population SET cid = ?, prefix = ?, first_name = ?, last_name = ?, birth = ?, house_no = ?, moo = ?, sub_district_code = ?, vhid_code = ?, hoscode = ?, need_screen_dm = ?, need_screen_ht = ?, health_status_origin = ?, is_manual = 1, updated_at = NOW() WHERE cid = ?");
-                    $stmt->execute([$cid, $prefix, $fname, $lname, $birth, $house_no, $moo, $tambon, $vhid_code, $hoscode, $dm, $ht, $origin, $old_cid]);
+                    $stmt->execute([$cid, $prefix, $fname, $lname, $birth, $house_no, $moo_str, $tambon, $vhid_code, $hoscode, $dm, $ht, $origin, $old_cid]);
                     
                     $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
                 } catch (Exception $ex) {
@@ -923,7 +935,7 @@ if (isset($_GET['action'])) {
                     $sex = $existing['sex'];
                     
                     $stmt = $pdo->prepare("UPDATE target_population SET prefix = ?, first_name = ?, last_name = ?, birth = ?, house_no = ?, moo = ?, sub_district_code = ?, vhid_code = ?, hoscode = ?, need_screen_dm = ?, need_screen_ht = ?, health_status_origin = ?, is_manual = 1, updated_at = NOW() WHERE cid = ?");
-                    $stmt->execute([$prefix, $fname, $lname, $birth, $house_no, $moo, $tambon, $vhid_code, $hoscode, $dm, $ht, $origin, $cid]);
+                    $stmt->execute([$prefix, $fname, $lname, $birth, $house_no, $moo_str, $tambon, $vhid_code, $hoscode, $dm, $ht, $origin, $cid]);
                 } else {
                     $sql = "INSERT INTO target_population 
                             (cid, hid, pid, prefix, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode, health_status_origin, need_screen_dm, need_screen_ht, is_manual) 
@@ -939,7 +951,7 @@ if (isset($_GET['action'])) {
                         $sex,
                         $birth,
                         $house_no,
-                        $moo,
+                        $moo_str,
                         $tambon,
                         $vhid_code,
                         $hoscode,
@@ -1130,13 +1142,13 @@ if (isset($_GET['action'])) {
                 </div>
                 <div id="moo_container">
                     <label class="form-label">หมู่บ้าน</label>
-                    <select id="moo" class="form-select" onchange="fetchData()">
+                    <select id="moo" class="form-select" onchange="fetchData(1)">
                         <option value="">-- เลือกพื้นที่ก่อน --</option>
                     </select>
                 </div>
                 <div>
                     <label class="form-label">สถานะกลุ่มเป้าหมาย</label>
-                    <select id="status_filter" class="form-select" onchange="fetchData()">
+                    <select id="status_filter" class="form-select" onchange="fetchData(1)">
                         <option value="all">ทั้งหมด</option>
                         <option value="target">เป็นกลุ่มเป้าหมายแล้ว</option>
                         <option value="non_target">ยังไม่ถูกตั้งเป็นเป้าหมาย</option>
@@ -1191,7 +1203,7 @@ if (isset($_GET['action'])) {
             mSelect.innerHTML = '<option value="">-- เลือกพื้นที่ก่อน --</option>';
             hContainer.style.display = 'none';
 
-            if (!tCode) { fetchData(); return; }
+            if (!tCode) { fetchData(1); return; }
 
             const tInfo = tambonData[tCode];
             if (tInfo.hasSubUnits) {
@@ -1201,7 +1213,7 @@ if (isset($_GET['action'])) {
                 }
             } else {
                 populateMoo(tInfo.villages);
-                fetchData();
+                fetchData(1);
             }
         }
 
@@ -1210,10 +1222,10 @@ if (isset($_GET['action'])) {
             const hCode = document.getElementById('hoscode').value;
             if (tCode && hCode && tambonData[tCode].hasSubUnits) {
                 populateMoo(tambonData[tCode].subUnits[hCode].villages);
-                fetchData();
+                fetchData(1);
             } else {
                 document.getElementById('moo').innerHTML = '<option value="">-- เลือกหน่วยบริการก่อน --</option>';
-                fetchData();
+                fetchData(1);
             }
         }
 
@@ -1239,7 +1251,7 @@ if (isset($_GET['action'])) {
             }, 300);
         }
 
-        function fetchData(page = 1) {
+        function fetchData(page = currentPage) {
             currentPage = page;
             const tambon = document.getElementById('tambon').value;
             const moo = document.getElementById('moo').value;
@@ -1266,9 +1278,14 @@ if (isset($_GET['action'])) {
             fetch(`target_manager.php?action=get_targets&hoscode=${hoscode}&moo=${moo}&status=${status}&search=${encodeURIComponent(search)}&page=${currentPage}&limit=${pageLimit}`)
                 .then(r => r.json())
                 .then(resp => {
+                    const tPages = resp.totalPages || 1;
+                    if (currentPage > tPages && tPages > 0) {
+                        fetchData(tPages);
+                        return;
+                    }
                     currentTargets = resp.data || [];
                     totalRecords = resp.total || 0;
-                    totalPages = resp.totalPages || 1;
+                    totalPages = tPages;
                     currentPage = resp.page || 1;
                     renderTargets();
                     renderPagination();
@@ -1490,6 +1507,7 @@ if (isset($_GET['action'])) {
         // Sub-admin automatic scoping
         const loggedAdminHoscode = "<?= $admin_hoscode ?: '' ?>";
         window.addEventListener('DOMContentLoaded', () => {
+            initModalTambonSelect();
             if (loggedAdminHoscode) {
                 let targetTambon = "";
                 let targetSubUnit = "";
@@ -1527,19 +1545,137 @@ if (isset($_GET['action'])) {
                 }
             }
         });
+
+        function initModalTambonSelect() {
+            const mTambon = document.getElementById('modal_tambon');
+            mTambon.innerHTML = '<option value="">-- เลือกตำบล --</option>';
+            for (let tCode in tambonData) {
+                mTambon.innerHTML += `<option value="${tCode}">${tambonData[tCode].name}</option>`;
+            }
+        }
+
+        function onModalTambonChange() {
+            const tCode = document.getElementById('modal_tambon').value;
+            const hContainer = document.getElementById('modal_hoscode_container');
+            const hSelect = document.getElementById('modal_hoscode');
+            const mSelect = document.getElementById('modal_moo');
+
+            hSelect.innerHTML = '<option value="">-- เลือก รพ.สต. --</option>';
+            mSelect.innerHTML = '<option value="">-- เลือกหมู่บ้าน --</option>';
+            hContainer.style.display = 'none';
+
+            if (!tCode) return;
+
+            const tInfo = tambonData[tCode];
+            if (tInfo.hasSubUnits) {
+                hContainer.style.display = 'block';
+                for (let hc in tInfo.subUnits) {
+                    hSelect.innerHTML += `<option value="${hc}">${tInfo.subUnits[hc].name}</option>`;
+                }
+            } else {
+                populateModalMoo(tInfo.villages);
+            }
+        }
+
+        function onModalHoscodeChange() {
+            const tCode = document.getElementById('modal_tambon').value;
+            const hCode = document.getElementById('modal_hoscode').value;
+            if (tCode && hCode && tambonData[tCode].hasSubUnits) {
+                populateModalMoo(tambonData[tCode].subUnits[hCode].villages);
+            } else {
+                document.getElementById('modal_moo').innerHTML = '<option value="">-- เลือกหมู่บ้าน --</option>';
+            }
+        }
+
+        function populateModalMoo(villages) {
+            const mSelect = document.getElementById('modal_moo');
+            mSelect.innerHTML = '<option value="">-- เลือกหมู่บ้าน --</option>';
+            villages.forEach(v => {
+                mSelect.innerHTML += `<option value="${v.moo}">หมู่ที่ ${v.moo} ${v.name}</option>`;
+            });
+        }
+
+        function lockModalAreaSelectors(lock) {
+            const tSelect = document.getElementById('modal_tambon');
+            const hSelect = document.getElementById('modal_hoscode');
+            if (lock) {
+                tSelect.disabled = true;
+                tSelect.style.pointerEvents = 'none';
+                tSelect.style.backgroundColor = 'var(--bg-darker)';
+                tSelect.style.color = 'var(--text-primary)';
+                if (hSelect) {
+                    hSelect.disabled = true;
+                    hSelect.style.pointerEvents = 'none';
+                    hSelect.style.backgroundColor = 'var(--bg-darker)';
+                    hSelect.style.color = 'var(--text-primary)';
+                }
+            } else {
+                tSelect.disabled = false;
+                tSelect.style.pointerEvents = 'auto';
+                tSelect.style.backgroundColor = '';
+                tSelect.style.color = '';
+                if (hSelect) {
+                    hSelect.disabled = false;
+                    hSelect.style.pointerEvents = 'auto';
+                    hSelect.style.backgroundColor = '';
+                    hSelect.style.color = '';
+                }
+            }
+        }
+
+        function setupModalArea(tambonVal, hoscodeVal, mooVal) {
+            const tSelect = document.getElementById('modal_tambon');
+            const hSelect = document.getElementById('modal_hoscode');
+            const mSelect = document.getElementById('modal_moo');
+
+            // If sub-admin is logged in, force tambon and hoscode to their assigned area
+            if (loggedAdminHoscode) {
+                let targetTambon = "";
+                for (let t in tambonData) {
+                    if (tambonData[t].hasSubUnits) {
+                        if (tambonData[t].subUnits[loggedAdminHoscode]) {
+                            targetTambon = t;
+                            break;
+                        }
+                    } else {
+                        if (tambonData[t].hoscode === loggedAdminHoscode) {
+                            targetTambon = t;
+                            break;
+                        }
+                    }
+                }
+                tambonVal = targetTambon;
+                hoscodeVal = loggedAdminHoscode;
+            }
+
+            // 1. Set Tambon
+            tSelect.value = tambonVal || '';
+            onModalTambonChange();
+
+            // 2. Set Hoscode if applicable
+            if (hoscodeVal && tambonVal && tambonData[tambonVal] && tambonData[tambonVal].hasSubUnits) {
+                hSelect.value = hoscodeVal;
+                onModalHoscodeChange();
+            }
+
+            // 3. Set Moo
+            if (mooVal !== undefined && mooVal !== null && mooVal !== '') {
+                mSelect.value = parseInt(mooVal, 10);
+            }
+        }
+
         let modalMode = 'add';
         let editCid = '';
 
         function showManualAddModal() {
             const tambon = document.getElementById('tambon').value;
-            const moo = document.getElementById('moo').value;
+            let moo = document.getElementById('moo').value;
             if (!tambon || !moo) {
                 alert('กรุณาเลือกพื้นที่ (ตำบลและหมู่บ้าน) ก่อนเพิ่มข้อมูลแมนนวล');
                 return;
             }
             if (moo === 'all') {
-                alert('กรุณาเลือกหมู่บ้านที่เฉพาะเจาะจงก่อนเพิ่มข้อมูลแมนนวล');
-                return;
+                moo = '';
             }
 
             modalMode = 'add';
@@ -1556,6 +1692,20 @@ if (isset($_GET['action'])) {
             document.getElementById('manual_ht').checked = true;
             document.getElementById('cid-error').style.display = 'none';
             document.getElementById('manual_cid').style.borderColor = 'var(--border-color)';
+
+            let hoscode = '';
+            if (tambonData[tambon].hasSubUnits) {
+                hoscode = document.getElementById('hoscode').value;
+            } else {
+                hoscode = tambonData[tambon].hoscode;
+            }
+            setupModalArea(tambon, hoscode, moo);
+
+            if (loggedAdminHoscode) {
+                lockModalAreaSelectors(true);
+            } else {
+                lockModalAreaSelectors(false);
+            }
 
             document.getElementById('manual-add-modal').style.display = 'flex';
         }
@@ -1599,6 +1749,14 @@ if (isset($_GET['action'])) {
             document.getElementById('manual_dm').checked = t.need_screen_dm == 1;
             document.getElementById('manual_ht').checked = t.need_screen_ht == 1;
 
+            setupModalArea(t.sub_district_code, t.hoscode, t.moo);
+
+            if (loggedAdminHoscode) {
+                lockModalAreaSelectors(true);
+            } else {
+                lockModalAreaSelectors(false);
+            }
+
             document.getElementById('manual-add-modal').style.display = 'flex';
         }
 
@@ -1607,12 +1765,14 @@ if (isset($_GET['action'])) {
         }
 
         function submitManualAdd() {
-            const tambon = document.getElementById('tambon').value;
-            const moo = document.getElementById('moo').value;
-            let hoscode = '';
+            const tambon = document.getElementById('modal_tambon').value;
+            const moo = document.getElementById('modal_moo').value;
+            if (!tambon) { alert('กรุณาเลือกตำบล'); return; }
+            if (!moo) { alert('กรุณาเลือกหมู่บ้าน'); return; }
 
+            let hoscode = '';
             if (tambonData[tambon].hasSubUnits) {
-                hoscode = document.getElementById('hoscode').value;
+                hoscode = document.getElementById('modal_hoscode').value;
                 if (!hoscode) { alert('กรุณาเลือกหน่วยบริการ'); return; }
             } else {
                 hoscode = tambonData[tambon].hoscode;
@@ -1788,6 +1948,29 @@ if (isset($_GET['action'])) {
                         style="color: var(--text-secondary); display: block; margin-bottom: 4px;">บ้านเลขที่</label>
                     <input type="text" id="manual_house_no" class="form-control" placeholder="บ้านเลขที่"
                         style="width: 100%; box-sizing: border-box;">
+                </div>
+            </div>
+            <div style="display: flex; gap: 12px; margin-top: 12px;">
+                <div style="flex: 1;">
+                    <label class="form-label"
+                        style="color: var(--text-secondary); display: block; margin-bottom: 4px;">ตำบล</label>
+                    <select id="modal_tambon" class="form-control" style="width: 100%; box-sizing: border-box;" onchange="onModalTambonChange()">
+                        <option value="">-- เลือกตำบล --</option>
+                    </select>
+                </div>
+                <div id="modal_hoscode_container" style="flex: 1; display: none;">
+                    <label class="form-label"
+                        style="color: var(--text-secondary); display: block; margin-bottom: 4px;">รพ.สต. (หน่วยบริการ)</label>
+                    <select id="modal_hoscode" class="form-control" style="width: 100%; box-sizing: border-box;" onchange="onModalHoscodeChange()">
+                        <option value="">-- เลือก รพ.สต. --</option>
+                    </select>
+                </div>
+                <div id="modal_moo_container" style="flex: 1;">
+                    <label class="form-label"
+                        style="color: var(--text-secondary); display: block; margin-bottom: 4px;">หมู่บ้าน</label>
+                    <select id="modal_moo" class="form-control" style="width: 100%; box-sizing: border-box;">
+                        <option value="">-- เลือกหมู่บ้าน --</option>
+                    </select>
                 </div>
             </div>
             <div style="margin-top: 16px;">

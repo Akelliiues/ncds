@@ -47,6 +47,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
+// Handle Cancel DPAC Enrollment
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'cancel_dpac') {
+    $enrollmentId = $_POST['enrollment_id'] ?? '';
+    if (!empty($enrollmentId)) {
+        $pdo->beginTransaction();
+        try {
+            // Delete followups first
+            $deleteFollowups = $pdo->prepare("DELETE FROM dpac_followups WHERE enrollment_id = ?");
+            $deleteFollowups->execute([$enrollmentId]);
+            
+            // Delete enrollment
+            $deleteEnrollment = $pdo->prepare("DELETE FROM dpac_enrollments WHERE enrollment_id = ?");
+            $deleteEnrollment->execute([$enrollmentId]);
+            
+            $pdo->commit();
+            $message = "ยกเลิกการเข้าร่วมโครงการ DPAC สำเร็จ";
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            $message = "เกิดข้อผิดพลาดในการยกเลิก: " . $e->getMessage();
+        }
+    }
+}
+
 // Fetch Enrolled Participants
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 $filter_hoscode = $_GET['hoscode'] ?? ($admin_hoscode ?: '');
@@ -181,6 +204,34 @@ if (!empty($filter_hoscode)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>จัดการโครงการ DPAC - NCDs Prevention Portal</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+    <style>
+        .btn-cancel {
+            background-color: var(--color-red);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            box-shadow: 2px 2px 5px rgba(239, 68, 68, 0.2);
+            text-decoration: none;
+        }
+        .btn-cancel:hover {
+            transform: translateY(-1px);
+            box-shadow: 3px 3px 8px rgba(239, 68, 68, 0.35);
+            background-color: #dc2626 !important;
+        }
+        .btn-cancel:active {
+            transform: translateY(0);
+            box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.2);
+        }
+    </style>
 </head>
 <body class="admin-body">
     <?php include 'navbar.php'; ?>
@@ -278,12 +329,13 @@ if (!empty($filter_hoscode)) {
                                 <th>โรคประจำตัว</th>
                                 <th>จำนวนรอบติดตาม</th>
                                 <th>สถานะ อสม. ปัจจุบัน</th>
+                                <th style="width: 100px; text-align: center;">จัดการ</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (empty($enrollments)): ?>
                                 <tr>
-                                    <td colspan="6" style="text-align: center; padding: 20px; color: var(--text-secondary);">ไม่มีผู้เข้าร่วมโครงการ</td>
+                                    <td colspan="7" style="text-align: center; padding: 20px; color: var(--text-secondary);">ไม่มีผู้เข้าร่วมโครงการ</td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($enrollments as $r): ?>
@@ -304,6 +356,15 @@ if (!empty($filter_hoscode)) {
                                         <td>
                                             <?= $r['vhv_name'] ? '<strong style="color: var(--text-primary);">' . htmlspecialchars($r['vhv_name']) . '</strong>' : '<span style="color: var(--text-muted);">- ยังไม่มอบหมาย -</span>' ?>
                                         </td>
+                                        <td style="text-align: center;">
+                                            <button type="button" class="btn-cancel" onclick="confirmCancelDPAC(<?= htmlspecialchars($r['enrollment_id']) ?>)">
+                                                <svg style="width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2;" viewBox="0 0 24 24">
+                                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                </svg>
+                                                ยกเลิก
+                                            </button>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php endif; ?>
@@ -314,10 +375,22 @@ if (!empty($filter_hoscode)) {
         </form>
     </div>
 
+    <form id="cancel_dpac_form" method="post">
+        <input type="hidden" name="action" value="cancel_dpac">
+        <input type="hidden" name="enrollment_id" id="cancel_enrollment_id" value="">
+    </form>
+
     <script>
         document.getElementById('selectAll').addEventListener('change', function(e) {
             document.querySelectorAll('input[name="enrollments[]"]').forEach(cb => cb.checked = e.target.checked);
         });
+
+        function confirmCancelDPAC(enrollmentId) {
+            if (confirm('คุณต้องการยกเลิกผู้เข้าร่วมรายนี้ออกจากโครงการ DPAC ใช่หรือไม่? การติดตามทั้งหมดของรายนี้จะถูกลบออกด้วย')) {
+                document.getElementById('cancel_enrollment_id').value = enrollmentId;
+                document.getElementById('cancel_dpac_form').submit();
+            }
+        }
     </script>
 </body>
 </html>
