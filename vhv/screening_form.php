@@ -23,6 +23,30 @@ $history = [];
 
 if (!$isShell) {
     require_once __DIR__ . '/../config/db.php';
+    
+    // Auto-assign in Sandbox Mode if no assignment exists yet
+    if (isSandboxMode($hoscode)) {
+        if (!empty($hid)) {
+            $checkStmt = $pdo->prepare("SELECT cid FROM target_population WHERE hid = ?");
+            $checkStmt->execute([$hid]);
+            $targets = $checkStmt->fetchAll(PDO::FETCH_COLUMN);
+            if (!empty($targets)) {
+                $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status) VALUES (?, ?, 2026, 'pending')");
+                foreach ($targets as $tc) {
+                    $ins->execute([$tc, $vhvId]);
+                }
+            }
+        } elseif (!empty($cid)) {
+            $checkStmt = $pdo->prepare("SELECT cid FROM target_population WHERE cid = ? LIMIT 1");
+            $checkStmt->execute([$cid]);
+            $pop = $checkStmt->fetch();
+            if ($pop) {
+                $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status) VALUES (?, ?, 2026, 'pending')");
+                $ins->execute([$cid, $vhvId]);
+            }
+        }
+    }
+
     // Fetch residents based on hid or cid
     if (!empty($hid)) {
         $residentsStmt = $pdo->prepare("

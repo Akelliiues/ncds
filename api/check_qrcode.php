@@ -45,6 +45,20 @@ try {
         $stmt->execute([$hid, $vhvId]);
         $assignments = $stmt->fetchAll();
 
+        // Auto-assign in Sandbox Mode if target exists but no assignment
+        if (empty($assignments) && isSandboxMode($hoscode)) {
+            $checkStmt = $pdo->prepare("SELECT cid FROM target_population WHERE cid = ? LIMIT 1");
+            $checkStmt->execute([$hid]);
+            $pop = $checkStmt->fetch();
+            if ($pop) {
+                $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status) VALUES (?, ?, 2026, 'pending')");
+                $ins->execute([$hid, $vhvId]);
+                
+                $stmt->execute([$hid, $vhvId]);
+                $assignments = $stmt->fetchAll();
+            }
+        }
+
         // 2. PDPA Cross-District Lock:
         $houseStmt = $pdo->prepare("SELECT vhid_code, hoscode FROM target_population WHERE cid = ? LIMIT 1");
         $houseStmt->execute([$hid]);
@@ -59,6 +73,22 @@ try {
         ");
         $stmt->execute([$hid, $vhvId]);
         $assignments = $stmt->fetchAll();
+
+        // Auto-assign in Sandbox Mode if targets exist in house but no assignments to this VHV
+        if (empty($assignments) && isSandboxMode($hoscode)) {
+            $checkStmt = $pdo->prepare("SELECT cid FROM target_population WHERE hid = ?");
+            $checkStmt->execute([$hid]);
+            $targets = $checkStmt->fetchAll(PDO::FETCH_COLUMN);
+            if (!empty($targets)) {
+                $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status) VALUES (?, ?, 2026, 'pending')");
+                foreach ($targets as $tc) {
+                    $ins->execute([$tc, $vhvId]);
+                }
+                
+                $stmt->execute([$hid, $vhvId]);
+                $assignments = $stmt->fetchAll();
+            }
+        }
 
         // 2. PDPA Cross-District Lock:
         // Prioritize the logged-in VHV's village (vhid_code) and hospital (hoscode) 
