@@ -33,7 +33,8 @@ try {
             FROM target_population p
             LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026
             LEFT JOIN vhv_users v ON a.vhv_id = v.vhv_id
-            WHERE (p.vhid_code = ? OR (p.moo = ? AND p.hoscode = ?))
+            WHERE (p.vhid_code = ? OR (CAST(p.moo AS UNSIGNED) = CAST(? AS UNSIGNED) AND p.hoscode = ?))
+              AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35
         ";
         
         // Filter by target group
@@ -48,10 +49,11 @@ try {
             $query .= " AND p.cid NOT IN ('1234567890111', '1234567890112', '1234567890113', '1234567890114')";
         }
         
-        $hoscodeParam = $_GET['hoscode'] ?? '';
+        $target_hoscode = $admin_hoscode ? $admin_hoscode : ($_GET['hoscode'] ?? null);
+        $hoscodeParam = $target_hoscode ?: '';
         $params = [$vhid, $moo, $hoscodeParam];
-        if ($admin_hoscode) {
-            $hoscodes = get_query_hoscodes($admin_hoscode);
+        if ($target_hoscode) {
+            $hoscodes = get_query_hoscodes($target_hoscode);
             $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
             $query .= " AND p.hoscode IN ($inPlaceholders)";
             $params = array_merge($params, $hoscodes);
@@ -69,8 +71,9 @@ try {
             WHERE v.vhid_code = ? AND v.approved = 1
         ";
         $params = [$vhid];
-        if ($admin_hoscode) {
-            $hoscodes = get_query_hoscodes($admin_hoscode);
+        $target_hoscode = $admin_hoscode ? $admin_hoscode : ($_GET['hoscode'] ?? null);
+        if ($target_hoscode) {
+            $hoscodes = get_query_hoscodes($target_hoscode);
             $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
             $query .= " AND v.hoscode IN ($inPlaceholders)";
             $params = array_merge($params, $hoscodes);
