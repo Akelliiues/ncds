@@ -183,12 +183,13 @@ try {
 
         // Insert VHV reward points
         $rewardStmt = $pdo->prepare("
-            INSERT INTO vhv_rewards (vhv_id, screening_id, points_earned, approval_status, approved_at, is_sandbox)
-            VALUES (?, ?, 1, ?, ?, ?)
+            INSERT INTO vhv_rewards (vhv_id, screening_id, assignment_id, points_earned, approval_status, approved_at, is_sandbox)
+            VALUES (?, ?, ?, 1, ?, ?, ?)
         ");
         $rewardStmt->execute([
             $vhvId,
             $screeningId,
+            $assignmentId,
             $approvalStatus,
             $approvalStatus === 'approved' ? date('Y-m-d H:i:s') : null,
             $isSandboxVal
@@ -358,10 +359,10 @@ try {
 
         // 3. Award VHV +1 reward point immediately (approval_status = 'approved') to motivate them
         $rewardStmt = $pdo->prepare("
-            INSERT INTO vhv_rewards (vhv_id, screening_id, points_earned, approval_status, approved_at, is_sandbox)
-            VALUES (?, ?, 1, 'approved', CURRENT_TIMESTAMP, ?)
+            INSERT INTO vhv_rewards (vhv_id, screening_id, assignment_id, points_earned, approval_status, approved_at, is_sandbox)
+            VALUES (?, ?, ?, 1, 'approved', CURRENT_TIMESTAMP, ?)
         ");
-        $rewardStmt->execute([$vhvId, $screeningId, $isSandboxVal]);
+        $rewardStmt->execute([$vhvId, $screeningId, $assignmentId, $isSandboxVal]);
 
         $pdo->commit();
 

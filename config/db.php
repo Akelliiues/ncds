@@ -562,6 +562,23 @@ try {
         $pdo->exec("ALTER TABLE `vhv_rewards` ADD COLUMN `followup_id` INT NULL AFTER `screening_id`");
     }
 
+    // Add assignment_id column to vhv_rewards if not exists
+    $checkAssignId = $pdo->query("SHOW COLUMNS FROM `vhv_rewards` LIKE 'assignment_id'");
+    if ($checkAssignId->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `vhv_rewards` ADD COLUMN `assignment_id` INT NULL AFTER `vhv_id`");
+        $pdo->exec("ALTER TABLE `vhv_rewards` ADD INDEX `idx_rewards_assign_id` (`assignment_id`)");
+    }
+
+    // Backfill assignment_id from screening_results
+    try {
+        $pdo->exec("
+            UPDATE vhv_rewards r
+            JOIN screening_results s ON r.screening_id = s.screening_id
+            SET r.assignment_id = s.assignment_id
+            WHERE r.assignment_id IS NULL AND r.screening_id IS NOT NULL
+        ");
+    } catch (\PDOException $e) {}
+
     // Modify points_earned in vhv_rewards to DECIMAL(4,2) to support decimal points like 0.25, 0.75
     $pdo->exec("ALTER TABLE `vhv_rewards` MODIFY COLUMN `points_earned` DECIMAL(4,2) DEFAULT 1.00");
 
@@ -578,8 +595,8 @@ try {
 
     // Retroactively backfill missing rewards for completed screenings
     $pdo->exec("
-        INSERT INTO vhv_rewards (vhv_id, screening_id, points_earned, approval_status, approved_at, created_at)
-        SELECT a.vhv_id, s.screening_id, 1, 'approved', s.created_at, s.created_at
+        INSERT INTO vhv_rewards (vhv_id, screening_id, assignment_id, points_earned, approval_status, approved_at, created_at)
+        SELECT a.vhv_id, s.screening_id, s.assignment_id, 1, 'approved', s.created_at, s.created_at
         FROM screening_results s
         JOIN task_assignments a ON s.assignment_id = a.assignment_id
         LEFT JOIN vhv_rewards r ON s.screening_id = r.screening_id

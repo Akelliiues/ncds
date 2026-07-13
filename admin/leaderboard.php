@@ -48,14 +48,15 @@ $sql = "
         u.hoscode, 
         u.is_hl_coach,
         u.approved,
-        COALESCE(SUM(CASE WHEN r.followup_id IS NULL THEN r.points_earned ELSE 0 END), 0) as screening_points,
+        COALESCE(SUM(CASE WHEN r.followup_id IS NULL AND ta.assignment_id IS NOT NULL THEN r.points_earned ELSE 0 END), 0) as screening_points,
         COALESCE(SUM(CASE WHEN r.followup_id IS NOT NULL THEN r.points_earned ELSE 0 END), 0) as dpac_points,
-        COALESCE(SUM(r.points_earned), 0) as total_points,
+        COALESCE(SUM(CASE WHEN (r.followup_id IS NULL AND ta.assignment_id IS NOT NULL) OR r.followup_id IS NOT NULL THEN r.points_earned ELSE 0 END), 0) as total_points,
         (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026) as total_assigned,
         (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026 AND assignment_status = 'completed') as completed,
         (SELECT COUNT(*) FROM vhv_rewards WHERE vhv_id = u.vhv_id AND approval_status = 'waiting' AND is_sandbox = 0) as waiting_rewards
     FROM vhv_users u
     LEFT JOIN vhv_rewards r ON u.vhv_id = r.vhv_id AND r.approval_status IN ('approved', 'waiting')
+    LEFT JOIN task_assignments ta ON r.assignment_id = ta.assignment_id
     WHERE u.approved = 1
     GROUP BY u.vhv_id, u.vhv_name, u.vhv_moo, u.vhid_code, u.hoscode, u.is_hl_coach, u.approved
     ORDER BY total_points DESC, u.vhv_name ASC
