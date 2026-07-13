@@ -593,8 +593,13 @@ if (isset($_GET['action'])) {
             LEFT JOIN target_population t ON t.hoscode = h.hoscode AND t.pid = h.pid
             WHERE t.cid IS NULL
         ) main_result
-        WHERE age >= 35
         ";
+
+        if ($search === '') {
+            $sql .= " WHERE age >= 35";
+        } else {
+            $sql .= " WHERE 1=1";
+        }
 
         if ($status === 'target') {
             $sql .= " AND (need_screen_dm = 1 OR need_screen_ht = 1)";
