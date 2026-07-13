@@ -48,7 +48,7 @@ $sql = "
         u.hoscode, 
         u.is_hl_coach,
         u.approved,
-        COALESCE(SUM(CASE WHEN r.screening_id IS NOT NULL THEN r.points_earned ELSE 0 END), 0) as screening_points,
+        COALESCE(SUM(CASE WHEN r.followup_id IS NULL THEN r.points_earned ELSE 0 END), 0) as screening_points,
         COALESCE(SUM(CASE WHEN r.followup_id IS NOT NULL THEN r.points_earned ELSE 0 END), 0) as dpac_points,
         COALESCE(SUM(r.points_earned), 0) as total_points,
         (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026) as total_assigned,
@@ -1023,12 +1023,17 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
                                     ? '<span style="color: var(--color-green); font-weight: bold;">🏥 คัดกรอง DM/HT</span>'
                                     : '<span style="color: var(--color-accent); font-weight: bold;">❤️ ติดตาม DPAC</span>';
 
+                                const fullName = log.first_name 
+                                    ? `${escapeHtml(log.first_name)} ${escapeHtml(log.last_name)}` 
+                                    : '<span style="color: var(--text-muted); font-style: italic;">แต้มสะสมได้รับการคุ้มครอง (เปลี่ยนผู้รับมอบหมาย/ข้อมูลประวัติเดิมถูกลบ)</span>';
+                                const cidStr = log.cid ? escapeHtml(log.cid) : '-';
+
                                 const row = document.createElement('tr');
                                 row.innerHTML = `
                                     <td>${dateStr}</td>
                                     <td>${activityLabel}</td>
-                                    <td style="font-weight: bold; color: var(--text-primary);">${escapeHtml(log.first_name)} ${escapeHtml(log.last_name)}</td>
-                                    <td style="font-family: monospace;">${escapeHtml(log.cid)}</td>
+                                    <td style="font-weight: bold; color: var(--text-primary);">${fullName}</td>
+                                    <td style="font-family: monospace;">${cidStr}</td>
                                     <td style="text-align: right; font-weight: bold; color: var(--color-accent);">${pts.toFixed(2).replace(/\.00$/, '')}</td>
                                 `;
                                 tbody.appendChild(row);

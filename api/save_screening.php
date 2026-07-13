@@ -79,18 +79,18 @@ function sendLineFlexMessage($lineUserId, $flexData) {
 }
 
 try {
-    // Fetch target population & home coordinates
+    // Fetch target population & home coordinates and verify VHV ownership
     $assignStmt = $pdo->prepare("
         SELECT a.*, p.cid, p.hid, p.hoscode, p.first_name, p.last_name, p.latitude as home_lat, p.longitude as home_lng
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE a.assignment_id = ?
+        WHERE a.assignment_id = ? AND a.vhv_id = ?
     ");
-    $assignStmt->execute([$assignmentId]);
+    $assignStmt->execute([$assignmentId, $vhvId]);
     $assignment = $assignStmt->fetch();
 
     if (!$assignment) {
-        throw new Exception("ไม่พบข้อมูลใบงานมอบหมายที่ระบุ");
+        throw new Exception("ไม่พบข้อมูลใบงานมอบหมายที่ระบุ หรือท่านไม่ได้รับสิทธิ์มอบหมายในใบงานนี้");
     }
 
     $targetCid = $assignment['target_cid'];

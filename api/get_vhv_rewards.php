@@ -45,7 +45,7 @@ try {
     ];
     $vhvInfo['hospital_name'] = $hospitals[$vhvInfo['hoscode']] ?? 'ไม่ระบุสังกัด';
 
-    // Query rewards list
+    // Query rewards list (using LEFT JOIN to also load decoupled/protected points)
     $stmt = $pdo->prepare("
         SELECT 
             r.reward_id,
@@ -56,10 +56,11 @@ try {
             t.cid,
             'screening' as activity_type
         FROM vhv_rewards r
-        JOIN screening_results s ON r.screening_id = s.screening_id
-        JOIN task_assignments a ON s.assignment_id = a.assignment_id
-        JOIN target_population t ON a.target_cid = t.cid
+        LEFT JOIN screening_results s ON r.screening_id = s.screening_id
+        LEFT JOIN task_assignments a ON s.assignment_id = a.assignment_id
+        LEFT JOIN target_population t ON a.target_cid = t.cid
         WHERE r.vhv_id = ? AND r.approval_status IN ('approved', 'waiting')
+          AND r.followup_id IS NULL
 
         UNION ALL
 
@@ -72,10 +73,11 @@ try {
             t.cid,
             'dpac' as activity_type
         FROM vhv_rewards r
-        JOIN dpac_followups f ON r.followup_id = f.followup_id
-        JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
-        JOIN target_population t ON e.cid = t.cid
+        LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id
+        LEFT JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
+        LEFT JOIN target_population t ON e.cid = t.cid
         WHERE r.vhv_id = ? AND r.approval_status IN ('approved', 'waiting')
+          AND r.followup_id IS NOT NULL
 
         ORDER BY created_at DESC
     ");
