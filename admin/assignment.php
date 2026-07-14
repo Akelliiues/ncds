@@ -527,7 +527,7 @@ try {
                 });
 
             // Fetch VHVs
-            fetch(`../api/get_assignment_data.php?type=vhvs&moo=${moo}&vhid=${vhidCode}&hoscode=${hoscode}`)
+            fetch(`../api/get_assignment_data.php?type=vhvs&moo=${moo}&vhid=${vhidCode}&hoscode=${hoscode}&group=${currentTargetGroup}`)
                 .then(r => r.json())
                 .then(data => {
                     renderVhvs(data);

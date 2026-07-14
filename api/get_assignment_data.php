@@ -64,35 +64,77 @@ try {
         $stmt->execute($params);
         echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
     } elseif ($type === 'vhvs') {
+        $group = $_GET['group'] ?? '';
         $query = "
             SELECT v.vhv_id, v.vhv_name, 
                    (
-                       SELECT COUNT(*) 
-                       FROM task_assignments a 
-                       JOIN target_population p ON a.target_cid = p.cid
-                       WHERE a.vhv_id = v.vhv_id 
-                         AND a.budget_year = 2026 
-                         AND a.assignment_status = 'pending'
+                       (
+                           SELECT COUNT(*) 
+                           FROM task_assignments a 
+                           JOIN target_population p ON a.target_cid = p.cid
+                           WHERE a.vhv_id = v.vhv_id 
+                             AND a.budget_year = 2026 
+                             AND a.assignment_status = 'pending'
+                             AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35
+                             AND (
+                                 (:group1 = 'suspect' AND p.need_screen_dm = 0 AND p.need_screen_ht = 0)
+                                 OR (:group2 != 'suspect' AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1))
+                             )
+                       ) + (
+                           SELECT COUNT(*) 
+                           FROM dpac_followups f
+                           WHERE f.vhv_id = v.vhv_id
+                             AND f.status = 'pending'
+                       )
                    ) as total_task_count,
                    (
-                       SELECT COUNT(*) 
-                       FROM task_assignments a 
-                       JOIN target_population p ON a.target_cid = p.cid
-                       WHERE a.vhv_id = v.vhv_id 
-                         AND a.budget_year = 2026 
-                         AND a.assignment_status = 'pending'
-                         AND p.vhid_code = ?
+                       (
+                           SELECT COUNT(*) 
+                           FROM task_assignments a 
+                           JOIN target_population p ON a.target_cid = p.cid
+                           WHERE a.vhv_id = v.vhv_id 
+                             AND a.budget_year = 2026 
+                             AND a.assignment_status = 'pending'
+                             AND p.vhid_code = :vhid1
+                             AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35
+                             AND (
+                                 (:group3 = 'suspect' AND p.need_screen_dm = 0 AND p.need_screen_ht = 0)
+                                 OR (:group4 != 'suspect' AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1))
+                             )
+                       ) + (
+                           SELECT COUNT(*) 
+                           FROM dpac_followups f
+                           JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
+                           JOIN target_population p ON e.cid = p.cid
+                           WHERE f.vhv_id = v.vhv_id
+                             AND f.status = 'pending'
+                             AND p.vhid_code = :vhid2
+                       )
                    ) as village_task_count
             FROM vhv_users v
-            WHERE v.vhid_code = ? AND v.approved = 1
+            WHERE v.vhid_code = :vhid3 AND v.approved = 1
         ";
-        $params = [$vhid, $vhid];
+        
+        $params = [
+            'group1' => $group,
+            'group2' => $group,
+            'group3' => $group,
+            'group4' => $group,
+            'vhid1'  => $vhid,
+            'vhid2'  => $vhid,
+            'vhid3'  => $vhid
+        ];
         $target_hoscode = $admin_hoscode ? $admin_hoscode : ($_GET['hoscode'] ?? null);
         if ($target_hoscode) {
             $hoscodes = get_query_hoscodes($target_hoscode);
-            $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
+            $inKeys = [];
+            foreach ($hoscodes as $i => $code) {
+                $key = "hoscode_" . $i;
+                $inKeys[] = ":" . $key;
+                $params[$key] = $code;
+            }
+            $inPlaceholders = implode(',', $inKeys);
             $query .= " AND v.hoscode IN ($inPlaceholders)";
-            $params = array_merge($params, $hoscodes);
         }
         
         // กรองข้อมูล อสม. จำลองทดสอบออกในโหมดจริง
