@@ -590,8 +590,9 @@ if (isset($_GET['action'])) {
                 ) sub_staging
                 GROUP BY hoscode, pid
             ) h
-            LEFT JOIN target_population t ON (t.cid = h.cid) OR (t.hoscode = h.hoscode AND t.pid = h.pid AND t.pid IS NOT NULL AND t.pid != '')
-            WHERE t.cid IS NULL
+            LEFT JOIN target_population t ON t.cid = h.cid
+            LEFT JOIN target_population t2 ON t2.hoscode = h.hoscode AND t2.pid = h.pid AND h.pid IS NOT NULL AND h.pid != ''
+            WHERE t.cid IS NULL AND t2.cid IS NULL
         ) main_result
         ";
 
