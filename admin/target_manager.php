@@ -550,8 +550,8 @@ if (isset($_GET['action'])) {
                 END as sub_district_code,
                 h.check_vhid as vhid_code,
                 TIMESTAMPDIFF(YEAR, h.birth, CURDATE()) as age,
-                h.need_screen_dm,
-                h.need_screen_ht,
+                0 as need_screen_dm,
+                0 as need_screen_ht,
                 h.health_status_origin,
                 0 as is_manual,
                 h.bslevel, h.bstest, h.sbp, h.dbp,
@@ -560,14 +560,11 @@ if (isset($_GET['action'])) {
                 SELECT 
                     cid, pid, hoscode, name as first_name, lname as last_name, birth, addr as house_no, check_vhid,
                     MAX(bslevel) as bslevel, MAX(bstest) as bstest, MAX(sbp) as sbp, MAX(dbp) as dbp,
-                    MAX(need_screen_dm) as need_screen_dm, MAX(need_screen_ht) as need_screen_ht,
                     MAX(health_status_origin) as health_status_origin
                 FROM (
                     SELECT 
                         dm.cid, dm.pid, dm.hoscode, dm.name, dm.lname, dm.birth, dm.addr, dm.check_vhid,
                         dm.bslevel, dm.bstest, NULL as sbp, NULL as dbp,
-                        CASE WHEN dm.risk = '3' THEN 0 ELSE 1 END as need_screen_dm,
-                        0 as need_screen_ht,
                         CASE 
                             WHEN dm.risk = '2' THEN 'HIGH_RISK'
                             WHEN dm.risk = '1' THEN 'DM_ONLY'
@@ -582,8 +579,6 @@ if (isset($_GET['action'])) {
                     SELECT 
                         ht.cid, ht.pid, ht.hoscode, ht.name, ht.lname, ht.birth, ht.addr, ht.check_vhid,
                         NULL as bslevel, NULL as bstest, ht.sbp, ht.dbp,
-                        0 as need_screen_dm,
-                        CASE WHEN ht.risk = '3' THEN 0 ELSE 1 END as need_screen_ht,
                         CASE 
                             WHEN ht.risk = '2' THEN 'HIGH_RISK'
                             WHEN ht.risk = '1' THEN 'HT_ONLY'
@@ -601,16 +596,12 @@ if (isset($_GET['action'])) {
         ) main_result
         ";
 
-        if ($search === '') {
-            $sql .= " WHERE age >= 35";
-        } else {
-            $sql .= " WHERE 1=1";
-        }
-
         if ($status === 'target') {
-            $sql .= " AND (need_screen_dm = 1 OR need_screen_ht = 1)";
+            $sql .= " WHERE (need_screen_dm = 1 OR need_screen_ht = 1)";
         } elseif ($status === 'non_target') {
-            $sql .= " AND (need_screen_dm = 0 AND need_screen_ht = 0)";
+            $sql .= " WHERE (need_screen_dm = 0 AND need_screen_ht = 0) AND age >= 35";
+        } else {
+            $sql .= " WHERE (need_screen_dm = 1 OR need_screen_ht = 1 OR age >= 35)";
         }
 
         if ($search !== '') {
