@@ -590,9 +590,8 @@ if (isset($_GET['action'])) {
                 ) sub_staging
                 GROUP BY hoscode, pid
             ) h
-            LEFT JOIN target_population t1 ON t1.cid = h.cid
-            LEFT JOIN target_population t2 ON t2.hoscode = h.hoscode AND t2.pid = h.pid
-            WHERE t1.cid IS NULL AND t2.cid IS NULL
+            LEFT JOIN target_population t ON t.hoscode = h.hoscode AND t.pid = h.pid
+            WHERE t.cid IS NULL
         ) main_result
         ";
 
@@ -603,9 +602,9 @@ if (isset($_GET['action'])) {
         }
 
         if ($status === 'target') {
-            $sql .= " AND (need_screen_dm = 1 OR need_screen_ht = 1)";
+            $sql .= " AND (need_screen_dm = 1 OR need_screen_ht = 1 OR is_manual = 1)";
         } elseif ($status === 'non_target') {
-            $sql .= " AND (need_screen_dm = 0 AND need_screen_ht = 0)";
+            $sql .= " AND (need_screen_dm = 0 AND need_screen_ht = 0 AND (is_manual IS NULL OR is_manual = 0))";
         }
 
         if ($search !== '') {
