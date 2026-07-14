@@ -618,7 +618,11 @@ try {
                     <div class="item-row">
                         <div class="item-info">
                             <h4 style="color: var(--color-accent);">${v.vhv_name}</h4>
-                            <p>ใบงานปัจจุบัน: ${v.task_count} งาน</p>
+                            <p style="margin: 2px 0 0 0; font-size: 13px;">
+                                📍 ใบงานในหมู่นี้: <strong style="color: var(--color-green, #10b981);">${v.village_task_count}</strong> งาน
+                                <span style="color: var(--text-muted); margin: 0 4px;">|</span>
+                                ⏳ งานค้างทั้งหมด: <strong style="color: var(--color-yellow, #f59e0b);">${v.total_task_count}</strong> งาน
+                            </p>
                         </div>
                         <button onclick="assignTasks('${v.vhv_id}')" class="assign-btn">
                             มอบหมาย

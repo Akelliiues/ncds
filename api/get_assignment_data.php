@@ -73,11 +73,20 @@ try {
                        WHERE a.vhv_id = v.vhv_id 
                          AND a.budget_year = 2026 
                          AND a.assignment_status = 'pending'
-                   ) as task_count
+                   ) as total_task_count,
+                   (
+                       SELECT COUNT(*) 
+                       FROM task_assignments a 
+                       JOIN target_population p ON a.target_cid = p.cid
+                       WHERE a.vhv_id = v.vhv_id 
+                         AND a.budget_year = 2026 
+                         AND a.assignment_status = 'pending'
+                         AND p.vhid_code = ?
+                   ) as village_task_count
             FROM vhv_users v
             WHERE v.vhid_code = ? AND v.approved = 1
         ";
-        $params = [$vhid];
+        $params = [$vhid, $vhid];
         $target_hoscode = $admin_hoscode ? $admin_hoscode : ($_GET['hoscode'] ?? null);
         if ($target_hoscode) {
             $hoscodes = get_query_hoscodes($target_hoscode);
