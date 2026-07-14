@@ -703,6 +703,7 @@ try {
                     .then(data => {
                         if (data.status === 'success') {
                             alert("มอบหมายงานสำเร็จ!");
+                            selectedCids.clear(); // ล้างรายการที่เลือก
                             fetchData(); // Refresh lists
                         } else {
                             alert("เกิดข้อผิดพลาด: " + data.message);
@@ -733,6 +734,7 @@ try {
                     .then(data => {
                         if (data.status === 'success') {
                             alert(data.message);
+                            selectedCids.clear(); // ล้างรายการที่เลือก
                             fetchData(); // Refresh lists
                         } else {
                             alert("เกิดข้อผิดพลาด: " + data.message);
@@ -755,6 +757,7 @@ try {
                 .then(r => r.json())
                 .then(data => {
                     if (data.status === 'success') {
+                        selectedCids.delete(cid); // ลบจากรายการที่เลือก (ถ้ามี)
                         fetchData(); // refresh รายการ
                     } else {
                         alert('เกิดข้อผิดพลาด: ' + (data.message || 'ไม่ทราบสาเหตุ'));

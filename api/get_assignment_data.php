@@ -66,7 +66,7 @@ try {
     } elseif ($type === 'vhvs') {
         $query = "
             SELECT v.vhv_id, v.vhv_name, 
-                   (SELECT COUNT(*) FROM task_assignments a WHERE a.vhv_id = v.vhv_id AND a.budget_year = 2026) as task_count
+                   (SELECT COUNT(*) FROM task_assignments a WHERE a.vhv_id = v.vhv_id AND a.budget_year = 2026 AND a.assignment_status = 'pending') as task_count
             FROM vhv_users v
             WHERE v.vhid_code = ? AND v.approved = 1
         ";
