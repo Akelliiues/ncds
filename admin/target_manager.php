@@ -602,9 +602,9 @@ if (isset($_GET['action'])) {
         }
 
         if ($status === 'target') {
-            $sql .= " AND (need_screen_dm = 1 OR need_screen_ht = 1)";
+            $sql .= " AND (need_screen_dm = 1 OR need_screen_ht = 1 OR is_manual = 1)";
         } elseif ($status === 'non_target') {
-            $sql .= " AND (need_screen_dm = 0 AND need_screen_ht = 0)";
+            $sql .= " AND (need_screen_dm = 0 AND need_screen_ht = 0 AND is_manual = 0)";
         }
 
         if ($search !== '') {
