@@ -1,0 +1,20 @@
+<?php
+// config/db_config.php.example
+// Copy this file to config/db_config.php and update your database credentials below
+
+return [
+    'local' => [
+        'host' => '127.0.0.1',
+        'port' => '3333',
+        'db' => 'tansum_ncd',
+        'user' => 'tansum_ncd',
+        'pass' => 'Prevention2026',
+    ],
+    'production' => [
+        'host' => 'localhost',
+        'port' => '',
+        'db' => 'tansum_ncd',
+        'user' => 'tansum_ncd',
+        'pass' => 'Prevention2026',
+    ]
+];

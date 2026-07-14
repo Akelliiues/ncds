@@ -17,3 +17,6 @@ Thumbs.db
 
 # IDE
 .vscode/
+
+# Local database configuration
+config/db_config.php

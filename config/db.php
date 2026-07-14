@@ -285,17 +285,39 @@ if (isset($_SERVER['HTTP_HOST'])) {
     $is_local = true;
 }
 
-if ($is_local) {
-    $host = '127.0.0.1';
-    $port = '3333';
-} else {
-    $host = 'localhost';
-    $port = '';
+// Default database configurations (fallback settings)
+$db_config = [
+    'local' => [
+        'host' => '127.0.0.1',
+        'port' => '3333',
+        'db' => 'tansum_ncd',
+        'user' => 'tansum_ncd',
+        'pass' => 'Prevention2026',
+    ],
+    'production' => [
+        'host' => 'localhost',
+        'port' => '',
+        'db' => 'tansum_ncd',
+        'user' => 'tansum_ncd',
+        'pass' => 'Prevention2026',
+    ]
+];
+
+// Load external config if available
+$config_file = __DIR__ . '/db_config.php';
+if (file_exists($config_file)) {
+    $loaded_config = require $config_file;
+    if (is_array($loaded_config)) {
+        $db_config = array_replace_recursive($db_config, $loaded_config);
+    }
 }
 
-$db = 'tansum_ncd';
-$user = 'tansum_ncd';
-$pass = 'Prevention2026';
+$env = $is_local ? 'local' : 'production';
+$host = $db_config[$env]['host'] ?? 'localhost';
+$port = $db_config[$env]['port'] ?? '';
+$db = $db_config[$env]['db'] ?? 'tansum_ncd';
+$user = $db_config[$env]['user'] ?? 'tansum_ncd';
+$pass = $db_config[$env]['pass'] ?? 'Prevention2026';
 $charset = 'utf8mb4';
 
 if (!empty($port)) {
