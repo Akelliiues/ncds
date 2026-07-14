@@ -94,7 +94,6 @@ try {
                            JOIN target_population p ON a.target_cid = p.cid
                            WHERE a.vhv_id = v.vhv_id 
                              AND a.budget_year = 2026 
-                             AND a.assignment_status = 'pending'
                              AND p.vhid_code = :vhid1
                              AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35
                              AND (
@@ -107,7 +106,6 @@ try {
                            JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
                            JOIN target_population p ON e.cid = p.cid
                            WHERE f.vhv_id = v.vhv_id
-                             AND f.status = 'pending'
                              AND p.vhid_code = :vhid2
                        )
                    ) as village_task_count
