@@ -726,8 +726,8 @@ if (isset($_GET['action'])) {
                 }
 
                 $insert = $pdo->prepare("INSERT INTO target_population 
-                    (cid, pid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode, health_status_origin, need_screen_dm, need_screen_ht)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    (cid, pid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode, health_status_origin, need_screen_dm, need_screen_ht, is_manual)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)");
                 $insert->execute([
                     $insert_cid, $r['pid'], $r['name'], $r['lname'], $r['sex'], $r['birth'], $r['addr'], $moo, $tambon, $vhid_code, $insert_hoscode, $origin, $need_dm, $need_ht
                 ]);
@@ -808,8 +808,8 @@ if (isset($_GET['action'])) {
                     $insert_hoscode = $req_hoscode ?: $r['hoscode'] ?: '';
 
                     $insert = $pdo->prepare("INSERT INTO target_population 
-                        (cid, pid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode, health_status_origin, need_screen_dm, need_screen_ht)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                        (cid, pid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode, health_status_origin, need_screen_dm, need_screen_ht, is_manual)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)");
                     $insert->execute([
                         $insert_cid, $r['pid'], $r['name'], $r['lname'], $r['sex'], $r['birth'], $r['addr'], $moo, $tambon, $vhid_code, $insert_hoscode, $origin, $need_dm, $need_ht
                     ]);
