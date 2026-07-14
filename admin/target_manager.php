@@ -463,7 +463,7 @@ if (isset($_GET['action'])) {
                     $hoscodes, // ht ใน ส่วนที่ 2
                     [$vhid_code]  // check_vhid ใน ส่วนที่ 2 ht
                 );
-                $mooCond1 = " AND t.moo = ?";
+                $mooCond1 = " AND CAST(t.moo AS UNSIGNED) = ?";
                 $mooCond2 = " AND dm.check_vhid = ?";
                 $mooCond3 = " AND ht.check_vhid = ?";
             } else {
@@ -478,7 +478,7 @@ if (isset($_GET['action'])) {
                     $hoscodes, // ht ใน ส่วนที่ 2
                     [$moo_str]  // moo_str ใน ส่วนที่ 2 ht
                 );
-                $mooCond1 = " AND t.moo = ?";
+                $mooCond1 = " AND CAST(t.moo AS UNSIGNED) = ?";
                 $mooCond2 = " AND RIGHT(dm.check_vhid, 2) = ?";
                 $mooCond3 = " AND RIGHT(ht.check_vhid, 2) = ?";
             }

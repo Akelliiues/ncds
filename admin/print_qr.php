@@ -40,7 +40,7 @@ if ($filter_hoscode) {
     $params = array_merge($params, $hoscodes);
 }
 if ($filter_moo) {
-    $sql .= " AND moo = ?";
+    $sql .= " AND CAST(moo AS UNSIGNED) = CAST(? AS UNSIGNED)";
     $params[] = $filter_moo;
 }
 if ($filter_target === 'dm') {
