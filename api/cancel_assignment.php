@@ -62,9 +62,13 @@ try {
         "ยกเลิกการมอบหมายงานโดยผู้ดูแลระบบ (CID: $cid)"
     ]);
 
-    // ลบ assignment
-    $delStmt = $pdo->prepare("DELETE FROM task_assignments WHERE assignment_id = ?");
-    $delStmt->execute([$assignment['assignment_id']]);
+    // ลบ assignment(s) ทั้งหมดของ CID นี้สำหรับปีงบประมาณนี้ (เผื่อกรณีมีข้อมูลซ้ำซ้อน)
+    $delStmt = $pdo->prepare("DELETE FROM task_assignments WHERE target_cid = ? AND budget_year = ?");
+    $delStmt->execute([$cid, $currentYear]);
+
+    // ลบคะแนนสะสมที่เกี่ยวข้อง (ถ้ามี)
+    $delRewards = $pdo->prepare("DELETE FROM vhv_rewards WHERE assignment_id = ?");
+    $delRewards->execute([$assignment['assignment_id']]);
 
     $pdo->commit();
 

@@ -611,6 +611,28 @@ try {
         LEFT JOIN vhv_rewards r ON f.followup_id = r.followup_id
         WHERE f.status = 'completed' AND r.reward_id IS NULL
     ");
+    // Auto-cleanup duplicate task assignments (keeping only the one with the highest assignment_id)
+    $pdo->exec("
+        DELETE a1 FROM task_assignments a1
+        JOIN task_assignments a2 ON a1.target_cid = a2.target_cid 
+          AND a1.budget_year = a2.budget_year 
+          AND a1.assignment_id < a2.assignment_id
+    ");
+
+    // Auto-cleanup orphaned task assignments (where target_cid is not in target_population)
+    $pdo->exec("
+        DELETE a FROM task_assignments a
+        LEFT JOIN target_population p ON a.target_cid = p.cid
+        WHERE p.cid IS NULL
+    ");
+
+    // Auto-cleanup orphaned rewards (where assignment_id is not null but does not exist in task_assignments)
+    $pdo->exec("
+        DELETE r FROM vhv_rewards r
+        LEFT JOIN task_assignments a ON r.assignment_id = a.assignment_id
+        WHERE r.assignment_id IS NOT NULL AND a.assignment_id IS NULL
+    ");
+
 } catch (\PDOException $e) {
     // Fail silently
 }
