@@ -633,6 +633,13 @@ try {
         WHERE r.assignment_id IS NOT NULL AND a.assignment_id IS NULL
     ");
 
+    // Retroactively mark existing manual targets (where pid is null or empty) as is_manual = 1
+    $pdo->exec("
+        UPDATE target_population 
+        SET is_manual = 1 
+        WHERE (pid IS NULL OR pid = '') AND (is_manual IS NULL OR is_manual = 0)
+    ");
+
 } catch (\PDOException $e) {
     // Fail silently
 }

@@ -42,7 +42,7 @@ try {
         $updateStmt = $pdo->prepare("
             UPDATE target_population 
             SET first_name=?, last_name=?, sex=?, birth=?, house_no=?, moo=?, 
-                sub_district_code=?, vhid_code=?, hoscode=?, need_screen_dm=?, need_screen_ht=?, updated_at=CURRENT_TIMESTAMP
+                sub_district_code=?, vhid_code=?, hoscode=?, need_screen_dm=?, need_screen_ht=?, is_manual=1, updated_at=CURRENT_TIMESTAMP
             WHERE cid=?
         ");
         $updateStmt->execute([
@@ -54,8 +54,8 @@ try {
         // Insert new record
         $insertStmt = $pdo->prepare("
             INSERT INTO target_population 
-            (cid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode, need_screen_dm, need_screen_ht) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (cid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode, need_screen_dm, need_screen_ht, is_manual) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
         ");
         $insertStmt->execute([
             $data['cid'], $data['first_name'], $data['last_name'], $data['sex'], $data['birth'], 
