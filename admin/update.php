@@ -546,26 +546,48 @@ $current_page = 'update.php';
         <?php endif; ?>
     </div>
 
-    <!-- Custom Confirmation Modal -->
+    <!-- Custom Confirmation Modal & Progress Bar -->
     <div id="confirm-modal" class="custom-modal" style="display: none;">
-        <div class="modal-overlay" onclick="closeConfirmModal()"></div>
-        <div class="modal-content">
-            <div class="modal-icon">⚠️</div>
-            <h3 class="modal-title">ยืนยันการอัปเดตระบบ</h3>
-            <p class="modal-message">
-                คุณต้องการเริ่มดำเนินการดาวน์โหลดและติดตั้งตัวอัปเกรดระบบ NCDs Portal รุ่นล่าสุดใช่หรือไม่?
-            </p>
-            <div class="modal-warning">
-                <strong>🔒 ความมั่นใจในการอัปเดตระบบ:</strong>
-                <ul style="margin: 8px 0 0 0; padding-left: 20px; font-size: 12.5px; line-height: 1.6;">
-                    <li><strong>ข้อมูลคัดกรองปลอดภัย 100%:</strong> ประวัติการบันทึกคัดกรอง ผลงาน อสม. พิกัดตำแหน่งบ้าน และข้อมูลเดิมทั้งหมดในฐานข้อมูลจะไม่สูญหายหรือเสียหายแน่นอน</li>
-                    <li><strong>ทำงานได้ต่อเนื่องอย่างไร้รอยต่อ:</strong> อสม. และเจ้าหน้าที่ยังคงสแกนคัดกรอง ส่งการ์ดความห่วงใย หรือใช้งานระบบได้ปกติทันทีโดยไม่ต้องตั้งค่าใหม่</li>
-                    <li><strong>ปกป้องค่าเชื่อมต่อของพื้นที่:</strong> ค่ารหัสผ่านเชื่อมต่อฐานข้อมูล และข้อมูลระบบการเชื่อมต่อสิทธิ์ส่งข้อความแจ้งเตือน (LINE API/Token) เดิมของหน่วยงานท่านจะได้รับการละเว้นและปกป้องไว้ไม่ถูกเขียนทับแน่นอน</li>
-                </ul>
+        <div class="modal-overlay" id="modal-overlay-el" onclick="closeConfirmModal()"></div>
+        <div class="modal-content" style="max-width: 500px;">
+            <!-- Phase 1: Confirm -->
+            <div id="modal-confirm-view">
+                <div class="modal-icon">⚠️</div>
+                <h3 class="modal-title">ยืนยันการอัปเดตระบบ</h3>
+                <p class="modal-message">
+                    คุณต้องการเริ่มดำเนินการดาวน์โหลดและติดตั้งตัวอัปเกรดระบบ NCDs Portal รุ่นล่าสุดใช่หรือไม่?
+                </p>
+                <div class="modal-warning">
+                    <strong>🔒 ความมั่นใจในการอัปเดตระบบ:</strong>
+                    <ul style="margin: 8px 0 0 0; padding-left: 20px; font-size: 12.5px; line-height: 1.6;">
+                        <li><strong>ข้อมูลคัดกรองปลอดภัย 100%:</strong> ประวัติการบันทึกคัดกรอง ผลงาน อสม. พิกัดตำแหน่งบ้าน และข้อมูลเดิมทั้งหมดในฐานข้อมูลจะไม่สูญหายหรือเสียหายแน่นอน</li>
+                        <li><strong>ทำงานได้ต่อเนื่องอย่างไร้รอยต่อ:</strong> อสม. และเจ้าหน้าที่ยังคงสแกนคัดกรอง ส่งการ์ดความห่วงใย หรือใช้งานระบบได้ปกติทันทีโดยไม่ต้องตั้งค่าใหม่</li>
+                        <li><strong>ปกป้องค่าเชื่อมต่อของพื้นที่:</strong> ค่ารหัสผ่านเชื่อมต่อฐานข้อมูล และข้อมูลระบบการเชื่อมต่อสิทธิ์ส่งข้อความแจ้งเตือน (LINE API/Token) เดิมของหน่วยงานท่านจะได้รับการละเว้นและปกป้องไว้ไม่ถูกเขียนทับแน่นอน</li>
+                    </ul>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-modal-cancel" onclick="closeConfirmModal()">ยกเลิก</button>
+                    <button type="button" class="btn-modal-confirm" onclick="proceedWithUpdate()">🚀 เริ่มการอัปเดต</button>
+                </div>
             </div>
-            <div class="modal-actions">
-                <button type="button" class="btn-modal-cancel" onclick="closeConfirmModal()">ยกเลิก</button>
-                <button type="button" class="btn-modal-confirm" onclick="proceedWithUpdate()">🚀 เริ่มการอัปเดต</button>
+
+            <!-- Phase 2: Progress -->
+            <div id="modal-progress-view" style="display: none; padding: 15px 0;">
+                <div class="modal-icon">⚙️</div>
+                <h3 class="modal-title" style="margin-bottom: 5px;">กำลังดำเนินการอัปเดตระบบ</h3>
+                <p id="progress-status" class="modal-message" style="font-size: 13.5px; margin-bottom: 25px;">
+                    กำลังเตรียมระบบและเริ่มเชื่อมต่อสิทธิ์ดาวน์โหลด...
+                </p>
+                
+                <!-- Progress bar container -->
+                <div style="background-color: var(--border-color); border-radius: 9999px; height: 12px; width: 100%; overflow: hidden; margin-bottom: 10px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
+                    <div id="progress-bar-fill" style="background: linear-gradient(90deg, #ff9800 0%, #22c55e 100%); height: 100%; width: 0%; border-radius: 9999px; transition: width 0.3s ease;"></div>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: bold; color: var(--text-secondary);">
+                    <span>ความคืบหน้าการติดตั้ง</span>
+                    <span id="progress-percent-lbl">0%</span>
+                </div>
             </div>
         </div>
     </div>
@@ -584,23 +606,95 @@ $current_page = 'update.php';
         }
 
         function closeConfirmModal() {
+            if (document.getElementById('modal-progress-view').style.display === 'block') {
+                return; // Disallow closing during update progress
+            }
             document.getElementById('confirm-modal').style.display = 'none';
         }
 
         function proceedWithUpdate() {
-            isConfirmed = true;
-            closeConfirmModal();
-            showLoading();
-            // Programmatically submit the form
-            document.getElementById('update-form').submit();
-        }
-
-        function showLoading() {
-            const btn = document.getElementById('update-btn');
-            if (btn) {
-                btn.disabled = true;
-                btn.innerHTML = '⏳ กำลังดาวน์โหลดและคลี่ไฟล์โปรแกรม กรุณารอสักครู่...';
+            // Switch views
+            document.getElementById('modal-confirm-view').style.display = 'none';
+            document.getElementById('modal-progress-view').style.display = 'block';
+            
+            // Remove click overlay close handler for safety
+            document.getElementById('modal-overlay-el').onclick = null;
+            
+            const bar = document.getElementById('progress-bar-fill');
+            const statusText = document.getElementById('progress-status');
+            const percentText = document.getElementById('progress-percent-lbl');
+            
+            // Disable original button as fallback
+            const mainBtn = document.getElementById('update-btn');
+            if (mainBtn) {
+                mainBtn.disabled = true;
+                mainBtn.innerHTML = '⏳ กำลังอัปเดตระบบ กรุณาห้ามปิดหน้าจอนี้...';
             }
+            
+            // Simulate progression smoothly up to 92%
+            let percent = 0;
+            const progressTimer = setInterval(() => {
+                if (percent < 92) {
+                    percent += Math.floor(Math.random() * 6) + 3;
+                    if (percent > 92) percent = 92;
+                    
+                    bar.style.width = percent + '%';
+                    percentText.innerText = percent + '%';
+                    
+                    if (percent < 25) {
+                        statusText.innerText = '📥 กำลังดาวน์โหลดแพ็กเกจระบบจาก Server ส่วนกลาง...';
+                    } else if (percent < 55) {
+                        statusText.innerText = '📦 ดาวน์โหลดเสร็จสิ้น กำลังแกะไฟล์และคัดลอกไฟล์ลงโฟลเดอร์...';
+                    } else if (percent < 80) {
+                        statusText.innerText = '⚙️ กำลังทำการตรวจสอบโครงสร้างฐานข้อมูลและตารางงาน...';
+                    } else {
+                        statusText.innerText = '🧹 ไฟล์ได้รับการอัปเดตแล้ว กำลังรีเซ็ตแคชและประมวลผล...';
+                    }
+                }
+            }, 300);
+
+            // Execute actual POST request via fetch API
+            const formData = new FormData();
+            formData.append('trigger_update', '1');
+            
+            fetch('update.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('การเชื่อมต่อฝั่งเซิร์ฟเวอร์ตอบกลับไม่ถูกต้อง: ' + response.status);
+                }
+                return response.text();
+            })
+            .then(htmlResponse => {
+                clearInterval(progressTimer);
+                
+                // Finalize to 100%
+                bar.style.width = '100%';
+                percentText.innerText = '100%';
+                statusText.innerText = '🎉 อัปเกรดระบบสำเร็จ! กำลังรีโหลดหน้าจอ...';
+                
+                // Wait for animation to finish, then write the new HTML to document
+                setTimeout(() => {
+                    document.open();
+                    document.write(htmlResponse);
+                    document.close();
+                }, 600);
+            })
+            .catch(error => {
+                clearInterval(progressTimer);
+                statusText.innerText = '❌ เกิดข้อผิดพลาดในการอัปเดต: ' + error.message;
+                statusText.style.color = '#ef4444';
+                percentText.innerText = 'ล้มเหลว';
+                
+                // Allow closing the modal to see the error page in case of failure
+                document.getElementById('modal-overlay-el').onclick = closeConfirmModal;
+                if (mainBtn) {
+                    mainBtn.disabled = false;
+                    mainBtn.innerHTML = '🚀 ลองอัปเดตใหม่อีกครั้ง';
+                }
+            });
         }
     </script>
 </body>
