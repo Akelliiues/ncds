@@ -78,7 +78,17 @@ if ($admin_hoscode) {
     $skipped->execute($hoscodes);
     $skipped_val = $skipped->fetchColumn();
 
-    $rewards = $pdo->prepare("SELECT SUM(points_earned) FROM vhv_rewards r JOIN vhv_users v ON r.vhv_id = v.vhv_id WHERE v.hoscode IN ($inPlaceholders) AND v.approved = 1");
+    $rewards = $pdo->prepare("
+        SELECT SUM(r.points_earned) 
+        FROM vhv_rewards r 
+        JOIN vhv_users v ON r.vhv_id = v.vhv_id 
+        LEFT JOIN task_assignments ta ON r.assignment_id = ta.assignment_id
+        LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id
+        WHERE v.hoscode IN ($inPlaceholders) 
+          AND v.approved = 1
+          AND r.approval_status IN ('approved', 'waiting')
+          AND ((r.followup_id IS NULL AND ta.assignment_id IS NOT NULL) OR (r.followup_id IS NOT NULL AND f.followup_id IS NOT NULL))
+    ");
     $rewards->execute($hoscodes);
     $rewards_val = $rewards->fetchColumn() ?: 0;
 
@@ -187,8 +197,13 @@ if ($admin_hoscode) {
         SELECT v.vhv_name, SUM(r.points_earned) as total_points
         FROM vhv_rewards r
         JOIN vhv_users v ON r.vhv_id = v.vhv_id
-        WHERE v.hoscode IN ($inPlaceholders) AND v.approved = 1
-        GROUP BY v.vhv_id
+        LEFT JOIN task_assignments ta ON r.assignment_id = ta.assignment_id
+        LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id
+        WHERE v.hoscode IN ($inPlaceholders) 
+          AND v.approved = 1
+          AND r.approval_status IN ('approved', 'waiting')
+          AND ((r.followup_id IS NULL AND ta.assignment_id IS NOT NULL) OR (r.followup_id IS NOT NULL AND f.followup_id IS NOT NULL))
+        GROUP BY v.vhv_id, v.vhv_name
         ORDER BY total_points DESC
         LIMIT 10
     ");
@@ -345,7 +360,7 @@ if ($admin_hoscode) {
             (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'completed' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as screened_count,
             (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'pending' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as pending_count,
             (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as skipped_count,
-            (SELECT SUM(points_earned) FROM vhv_rewards r JOIN vhv_users v ON r.vhv_id = v.vhv_id WHERE v.hoscode IN ($inPlaceholdersSa) AND v.approved = 1) as total_points,
+            (SELECT SUM(r.points_earned) FROM vhv_rewards r JOIN vhv_users v ON r.vhv_id = v.vhv_id LEFT JOIN task_assignments ta ON r.assignment_id = ta.assignment_id LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id WHERE v.hoscode IN ($inPlaceholdersSa) AND v.approved = 1 AND r.approval_status IN ('approved', 'waiting') AND ((r.followup_id IS NULL AND ta.assignment_id IS NOT NULL) OR (r.followup_id IS NOT NULL AND f.followup_id IS NOT NULL))) as total_points,
             (SELECT COUNT(*) FROM vhv_users WHERE hoscode IN ($inPlaceholdersSa)) as total_vhvs
     ");
     // Duplicate array parameters for the 6 subqueries
@@ -474,8 +489,13 @@ if ($admin_hoscode) {
         SELECT v.vhv_name, SUM(r.points_earned) as total_points
         FROM vhv_rewards r
         JOIN vhv_users v ON r.vhv_id = v.vhv_id
-        WHERE v.hoscode IN ($inPlaceholdersSa) AND v.approved = 1
-        GROUP BY v.vhv_id
+        LEFT JOIN task_assignments ta ON r.assignment_id = ta.assignment_id
+        LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id
+        WHERE v.hoscode IN ($inPlaceholdersSa) 
+          AND v.approved = 1
+          AND r.approval_status IN ('approved', 'waiting')
+          AND ((r.followup_id IS NULL AND ta.assignment_id IS NOT NULL) OR (r.followup_id IS NOT NULL AND f.followup_id IS NOT NULL))
+        GROUP BY v.vhv_id, v.vhv_name
         ORDER BY total_points DESC
         LIMIT 10
     ");
