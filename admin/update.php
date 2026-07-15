@@ -25,6 +25,8 @@ $error = null;
 $success = null;
 $remote_changelog = [];
 
+$new_updates_list = [];
+
 // Fetch remote changelog
 try {
     $ctx = stream_context_create([
@@ -41,6 +43,14 @@ try {
             $remote_version = $remote_changelog[0];
             if ($remote_version['title'] !== $local_version['title'] || $remote_version['date'] !== $local_version['date']) {
                 $update_available = true;
+                
+                // Get list of new updates since local version
+                foreach ($remote_changelog as $remote_item) {
+                    if ($remote_item['title'] === $local_version['title'] && $remote_item['date'] === $local_version['date']) {
+                        break;
+                    }
+                    $new_updates_list[] = $remote_item;
+                }
             }
         }
     } else {
@@ -310,7 +320,7 @@ $current_page = 'update.php';
         </div>
 
         <div style="text-align: center; margin-bottom: 40px;">
-            <form method="POST" action="update.php" onsubmit="showLoading()">
+            <form method="POST" action="update.php" onsubmit="return confirmUpdate(event)">
                 <?php if ($update_available): ?>
                     <button type="submit" name="trigger_update" class="btn-update" id="update-btn">
                         🚀 ตรวจพบเวอร์ชันใหม่! คลิกเพื่ออัปเดตระบบทันที
@@ -323,10 +333,38 @@ $current_page = 'update.php';
             </form>
         </div>
 
-        <?php if (!empty($remote_changelog)): ?>
+        <?php if ($update_available && !empty($new_updates_list)): ?>
+            <div class="changelog-box" style="border: 2px dashed var(--color-primary); background-color: rgba(99, 102, 241, 0.03);">
+                <h3 style="margin-top: 0; margin-bottom: 20px; color: var(--color-primary); border-bottom: 1.5px solid var(--border-color); padding-bottom: 10px;">
+                    ✨ รายการฟีเจอร์และการปรับปรุงที่จะได้รับการติดตั้ง (New Features to Install)
+                </h3>
+                <div>
+                    <?php 
+                    foreach ($new_updates_list as $log): 
+                        $bg = 'rgba(156, 163, 175, 0.15)';
+                        $fg = '#9ca3af';
+                        if (($log['type'] ?? '') === 'fix') {
+                            $bg = 'rgba(239, 68, 68, 0.15)';
+                            $fg = '#ef4444';
+                        } elseif (($log['type'] ?? '') === 'feature') {
+                            $bg = 'rgba(16, 185, 129, 0.15)';
+                            $fg = '#10b981';
+                        }
+                    ?>
+                        <div class="log-item">
+                            <div class="log-header">
+                                <span class="log-type" style="background-color: <?= $bg ?>; color: <?= $fg ?>;"><?= htmlspecialchars(strtoupper($log['type'] ?? 'info')) ?></span>
+                                <span class="log-date"><?= htmlspecialchars($log['date']) ?></span>
+                            </div>
+                            <div class="log-title" style="font-weight: bold;"><?= htmlspecialchars($log['title']) ?></div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php elseif (!empty($remote_changelog)): ?>
             <div class="changelog-box">
                 <h3 style="margin-top: 0; margin-bottom: 20px; color: var(--color-accent); border-bottom: 1.5px solid var(--border-color); padding-bottom: 10px;">
-                    📜 รายละเอียดการปรับปรุงรุ่นล่าสุด (Changelog)
+                    📜 ประวัติการปรับปรุงระบบที่ผ่านมา (Changelog)
                 </h3>
                 <div>
                     <?php 
@@ -357,10 +395,21 @@ $current_page = 'update.php';
     </div>
 
     <script>
+        function confirmUpdate(e) {
+            if (confirm("ยืนยันการเริ่มอัปเดตระบบใช่หรือไม่?\n\n* ระบบจะยังคงรักษาไฟล์เชื่อมฐานข้อมูล (db_config.php) และ LINE API Token (line_config.php) เดิมของคุณไว้อย่างปลอดภัย")) {
+                showLoading();
+                return true;
+            }
+            e.preventDefault();
+            return false;
+        }
+
         function showLoading() {
             const btn = document.getElementById('update-btn');
-            btn.disabled = true;
-            btn.innerHTML = '⏳ กำลังดาวน์โหลดและคลี่ไฟล์โปรแกรม กรุณารอสักครู่...';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '⏳ กำลังดาวน์โหลดและคลี่ไฟล์โปรแกรม กรุณารอสักครู่...';
+            }
         }
     </script>
 </body>
