@@ -1032,16 +1032,16 @@ try {
 
                 <!-- Quick Tags (Multi-select) -->
                 <div>
-                    <label class="survey-q-title">ข้อความเสนอแนะเพิ่มเติมที่ตรงใจ (กดเพื่อเลือก)</label>
-                    <div class="survey-tag-container" id="survey-tags">
-                        <button type="button" class="survey-tag-btn" data-tag="ใช้งานง่ายมาก" onclick="toggleSurveyTag(this)">ใช้งานง่ายมาก</button>
-                        <button type="button" class="survey-tag-btn" data-tag="โหลดข้อมูลรวดเร็ว" onclick="toggleSurveyTag(this)">โหลดข้อมูลรวดเร็ว</button>
-                        <button type="button" class="survey-tag-btn" data-tag="สะสมแต้มสนุกเร้าใจ" onclick="toggleSurveyTag(this)">สะสมแต้มสนุกเร้าใจ</button>
-                        <button type="button" class="survey-tag-btn" data-tag="แผนที่แม่นยำมาก" onclick="toggleSurveyTag(this)">แผนที่แม่นยำมาก</button>
-                        <button type="button" class="survey-tag-btn" data-tag="ตัวหนังสือเล็กเกินไป" onclick="toggleSurveyTag(this)">ตัวหนังสือเล็กเกินไป</button>
-                        <button type="button" class="survey-tag-btn" data-tag="แอปพลิเคชันค้างบ่อย" onclick="toggleSurveyTag(this)">แอปพลิเคชันค้างบ่อย</button>
-                        <button type="button" class="survey-tag-btn" data-tag="ไม่มีเน็ตแล้วส่งงานยาก" onclick="toggleSurveyTag(this)">ไม่มีเน็ตแล้วส่งงานยาก</button>
-                        <button type="button" class="survey-tag-btn" data-tag="ปุ่มกดยากเล็กน้อย" onclick="toggleSurveyTag(this)">ปุ่มกดยากเล็กน้อย</button>
+                    <label class="survey-q-title">ข้อความเสนอแนะเพิ่มเติมที่ตรงใจ (กดเลือกได้มากกว่า 1 ข้อ)</label>
+                    <div class="survey-tag-grid" id="survey-tags">
+                        <button type="button" class="survey-tag-btn tag-positive" data-tag="ใช้งานง่ายมาก" onclick="toggleSurveyTag(this)">💚 ใช้งานง่ายมาก</button>
+                        <button type="button" class="survey-tag-btn tag-positive" data-tag="โหลดข้อมูลรวดเร็ว" onclick="toggleSurveyTag(this)">🚀 โหลดข้อมูลรวดเร็ว</button>
+                        <button type="button" class="survey-tag-btn tag-positive" data-tag="สะสมแต้มสนุกเร้าใจ" onclick="toggleSurveyTag(this)">🏆 สะสมแต้มสนุกเร้าใจ</button>
+                        <button type="button" class="survey-tag-btn tag-positive" data-tag="แผนที่แม่นยำมาก" onclick="toggleSurveyTag(this)">📍 แผนที่แม่นยำมาก</button>
+                        <button type="button" class="survey-tag-btn tag-negative" data-tag="ตัวหนังสือเล็กเกินไป" onclick="toggleSurveyTag(this)">🔎 ตัวหนังสือเล็กเกินไป</button>
+                        <button type="button" class="survey-tag-btn tag-negative" data-tag="แอปพลิเคชันค้างบ่อย" onclick="toggleSurveyTag(this)">⚠️ แอปพลิเคชันค้างบ่อย</button>
+                        <button type="button" class="survey-tag-btn tag-negative" data-tag="ไม่มีเน็ตแล้วส่งงานยาก" onclick="toggleSurveyTag(this)">📶 ไม่มีเน็ตแล้วส่งงานยาก</button>
+                        <button type="button" class="survey-tag-btn tag-negative" data-tag="ปุ่มกดยากเล็กน้อย" onclick="toggleSurveyTag(this)">🖐️ ปุ่มกดยากเล็กน้อย</button>
                     </div>
                 </div>
             </div>
@@ -1181,29 +1181,43 @@ try {
             font-size: 13.5px;
             transition: all 0.2s;
         }
-        .survey-tag-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 8px;
+        .survey-tag-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
         }
         .survey-tag-btn {
             background-color: var(--bg-main);
             color: var(--text-secondary);
             border: 1px solid var(--border-color);
-            padding: 8px 14px;
-            border-radius: 50px;
-            font-size: 13px;
+            padding: 12px 8px;
+            border-radius: 10px;
+            font-size: 12.5px;
             font-weight: 800;
             cursor: pointer;
-            transition: all 0.2s;
-            display: inline-block;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: var(--neumorph-inset);
         }
-        .survey-tag-btn.active {
-            background-color: var(--color-accent);
-            color: white;
-            border-color: var(--color-accent);
-            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+        .survey-tag-btn:active {
+            transform: scale(0.96);
+        }
+        .survey-tag-btn.tag-positive.active {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+            color: white !important;
+            border-color: #059669 !important;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
+        }
+        .survey-tag-btn.tag-negative.active {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+            color: white !important;
+            border-color: #d97706 !important;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3) !important;
         }
     </style>
 
