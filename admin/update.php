@@ -90,7 +90,7 @@ if (isset($_POST['trigger_update']) && $update_available) {
                     if (empty($relative_name)) continue;
                     
                     // Skip config files to prevent overwriting health office details
-                    if (strpos($relative_name, 'config/db_config.php') !== false) {
+                    if (strpos($relative_name, 'config/db_config.php') !== false || strpos($relative_name, 'config/line_config.php') !== false) {
                         continue;
                     }
                     if (strpos($relative_name, '.git/') !== false) {
