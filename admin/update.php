@@ -7,6 +7,12 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
     exit();
 }
 
+// Prevent any caching of this update script (LiteSpeed, Cloudflare, browser cache)
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
+header("Expires: Sat, 26 Jul 1997 05:00:00 GMT");
+
 require_once __DIR__ . '/../config/db.php';
 $admin_title = get_admin_title();
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
@@ -657,9 +663,13 @@ $current_page = 'update.php';
             const formData = new FormData();
             formData.append('trigger_update', '1');
             
-            fetch('update.php', {
+            fetch('update.php?t=' + new Date().getTime(), {
                 method: 'POST',
-                body: formData
+                body: formData,
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
             })
             .then(response => {
                 if (!response.ok) {
