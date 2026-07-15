@@ -201,29 +201,47 @@ $current_page = 'update.php';
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            gap: 12px;
+            background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);
             color: white !important;
             border: none;
-            padding: 14px 28px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 12px;
+            padding: 18px 36px;
+            font-size: 18px;
+            font-weight: 800;
+            border-radius: 16px;
             cursor: pointer;
             width: 100%;
+            max-width: 550px;
             margin-top: 15px;
-            box-shadow: var(--neumorph-flat);
-            transition: all var(--transition-speed);
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-update:not(:disabled) {
+            background: linear-gradient(135deg, #ff9800 0%, #f44336 100%); /* Orange-Red warning gradient */
+            box-shadow: 0 10px 20px rgba(244, 67, 54, 0.35);
+            animation: pulse-glow 2s infinite alternate;
+        }
+        @keyframes pulse-glow {
+            0% {
+                box-shadow: 0 8px 16px rgba(244, 67, 54, 0.35);
+                transform: scale(1);
+            }
+            100% {
+                box-shadow: 0 12px 28px rgba(244, 67, 54, 0.65);
+                transform: scale(1.02);
+            }
         }
         .btn-update:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(99, 102, 241, 0.4);
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 15px 35px rgba(244, 67, 54, 0.7);
+            background: linear-gradient(135deg, #ffa726 0%, #ff5252 100%);
         }
         .btn-update:disabled {
-            background: #cbd5e1;
+            background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
             color: #94a3b8 !important;
             cursor: not-allowed;
             box-shadow: none;
+            transform: none;
         }
         .changelog-box {
             background-color: var(--bg-card);
