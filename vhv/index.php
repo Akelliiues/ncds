@@ -285,7 +285,7 @@ try {
         <!-- VHV Info Header -->
         <div class="vhv-header" style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 20px 16px; position: relative;">
             <?php if (!$hasSubmittedSurvey): ?>
-                <button id="survey-banner" onclick="openSurveyModal()" style="position: absolute; top: 16px; right: 16px; background: linear-gradient(135deg, var(--color-yellow) 0%, #d97706 100%); color: white; border: none; border-radius: 50%; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); cursor: pointer; z-index: 10; font-size: 22px; animation: pulse-yellow-ring 2s infinite, float-bubble 2s ease-in-out infinite;" title="ทำแบบประเมินรับโบนัส 5 แต้ม! 🎁">
+                <button id="survey-banner" onclick="openSurveyModal()" style="position: absolute; top: 16px; right: 16px; background: none; border: none; cursor: pointer; z-index: 10; font-size: 28px; animation: float-bubble 2s ease-in-out infinite; padding: 0; outline: none; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" title="ทำแบบประเมินรับโบนัส 5 แต้ม! 🎁">
                     🎁
                 </button>
             <?php endif; ?>
