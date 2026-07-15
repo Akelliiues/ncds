@@ -561,8 +561,19 @@ try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS `vhv_survey_participants` (
         `vhv_id` VARCHAR(50) NOT NULL,
         `budget_year` INT NOT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (`vhv_id`, `budget_year`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+} catch (\PDOException $e) {
+    // Fail silently
+}
+
+// Auto-migration: Add created_at column to vhv_survey_participants if it doesn't exist
+try {
+    $check = $pdo->query("SHOW COLUMNS FROM `vhv_survey_participants` LIKE 'created_at'");
+    if ($check->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `vhv_survey_participants` ADD COLUMN `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+    }
 } catch (\PDOException $e) {
     // Fail silently
 }
