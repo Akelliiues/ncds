@@ -968,75 +968,65 @@ try {
                 <!-- Q1 PEOU -->
                 <div style="margin-bottom: 16px;">
                     <label class="survey-q-title">📱 1. หน้าจอสวยงาม ตัวหนังสือใหญ่ เมนูกดง่ายไม่สับสน</label>
-                    <div style="display: flex; align-items: center;">
-                        <div class="survey-star-container" data-question="peou" style="margin-bottom: 0;">
-                            <button type="button" class="survey-star-btn" data-value="1" onclick="setRating('peou', 1)">★</button>
-                            <button type="button" class="survey-star-btn" data-value="2" onclick="setRating('peou', 2)">★</button>
-                            <button type="button" class="survey-star-btn" data-value="3" onclick="setRating('peou', 3)">★</button>
-                            <button type="button" class="survey-star-btn" data-value="4" onclick="setRating('peou', 4)">★</button>
-                            <button type="button" class="survey-star-btn" data-value="5" onclick="setRating('peou', 5)">★</button>
-                        </div>
-                        <span id="desc-peou" style="margin-left: 12px; font-weight: bold; color: var(--color-accent); font-size: 14px;"></span>
+                    <div class="survey-emoji-container" data-question="peou">
+                        <button type="button" class="survey-emoji-btn btn-score-1" data-value="1" onclick="setRating('peou', 1)">😭</button>
+                        <button type="button" class="survey-emoji-btn btn-score-2" data-value="2" onclick="setRating('peou', 2)">😞</button>
+                        <button type="button" class="survey-emoji-btn btn-score-3" data-value="3" onclick="setRating('peou', 3)">😐</button>
+                        <button type="button" class="survey-emoji-btn btn-score-4" data-value="4" onclick="setRating('peou', 4)">🙂</button>
+                        <button type="button" class="survey-emoji-btn btn-score-5" data-value="5" onclick="setRating('peou', 5)">😍</button>
+                        <span id="desc-peou" class="survey-emoji-desc"></span>
                     </div>
                 </div>
 
                 <!-- Q2 SQ -->
                 <div style="margin-bottom: 16px;">
                     <label class="survey-q-title">⚡ 2. แอปทำงานไว โหลดหน้าฟอร์มและบันทึกเสร็จเร็ว ไม่ค้างบ่อย</label>
-                    <div style="display: flex; align-items: center;">
-                        <div class="survey-star-container" data-question="sq" style="margin-bottom: 0;">
-                            <button type="button" class="survey-star-btn" data-value="1" onclick="setRating('sq', 1)">★</button>
-                            <button type="button" class="survey-star-btn" data-value="2" onclick="setRating('sq', 2)">★</button>
-                            <button type="button" class="survey-star-btn" data-value="3" onclick="setRating('sq', 3)">★</button>
-                            <button type="button" class="survey-star-btn" data-value="4" onclick="setRating('sq', 4)">★</button>
-                            <button type="button" class="survey-star-btn" data-value="5" onclick="setRating('sq', 5)">★</button>
-                        </div>
-                        <span id="desc-sq" style="margin-left: 12px; font-weight: bold; color: var(--color-accent); font-size: 14px;"></span>
+                    <div class="survey-emoji-container" data-question="sq">
+                        <button type="button" class="survey-emoji-btn btn-score-1" data-value="1" onclick="setRating('sq', 1)">😭</button>
+                        <button type="button" class="survey-emoji-btn btn-score-2" data-value="2" onclick="setRating('sq', 2)">😞</button>
+                        <button type="button" class="survey-emoji-btn btn-score-3" data-value="3" onclick="setRating('sq', 3)">😐</button>
+                        <button type="button" class="survey-emoji-btn btn-score-4" data-value="4" onclick="setRating('sq', 4)">🙂</button>
+                        <button type="button" class="survey-emoji-btn btn-score-5" data-value="5" onclick="setRating('sq', 5)">😍</button>
+                        <span id="desc-sq" class="survey-emoji-desc"></span>
                     </div>
                 </div>
 
                 <!-- Q3 IQ -->
                 <div style="margin-bottom: 16px;">
                     <label class="survey-q-title">📍 3. รายชื่อชาวบ้านกลุ่มเสี่ยงและพิกัดบ้าน แสดงได้แม่นยำถูกต้อง</label>
-                    <div style="display: flex; align-items: center;">
-                        <div class="survey-star-container" data-question="iq" style="margin-bottom: 0;">
-                            <button type="button" class="survey-star-btn" data-value="1" onclick="setRating('iq', 1)">★</button>
-                            <button type="button" class="survey-star-btn" data-value="2" onclick="setRating('iq', 2)">★</button>
-                            <button type="button" class="survey-star-btn" data-value="3" onclick="setRating('iq', 3)">★</button>
-                            <button type="button" class="survey-star-btn" data-value="4" onclick="setRating('iq', 4)">★</button>
-                            <button type="button" class="survey-star-btn" data-value="5" onclick="setRating('iq', 5)">★</button>
-                        </div>
-                        <span id="desc-iq" style="margin-left: 12px; font-weight: bold; color: var(--color-accent); font-size: 14px;"></span>
+                    <div class="survey-emoji-container" data-question="iq">
+                        <button type="button" class="survey-emoji-btn btn-score-1" data-value="1" onclick="setRating('iq', 1)">😭</button>
+                        <button type="button" class="survey-emoji-btn btn-score-2" data-value="2" onclick="setRating('iq', 2)">😞</button>
+                        <button type="button" class="survey-emoji-btn btn-score-3" data-value="3" onclick="setRating('iq', 3)">😐</button>
+                        <button type="button" class="survey-emoji-btn btn-score-4" data-value="4" onclick="setRating('iq', 4)">🙂</button>
+                        <button type="button" class="survey-emoji-btn btn-score-5" data-value="5" onclick="setRating('iq', 5)">😍</button>
+                        <span id="desc-iq" class="survey-emoji-desc"></span>
                     </div>
                 </div>
 
                 <!-- Q4 PU -->
                 <div style="margin-bottom: 16px;">
                     <label class="survey-q-title">📝 4. ช่วยให้เดินคัดกรองสะดวก สบายกว่าการเขียนกระดาษแบบเดิม</label>
-                    <div style="display: flex; align-items: center;">
-                        <div class="survey-star-container" data-question="pu" style="margin-bottom: 0;">
-                            <button type="button" class="survey-star-btn" data-value="1" onclick="setRating('pu', 1)">★</button>
-                            <button type="button" class="survey-star-btn" data-value="2" onclick="setRating('pu', 2)">★</button>
-                            <button type="button" class="survey-star-btn" data-value="3" onclick="setRating('pu', 3)">★</button>
-                            <button type="button" class="survey-star-btn" data-value="4" onclick="setRating('pu', 4)">★</button>
-                            <button type="button" class="survey-star-btn" data-value="5" onclick="setRating('pu', 5)">★</button>
-                        </div>
-                        <span id="desc-pu" style="margin-left: 12px; font-weight: bold; color: var(--color-accent); font-size: 14px;"></span>
+                    <div class="survey-emoji-container" data-question="pu">
+                        <button type="button" class="survey-emoji-btn btn-score-1" data-value="1" onclick="setRating('pu', 1)">😭</button>
+                        <button type="button" class="survey-emoji-btn btn-score-2" data-value="2" onclick="setRating('pu', 2)">😞</button>
+                        <button type="button" class="survey-emoji-btn btn-score-3" data-value="3" onclick="setRating('pu', 3)">😐</button>
+                        <button type="button" class="survey-emoji-btn btn-score-4" data-value="4" onclick="setRating('pu', 4)">🙂</button>
+                        <button type="button" class="survey-emoji-btn btn-score-5" data-value="5" onclick="setRating('pu', 5)">😍</button>
+                        <span id="desc-pu" class="survey-emoji-desc"></span>
                     </div>
                 </div>
 
                 <!-- Q5 BI -->
                 <div style="margin-bottom: 24px;">
                     <label class="survey-q-title">🥰 5. อสม. พึงพอใจในภาพรวม และอยากใช้งานระบบนี้อีกในปีถัดไป</label>
-                    <div style="display: flex; align-items: center;">
-                        <div class="survey-star-container" data-question="bi" style="margin-bottom: 0;">
-                            <button type="button" class="survey-star-btn" data-value="1" onclick="setRating('bi', 1)">★</button>
-                            <button type="button" class="survey-star-btn" data-value="2" onclick="setRating('bi', 2)">★</button>
-                            <button type="button" class="survey-star-btn" data-value="3" onclick="setRating('bi', 3)">★</button>
-                            <button type="button" class="survey-star-btn" data-value="4" onclick="setRating('bi', 4)">★</button>
-                            <button type="button" class="survey-star-btn" data-value="5" onclick="setRating('bi', 5)">★</button>
-                        </div>
-                        <span id="desc-bi" style="margin-left: 12px; font-weight: bold; color: var(--color-accent); font-size: 14px;"></span>
+                    <div class="survey-emoji-container" data-question="bi">
+                        <button type="button" class="survey-emoji-btn btn-score-1" data-value="1" onclick="setRating('bi', 1)">😭</button>
+                        <button type="button" class="survey-emoji-btn btn-score-2" data-value="2" onclick="setRating('bi', 2)">😞</button>
+                        <button type="button" class="survey-emoji-btn btn-score-3" data-value="3" onclick="setRating('bi', 3)">😐</button>
+                        <button type="button" class="survey-emoji-btn btn-score-4" data-value="4" onclick="setRating('bi', 4)">🙂</button>
+                        <button type="button" class="survey-emoji-btn btn-score-5" data-value="5" onclick="setRating('bi', 5)">😍</button>
+                        <span id="desc-bi" class="survey-emoji-desc"></span>
                     </div>
                 </div>
 
@@ -1120,26 +1110,76 @@ try {
             color: var(--text-primary);
             margin: 0 0 6px 0;
         }
-        .survey-star-container {
+        .survey-emoji-container {
             display: flex;
+            align-items: center;
             gap: 10px;
+            margin-top: 6px;
             margin-bottom: 14px;
         }
-        .survey-star-btn {
-            font-size: 32px;
-            background: none;
-            border: none;
+        .survey-emoji-btn {
+            font-size: 26px;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
-            color: var(--text-muted);
-            transition: transform 0.2s, color 0.2s;
-            padding: 2px 6px;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            filter: grayscale(100%);
+            opacity: 0.5;
+            padding: 0;
+            box-shadow: var(--neumorph-inset);
         }
-        .survey-star-btn.active {
-            color: var(--color-yellow);
+        .survey-emoji-btn:hover {
+            opacity: 0.8;
+            filter: grayscale(50%);
+            transform: scale(1.1);
+        }
+        .survey-emoji-btn.active {
+            filter: grayscale(0%);
+            opacity: 1;
             transform: scale(1.2);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
         }
-        .survey-star-btn:active {
-            transform: scale(0.85);
+        .survey-emoji-btn.active.btn-score-1 {
+            background-color: rgba(239, 68, 68, 0.2);
+            border-color: #ef4444;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+        }
+        .survey-emoji-btn.active.btn-score-2 {
+            background-color: rgba(249, 115, 22, 0.2);
+            border-color: #f97316;
+            box-shadow: 0 0 12px rgba(249, 115, 22, 0.4);
+        }
+        .survey-emoji-btn.active.btn-score-3 {
+            background-color: rgba(234, 179, 8, 0.2);
+            border-color: #eab308;
+            box-shadow: 0 0 12px rgba(234, 179, 8, 0.4);
+        }
+        .survey-emoji-btn.active.btn-score-4 {
+            background-color: rgba(132, 204, 22, 0.2);
+            border-color: #84cc16;
+            box-shadow: 0 0 12px rgba(132, 204, 22, 0.4);
+        }
+        .survey-emoji-btn.active.btn-score-5 {
+            background-color: rgba(16, 185, 129, 0.2);
+            border-color: #10b981;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+            animation: bounce-emoji 0.5s ease;
+        }
+        @keyframes bounce-emoji {
+            0%, 100% { transform: scale(1.2); }
+            50% { transform: scale(1.4); }
+        }
+        .survey-emoji-desc {
+            margin-left: 12px;
+            font-weight: 800;
+            font-size: 13.5px;
+            transition: all 0.2s;
         }
         .survey-tag-container {
             display: flex;
@@ -1188,11 +1228,11 @@ try {
 
         function setRating(question, value) {
             surveyRatings[question] = value;
-            const container = document.querySelector(`.survey-star-container[data-question="${question}"]`);
-            const stars = container.querySelectorAll('.survey-star-btn');
+            const container = document.querySelector(`.survey-emoji-container[data-question="${question}"]`);
+            const stars = container.querySelectorAll('.survey-emoji-btn');
             stars.forEach(star => {
                 const starVal = parseInt(star.getAttribute('data-value'));
-                if (starVal <= value) {
+                if (starVal === value) {
                     star.classList.add('active');
                 } else {
                     star.classList.remove('active');
@@ -1207,9 +1247,17 @@ try {
                 4: '🙂 ดี',
                 5: '😍 ดีมากสุดใจ!'
             };
+            const descColors = {
+                1: '#ef4444',
+                2: '#f97316',
+                3: '#eab308',
+                4: '#84cc16',
+                5: '#10b981'
+            };
             const descEl = document.getElementById('desc-' + question);
             if (descEl) {
                 descEl.innerText = descText[value] || '';
+                descEl.style.color = descColors[value] || 'var(--text-secondary)';
             }
         }
 
