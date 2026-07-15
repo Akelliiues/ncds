@@ -118,11 +118,19 @@ if (isset($_POST['trigger_update']) && $update_available) {
                         if (!is_dir($dir)) {
                             @mkdir($dir, 0755, true);
                         }
-                        @copy("zip://{$temp_zip}#{$filename}", $target_file);
+                        if (@copy("zip://{$temp_zip}#{$filename}", $target_file) === false) {
+                            throw new Exception("ไม่สามารถเขียนไฟล์ทับได้ (Permission Error) ที่ไฟล์: " . $relative_name . " (กรุณาตั้งค่าสิทธิ์ให้เป็น 0755 หรือ 0777)");
+                        }
                     }
                 }
                 $zip->close();
                 @unlink($temp_zip);
+                
+                // Clear OPcache and stat cache to ensure fresh PHP files and file systems are loaded
+                if (function_exists('opcache_reset')) {
+                    @opcache_reset();
+                }
+                clearstatcache();
                 
                 $success = "ระบบได้รับการอัปเกรดเป็นเวอร์ชันใหม่เรียบร้อยแล้ว!";
                 $update_available = false;
