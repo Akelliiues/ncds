@@ -75,7 +75,7 @@ $leaderboardStmt = $pdo->query("
             FROM vhv_rewards r
             LEFT JOIN task_assignments ta ON r.assignment_id = ta.assignment_id
             LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id
-            WHERE r.vhv_id = u.vhv_id AND r.approval_status IN ('approved', 'waiting')
+            WHERE r.vhv_id = u.vhv_id AND r.approval_status IN ('approved', 'waiting') AND r.is_sandbox = 0
         ) as total_points,
         (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026) as total_assigned,
         (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026 AND assignment_status = 'completed') as completed,

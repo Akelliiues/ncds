@@ -694,6 +694,20 @@ try {
         WHERE r.assignment_id IS NOT NULL AND a.assignment_id IS NULL
     ");
 
+    // Auto-cleanup orphaned rewards (where screening_id is not null but does not exist in screening_results)
+    $pdo->exec("
+        DELETE r FROM vhv_rewards r
+        LEFT JOIN screening_results s ON r.screening_id = s.screening_id
+        WHERE r.screening_id IS NOT NULL AND s.screening_id IS NULL
+    ");
+
+    // Auto-cleanup orphaned rewards (where followup_id is not null but does not exist in dpac_followups)
+    $pdo->exec("
+        DELETE r FROM vhv_rewards r
+        LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id
+        WHERE r.followup_id IS NOT NULL AND f.followup_id IS NULL
+    ");
+
     // Retroactively mark existing manual targets (where pid is null or empty) as is_manual = 1
     $pdo->exec("
         UPDATE target_population 

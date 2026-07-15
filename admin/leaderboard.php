@@ -10,6 +10,7 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 require_once __DIR__ . '/../config/db.php';
 
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
+
 $admin_username = $_SESSION['admin_username'] ?? '';
 
 $hc_names = get_health_units();
@@ -48,17 +49,38 @@ $sql = "
         u.hoscode, 
         u.is_hl_coach,
         u.approved,
-        COALESCE(SUM(CASE WHEN r.followup_id IS NULL AND ta.assignment_id IS NOT NULL THEN r.points_earned ELSE 0 END), 0) as screening_points,
-        COALESCE(SUM(CASE WHEN r.followup_id IS NOT NULL THEN r.points_earned ELSE 0 END), 0) as dpac_points,
-        COALESCE(SUM(CASE WHEN (r.followup_id IS NULL AND r.assignment_id IS NULL) OR (r.followup_id IS NULL AND ta.assignment_id IS NOT NULL) OR r.followup_id IS NOT NULL THEN r.points_earned ELSE 0 END), 0) as total_points,
+        (
+            SELECT COALESCE(SUM(r.points_earned), 0)
+            FROM vhv_rewards r
+            JOIN task_assignments ta ON r.assignment_id = ta.assignment_id
+            WHERE r.vhv_id = u.vhv_id 
+              AND r.approval_status IN ('approved', 'waiting') 
+              AND r.followup_id IS NULL
+              AND r.is_sandbox = 0
+        ) as screening_points,
+        (
+            SELECT COALESCE(SUM(r.points_earned), 0)
+            FROM vhv_rewards r
+            JOIN dpac_followups f ON r.followup_id = f.followup_id
+            WHERE r.vhv_id = u.vhv_id 
+              AND r.approval_status IN ('approved', 'waiting') 
+              AND r.followup_id IS NOT NULL
+              AND r.is_sandbox = 0
+        ) as dpac_points,
+        (
+            SELECT COALESCE(SUM(CASE WHEN (r.followup_id IS NULL AND r.assignment_id IS NULL) OR (r.followup_id IS NULL AND ta.assignment_id IS NOT NULL) OR (r.followup_id IS NOT NULL AND f.followup_id IS NOT NULL) THEN r.points_earned ELSE 0 END), 0)
+            FROM vhv_rewards r
+            LEFT JOIN task_assignments ta ON r.assignment_id = ta.assignment_id
+            LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id
+            WHERE r.vhv_id = u.vhv_id 
+              AND r.approval_status IN ('approved', 'waiting') 
+              AND r.is_sandbox = 0
+        ) as total_points,
         (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026) as total_assigned,
         (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026 AND assignment_status = 'completed') as completed,
         (SELECT COUNT(*) FROM vhv_rewards WHERE vhv_id = u.vhv_id AND approval_status = 'waiting' AND is_sandbox = 0) as waiting_rewards
     FROM vhv_users u
-    LEFT JOIN vhv_rewards r ON u.vhv_id = r.vhv_id AND r.approval_status IN ('approved', 'waiting')
-    LEFT JOIN task_assignments ta ON r.assignment_id = ta.assignment_id
     WHERE u.approved = 1
-    GROUP BY u.vhv_id, u.vhv_name, u.vhv_moo, u.vhid_code, u.hoscode, u.is_hl_coach, u.approved
     ORDER BY total_points DESC, u.vhv_name ASC
 ";
 
