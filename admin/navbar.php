@@ -8,7 +8,7 @@ $is_core_active = in_array($current_page, ['index.php', 'profile.php', 'leaderbo
 $is_targets_active = in_array($current_page, ['target_manager.php', 'dpac_manager.php']);
 $is_work_active = in_array($current_page, ['assignment.php', 'vhv_approval.php', 'print_qr.php']);
 $is_reports_active = in_array($current_page, ['analytics.php', 'reports.php', 'security_log.php']);
-$is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php', 'resolve_all_duplicates.php', 'db_manager.php', 'user_manager.php', 'unit_house_manager.php']);
+$is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php', 'resolve_all_duplicates.php', 'db_manager.php', 'user_manager.php', 'unit_house_manager.php', 'update.php']);
 ?>
 <script>
     // Immediately apply theme before rendering
@@ -437,6 +437,12 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
                     จัดการหน่วยบริการ & บ้าน
+                </a>
+                <a href="update.php" class="<?= $current_page == 'update.php' ? 'active' : '' ?>">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5" />
+                    </svg>
+                    อัปเดตระบบ (Update)
                 </a>
             </div>
         </div>
