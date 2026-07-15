@@ -34,7 +34,7 @@ try {
             "timeout" => 10
         ]
     ]);
-    $remote_content = @file_get_contents('https://raw.githubusercontent.com/Akelliiues/ncds/main/changelog.json', false, $ctx);
+    $remote_content = @file_get_contents('https://raw.githubusercontent.com/Akelliiues/ncds/main/changelog.json?t=' . time(), false, $ctx);
     if ($remote_content) {
         $remote_changelog = json_decode($remote_content, true);
         if (!empty($remote_changelog)) {
