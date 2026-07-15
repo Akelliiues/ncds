@@ -17,7 +17,7 @@ function getPositiveTitle($rank)
 {
     if ($rank <= 0 || $rank > 50)
         return '';
-    
+
     // Top 5 are unique supreme titles
     if ($rank === 1)
         return '🏆 สุดยอดขุนพลสาธารณสุข' . DISTRICT_NAME;
@@ -104,12 +104,13 @@ foreach ($allLeaders as $index => $leader) {
 $topFifty = array_slice($allLeaders, 0, 50);
 
 // VHV Badges helper
-function getBadgesList($total_assigned, $completed, $waiting_rewards) {
+function getBadgesList($total_assigned, $completed, $waiting_rewards)
+{
     $badges = [];
     $total_assigned = (int)$total_assigned;
     $completed = (int)$completed;
     $waiting_rewards = (int)$waiting_rewards;
-    
+
     if ($completed > 0) {
         $badges[] = [
             'icon' => '🚀',
@@ -117,7 +118,7 @@ function getBadgesList($total_assigned, $completed, $waiting_rewards) {
             'desc' => 'คัดกรองสำเร็จอย่างน้อย 1 รายการ'
         ];
     }
-    
+
     if ($total_assigned > 0) {
         $rate = ($completed / $total_assigned) * 100;
         if ($rate >= 100) {
@@ -140,7 +141,7 @@ function getBadgesList($total_assigned, $completed, $waiting_rewards) {
             ];
         }
     }
-    
+
     if ($completed > 0 && $waiting_rewards === 0) {
         $badges[] = [
             'icon' => '📍',
@@ -148,7 +149,7 @@ function getBadgesList($total_assigned, $completed, $waiting_rewards) {
             'desc' => 'คัดกรองพิกัดถูกต้องทุกเคส'
         ];
     }
-    
+
     return $badges;
 }
 
@@ -235,18 +236,22 @@ $hcNames = get_health_units();
             transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.35s ease;
             transform-origin: center bottom;
         }
+
         .trophy-icon:hover {
             transform: scale(1.45) rotate(-12deg);
             filter: drop-shadow(0 6px 18px rgba(251, 191, 36, 0.7)) brightness(1.1);
         }
+
         /* Silver trophy hover */
         .trophy-icon.silver:hover {
             filter: drop-shadow(0 6px 18px rgba(156, 163, 175, 0.8)) brightness(1.12);
         }
+
         /* Bronze trophy hover */
         .trophy-icon.bronze:hover {
             filter: drop-shadow(0 6px 18px rgba(180, 100, 30, 0.75)) brightness(1.1);
         }
+
         /* Medal rank 4-10 hover */
         .trophy-icon.medal:hover {
             transform: scale(1.35) rotate(10deg);
@@ -259,12 +264,21 @@ $hcNames = get_health_units();
             color: var(--color-accent) !important;
             box-shadow: var(--neumorph-flat) !important;
         }
+
         .tab-content {
             animation: fadeIn 0.35s ease-in-out;
         }
+
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(6px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
@@ -306,7 +320,7 @@ $hcNames = get_health_units();
             <?php
             $myTitle = getPositiveTitle($currentVhvRank);
             if ($myTitle):
-                ?>
+            ?>
                 <div
                     style="margin-top: 10px; font-size: 14px; text-align: center; color: var(--color-accent); background: rgba(13, 44, 84, 0.05); padding: 8px; border-radius: 12px; font-weight: bold; box-shadow: var(--neumorph-inset);">
                     🎯 ฉายาของคุณ: <?= $myTitle ?>
@@ -325,35 +339,35 @@ $hcNames = get_health_units();
         <!-- Tab 2: Village Progress Board -->
         <div id="content-villages" class="tab-content" style="display: none;">
             <?php if (!empty($villageStats)): ?>
-            <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
-                <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                    🏘️ สมรภูมิคัดกรองรายหมู่บ้าน (เขตดูแลของคุณ)
-                </h4>
-                <p style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 16px 0;">เปรียบเทียบอัตราความสำเร็จในการคัดกรองเป้าหมายในตำบลของคุณ</p>
-                <div style="display: flex; flex-direction: column; gap: 14px;">
-                    <?php foreach ($villageStats as $vStat): 
-                        $total = (int)$vStat['total_targets'];
-                        $done = (int)$vStat['completed_targets'];
-                        $pct = $total > 0 ? round(($done / $total) * 100, 1) : 0;
-                        
-                        // Select indicator color based on progress
-                        $barColor = 'var(--color-yellow)';
-                        if ($pct >= 100) $barColor = 'var(--color-green)';
-                        elseif ($pct >= 50) $barColor = 'var(--color-accent)';
-                        elseif ($pct < 20) $barColor = 'var(--color-red)';
-                    ?>
-                        <div>
-                            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-primary);">
-                                <span>หมู่ที่ <?= htmlspecialchars($vStat['moo']) ?> <?= !empty($vStat['village_name']) ? htmlspecialchars($vStat['village_name']) : '' ?></span>
-                                <span style="color: <?= $barColor ?>;"><?= $done ?> / <?= $total ?> คน (<?= $pct ?>%)</span>
+                <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
+                    <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                        🏘️ สมรภูมิคัดกรองรายหมู่บ้าน
+                    </h4>
+                    <p style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 16px 0;">เปรียบเทียบอัตราความสำเร็จในการคัดกรองเป้าหมายในตำบลของคุณ</p>
+                    <div style="display: flex; flex-direction: column; gap: 14px;">
+                        <?php foreach ($villageStats as $vStat):
+                            $total = (int)$vStat['total_targets'];
+                            $done = (int)$vStat['completed_targets'];
+                            $pct = $total > 0 ? round(($done / $total) * 100, 1) : 0;
+
+                            // Select indicator color based on progress
+                            $barColor = 'var(--color-yellow)';
+                            if ($pct >= 100) $barColor = 'var(--color-green)';
+                            elseif ($pct >= 50) $barColor = 'var(--color-accent)';
+                            elseif ($pct < 20) $barColor = 'var(--color-red)';
+                        ?>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-primary);">
+                                    <span>หมู่ที่ <?= htmlspecialchars($vStat['moo']) ?> <?= !empty($vStat['village_name']) ? htmlspecialchars($vStat['village_name']) : '' ?></span>
+                                    <span style="color: <?= $barColor ?>;"><?= $done ?> / <?= $total ?> คน (<?= $pct ?>%)</span>
+                                </div>
+                                <div style="width: 100%; height: 12px; background: rgba(13, 44, 84, 0.08); border-radius: 6px; overflow: hidden; box-shadow: var(--neumorph-inset);">
+                                    <div style="width: <?= $pct ?>%; height: 100%; background: <?= $barColor ?>; border-radius: 6px; transition: width 0.8s ease-in-out;"></div>
+                                </div>
                             </div>
-                            <div style="width: 100%; height: 12px; background: rgba(13, 44, 84, 0.08); border-radius: 6px; overflow: hidden; box-shadow: var(--neumorph-inset);">
-                                <div style="width: <?= $pct ?>%; height: 100%; background: <?= $barColor ?>; border-radius: 6px; transition: width 0.8s ease-in-out;"></div>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
-            </div>
             <?php else: ?>
                 <div class="card-dark" style="padding: 30px; text-align: center; color: var(--text-muted); margin-bottom: 20px;">
                     ไม่พบข้อมูลประชากรเป้าหมายของ รพ.สต. คุณ
@@ -364,46 +378,46 @@ $hcNames = get_health_units();
         <!-- Tab 3: Hospital / Zone League Standings -->
         <div id="content-hospitals" class="tab-content" style="display: none;">
             <?php if (!empty($hospitalStats)): ?>
-            <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
-                <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                    🏥 ลีกหน่วยบริการ รพ.สต. (ทั้งอำเภอ<?= DISTRICT_NAME ?>)
-                </h4>
-                <p style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 16px 0;">อันดับอัตราการคัดกรองสูงสุดแยกตามเขตรับผิดชอบของแต่ละ รพ.สต.</p>
-                <div style="display: flex; flex-direction: column; gap: 14px;">
-                    <?php 
-                    $hRank = 1;
-                    foreach ($hospitalStats as $hStat): 
-                        $total = (int)$hStat['total_targets'];
-                        $done = (int)$hStat['completed_targets'];
-                        $pct = $total > 0 ? round(($done / $total) * 100, 1) : 0;
-                        $hName = $hcNames[$hStat['hoscode']] ?? $hStat['hoscode'];
-                        
-                        $isMyHos = ($hStat['hoscode'] === $hoscode);
-                        
-                        $barColor = 'var(--color-accent)';
-                        if ($pct >= 100) $barColor = 'var(--color-green)';
-                        
-                        $rankIcon = '';
-                        if ($hRank === 1) $rankIcon = '🥇';
-                        elseif ($hRank === 2) $rankIcon = '🥈';
-                        elseif ($hRank === 3) $rankIcon = '🥉';
-                        else $rankIcon = '🏅';
-                    ?>
-                        <div style="<?= $isMyHos ? 'background: rgba(13, 44, 84, 0.04); border: 1px dashed var(--color-accent); padding: 8px; border-radius: 12px;' : '' ?>">
-                            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-primary);">
-                                <span><?= $rankIcon ?> #<?= $hRank ?> <?= htmlspecialchars($hName) ?> <?= $isMyHos ? '<span style="color:var(--color-accent);font-size:11px;">(รพ.สต. ของคุณ)</span>' : '' ?></span>
-                                <span><?= $pct ?>%</span>
+                <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
+                    <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                        🏥 ลีกหน่วยบริการ รพ.สต. (ทั้งอำเภอ<?= DISTRICT_NAME ?>)
+                    </h4>
+                    <p style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 16px 0;">อันดับอัตราการคัดกรองสูงสุดแยกตามเขตรับผิดชอบของแต่ละ รพ.สต.</p>
+                    <div style="display: flex; flex-direction: column; gap: 14px;">
+                        <?php
+                        $hRank = 1;
+                        foreach ($hospitalStats as $hStat):
+                            $total = (int)$hStat['total_targets'];
+                            $done = (int)$hStat['completed_targets'];
+                            $pct = $total > 0 ? round(($done / $total) * 100, 1) : 0;
+                            $hName = $hcNames[$hStat['hoscode']] ?? $hStat['hoscode'];
+
+                            $isMyHos = ($hStat['hoscode'] === $hoscode);
+
+                            $barColor = 'var(--color-accent)';
+                            if ($pct >= 100) $barColor = 'var(--color-green)';
+
+                            $rankIcon = '';
+                            if ($hRank === 1) $rankIcon = '🥇';
+                            elseif ($hRank === 2) $rankIcon = '🥈';
+                            elseif ($hRank === 3) $rankIcon = '🥉';
+                            else $rankIcon = '🏅';
+                        ?>
+                            <div style="<?= $isMyHos ? 'background: rgba(13, 44, 84, 0.04); border: 1px dashed var(--color-accent); padding: 8px; border-radius: 12px;' : '' ?>">
+                                <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-primary);">
+                                    <span><?= $rankIcon ?> #<?= $hRank ?> <?= htmlspecialchars($hName) ?> <?= $isMyHos ? '<span style="color:var(--color-accent);font-size:11px;">(รพ.สต. ของคุณ)</span>' : '' ?></span>
+                                    <span><?= $pct ?>%</span>
+                                </div>
+                                <div style="width: 100%; height: 8px; background: rgba(13, 44, 84, 0.08); border-radius: 4px; overflow: hidden;">
+                                    <div style="width: <?= $pct ?>%; height: 100%; background: <?= $barColor ?>; border-radius: 4px; transition: width 0.8s ease-in-out;"></div>
+                                </div>
                             </div>
-                            <div style="width: 100%; height: 8px; background: rgba(13, 44, 84, 0.08); border-radius: 4px; overflow: hidden;">
-                                <div style="width: <?= $pct ?>%; height: 100%; background: <?= $barColor ?>; border-radius: 4px; transition: width 0.8s ease-in-out;"></div>
-                            </div>
-                        </div>
-                    <?php 
-                        $hRank++;
-                    endforeach; 
-                    ?>
+                        <?php
+                            $hRank++;
+                        endforeach;
+                        ?>
+                    </div>
                 </div>
-            </div>
             <?php endif; ?>
         </div>
 
@@ -455,112 +469,112 @@ $hcNames = get_health_units();
 
         <!-- Tab 1: Leaderboard List -->
         <div id="content-leaderboard" class="tab-content">
-        <!-- Leaderboard List -->
-        <div style="margin-top: 20px;">
-            <h4 style="color: var(--text-primary); font-size: 18px; margin-bottom: 12px; font-weight: 800;">50
-                อันดับสูงสุด</h4>
+            <!-- Leaderboard List -->
+            <div style="margin-top: 20px;">
+                <h4 style="color: var(--text-primary); font-size: 18px; margin-bottom: 12px; font-weight: 800;">50
+                    อันดับสูงสุด</h4>
 
-            <?php
-            $rankNum = 1;
-            foreach ($topFifty as $index => $leader):
-                $points = $leader['total_points'] ?? 0;
-
-                // Assign CSS class based on rank
-                $rankClass = '';
-                $badgeText = '';
-                if ($rankNum === 1) {
-                    $rankClass = 'badge-gold';
-                    $badgeText = '🥇';
-                } elseif ($rankNum === 2) {
-                    $rankClass = 'badge-silver';
-                    $badgeText = '🏆';
-                } elseif ($rankNum === 3) {
-                    $rankClass = 'badge-bronze';
-                    $badgeText = '🏆';
-                } else {
-                    $rankClass = 'badge-custom';
-                    $badgeText = '🎖️';
-                }
-
-                // Add special shiny badging based on points milestones
-                $shinyBadge = '';
-                if ($points >= 50) {
-                    $shinyBadge = '<span class="badge-icon badge-gold" title="ฮีโร่' . DISTRICT_NAME . '">🔥</span>';
-                } elseif ($points >= 20) {
-                    $shinyBadge = '<span class="badge-icon badge-silver" title="ผู้พิทักษ์หัวใจ">💖</span>';
-                }
-                ?>
                 <?php
-                // Display trophy or medal or badge in rank area
-                $trophyHtml = '';
-                if ($rankNum === 1) {
-                    $trophyHtml = '<span class="trophy-icon" title="อันดับ 1" style="font-size: 32px; filter: drop-shadow(0 4px 8px rgba(251, 191, 36, 0.55));">🏆</span>';
-                } elseif ($rankNum === 2) {
-                    $trophyHtml = '<span class="trophy-icon silver" title="อันดับ 2" style="font-size: 30px; filter: drop-shadow(0 4px 8px rgba(156, 163, 175, 0.55)) sepia(0.3) hue-rotate(180deg) saturate(0.3) brightness(1.5);">🏆</span>'; // Silver Trophy cup
-                } elseif ($rankNum === 3) {
-                    $trophyHtml = '<span class="trophy-icon bronze" title="อันดับ 3" style="font-size: 30px; filter: drop-shadow(0 4px 8px rgba(180, 100, 30, 0.55)) sepia(1) saturate(2) hue-rotate(5deg) brightness(0.85);">🏆</span>'; // Bronze Trophy cup
-                } elseif ($rankNum >= 4 && $rankNum <= 10) {
-                    $trophyHtml = '<span class="trophy-icon medal" title="อันดับ ' . $rankNum . '" style="font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));">🏅</span>'; // Medal
-                } else {
-                    $trophyHtml = '<span style="font-size: 14px; font-weight: 800; color: var(--text-secondary); background: var(--bg-main); width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; box-shadow: var(--neumorph-inset);">#' . $rankNum . '</span>';
-                }
+                $rankNum = 1;
+                foreach ($topFifty as $index => $leader):
+                    $points = $leader['total_points'] ?? 0;
+
+                    // Assign CSS class based on rank
+                    $rankClass = '';
+                    $badgeText = '';
+                    if ($rankNum === 1) {
+                        $rankClass = 'badge-gold';
+                        $badgeText = '🥇';
+                    } elseif ($rankNum === 2) {
+                        $rankClass = 'badge-silver';
+                        $badgeText = '🏆';
+                    } elseif ($rankNum === 3) {
+                        $rankClass = 'badge-bronze';
+                        $badgeText = '🏆';
+                    } else {
+                        $rankClass = 'badge-custom';
+                        $badgeText = '🎖️';
+                    }
+
+                    // Add special shiny badging based on points milestones
+                    $shinyBadge = '';
+                    if ($points >= 50) {
+                        $shinyBadge = '<span class="badge-icon badge-gold" title="ฮีโร่' . DISTRICT_NAME . '">🔥</span>';
+                    } elseif ($points >= 20) {
+                        $shinyBadge = '<span class="badge-icon badge-silver" title="ผู้พิทักษ์หัวใจ">💖</span>';
+                    }
                 ?>
-                <div class="leaderboard-row"
-                    style="<?= $leader['vhv_id'] === $currentVhvId ? 'box-shadow: var(--neumorph-inset); background-color: var(--bg-darker);' : '' ?> display: flex; align-items: center; padding: 18px 16px; border-radius: var(--border-radius); background: var(--bg-card); box-shadow: var(--neumorph-flat); margin-bottom: 16px; position: relative; overflow: hidden;">
-                    
-                    <!-- Faded background watermark rank number -->
-                    <div style="position: absolute; right: 80px; bottom: -20px; font-size: 80px; font-weight: 900; color: rgba(13, 44, 84, 0.04); pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif;">
-                        <?= $rankNum ?>
-                    </div>
-
-                    <div style="width: 55px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; position: relative; z-index: 2;">
-                        <?= $trophyHtml ?>
-                    </div>
-
-                    <?php 
-                    $badges = getBadgesList($leader['total_assigned'], $leader['completed'], $leader['waiting_rewards']);
+                    <?php
+                    // Display trophy or medal or badge in rank area
+                    $trophyHtml = '';
+                    if ($rankNum === 1) {
+                        $trophyHtml = '<span class="trophy-icon" title="อันดับ 1" style="font-size: 32px; filter: drop-shadow(0 4px 8px rgba(251, 191, 36, 0.55));">🏆</span>';
+                    } elseif ($rankNum === 2) {
+                        $trophyHtml = '<span class="trophy-icon silver" title="อันดับ 2" style="font-size: 30px; filter: drop-shadow(0 4px 8px rgba(156, 163, 175, 0.55)) sepia(0.3) hue-rotate(180deg) saturate(0.3) brightness(1.5);">🏆</span>'; // Silver Trophy cup
+                    } elseif ($rankNum === 3) {
+                        $trophyHtml = '<span class="trophy-icon bronze" title="อันดับ 3" style="font-size: 30px; filter: drop-shadow(0 4px 8px rgba(180, 100, 30, 0.55)) sepia(1) saturate(2) hue-rotate(5deg) brightness(0.85);">🏆</span>'; // Bronze Trophy cup
+                    } elseif ($rankNum >= 4 && $rankNum <= 10) {
+                        $trophyHtml = '<span class="trophy-icon medal" title="อันดับ ' . $rankNum . '" style="font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));">🏅</span>'; // Medal
+                    } else {
+                        $trophyHtml = '<span style="font-size: 14px; font-weight: 800; color: var(--text-secondary); background: var(--bg-main); width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; box-shadow: var(--neumorph-inset);">#' . $rankNum . '</span>';
+                    }
                     ?>
-                    <div class="leader-info" style="position: relative; z-index: 2;">
-                        <strong
-                            style="color: var(--text-primary); font-size: 16px;">
-                            <?= htmlspecialchars($leader['vhv_name']) ?>
-                            <?php foreach ($badges as $badge): ?>
-                                <span class="badge-icon" style="background: rgba(13,44,84,0.05); font-size: 14px;" title="<?= htmlspecialchars($badge['title']) ?>: <?= htmlspecialchars($badge['desc']) ?>">
-                                    <?= $badge['icon'] ?>
-                                </span>
-                            <?php endforeach; ?>
-                        </strong>
-                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">
-                            หมู่ที่ <?= $leader['vhv_moo'] ?><?= !empty($leader['village_name']) ? ' ' . htmlspecialchars($leader['village_name']) : '' ?>
-                        </p>
-                        <?php if (!empty($leader['is_hl_coach'])): ?>
-                            <div
-                                style="margin-top: 6px; font-size: 12px; color: #fbbf24; font-weight: bold; display: inline-block; background-color: rgba(251, 191, 36, 0.1); padding: 4px 8px; border-radius: 8px; border: 1px solid rgba(251,191,36,0.3);">
-                                ✨ HL-Coach
-                            </div>
-                        <?php endif; ?>
-                        <?php
-                        $rowTitle = getPositiveTitle($rankNum);
-                        if ($rowTitle):
-                            ?>
-                            <div
-                                style="margin-top: 6px; font-size: 12px; color: var(--color-accent); font-weight: bold; display: inline-block; background-color: rgba(13, 44, 84, 0.05); padding: 4px 8px; border-radius: 8px; box-shadow: var(--neumorph-inset);">
-                                <?= $rowTitle ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
+                    <div class="leaderboard-row"
+                        style="<?= $leader['vhv_id'] === $currentVhvId ? 'box-shadow: var(--neumorph-inset); background-color: var(--bg-darker);' : '' ?> display: flex; align-items: center; padding: 18px 16px; border-radius: var(--border-radius); background: var(--bg-card); box-shadow: var(--neumorph-flat); margin-bottom: 16px; position: relative; overflow: hidden;">
 
-                    <div class="leader-score" style="flex-shrink: 0; position: relative; z-index: 2;">
-                        <div style="font-size: 20px; color: var(--color-accent);"><?= (float)$points ?></div>
-                        <span style="font-size: 12px; color: var(--text-muted);">แต้ม</span>
-                        <?= $shinyBadge ?>
+                        <!-- Faded background watermark rank number -->
+                        <div style="position: absolute; right: 80px; bottom: -20px; font-size: 80px; font-weight: 900; color: rgba(13, 44, 84, 0.04); pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif;">
+                            <?= $rankNum ?>
+                        </div>
+
+                        <div style="width: 55px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; position: relative; z-index: 2;">
+                            <?= $trophyHtml ?>
+                        </div>
+
+                        <?php
+                        $badges = getBadgesList($leader['total_assigned'], $leader['completed'], $leader['waiting_rewards']);
+                        ?>
+                        <div class="leader-info" style="position: relative; z-index: 2;">
+                            <strong
+                                style="color: var(--text-primary); font-size: 16px;">
+                                <?= htmlspecialchars($leader['vhv_name']) ?>
+                                <?php foreach ($badges as $badge): ?>
+                                    <span class="badge-icon" style="background: rgba(13,44,84,0.05); font-size: 14px;" title="<?= htmlspecialchars($badge['title']) ?>: <?= htmlspecialchars($badge['desc']) ?>">
+                                        <?= $badge['icon'] ?>
+                                    </span>
+                                <?php endforeach; ?>
+                            </strong>
+                            <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">
+                                หมู่ที่ <?= $leader['vhv_moo'] ?><?= !empty($leader['village_name']) ? ' ' . htmlspecialchars($leader['village_name']) : '' ?>
+                            </p>
+                            <?php if (!empty($leader['is_hl_coach'])): ?>
+                                <div
+                                    style="margin-top: 6px; font-size: 12px; color: #fbbf24; font-weight: bold; display: inline-block; background-color: rgba(251, 191, 36, 0.1); padding: 4px 8px; border-radius: 8px; border: 1px solid rgba(251,191,36,0.3);">
+                                    ✨ HL-Coach
+                                </div>
+                            <?php endif; ?>
+                            <?php
+                            $rowTitle = getPositiveTitle($rankNum);
+                            if ($rowTitle):
+                            ?>
+                                <div
+                                    style="margin-top: 6px; font-size: 12px; color: var(--color-accent); font-weight: bold; display: inline-block; background-color: rgba(13, 44, 84, 0.05); padding: 4px 8px; border-radius: 8px; box-shadow: var(--neumorph-inset);">
+                                    <?= $rowTitle ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="leader-score" style="flex-shrink: 0; position: relative; z-index: 2;">
+                            <div style="font-size: 20px; color: var(--color-accent);"><?= (float)$points ?></div>
+                            <span style="font-size: 12px; color: var(--text-muted);">แต้ม</span>
+                            <?= $shinyBadge ?>
+                        </div>
                     </div>
-                </div>
                 <?php
-                $rankNum++;
-            endforeach;
-            ?>
-        </div>
+                    $rankNum++;
+                endforeach;
+                ?>
+            </div>
         </div>
 
         <!-- Bottom Navigation Bar -->
@@ -603,7 +617,7 @@ $hcNames = get_health_units();
             document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
             // Remove active class from all tab buttons
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            
+
             // Show selected tab content and activate button
             document.getElementById('content-' + tabId).style.display = 'block';
             document.getElementById('btn-' + tabId).classList.add('active');

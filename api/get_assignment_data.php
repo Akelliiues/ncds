@@ -34,13 +34,14 @@ try {
             LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026
             LEFT JOIN vhv_users v ON a.vhv_id = v.vhv_id
             WHERE (p.vhid_code = ? OR (CAST(p.moo AS UNSIGNED) = CAST(? AS UNSIGNED) AND p.hoscode = ?))
-              AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35
         ";
         
         // Filter by target group
         if ($group === 'suspect') {
-            $query .= " AND p.need_screen_dm = 0 AND p.need_screen_ht = 0";
+            // Suspect group requires age 35+ and not already an active target
+            $query .= " AND p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35";
         } else {
+            // Active target group allows any age
             $query .= " AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)";
         }
         
@@ -75,9 +76,8 @@ try {
                            WHERE a.vhv_id = v.vhv_id 
                              AND a.budget_year = 2026 
                              AND a.assignment_status = 'pending'
-                             AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35
                              AND (
-                                 (:group1 = 'suspect' AND p.need_screen_dm = 0 AND p.need_screen_ht = 0)
+                                 (:group1 = 'suspect' AND p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
                                  OR (:group2 != 'suspect' AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1))
                              )
                        ) + (
@@ -95,9 +95,8 @@ try {
                            WHERE a.vhv_id = v.vhv_id 
                              AND a.budget_year = 2026 
                              AND p.vhid_code = :vhid1
-                             AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35
                              AND (
-                                 (:group3 = 'suspect' AND p.need_screen_dm = 0 AND p.need_screen_ht = 0)
+                                 (:group3 = 'suspect' AND p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
                                  OR (:group4 != 'suspect' AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1))
                              )
                        ) + (
