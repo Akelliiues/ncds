@@ -136,7 +136,7 @@ try {
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NCDs by อสม.อำเภอตาลสุม</title>
+    <title>NCDs by อสม.อำเภอ<?= DISTRICT_NAME ?></title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="manifest" href="manifest.json">
     <script src="../assets/js/app.js"></script>
@@ -270,7 +270,7 @@ try {
             </a>
             <div style="flex-grow: 1; min-width: 200px;">
                 <h3 style="color: var(--color-accent); margin: 0; font-size: 14px; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; text-size-adjust: none; -webkit-text-size-adjust: none;">
-                    <span style="white-space: nowrap;">อสม. ประจำบ้าน ตาลสุม</span>
+                    <span style="white-space: nowrap;">อสม. ประจำบ้าน<?= DISTRICT_NAME ?></span>
                     <a href="manual.php" style="color: var(--color-accent); text-decoration: none; font-size: 13px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; background: rgba(30, 64, 175, 0.08); padding: 4px 10px; border-radius: 50px; white-space: nowrap; text-size-adjust: none; -webkit-text-size-adjust: none;">
                         📖 คู่มือการใช้งาน
                     </a>
@@ -352,7 +352,7 @@ try {
                     <div>
                         <h4 style="color: var(--color-green); font-size: 18px; font-weight: 800; margin: 0 0 6px 0; letter-spacing: 0.5px; text-size-adjust: none; -webkit-text-size-adjust: none;">ภารกิจคัดกรองสำเร็จครบถ้วน!</h4>
                         <p style="font-size: 14px; color: var(--text-primary); font-weight: bold; margin: 0 0 4px 0; line-height: 1.5; text-size-adjust: none; -webkit-text-size-adjust: none;">ไม่มีงานค้างในเขตรับผิดชอบของคุณ</p>
-                        <p style="font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.4; text-size-adjust: none; -webkit-text-size-adjust: none;">ขอบคุณที่เป็นส่วนสำคัญในการร่วมดูแลสุขภาพชุมชนอำเภอตาลสุม</p>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.4; text-size-adjust: none; -webkit-text-size-adjust: none;">ขอบคุณที่เป็นส่วนสำคัญในการร่วมดูแลสุขภาพชุมชนอำเภอ<?= DISTRICT_NAME ?></p>
                     </div>
 
                     <!-- Shortcut Action -->

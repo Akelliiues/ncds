@@ -1,6 +1,7 @@
 <?php
 // about.php
 require_once __DIR__ . '/config/session.php';
+require_once __DIR__ . '/config/line_config.php';
 date_default_timezone_set('Asia/Bangkok');
 
 function get_system_last_update() {
@@ -477,7 +478,7 @@ function get_time_diff_display($timestamp) {
             </div>
 
             <h1 class="about-title">NCDs Prevention Portal</h1>
-            <p class="about-subtitle">สำนักงานสาธารณสุขอำเภอตาลสุม</p>
+            <p class="about-subtitle">สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?></p>
 
             <!-- Info Grid -->
             <div class="info-grid">
@@ -497,7 +498,7 @@ function get_time_diff_display($timestamp) {
                             <img src="assets/developer.jpg" alt="นายบุญธรรม พันธ์ใหญ่" class="developer-avatar" onclick="openModal('assets/developer.jpg')" title="คลิกเพื่อดูรูปภาพขนาดใหญ่">
                             <div class="developer-info">
                                 <span class="developer-name">นายบุญธรรม พันธ์ใหญ่</span>
-                                <span class="developer-title">นักวิชาการคอมพิวเตอร์<br>สำนักงานสาธารณสุขอำเภอตาลสุม</span>
+                                <span class="developer-title">นักวิชาการคอมพิวเตอร์<br>สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?></span>
                             </div>
                         </div>
                     </div>

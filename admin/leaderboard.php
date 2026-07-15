@@ -453,7 +453,7 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
                 <h2 style="color: var(--color-accent); margin-top: 0; margin-bottom: 8px;">🏆 กระดานคะแนน อสม. ทั้งอำเภอ
                 </h2>
                 <p style="color: var(--text-secondary); margin: 0;">
-                    ติดตาม จัดลำดับ และวิเคราะห์ผลการสะสมแต้มของ อสม. ทุกตำบลในอำเภอตาลสุม
+                    ติดตาม จัดลำดับ และวิเคราะห์ผลการสะสมแต้มของ อสม. ทุกตำบลในอำเภอ<?= DISTRICT_NAME ?>
                 </p>
             </div>
             <div>
@@ -466,7 +466,7 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
 
         <!-- Header for Print Mode (hidden in screen) -->
         <div class="print-only-header" style="display: none;">
-            <h2 style="text-align: center; margin: 0 0 6px 0; font-size: 20px; color: black; font-weight: bold;">รายงานทำเนียบผลงานและแต้มสะสม อสม. อำเภอตาลสุม</h2>
+            <h2 style="text-align: center; margin: 0 0 6px 0; font-size: 20px; color: black; font-weight: bold;">รายงานทำเนียบผลงานและแต้มสะสม อสม. อำเภอ<?= DISTRICT_NAME ?></h2>
             <p style="text-align: center; margin: 0 0 24px 0; font-size: 12px; color: #444;">ข้อมูล ณ วันที่ <?= date('d/m/Y H:i') ?> น. • เรียงลำดับจากแต้มรวมสูงสุด</p>
         </div>
 
@@ -703,7 +703,7 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
             if (rank <= 0 || rank > 50) return '';
             
             // Top 5 are unique supreme titles
-            if (rank === 1) return '🏆 สุดยอดขุนพลสาธารณสุขตาลสุม';
+            if (rank === 1) return '🏆 สุดยอดขุนพลสาธารณสุข<?= DISTRICT_NAME ?>';
             if (rank === 2) return '🏆 ยอดอัศวินสุขภาพชุมชน';
             if (rank === 3) return '🏆 ดาวรุ่งแห่งความห่วงใย';
             if (rank === 4) return '✨ ผู้พิทักษ์หัวใจไร้โรค';
@@ -712,7 +712,7 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
             // Base titles for group tiers (ranks 6-50 in groups of 5)
             const baseTitles = {
                 1: '💪 ยอดนักปราบเบาหวานและความดัน',
-                2: '🛡️ ผู้ปกป้องสุขภาวะตาลสุม',
+                2: '🛡️ ผู้ปกป้องสุขภาวะ<?= DISTRICT_NAME ?>',
                 3: '❤️ เสาหลักสุขภาพดีชุมชน',
                 4: '🌱 ผู้หว่านเมล็ดพันธุ์สุขภาพ',
                 5: '🤝 พลังขับเคลื่อนตำบลสุขภาพดี',

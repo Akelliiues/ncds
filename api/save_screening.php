@@ -247,7 +247,7 @@ try {
                         'type' => 'box',
                         'layout' => 'vertical',
                         'contents' => [
-                            ['type' => 'text', 'text' => 'การ์ดความห่วงใย สสอ.ตาลสุม', 'weight' => 'bold', 'color' => '#ffffff', 'size' => 'lg'],
+                            ['type' => 'text', 'text' => 'การ์ดความห่วงใย สสอ.' . DISTRICT_NAME, 'weight' => 'bold', 'color' => '#ffffff', 'size' => 'lg'],
                             ['type' => 'text', 'text' => 'รายงานผลการตรวจสุขภาพประจำบ้าน', 'color' => '#a5b4fc', 'size' => 'xs', 'margin' => 'sm']
                         ],
                         'backgroundColor' => '#1e3a8a'

@@ -408,7 +408,7 @@ if (file_exists($json_file)) {
                     <img src="<?= $path_prefix ?>assets/aboutus.png" alt="App Logo" class="dev-app-logo">
                 </div>
                 <h2 class="dev-app-title">NCDs Prevention Portal</h2>
-                <p class="dev-app-subtitle">สำนักงานสาธารณสุขอำเภอตาลสุม</p>
+                <p class="dev-app-subtitle">สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?></p>
 
                 <div class="dev-divider"></div>
 
@@ -417,7 +417,7 @@ if (file_exists($json_file)) {
                     <div class="dev-profile-info">
                         <span class="dev-badge">ผู้พัฒนาระบบ</span>
                         <h4 class="dev-name">นายบุญธรรม พันธ์ใหญ่</h4>
-                        <p class="dev-title">นักวิชาการคอมพิวเตอร์ สสอ.ตาลสุม</p>
+                        <p class="dev-title">นักวิชาการคอมพิวเตอร์ สสอ.<?= DISTRICT_NAME ?></p>
                     </div>
                 </div>
             </div>

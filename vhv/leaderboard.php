@@ -20,7 +20,7 @@ function getPositiveTitle($rank)
     
     // Top 5 are unique supreme titles
     if ($rank === 1)
-        return '🏆 สุดยอดขุนพลสาธารณสุขตาลสุม';
+        return '🏆 สุดยอดขุนพลสาธารณสุข' . DISTRICT_NAME;
     if ($rank === 2)
         return '🏆 ยอดอัศวินสุขภาพชุมชน';
     if ($rank === 3)
@@ -33,7 +33,7 @@ function getPositiveTitle($rank)
     // Base titles for group tiers (ranks 6-50 in groups of 5)
     $baseTitles = [
         1 => '💪 ยอดนักปราบเบาหวานและความดัน',
-        2 => '🛡️ ผู้ปกป้องสุขภาวะตาลสุม',
+        2 => '🛡️ ผู้ปกป้องสุขภาวะ' . DISTRICT_NAME,
         3 => '❤️ เสาหลักสุขภาพดีชุมชน',
         4 => '🌱 ผู้หว่านเมล็ดพันธุ์สุขภาพ',
         5 => '🤝 พลังขับเคลื่อนตำบลสุขภาพดี',
@@ -208,7 +208,7 @@ $hcNames = get_health_units();
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>กระดานคะแนน อสม. - NCDs ตาลสุม</title>
+    <title>กระดานคะแนน อสม. - NCDs <?= DISTRICT_NAME ?></title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="manifest" href="manifest.json">
     <style>
@@ -272,7 +272,7 @@ $hcNames = get_health_units();
             <h3 style="color: var(--color-accent); margin: 0; font-size: 16px; font-weight: 800;">🏆 กระดานเกียรติยศ
                 อสม.</h3>
             <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 14px;">50 อันดับ อสม.
-                ผลงานคัดกรองสูงสุดในพื้นที่ตาลสุม</p>
+                ผลงานคัดกรองสูงสุดในพื้นที่<?= DISTRICT_NAME ?></p>
         </div>
 
         <!-- Current VHV Score Widget -->
@@ -297,7 +297,7 @@ $hcNames = get_health_units();
             </div>
             <div
                 style="margin-top: 16px; font-size: 14px; text-align: center; color: var(--text-primary); border-top: 1px solid rgba(13, 44, 84, 0.1); padding-top: 12px; font-weight: bold; line-height: 1.5;">
-                📊 คุณอยู่อันดับที่ <?= $currentVhvRank ?: 'N/A' ?> จาก อสม. ทั้งหมด <?= $totalVhvs ?> คน ของอำเภอตาลสุม
+                📊 คุณอยู่อันดับที่ <?= $currentVhvRank ?: 'N/A' ?> จาก อสม. ทั้งหมด <?= $totalVhvs ?> คน ของอำเภอ<?= DISTRICT_NAME ?>
             </div>
             <?php
             $myTitle = getPositiveTitle($currentVhvRank);
@@ -362,7 +362,7 @@ $hcNames = get_health_units();
             <?php if (!empty($hospitalStats)): ?>
             <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
                 <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                    🏥 ลีกหน่วยบริการ รพ.สต. (ทั้งอำเภอตาลสุม)
+                    🏥 ลีกหน่วยบริการ รพ.สต. (ทั้งอำเภอ<?= DISTRICT_NAME ?>)
                 </h4>
                 <p style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 16px 0;">อันดับอัตราการคัดกรองสูงสุดแยกตามเขตรับผิดชอบของแต่ละ รพ.สต.</p>
                 <div style="display: flex; flex-direction: column; gap: 14px;">
@@ -481,7 +481,7 @@ $hcNames = get_health_units();
                 // Add special shiny badging based on points milestones
                 $shinyBadge = '';
                 if ($points >= 50) {
-                    $shinyBadge = '<span class="badge-icon badge-gold" title="ฮีโร่ตาลสุม">🔥</span>';
+                    $shinyBadge = '<span class="badge-icon badge-gold" title="ฮีโร่' . DISTRICT_NAME . '">🔥</span>';
                 } elseif ($points >= 20) {
                     $shinyBadge = '<span class="badge-icon badge-silver" title="ผู้พิทักษ์หัวใจ">💖</span>';
                 }

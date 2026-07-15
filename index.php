@@ -1,6 +1,7 @@
 <?php
 // index.php (Root - Unified Login & Role Dispatcher)
 require_once __DIR__ . '/config/session.php';
+require_once __DIR__ . '/config/db.php';
 
 // If already logged in, redirect to respective dashboard
 if (isset($_SESSION['vhv_id'])) {
@@ -117,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>เข้าสู่ระบบ NCDs ตาลสุม - คัดกรอง ดูแล ป้องกันเพื่อสุขภาพที่ดีอย่างยั่งยืน</title>
+    <title>เข้าสู่ระบบ NCDs <?= DISTRICT_NAME ?> - คัดกรอง ดูแล ป้องกันเพื่อสุขภาพที่ดีอย่างยั่งยืน</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <link rel="manifest" href="vhv/manifest.json">
     <style>
@@ -182,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="login-brand"
             style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 12px;">
             <img src="assets/icon.png" alt="NCDs Prevention Logo" class="brand-logo">
-            <span>สำนักงานสาธารณสุขอำเภอตาลสุม</span>
+            <span>สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?></span>
             <h1>ระบบคัดกรอง NCD Portal</h1>
         </div>
 
@@ -226,7 +227,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div style="text-align: center; margin-top: 16px; color: var(--text-muted); font-size: 11px; line-height: 1.4;">
             ระบบจัดการคัดกรองโรคเรื้อรังเชิงรุก NCDs 2026<br>
-            อำเภอตาลสุม จังหวัดอุบลราชธานี<br>
+            อำเภอ<?= DISTRICT_NAME ?> จังหวัด<?= PROVINCE_NAME ?><br>
             <div style="margin-top: 6px; display: flex; justify-content: center; gap: 12px; align-items: center;">
                 <a href="about.php" onclick="openDevModal(event)" style="color: var(--color-accent); text-decoration: none; font-weight: bold;">
                     ℹ️ เกี่ยวกับผู้พัฒนา
