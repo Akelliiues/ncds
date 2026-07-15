@@ -229,7 +229,7 @@ try {
 
         <!-- Step 1: Filters -->
         <div class="filter-card">
-            <h4 style="margin-top: 0; margin-bottom: 16px; color: var(--text-primary);">1. เลือกเขตรับผิดชอบ</h4>
+            <h4 style="margin-top: 0; margin-bottom: 16px; color: var(--text-primary);">เลือกเขตรับผิดชอบ</h4>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
                 <div>
                     <label class="form-label">ตำบล</label>
@@ -755,8 +755,12 @@ try {
 
             fetch('../api/cancel_assignment.php', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cid: cid })
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        cid: cid
+                    })
                 })
                 .then(r => r.json())
                 .then(data => {

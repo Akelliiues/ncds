@@ -106,7 +106,7 @@ if ($admin_hoscode !== null) {
         }
     }
     $jsData = $filteredJsData;
-    
+
     $filteredSubsList = [];
     foreach ($subsList as $sub) {
         if (isset($jsData[$sub['sub_district_code']])) {
@@ -118,6 +118,7 @@ if ($admin_hoscode !== null) {
 ?>
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -263,6 +264,7 @@ if ($admin_hoscode !== null) {
         }
     </style>
 </head>
+
 <body class="admin-body">
     <?php include 'navbar.php'; ?>
 
@@ -270,11 +272,10 @@ if ($admin_hoscode !== null) {
         <h2 style="color: var(--color-accent); margin-bottom: 5px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px;">
             ระบบมอบหมายงานติดตามโครงการปรับเปลี่ยนพฤติกรรม (Smart DPAC Manager)
         </h2>
-        <p style="color: var(--text-secondary); margin-bottom: 25px; font-size: 15px;">บริหารจัดการ อสม. ผู้ติดตามผลลัพธ์พฤติกรรมกลุ่มเสี่ยงเบาหวาน/ความดัน (DPAC)</p>
 
         <!-- Step 1: Select Responsibility -->
         <div class="filter-card">
-            <h4 style="margin-top: 0; margin-bottom: 16px; color: var(--text-primary);">1. เลือกเขตรับผิดชอบ</h4>
+            <h4 style="margin-top: 0; margin-bottom: 16px; color: var(--text-primary);">เลือกเขตรับผิดชอบ</h4>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; min-width: 0;">
                 <div>
                     <label class="form-label">ตำบล</label>
@@ -483,9 +484,9 @@ if ($admin_hoscode !== null) {
 
             list.innerHTML = filteredTargets.map(t => {
                 const isChecked = selectedEnrollmentIds.has(t.enrollment_id.toString()) ? 'checked' : '';
-                const vhvLabel = t.assigned_vhv 
-                    ? `<span class="badge" style="background-color: rgba(34, 197, 94, 0.15); color: #22c55e;">อสม. ${t.assigned_vhv} (รอบติดตาม: ${t.total_rounds})</span>` 
-                    : '<span class="badge" style="background-color: rgba(239, 68, 68, 0.15); color: #ef4444;">ยังไม่มี อสม. รับผิดชอบ</span>';
+                const vhvLabel = t.assigned_vhv ?
+                    `<span class="badge" style="background-color: rgba(34, 197, 94, 0.15); color: #22c55e;">อสม. ${t.assigned_vhv} (รอบติดตาม: ${t.total_rounds})</span>` :
+                    '<span class="badge" style="background-color: rgba(239, 68, 68, 0.15); color: #ef4444;">ยังไม่มี อสม. รับผิดชอบ</span>';
 
                 return `
                     <div class="item-row">
@@ -559,7 +560,7 @@ if ($admin_hoscode !== null) {
             // Rerender VHV list using current DOM elements to maintain scroll
             const rows = document.querySelectorAll('#vhv-list .vhv-row');
             const dataVhvIds = [];
-            
+
             // Re-fetch existing data state from DOM elements
             rows.forEach((row, idx) => {
                 row.classList.remove('selected');
@@ -575,7 +576,7 @@ if ($admin_hoscode !== null) {
         function updateSelectedCount() {
             const count = selectedEnrollmentIds.size;
             document.getElementById('selected-summary').innerText = `เลือกแล้ว ${count} ราย`;
-            
+
             const assignBtn = document.getElementById('assign-btn');
             if (count > 0 && selectedVhvId !== null) {
                 assignBtn.disabled = false;
@@ -601,55 +602,62 @@ if ($admin_hoscode !== null) {
                 btn.innerText = '⏳ กำลังมอบหมายงาน...';
 
                 fetch('../api/assign_dpac.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        vhv_id: selectedVhvId,
-                        enrollment_ids: enrollIds
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            vhv_id: selectedVhvId,
+                            enrollment_ids: enrollIds
+                        })
                     })
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        alert("มอบหมายงานเรียบร้อยแล้ว!");
-                        selectedEnrollmentIds.clear();
-                        fetchData(); // Reload lists
-                    } else {
-                        alert("เกิดข้อผิดพลาด: " + data.message);
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert("มอบหมายงานเรียบร้อยแล้ว!");
+                            selectedEnrollmentIds.clear();
+                            fetchData(); // Reload lists
+                        } else {
+                            alert("เกิดข้อผิดพลาด: " + data.message);
+                            btn.disabled = false;
+                            btn.innerText = '🏃 มอบหมายงานติดตาม (Follow-up)';
+                        }
+                    })
+                    .catch(() => {
+                        alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
                         btn.disabled = false;
                         btn.innerText = '🏃 มอบหมายงานติดตาม (Follow-up)';
-                    }
-                })
-                .catch(() => {
-                    alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
-                    btn.disabled = false;
-                    btn.innerText = '🏃 มอบหมายงานติดตาม (Follow-up)';
-                });
+                    });
             }
         }
 
         function cancelDpacEnrollment(enrollmentId, name) {
             if (confirm(`⚠️ ยืนยันยกเลิกการเข้าร่วมโครงการ DPAC ของ "${name}" ใช่หรือไม่?\n\nการดำเนินการนี้จะลบข้อมูลประวัติการติดตามผลทั้งหมดที่เกี่ยวข้องอย่างถาวร!`)) {
                 fetch('../api/cancel_dpac.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ enrollment_id: enrollmentId })
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        alert("ยกเลิกการเข้าร่วมโครงการเรียบร้อยแล้ว");
-                        selectedEnrollmentIds.delete(enrollmentId.toString());
-                        fetchData(); // Reload lists
-                    } else {
-                        alert("เกิดข้อผิดพลาด: " + data.message);
-                    }
-                })
-                .catch(() => {
-                    alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
-                });
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            enrollment_id: enrollmentId
+                        })
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert("ยกเลิกการเข้าร่วมโครงการเรียบร้อยแล้ว");
+                            selectedEnrollmentIds.delete(enrollmentId.toString());
+                            fetchData(); // Reload lists
+                        } else {
+                            alert("เกิดข้อผิดพลาด: " + data.message);
+                        }
+                    })
+                    .catch(() => {
+                        alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+                    });
             }
         }
     </script>
 </body>
+
 </html>

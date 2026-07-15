@@ -655,6 +655,25 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
 
+        <!-- Dynamic Clinical Guidance based on overall DPAC Outcomes -->
+        <div style="background: rgba(16, 185, 129, 0.05); padding: 18px; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.2); font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 25px;">
+            💡 <strong>คำแนะนำเชิงรับส่งและส่งคืนผลลัพธ์ (Health Feedback Loop):</strong> 
+            <?php
+            $bp_diff = $avgSbpBefore - $avgSbpAfter;
+            $fbs_diff = $avgFbsBefore - $avgFbsAfter;
+            
+            if ($pctBpImprovement >= 60 && $pctFbsImprovement >= 60) {
+                echo "อัตราการดีขึ้นของกลุ่มเสี่ยงความดันโลหิตสูง (" . $pctBpImprovement . "%) และเบาหวาน (" . $pctFbsImprovement . "%) <span style='color:var(--color-green); font-weight:bold;'>ผ่านเกณฑ์มาตรฐานยอดเยี่ยม (>= 60%)</span> แนะนำให้เจ้าหน้าที่ รพ.สต. และ อสม. รักษาระดับความถี่ในการติดตามพฤติกรรมนี้ต่อไป";
+            } else {
+                echo "อัตราการควบคุมได้ดีหรือดีขึ้นของกลุ่มเบาหวานหรือความดันโลหิตสูง <span style='color:var(--color-red); font-weight:bold;'>ยังต่ำกว่าเกณฑ์ความสำเร็จเป้าหมาย (60%)</span> แนะนำให้เจ้าหน้าที่และ อสม. ร่วมกันจัดอบรมทบทวนหลัก 3อ. 2ส. และลงเยี่ยมบ้านวัดค่าสัญญาณชีพแบบใกล้ชิดเป็นกรณีพิเศษ";
+            }
+            
+            if ($bp_diff > 0 || $fbs_diff > 0) {
+                echo " โดยภาพรวมประชากรกลุ่มเสี่ยงมีค่าความดันโลหิตบนลดลงเฉลี่ย " . number_format(max(0, $bp_diff), 1) . " mmHg และน้ำตาลลดลงเฉลี่ย " . number_format(max(0, $fbs_diff), 1) . " mg/dL แสดงถึงประสิทธิภาพการใส่ใจควบคุมสุขภาพส่วนบุคคลที่พัฒนาขึ้นอย่างเห็นได้ชัด";
+            }
+            ?>
+        </div>
+
         <div class="dashboard-grid">
             <div class="card-dark">
                 <h4 style="color: var(--color-accent); margin-bottom: 16px; font-size: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">📊 เปรียบเทียบผลตรวจเฉลี่ย ก่อน-หลัง ร่วมโครงการ</h4>
@@ -761,6 +780,37 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
                     </tbody>
                 </table>
             </div>
+            
+            <!-- Strategic Localized Feedback Guide -->
+            <?php
+            $poorVillages = [];
+            foreach ($villageImprovementData as $vi) {
+                $completed = intval($vi['completed_followups']);
+                if ($completed >= 2) {
+                    $improved = intval($vi['improved_count']);
+                    $rate = ($improved / $completed) * 100;
+                    if ($rate < 50) {
+                        $vname = $hoscode_villages[$vi['hoscode']]['villages'][intval($vi['moo'])] ?? get_village_only_name($hoscode_villages[$vi['hoscode']]['tambon'], $vi['moo']);
+                        $poorVillages[] = [
+                            'name' => $vname ?: 'หมู่ที่ ' . $vi['moo'],
+                            'hc' => $hc_names[$vi['hoscode']] ?? $vi['hoscode'],
+                            'rate' => $rate
+                        ];
+                    }
+                }
+            }
+            if (!empty($poorVillages)):
+            ?>
+            <div style="background: rgba(245, 158, 11, 0.05); padding: 18px; border-radius: 12px; border: 1px solid rgba(245, 158, 11, 0.2); font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin-top: 20px;">
+                ⚠️ <strong>ข้อเสนอแนะเชิงรุกจำแนกรายพื้นที่ (Targeted Localized Interventions):</strong>
+                ตรวจพบหมู่บ้านที่มีอัตราสำเร็จในการปรับพฤติกรรมต่ำกว่าเกณฑ์ความสำเร็จ (ต่ำกว่า 50% และมีเคสเสร็จสิ้นมากกว่า 2 ราย) ที่ต้องเฝ้าระวัง:
+                <ul style="margin: 8px 0 0 0; padding-left: 20px; line-height: 1.8;">
+                    <?php foreach (array_slice($poorVillages, 0, 3) as $pv): ?>
+                        <li><strong><?= htmlspecialchars($pv['hc']) ?> (<?= htmlspecialchars($pv['name']) ?>):</strong> อัตราสำเร็จเพียง <?= number_format($pv['rate'], 1) ?>% <span style="color: var(--color-yellow); font-weight: bold;">(ควรจัดโปรแกรมทบทวนความรู้ อสม. ผู้รับผิดชอบ และนัดหมาย อสม. เพื่อลงพื้นที่สุ่มวัดสัญญาณชีพและประเมินพฤติกรรมโภชนาการรายหลังคาเรือนโดยตรงเพื่อหาสาเหตุร่วมกัน)</span></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 
