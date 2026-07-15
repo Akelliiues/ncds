@@ -356,12 +356,18 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
 // ==========================================
 $surveyStats = [
     'count' => 0,
-    'peou_mean' => 0, 'peou_sd' => 0,
-    'sq_mean' => 0, 'sq_sd' => 0,
-    'iq_mean' => 0, 'iq_sd' => 0,
-    'pu_mean' => 0, 'pu_sd' => 0,
-    'bi_mean' => 0, 'bi_sd' => 0,
-    'total_mean' => 0, 'total_sd' => 0
+    'peou_mean' => 0,
+    'peou_sd' => 0,
+    'sq_mean' => 0,
+    'sq_sd' => 0,
+    'iq_mean' => 0,
+    'iq_sd' => 0,
+    'pu_mean' => 0,
+    'pu_sd' => 0,
+    'bi_mean' => 0,
+    'bi_sd' => 0,
+    'total_mean' => 0,
+    'total_sd' => 0
 ];
 
 $tagsCount = [];
@@ -375,28 +381,33 @@ try {
     ");
     $surveyStmt->execute($hoscodes);
     $surveyResponses = $surveyStmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     $surveyStats['count'] = count($surveyResponses);
-    
+
     if ($surveyStats['count'] > 0) {
-        $peous = []; $sqs = []; $iqs = []; $pus = []; $bis = []; $totals = [];
-        
+        $peous = [];
+        $sqs = [];
+        $iqs = [];
+        $pus = [];
+        $bis = [];
+        $totals = [];
+
         foreach ($surveyResponses as $sr) {
             $peou = intval($sr['score_peou']);
             $sq = intval($sr['score_sq']);
             $iq = intval($sr['score_iq']);
             $pu = intval($sr['score_pu']);
             $bi = intval($sr['score_bi']);
-            
+
             $peous[] = $peou;
             $sqs[] = $sq;
             $iqs[] = $iq;
             $pus[] = $pu;
             $bis[] = $bi;
-            
+
             // Total score per response is average of the 5 aspects
             $totals[] = ($peou + $sq + $iq + $pu + $bi) / 5;
-            
+
             // Count tags
             $tagsList = json_decode($sr['selected_tags'] ?? '[]', true);
             if (is_array($tagsList)) {
@@ -405,13 +416,13 @@ try {
                 }
             }
         }
-        
+
         // Helper function to calculate mean and sample standard deviation
-        $calcStats = function($arr) {
+        $calcStats = function ($arr) {
             $n = count($arr);
             if ($n === 0) return ['mean' => 0, 'sd' => 0];
             $mean = array_sum($arr) / $n;
-            
+
             $variance = 0;
             if ($n > 1) {
                 $sum_sq = 0;
@@ -423,14 +434,14 @@ try {
             $sd = sqrt($variance);
             return ['mean' => $mean, 'sd' => $sd];
         };
-        
+
         $statsPeou = $calcStats($peous);
         $statsSq = $calcStats($sqs);
         $statsIq = $calcStats($iqs);
         $statsPu = $calcStats($pus);
         $statsBi = $calcStats($bis);
         $statsTotal = $calcStats($totals);
-        
+
         $surveyStats['peou_mean'] = $statsPeou['mean'];
         $surveyStats['peou_sd'] = $statsPeou['sd'];
         $surveyStats['sq_mean'] = $statsSq['mean'];
@@ -443,7 +454,7 @@ try {
         $surveyStats['bi_sd'] = $statsBi['sd'];
         $surveyStats['total_mean'] = $statsTotal['mean'];
         $surveyStats['total_sd'] = $statsTotal['sd'];
-        
+
         // Sort tags by frequency
         arsort($tagsCount);
     }
@@ -916,7 +927,7 @@ try {
 
     <!-- R2R User Satisfaction & System Usability Evaluation Section -->
     <h3 style="color: var(--color-accent); margin: 30px 0 16px 0; font-size: 18px; display: flex; align-items: center; gap: 8px;">
-        <span>📋 สรุปผลสัมฤทธิ์ความพึงพอใจผู้ใช้งานสำหรับงานวิจัย R2R (TAM Evaluation Report)</span>
+        <span>📋 สรุปผลการประเมินความพึงพอใจผู้ใช้งาน</span>
     </h3>
 
     <div class="card-dark" style="margin-bottom: 25px;">
@@ -930,7 +941,8 @@ try {
             <?php
             // Helper function to interpret Likert Scale score
             if (!function_exists('interpretLikert')) {
-                function interpretLikert($score) {
+                function interpretLikert($score)
+                {
                     if ($score >= 4.50) return "<span style='color: var(--color-green); font-weight: bold;'>มากที่สุด</span>";
                     if ($score >= 3.50) return "<span style='color: var(--color-green);'>มาก</span>";
                     if ($score >= 2.50) return "<span style='color: var(--color-yellow);'>ปานกลาง</span>";
@@ -1541,7 +1553,7 @@ try {
             if (!table) return;
             const rows = table.querySelectorAll('tr');
             let text = "ประเด็นการประเมินตามกรอบแนวคิด (TAM Framework)\tค่าเฉลี่ย (Mean - X̄)\tส่วนเบี่ยงเบนมาตรฐาน (S.D.)\tระดับความพึงพอใจ\n";
-            
+
             rows.forEach((row, i) => {
                 if (i === 0) return; // skip header
                 const cols = row.querySelectorAll('td');
@@ -1553,7 +1565,7 @@ try {
                     text += `${aspect}\t${mean}\t${sd}\t${level}\n`;
                 }
             });
-            
+
             navigator.clipboard.writeText(text).then(() => {
                 alert('คัดลอกตารางข้อมูลวิจัย R2R ไปยังคลิปบอร์ดแล้ว! คุณสามารถกดวาง (Ctrl+V) ลงในเอกสาร Microsoft Word หรือ Excel ได้ทันที โดยข้อความจะถูกแปลงเป็นตารางที่จัดคอลัมน์ให้อย่างสมบูรณ์ครับ');
             }).catch(err => {

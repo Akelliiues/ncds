@@ -261,6 +261,17 @@ try {
                 box-shadow: 0 0 0 0 rgba(16, 185, 129, 0), var(--neumorph-inset);
             }
         }
+        @keyframes pulse-yellow-ring {
+            0% {
+                box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5);
+            }
+            70% {
+                box-shadow: 0 0 0 12px rgba(245, 158, 11, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+            }
+        }
     </style>
 </head>
 <body class="vhv-accessibility">
@@ -272,7 +283,13 @@ try {
         <?php endif; ?>
 
         <!-- VHV Info Header -->
-        <div class="vhv-header" style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 20px 16px;">
+        <div class="vhv-header" style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 20px 16px; position: relative;">
+            <?php if (!$hasSubmittedSurvey): ?>
+                <button id="survey-banner" onclick="openSurveyModal()" style="position: absolute; top: 16px; right: 16px; background: linear-gradient(135deg, var(--color-yellow) 0%, #d97706 100%); color: white; border: none; border-radius: 50%; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); cursor: pointer; z-index: 10; font-size: 22px; animation: pulse-yellow-ring 2s infinite, float-bubble 2s ease-in-out infinite;" title="ทำแบบประเมินรับโบนัส 5 แต้ม! 🎁">
+                    🎁
+                </button>
+            <?php endif; ?>
+
             <a href="../about.php" onclick="openDevModal(event)" title="เกี่ยวกับระบบและผู้พัฒนา" style="flex-shrink: 0;">
                 <img src="../assets/icon.png" alt="NCDs Prevention Logo" style="width: 60px; height: 60px; border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
             </a>
@@ -294,22 +311,8 @@ try {
                         • <span style="color: #ec4899; font-weight: bold; background: rgba(236,72,153,0.1); padding: 2px 6px; border-radius: 4px;">👑 ประธาน อสม. อำเภอ</span>
                     <?php endif; ?>
                 </p>
-        </div>
-
-        <!-- Floating Satisfaction Survey Banner -->
-        <?php if (!$hasSubmittedSurvey): ?>
-            <div id="survey-banner" style="background: linear-gradient(135deg, var(--color-accent) 0%, #1d4ed8 100%); color: white; padding: 16px; border-radius: var(--border-radius); margin: 0 16px 20px 16px; box-shadow: 0 8px 24px rgba(30, 58, 138, 0.2); position: relative; overflow: hidden; cursor: pointer; transition: transform 0.2s;" onclick="openSurveyModal()" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                <div style="position: absolute; right: -15px; bottom: -15px; font-size: 64px; opacity: 0.15; transform: rotate(15deg);">📝</div>
-                <div style="display: flex; align-items: center; gap: 12px; position: relative; z-index: 1;">
-                    <div style="font-size: 24px; animation: float-bubble 2s ease-in-out infinite;">🎁</div>
-                    <div style="flex-grow: 1;">
-                        <h4 style="margin: 0; font-size: 15px; font-weight: 800;">ร่วมตอบแบบประเมินความพึงพอใจ</h4>
-                        <p style="margin: 4px 0 0 0; font-size: 12.5px; opacity: 0.9;">เพื่อช่วยพัฒนาระบบคัดกรอง และรับแต้มโบนัสพิเศษ <strong>5 แต้ม</strong> สะสมทันที!</p>
-                    </div>
-                    <div style="background: white; color: var(--color-accent); font-size: 18px; font-weight: 800; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;">➡️</div>
-                </div>
             </div>
-        <?php endif; ?>
+        </div>
 
         <!-- Leader Password Reset Tool -->
         <?php if ($isLeader && !empty($subVhvs)): ?>
@@ -953,72 +956,87 @@ try {
         <div class="survey-modal-content">
             <div class="survey-header">
                 <h3 style="margin: 0; color: var(--color-accent); font-weight: 800; font-size: 18px; display: flex; align-items: center; gap: 8px;">
-                    📝 แบบประเมินความพึงพอใจ
+                    📝 ชวน อสม. ประเมินความพึงพอใจ
                 </h3>
                 <button onclick="closeSurveyModal()" style="background: none; border: none; font-size: 24px; color: var(--text-muted); cursor: pointer; padding: 4px;">&times;</button>
             </div>
             <div class="survey-body">
                 <p style="margin: 0 0 20px 0; font-size: 13.5px; color: var(--text-secondary); line-height: 1.5;">
-                    กรุณาให้คะแนนเพื่อใช้ปรับปรุงระบบบริหารจัดการ NCDs (ประเมินแล้วได้รับคะแนนสะสมพิเศษ <strong>+5 แต้ม</strong> ทันที!)
+                    ช่วยเคาะคะแนนสั้น ๆ เพื่อปรับปรุงแอปเราให้ดียิ่งขึ้นครับ (ประเมินแล้วได้รับแต้มโบนัสสะสมพิเศษ <strong>+5 แต้ม</strong> ทันที! 🏆)
                 </p>
 
                 <!-- Q1 PEOU -->
                 <div style="margin-bottom: 16px;">
-                    <label class="survey-q-title">1. ความง่ายและสะดวกในการใช้งานแอปพลิเคชัน</label>
-                    <div class="survey-star-container" data-question="peou">
-                        <button type="button" class="survey-star-btn" data-value="1" onclick="setRating('peou', 1)">★</button>
-                        <button type="button" class="survey-star-btn" data-value="2" onclick="setRating('peou', 2)">★</button>
-                        <button type="button" class="survey-star-btn" data-value="3" onclick="setRating('peou', 3)">★</button>
-                        <button type="button" class="survey-star-btn" data-value="4" onclick="setRating('peou', 4)">★</button>
-                        <button type="button" class="survey-star-btn" data-value="5" onclick="setRating('peou', 5)">★</button>
+                    <label class="survey-q-title">📱 1. หน้าจอสวยงาม ตัวหนังสือใหญ่ เมนูกดง่ายไม่สับสน</label>
+                    <div style="display: flex; align-items: center;">
+                        <div class="survey-star-container" data-question="peou" style="margin-bottom: 0;">
+                            <button type="button" class="survey-star-btn" data-value="1" onclick="setRating('peou', 1)">★</button>
+                            <button type="button" class="survey-star-btn" data-value="2" onclick="setRating('peou', 2)">★</button>
+                            <button type="button" class="survey-star-btn" data-value="3" onclick="setRating('peou', 3)">★</button>
+                            <button type="button" class="survey-star-btn" data-value="4" onclick="setRating('peou', 4)">★</button>
+                            <button type="button" class="survey-star-btn" data-value="5" onclick="setRating('peou', 5)">★</button>
+                        </div>
+                        <span id="desc-peou" style="margin-left: 12px; font-weight: bold; color: var(--color-accent); font-size: 14px;"></span>
                     </div>
                 </div>
 
                 <!-- Q2 SQ -->
                 <div style="margin-bottom: 16px;">
-                    <label class="survey-q-title">2. ความรวดเร็วในการประมวลผลและการบันทึกข้อมูล</label>
-                    <div class="survey-star-container" data-question="sq">
-                        <button type="button" class="survey-star-btn" data-value="1" onclick="setRating('sq', 1)">★</button>
-                        <button type="button" class="survey-star-btn" data-value="2" onclick="setRating('sq', 2)">★</button>
-                        <button type="button" class="survey-star-btn" data-value="3" onclick="setRating('sq', 3)">★</button>
-                        <button type="button" class="survey-star-btn" data-value="4" onclick="setRating('sq', 4)">★</button>
-                        <button type="button" class="survey-star-btn" data-value="5" onclick="setRating('sq', 5)">★</button>
+                    <label class="survey-q-title">⚡ 2. แอปทำงานไว โหลดหน้าฟอร์มและบันทึกเสร็จเร็ว ไม่ค้างบ่อย</label>
+                    <div style="display: flex; align-items: center;">
+                        <div class="survey-star-container" data-question="sq" style="margin-bottom: 0;">
+                            <button type="button" class="survey-star-btn" data-value="1" onclick="setRating('sq', 1)">★</button>
+                            <button type="button" class="survey-star-btn" data-value="2" onclick="setRating('sq', 2)">★</button>
+                            <button type="button" class="survey-star-btn" data-value="3" onclick="setRating('sq', 3)">★</button>
+                            <button type="button" class="survey-star-btn" data-value="4" onclick="setRating('sq', 4)">★</button>
+                            <button type="button" class="survey-star-btn" data-value="5" onclick="setRating('sq', 5)">★</button>
+                        </div>
+                        <span id="desc-sq" style="margin-left: 12px; font-weight: bold; color: var(--color-accent); font-size: 14px;"></span>
                     </div>
                 </div>
 
                 <!-- Q3 IQ -->
                 <div style="margin-bottom: 16px;">
-                    <label class="survey-q-title">3. ความถูกต้องแม่นยำของข้อมูลพิกัดและรายชื่อ</label>
-                    <div class="survey-star-container" data-question="iq">
-                        <button type="button" class="survey-star-btn" data-value="1" onclick="setRating('iq', 1)">★</button>
-                        <button type="button" class="survey-star-btn" data-value="2" onclick="setRating('iq', 2)">★</button>
-                        <button type="button" class="survey-star-btn" data-value="3" onclick="setRating('iq', 3)">★</button>
-                        <button type="button" class="survey-star-btn" data-value="4" onclick="setRating('iq', 4)">★</button>
-                        <button type="button" class="survey-star-btn" data-value="5" onclick="setRating('iq', 5)">★</button>
+                    <label class="survey-q-title">📍 3. รายชื่อชาวบ้านกลุ่มเสี่ยงและพิกัดบ้าน แสดงได้แม่นยำถูกต้อง</label>
+                    <div style="display: flex; align-items: center;">
+                        <div class="survey-star-container" data-question="iq" style="margin-bottom: 0;">
+                            <button type="button" class="survey-star-btn" data-value="1" onclick="setRating('iq', 1)">★</button>
+                            <button type="button" class="survey-star-btn" data-value="2" onclick="setRating('iq', 2)">★</button>
+                            <button type="button" class="survey-star-btn" data-value="3" onclick="setRating('iq', 3)">★</button>
+                            <button type="button" class="survey-star-btn" data-value="4" onclick="setRating('iq', 4)">★</button>
+                            <button type="button" class="survey-star-btn" data-value="5" onclick="setRating('iq', 5)">★</button>
+                        </div>
+                        <span id="desc-iq" style="margin-left: 12px; font-weight: bold; color: var(--color-accent); font-size: 14px;"></span>
                     </div>
                 </div>
 
                 <!-- Q4 PU -->
                 <div style="margin-bottom: 16px;">
-                    <label class="survey-q-title">4. การช่วยลดภาระงานและลดระยะเวลาการทำคัดกรอง</label>
-                    <div class="survey-star-container" data-question="pu">
-                        <button type="button" class="survey-star-btn" data-value="1" onclick="setRating('pu', 1)">★</button>
-                        <button type="button" class="survey-star-btn" data-value="2" onclick="setRating('pu', 2)">★</button>
-                        <button type="button" class="survey-star-btn" data-value="3" onclick="setRating('pu', 3)">★</button>
-                        <button type="button" class="survey-star-btn" data-value="4" onclick="setRating('pu', 4)">★</button>
-                        <button type="button" class="survey-star-btn" data-value="5" onclick="setRating('pu', 5)">★</button>
+                    <label class="survey-q-title">📝 4. ช่วยให้เดินคัดกรองสะดวก สบายกว่าการเขียนกระดาษแบบเดิม</label>
+                    <div style="display: flex; align-items: center;">
+                        <div class="survey-star-container" data-question="pu" style="margin-bottom: 0;">
+                            <button type="button" class="survey-star-btn" data-value="1" onclick="setRating('pu', 1)">★</button>
+                            <button type="button" class="survey-star-btn" data-value="2" onclick="setRating('pu', 2)">★</button>
+                            <button type="button" class="survey-star-btn" data-value="3" onclick="setRating('pu', 3)">★</button>
+                            <button type="button" class="survey-star-btn" data-value="4" onclick="setRating('pu', 4)">★</button>
+                            <button type="button" class="survey-star-btn" data-value="5" onclick="setRating('pu', 5)">★</button>
+                        </div>
+                        <span id="desc-pu" style="margin-left: 12px; font-weight: bold; color: var(--color-accent); font-size: 14px;"></span>
                     </div>
                 </div>
 
                 <!-- Q5 BI -->
                 <div style="margin-bottom: 24px;">
-                    <label class="survey-q-title">5. ความพึงพอใจภาพรวมและโอกาสใช้งานต่อในอนาคต</label>
-                    <div class="survey-star-container" data-question="bi">
-                        <button type="button" class="survey-star-btn" data-value="1" onclick="setRating('bi', 1)">★</button>
-                        <button type="button" class="survey-star-btn" data-value="2" onclick="setRating('bi', 2)">★</button>
-                        <button type="button" class="survey-star-btn" data-value="3" onclick="setRating('bi', 3)">★</button>
-                        <button type="button" class="survey-star-btn" data-value="4" onclick="setRating('bi', 4)">★</button>
-                        <button type="button" class="survey-star-btn" data-value="5" onclick="setRating('bi', 5)">★</button>
+                    <label class="survey-q-title">🥰 5. อสม. พึงพอใจในภาพรวม และอยากใช้งานระบบนี้อีกในปีถัดไป</label>
+                    <div style="display: flex; align-items: center;">
+                        <div class="survey-star-container" data-question="bi" style="margin-bottom: 0;">
+                            <button type="button" class="survey-star-btn" data-value="1" onclick="setRating('bi', 1)">★</button>
+                            <button type="button" class="survey-star-btn" data-value="2" onclick="setRating('bi', 2)">★</button>
+                            <button type="button" class="survey-star-btn" data-value="3" onclick="setRating('bi', 3)">★</button>
+                            <button type="button" class="survey-star-btn" data-value="4" onclick="setRating('bi', 4)">★</button>
+                            <button type="button" class="survey-star-btn" data-value="5" onclick="setRating('bi', 5)">★</button>
+                        </div>
+                        <span id="desc-bi" style="margin-left: 12px; font-weight: bold; color: var(--color-accent); font-size: 14px;"></span>
                     </div>
                 </div>
 
@@ -1180,6 +1198,19 @@ try {
                     star.classList.remove('active');
                 }
             });
+
+            // Dynamic friendly description
+            const descText = {
+                1: '😭 แย่มาก',
+                2: '😞 ปรับปรุง',
+                3: '😐 ปานกลาง',
+                4: '🙂 ดี',
+                5: '😍 ดีมากสุดใจ!'
+            };
+            const descEl = document.getElementById('desc-' + question);
+            if (descEl) {
+                descEl.innerText = descText[value] || '';
+            }
         }
 
         function toggleSurveyTag(btn) {
