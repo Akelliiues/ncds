@@ -233,6 +233,116 @@ if ($action === 'clear_hoscode') {
         ]);
     }
     exit();
+} elseif ($action === 'cleanup_duplicate_rewards') {
+    try {
+        $pdo->beginTransaction();
+        
+        $stmt = $pdo->query("
+            DELETE r1 FROM vhv_rewards r1
+            INNER JOIN vhv_rewards r2 
+                ON r1.assignment_id = r2.assignment_id 
+                AND r1.reward_id < r2.reward_id
+            WHERE r1.assignment_id IS NOT NULL
+        ");
+        
+        $affectedRows = $stmt->rowCount();
+        $pdo->commit();
+        
+        echo json_encode([
+            'status' => 'success',
+            'message' => 'ทำความสะอาดฐานข้อมูลสำเร็จ! ล้างแต้มคัดกรองที่ซ้ำซ้อนออกทั้งหมด ' . number_format($affectedRows) . ' รายการเรียบร้อยแล้ว',
+            'affected' => $affectedRows
+        ]);
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()
+        ]);
+    }
+    exit();
+} elseif ($action === 'cleanup_orphaned_data') {
+    try {
+        $pdo->beginTransaction();
+        
+        // 1. Delete rewards where screening_id is not null but screening_results is deleted
+        $deletedScreeningRewards = $pdo->exec("
+            DELETE r FROM vhv_rewards r
+            LEFT JOIN screening_results s ON r.screening_id = s.screening_id
+            WHERE r.screening_id IS NOT NULL AND s.screening_id IS NULL
+        ");
+        
+        // 2. Delete rewards where followup_id is not null but dpac_followups is deleted
+        $deletedFollowupRewards = $pdo->exec("
+            DELETE r FROM vhv_rewards r
+            LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id
+            WHERE r.followup_id IS NOT NULL AND f.followup_id IS NULL
+        ");
+        
+        // 3. Delete rewards where assignment_id is not null but task_assignments is deleted
+        $deletedAssignRewards = $pdo->exec("
+            DELETE r FROM vhv_rewards r
+            LEFT JOIN task_assignments a ON r.assignment_id = a.assignment_id
+            WHERE r.assignment_id IS NOT NULL AND a.assignment_id IS NULL
+        ");
+        
+        // 4. Delete duplicate survey rewards for each VHV
+        $stmtSurvey = $pdo->query("
+            SELECT vhv_id, GROUP_CONCAT(reward_id ORDER BY reward_id ASC) as ids
+            FROM vhv_rewards 
+            WHERE screening_id IS NULL AND followup_id IS NULL AND assignment_id IS NULL AND points_earned = 5.00
+            GROUP BY vhv_id
+            HAVING COUNT(*) > 1
+        ");
+        $surveyDups = $stmtSurvey->fetchAll(PDO::FETCH_ASSOC);
+        $deletedDupSurveys = 0;
+        foreach ($surveyDups as $dup) {
+            $ids = explode(',', $dup['ids']);
+            array_shift($ids); // Keep the first reward_id, remove it from list to delete
+            if (!empty($ids)) {
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $delStmt = $pdo->prepare("DELETE FROM vhv_rewards WHERE reward_id IN ($placeholders)");
+                $delStmt->execute($ids);
+                $deletedDupSurveys += $delStmt->rowCount();
+            }
+        }
+        
+        // 5. Delete invalid 1.00 points with all IDs NULL
+        $deletedInvalid1Points = $pdo->exec("
+            DELETE FROM vhv_rewards 
+            WHERE points_earned = 1.00 
+              AND screening_id IS NULL 
+              AND followup_id IS NULL 
+              AND assignment_id IS NULL
+        ");
+        
+        $totalCleaned = $deletedScreeningRewards + $deletedFollowupRewards + $deletedAssignRewards + $deletedDupSurveys + $deletedInvalid1Points;
+        $pdo->commit();
+        
+        $details = "ทำความสะอาดข้อมูลขยะสำเร็จทั้งหมด " . number_format($totalCleaned) . " รายการ:\n"
+                 . "- ลบแต้มคัดกรองที่ไม่มีใบผลการตรวจ: " . number_format($deletedScreeningRewards) . " รายการ\n"
+                 . "- ลบแต้มติดตาม DPAC ที่ไม่มีใบงาน: " . number_format($deletedFollowupRewards) . " รายการ\n"
+                 . "- ลบแต้มคัดกรองที่ไม่มีงานมอบหมาย: " . number_format($deletedAssignRewards) . " รายการ\n"
+                 . "- ลบแต้มทำแบบประเมินซ้ำซ้อน: " . number_format($deletedDupSurveys) . " รายการ\n"
+                 . "- ลบแต้มลอยที่ไม่มีแหล่งอ้างอิง: " . number_format($deletedInvalid1Points) . " รายการ";
+                 
+        echo json_encode([
+            'status' => 'success',
+            'message' => $details,
+            'affected' => $totalCleaned
+        ]);
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()
+        ]);
+    }
+    exit();
 } else {
     echo json_encode(['status' => 'error', 'message' => 'คำสั่งไม่ถูกต้อง']);
     exit();

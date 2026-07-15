@@ -159,6 +159,131 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
             cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s;
         }
         .btn-danger:hover { background-color: var(--color-red); color: white; }
+
+        .btn-clean-blue {
+            background-color: rgba(13, 44, 84, 0.08); 
+            color: var(--color-primary);
+            border: 1px solid rgba(13, 44, 84, 0.2); 
+            padding: 10px 20px; 
+            border-radius: 10px;
+            cursor: pointer; 
+            font-size: 13.5px; 
+            font-weight: 600; 
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-clean-blue:hover { 
+            background-color: var(--color-primary); 
+            color: white; 
+            transform: translateY(-1px);
+        }
+
+        .btn-clean-green {
+            background-color: rgba(16, 185, 129, 0.08); 
+            color: var(--color-green);
+            border: 1px solid rgba(16, 185, 129, 0.2); 
+            padding: 10px 20px; 
+            border-radius: 10px;
+            cursor: pointer; 
+            font-size: 13.5px; 
+            font-weight: 600; 
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-clean-green:hover { 
+            background-color: var(--color-green); 
+            color: white; 
+            transform: translateY(-1px);
+        }
+
+        /* ── Modal Overlay & Card ─────────────────── */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-card {
+            background-color: var(--bg-card);
+            border-radius: var(--border-radius);
+            box-shadow: var(--neumorph-flat), 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+            width: 92%;
+            max-width: 500px;
+            padding: 35px;
+            text-align: center;
+            position: relative;
+            transform: scale(0.95);
+            transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .modal-overlay.active .modal-card {
+            transform: scale(1);
+        }
+        .modal-close-x {
+            position: absolute;
+            top: 20px; right: 20px;
+            background: none; border: none;
+            font-size: 24px; color: var(--text-muted);
+            cursor: pointer; transition: color 0.2s;
+        }
+        .modal-close-x:hover { color: var(--color-red); }
+        
+        .modal-icon { font-size: 44px; margin-bottom: 15px; }
+        .modal-title { font-size: 20px; color: var(--text-primary); margin-bottom: 12px; font-weight: 800; }
+        .modal-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 20px; }
+        
+        /* Progress Bar */
+        .progress-bar-bg {
+            background: var(--bg-darker);
+            border-radius: 10px;
+            height: 12px;
+            overflow: hidden;
+            box-shadow: var(--neumorph-inset);
+        }
+        .progress-bar-fill {
+            background: linear-gradient(90deg, var(--color-green), #34d399);
+            width: 0%;
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.1s linear;
+        }
+        
+        /* Action buttons inside modal */
+        .modal-actions {
+            display: flex; gap: 15px; justify-content: center; margin-top: 25px;
+        }
+        .btn-cancel {
+            background: var(--bg-darker);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            padding: 10px 24px; border-radius: 10px;
+            font-weight: bold; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-cancel:hover { background: #cbd5e1; color: var(--text-primary); }
+        
+        .btn-confirm {
+            background: var(--color-primary);
+            color: white; border: none;
+            padding: 10px 24px; border-radius: 10px;
+            font-weight: bold; cursor: pointer; transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(13, 44, 84, 0.2);
+        }
+        .btn-confirm:hover { background: var(--color-primary-hover); transform: translateY(-1px); }
     </style>
 </head>
 <body class="admin-dashboard">
@@ -240,6 +365,24 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
                     การกดปุ่มเคลียร์ข้อมูล จะทำการลบข้อมูล <strong>กลุ่มเป้าหมาย (target_population), การมอบหมายงาน (task_assignments) และผลการคัดกรอง (screening_results)</strong> ของ รพ.สต. ที่เลือก <strong><u>อย่างถาวร</u></strong><br>
                     ระบบจะลบข้อมูลที่เกี่ยวโยงกันทั้งหมดโดยอัตโนมัติ กรุณาตรวจสอบให้แน่ใจก่อนดำเนินการ เหมาะสำหรับกรณีที่ต้องการล้างข้อมูลเพื่ออัปโหลดไฟล์ Excel ใหม่
                 </p>
+            </div>
+
+            <!-- Super Admin: Database Maintenance Card -->
+            <div class="db-card" style="border-left: 4px solid var(--color-accent); background: rgba(59, 130, 246, 0.02);">
+                <h3 style="color: var(--color-accent); margin-top: 0; display: flex; align-items: center; gap: 8px;">
+                    🧹 ระบบเครื่องมือบำรุงรักษาฐานข้อมูล (Database Maintenance Tools)
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 20px; line-height: 1.5;">
+                    ชุดปุ่มคำสั่งสำหรับการกวาดล้างและทำความสะอาดข้อมูลขยะหรือข้อมูลซ้ำซ้อนในระบบ เพื่อปรับสมดุลคะแนนสะสมและลดพื้นที่เก็บข้อมูลส่วนเกิน
+                </p>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                    <button class="btn-clean-blue" onclick="openMaintenanceModal('cleanup_duplicate_rewards', 'จัดการแต้มคัดกรองซ้ำซ้อน', 'ระบบจะทำการตรวจสอบและกวาดล้างเฉพาะแต้มส่วนเกินที่เกิดจากการส่งคัดกรองซ้ำในใบงานเดิมออกทั้งหมด โดยรับประกันการคงคะแนนจริงสำหรับการคัดกรองที่ถูกต้องไว้ 1 คะแนนต่อเป้าหมายอย่างปลอดภัย', '🧼')">
+                        🧼 จัดการแต้มคัดกรองซ้ำซ้อน
+                    </button>
+                    <button class="btn-clean-green" onclick="openMaintenanceModal('cleanup_orphaned_data', 'เคลียร์ข้อมูลขยะและแต้มตกค้าง', 'ระบบจะทำการเคลียร์ข้อมูลแต้มลอยที่ไม่มีแหล่งตรวจอ้างอิง, แต้มประเมินความพึงพอใจที่ส่งซ้ำ, และแต้มของใบงานที่ถูกสั่งลบไปแล้วทั้งหมดออกจากฐานข้อมูลเพื่อคืนพื้นที่เก็บข้อมูล', '🧹')">
+                        🧹 เคลียร์ข้อมูลขยะและแต้มตกค้าง
+                    </button>
+                </div>
             </div>
         <?php endif; ?>
 
@@ -392,6 +535,175 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
                 });
             }
         }
+
+        let hasExecutedMaintenance = false;
+        let autoCloseTimer = null;
+
+        function openMaintenanceModal(action, title, desc, icon) {
+            hasExecutedMaintenance = false;
+            if (autoCloseTimer) clearTimeout(autoCloseTimer);
+
+            // Set content
+            document.getElementById('modal-icon').innerText = icon;
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-desc').innerText = desc;
+            
+            // Reset visibility states
+            document.getElementById('modal-desc').style.display = 'block';
+            document.getElementById('modal-progress-container').style.display = 'none';
+            document.getElementById('modal-result-container').style.display = 'none';
+            
+            // Restore actions html structure
+            const actionsDiv = document.getElementById('modal-actions');
+            actionsDiv.style.display = 'flex';
+            actionsDiv.innerHTML = `
+                <button class="btn-cancel" onclick="closeMaintenanceModal()">ยกเลิก</button>
+                <button class="btn-confirm" id="btn-confirm-action">ยืนยันดำเนินการ</button>
+            `;
+            
+            // Set up confirm action button
+            const confirmBtn = document.getElementById('btn-confirm-action');
+            confirmBtn.onclick = function() {
+                executeMaintenanceAction(action);
+            };
+
+            // Show modal with animation
+            const modal = document.getElementById('maintenance-modal');
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.classList.add('active');
+            }, 10);
+        }
+
+        function closeMaintenanceModal() {
+            const modal = document.getElementById('maintenance-modal');
+            modal.classList.remove('active');
+            if (autoCloseTimer) clearTimeout(autoCloseTimer);
+            setTimeout(() => {
+                modal.style.display = 'none';
+                if (hasExecutedMaintenance) {
+                    window.location.reload();
+                }
+            }, 180);
+        }
+
+        // Close on outside click
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('maintenance-modal');
+            if (event.target === modal) {
+                closeMaintenanceModal();
+            }
+        });
+
+        function executeMaintenanceAction(action) {
+            // Hide description & initial buttons
+            document.getElementById('modal-desc').style.display = 'none';
+            document.getElementById('modal-actions').style.display = 'none';
+            
+            // Show progress bar
+            const progressContainer = document.getElementById('modal-progress-container');
+            const progressBar = document.getElementById('modal-progress-bar');
+            const statusText = document.getElementById('modal-progress-status');
+            
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            statusText.innerText = 'กำลังเชื่อมต่อกับฐานข้อมูล...';
+            
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                if (progress < 90) {
+                    progress += Math.floor(Math.random() * 15) + 5;
+                    if (progress > 90) progress = 90;
+                    progressBar.style.width = progress + '%';
+                    statusText.innerText = 'กำลังประมวลผลข้อมูลและล้างข้อมูลขยะ (' + progress + '%)...';
+                }
+            }, 120);
+
+            // Fetch request
+            fetch('../api/admin_db.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'action': action
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                clearInterval(progressInterval);
+                progressBar.style.width = '100%';
+                statusText.innerText = 'ประมวลผลเสร็จสมบูรณ์!';
+                hasExecutedMaintenance = true;
+                
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                    const resultContainer = document.getElementById('modal-result-container');
+                    resultContainer.style.display = 'block';
+                    
+                    if (data.status === 'success') {
+                        resultContainer.style.background = 'rgba(16, 185, 129, 0.06)';
+                        resultContainer.style.borderColor = 'rgba(16, 185, 129, 0.2)';
+                        resultContainer.innerHTML = '🎉 <strong>ดำเนินการเสร็จสิ้น:</strong><br>' + data.message.replace(/\n/g, '<br>');
+                    } else {
+                        resultContainer.style.background = 'rgba(239, 68, 68, 0.06)';
+                        resultContainer.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+                        resultContainer.innerHTML = '❌ <strong>เกิดข้อผิดพลาด:</strong><br>' + data.message;
+                    }
+                    
+                    // Show finish actions
+                    const actionsDiv = document.getElementById('modal-actions');
+                    actionsDiv.style.display = 'flex';
+                    actionsDiv.innerHTML = '<button class="btn-confirm" onclick="closeMaintenanceModal()">เสร็จสิ้น (ปิดหน้าต่าง)</button>';
+                    
+                }, 600);
+            })
+            .catch(err => {
+                clearInterval(progressInterval);
+                progressBar.style.width = '100%';
+                statusText.innerText = 'เกิดข้อผิดพลาดในการเชื่อมต่อ!';
+                
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                    const resultContainer = document.getElementById('modal-result-container');
+                    resultContainer.style.display = 'block';
+                    resultContainer.style.background = 'rgba(239, 68, 68, 0.06)';
+                    resultContainer.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+                    resultContainer.innerHTML = '❌ <strong>ข้อผิดพลาดของเครือข่าย:</strong> ไม่สามารถเชื่อมต่อฐานข้อมูลได้';
+                    
+                    const actionsDiv = document.getElementById('modal-actions');
+                    actionsDiv.style.display = 'flex';
+                    actionsDiv.innerHTML = '<button class="btn-cancel" onclick="closeMaintenanceModal()">ปิดหน้าต่าง</button>';
+                }, 600);
+            });
+        }
     </script>
+
+    <!-- Neumorphic Glassmorphic Maintenance Modal -->
+    <div id="maintenance-modal" class="modal-overlay">
+        <div class="modal-card">
+            <button class="modal-close-x" onclick="closeMaintenanceModal()">&times;</button>
+            <div class="modal-icon" id="modal-icon">🧹</div>
+            <h3 class="modal-title" id="modal-title">ยืนยันการทำความสะอาดข้อมูล</h3>
+            <p class="modal-desc" id="modal-desc">เนื้อหาชี้แจงความปลอดภัย...</p>
+            
+            <!-- Progress section -->
+            <div id="modal-progress-container" style="display: none; margin: 20px 0;">
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="modal-progress-bar"></div>
+                </div>
+                <p id="modal-progress-status" style="font-size: 13px; color: var(--text-secondary); margin-top: 8px; font-weight: bold;"></p>
+            </div>
+
+            <!-- Result section -->
+            <div id="modal-result-container" style="display: none; text-align: left; margin: 15px 0; border: 1px solid transparent; padding: 15px; border-radius: 12px; font-size: 14px; line-height: 1.6;">
+            </div>
+            
+            <div class="modal-actions" id="modal-actions">
+                <button class="btn-cancel" onclick="closeMaintenanceModal()">ยกเลิก</button>
+                <button class="btn-confirm" id="btn-confirm-action">ยืนยันดำเนินการ</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
