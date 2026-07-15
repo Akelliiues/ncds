@@ -7,194 +7,113 @@ if (!isset($_SESSION['admin_logged_in'])) {
 }
 require_once __DIR__ . '/../config/db.php';
 
-$message = '';
-$budgetYear = 2026;
-
-// Hospital list
-$hc_names = get_health_units();
-
-
-// Handle Assignment
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'assign_dpac') {
-    $enrollmentIds = $_POST['enrollments'] ?? [];
-    $vhvId = $_POST['vhv_id'] ?? '';
-    
-    if (!empty($enrollmentIds) && !empty($vhvId)) {
-        $pdo->beginTransaction();
-        try {
-            $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
-            $isSandboxVal = isSandboxMode($admin_hoscode) ? 1 : 0;
-            $roundStmt = $pdo->prepare("SELECT IFNULL(MAX(round_number), 0) + 1 FROM dpac_followups WHERE enrollment_id = ?");
-            $insertStmt = $pdo->prepare("INSERT INTO dpac_followups (enrollment_id, vhv_id, round_number, is_sandbox) VALUES (?, ?, ?, ?)");
-            $updateEnrollStmt = $pdo->prepare("UPDATE dpac_enrollments SET assigned_vhv_id = ? WHERE enrollment_id = ?");
-
-            $success = 0;
-            foreach ($enrollmentIds as $eid) {
-                // Get next round number
-                $roundStmt->execute([$eid]);
-                $nextRound = $roundStmt->fetchColumn();
-                
-                $insertStmt->execute([$eid, $vhvId, $nextRound, $isSandboxVal]);
-                $updateEnrollStmt->execute([$vhvId, $eid]);
-                $success++;
-            }
-            $pdo->commit();
-            $message = "มอบหมายงานติดตาม DPAC สำเร็จ $success รายการ";
-        } catch (\Throwable $e) {
-            $pdo->rollBack();
-            $message = "เกิดข้อผิดพลาด: " . $e->getMessage();
-        }
-    }
-}
-
-// Handle Cancel DPAC Enrollment
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'cancel_dpac') {
-    $enrollmentId = $_POST['enrollment_id'] ?? '';
-    if (!empty($enrollmentId)) {
-        $pdo->beginTransaction();
-        try {
-            // Delete followups first
-            $deleteFollowups = $pdo->prepare("DELETE FROM dpac_followups WHERE enrollment_id = ?");
-            $deleteFollowups->execute([$enrollmentId]);
-            
-            // Delete enrollment
-            $deleteEnrollment = $pdo->prepare("DELETE FROM dpac_enrollments WHERE enrollment_id = ?");
-            $deleteEnrollment->execute([$enrollmentId]);
-            
-            $pdo->commit();
-            $message = "ยกเลิกการเข้าร่วมโครงการ DPAC สำเร็จ";
-        } catch (\Throwable $e) {
-            $pdo->rollBack();
-            $message = "เกิดข้อผิดพลาดในการยกเลิก: " . $e->getMessage();
-        }
-    }
-}
-
-// Fetch Enrolled Participants
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
-$filter_hoscode = $_GET['hoscode'] ?? ($admin_hoscode ?: '');
-$filter_vhid = $_GET['vhid'] ?? '';
 
-$enrolled_query = "
-    SELECT e.enrollment_id, e.risk_type, e.enrolled_at, e.assigned_vhv_id, 
-           p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.sub_district_code,
-           v.vhv_name,
-           (SELECT COUNT(*) FROM dpac_followups f WHERE f.enrollment_id = e.enrollment_id) as total_rounds,
-           (SELECT COUNT(*) FROM dpac_followups f WHERE f.enrollment_id = e.enrollment_id AND f.status = 'pending') as pending_rounds
-    FROM dpac_enrollments e
-    JOIN target_population p ON e.cid = p.cid
-    LEFT JOIN vhv_users v ON e.assigned_vhv_id = v.vhv_id
-    WHERE e.budget_year = ? AND e.status = 'active'
-";
-$params = [$budgetYear];
+// Fetch dynamic sub-districts and units (same as assignment.php)
+$jsData = [];
+$subsList = [];
+try {
+    $subsList = $pdo->query("SELECT * FROM sub_districts ORDER BY sub_district_code ASC")->fetchAll();
+    foreach ($subsList as $sub) {
+        $subCode = $sub['sub_district_code'];
+        $subName = $sub['sub_district_name'];
 
-if ($filter_hoscode) {
-    $enrolled_query .= " AND p.hoscode = ?";
-    $params[] = $filter_hoscode;
-}
+        $stmt = $pdo->prepare("SELECT COUNT(DISTINCT hoscode) FROM villages WHERE sub_district_code = ? AND hoscode IS NOT NULL AND hoscode != ''");
+        $stmt->execute([$subCode]);
+        $distinctHoscodes = $stmt->fetchColumn();
 
-if ($filter_vhid) {
-    $tambon = substr($filter_vhid, 0, 6);
-    $moo = intval(substr($filter_vhid, 6, 2));
-    $enrolled_query .= " AND p.sub_district_code = ? AND p.moo = ?";
-    $params[] = $tambon;
-    $params[] = $moo;
-}
+        $hasSubUnits = ($distinctHoscodes > 1);
 
-$enrolled_query .= " ORDER BY p.moo, p.house_no";
+        if ($hasSubUnits) {
+            $jsData[$subCode] = [
+                'name' => $subName,
+                'hasSubUnits' => true,
+                'subUnits' => []
+            ];
 
-$stmt = $pdo->prepare($enrolled_query);
-$stmt->execute($params);
-$enrollments = $stmt->fetchAll();
+            $stmt = $pdo->prepare("SELECT DISTINCT v.hoscode, h.hosname FROM villages v JOIN health_units h ON v.hoscode = h.hoscode WHERE v.sub_district_code = ?");
+            $stmt->execute([$subCode]);
+            $subUnits = $stmt->fetchAll();
 
-// Fetch VHVs for assignment dropdown
-$vhv_query = "SELECT vhv_id, vhv_name, vhid_code FROM vhv_users";
-$vhv_params = [];
+            foreach ($subUnits as $su) {
+                $hc = $su['hoscode'];
+                $hcName = $su['hosname'];
 
-if ($filter_hoscode) {
-    $vhv_query .= " WHERE approved = 1 AND hoscode = ?";
-    $vhv_params[] = $filter_hoscode;
-} else {
-    $vhv_query .= " WHERE approved = 1";
-}
+                $vStmt = $pdo->prepare("SELECT moo, village_name FROM villages WHERE sub_district_code = ? AND hoscode = ? ORDER BY moo ASC");
+                $vStmt->execute([$subCode, $hc]);
+                $vills = $vStmt->fetchAll();
 
-if ($filter_vhid) {
-    $vhv_query .= " AND vhid_code = ?";
-    $vhv_params[] = $filter_vhid;
-}
+                $villList = [];
+                foreach ($vills as $v) {
+                    $villList[] = [
+                        'moo' => intval($v['moo']),
+                        'name' => $v['village_name']
+                    ];
+                }
 
-$vhv_query .= " ORDER BY vhv_name";
+                $jsData[$subCode]['subUnits'][$hc] = [
+                    'name' => $hcName,
+                    'villages' => $villList
+                ];
+            }
+        } else {
+            $stmt = $pdo->prepare("SELECT DISTINCT hoscode FROM villages WHERE sub_district_code = ? LIMIT 1");
+            $stmt->execute([$subCode]);
+            $hc = $stmt->fetchColumn();
 
-$vhvStmt = $pdo->prepare($vhv_query);
-$vhvStmt->execute($vhv_params);
-$vhvList = $vhvStmt->fetchAll();
+            $vStmt = $pdo->prepare("SELECT moo, village_name FROM villages WHERE sub_district_code = ? ORDER BY moo ASC");
+            $vStmt->execute([$subCode]);
+            $vills = $vStmt->fetchAll();
 
-// Get village name for display in Thai
-function get_vhv_responsibility_desc($vhid_code) {
-    if (empty($vhid_code) || strlen($vhid_code) < 8) {
-        return "รหัสพื้นที่: " . ($vhid_code ?: 'ไม่ระบุ');
-    }
-    
-    $tambon = substr($vhid_code, 0, 6);
-    $moo = intval(substr($vhid_code, 6, 2));
-    
-    $villages = [
-        '341801' => [
-            1 => 'บ้านม่วงโคน', 2 => 'บ้านดอนรังกา', 3 => 'บ้านนาห้วยแคน', 4 => 'บ้านดอนพันชาด', 5 => 'บ้านนามน',
-            6 => 'บ้านดอนตะลี', 7 => 'บ้านปากห้วย', 8 => 'บ้านโนนค้อ', 9 => 'บ้านแก่งกบ', 10 => 'บ้านนามน',
-            11 => 'บ้านตาลสุม', 12 => 'บ้านคำไม้ตาย', 13 => 'บ้านปากเซ', 14 => 'บ้านโนนสวรรค์', 15 => 'บ้านทุ่งเจริญ'
-        ],
-        '341802' => [
-            1 => 'บ้านสำโรงใหญ่', 2 => 'บ้านสำโรงกลาง', 3 => 'บ้านนาโพธิ์', 4 => 'บ้านสำโรงใต้', 5 => 'บ้านนาแพง',
-            6 => 'บ้านหนองโน', 7 => 'บ้านหนองสะเดา', 8 => 'บ้านทุ่งเจริญ'
-        ],
-        '341803' => [
-            1 => 'บ้านจิกเทิง', 2 => 'บ้านจิกลุ่ม', 3 => 'บ้านเชียงแก้ว', 4 => 'บ้านเชียงแก้ว', 5 => 'บ้านดอนโด่',
-            6 => 'บ้านดอนยูง', 7 => 'บ้านค้อ', 8 => 'บ้านดอนแป้นลม', 9 => 'บ้านสร้างคำ'
-        ],
-        '341804' => [
-            1 => 'บ้านหนองกุงใหญ่', 2 => 'บ้านหนองกุงน้อย', 3 => 'บ้านคำแคน', 4 => 'บ้านสร้างแสง', 5 => 'บ้านคำเตยใต้',
-            6 => 'บ้านสร้างหว้า', 7 => 'บ้านคำเตยเหนือ', 8 => 'บ้านสร้างหว้าพัฒนา'
-        ],
-        '341805' => [
-            1 => 'บ้านนาคาย', 2 => 'บ้านโนนจิก', 3 => 'บ้านหนองเป็ด', 4 => 'บ้านโนนยาง', 5 => 'บ้านดอนขวาง',
-            6 => 'บ้านดอนหวาย', 7 => 'บ้านโคกคล้าย', 8 => 'บ้านคำหนามแท่ง', 9 => 'บ้านคำผักหนอก', 10 => 'บ้านคำฮี',
-            11 => 'บ้านห่องแดง', 12 => 'บ้านโนนสำราญ', 13 => 'บ้านโนนเจริญ'
-        ],
-        '341806' => [
-            1 => 'บ้านคำหว้า', 2 => 'บ้านคำหว้า', 3 => 'บ้านห้วยดู่', 4 => 'บ้านนาทมเหนือ', 5 => 'บ้านไฮหย่อง',
-            6 => 'บ้านนาทมใต้'
-        ]
-    ];
-    
-    $village_name = $villages[$tambon][$moo] ?? '';
-    if ($village_name) {
-        return "รับผิดชอบ: หมู่ {$moo} {$village_name}";
-    }
-    
-    return "รหัสพื้นที่: {$vhid_code}";
-}
+            $villList = [];
+            foreach ($vills as $v) {
+                $villList[] = [
+                    'moo' => intval($v['moo']),
+                    'name' => $v['village_name']
+                ];
+            }
 
-// Generate village options
-$village_options = [];
-if (!empty($filter_hoscode)) {
-    $h = $filter_hoscode;
-    if (isset($hoscode_villages[$h])) {
-        $tcode = $hoscode_villages[$h]['tambon'];
-        foreach ($hoscode_villages[$h]['villages'] as $moo => $name) {
-            $vcode = $tcode . sprintf('%02d', $moo);
-            $village_options[$vcode] = "หมู่ {$moo} {$name}";
+            $jsData[$subCode] = [
+                'name' => $subName,
+                'hasSubUnits' => false,
+                'hoscode' => $hc ?: '',
+                'villages' => $villList
+            ];
         }
     }
-} else {
-    foreach ($hoscode_villages as $h => $info) {
-        $tcode = $info['tambon'];
-        foreach ($info['villages'] as $moo => $name) {
-            $vcode = $tcode . sprintf('%02d', $moo);
-            $village_options[$vcode] = "หมู่ {$moo} {$name} (" . ($hc_names[$h] ?? $h) . ")";
+} catch (\Exception $e) {
+    // Fail silently
+}
+
+// Filter for sub-district admins
+if ($admin_hoscode !== null) {
+    $filteredJsData = [];
+    foreach ($jsData as $subCode => $subInfo) {
+        if ($subInfo['hasSubUnits']) {
+            if (isset($subInfo['subUnits'][$admin_hoscode])) {
+                $filteredJsData[$subCode] = [
+                    'name' => $subInfo['name'],
+                    'hasSubUnits' => true,
+                    'subUnits' => [
+                        $admin_hoscode => $subInfo['subUnits'][$admin_hoscode]
+                    ]
+                ];
+            }
+        } else {
+            if ($subInfo['hoscode'] === $admin_hoscode) {
+                $filteredJsData[$subCode] = $subInfo;
+            }
         }
     }
-    ksort($village_options);
+    $jsData = $filteredJsData;
+    
+    $filteredSubsList = [];
+    foreach ($subsList as $sub) {
+        if (isset($jsData[$sub['sub_district_code']])) {
+            $filteredSubsList[] = $sub;
+        }
+    }
+    $subsList = $filteredSubsList;
 }
 ?>
 <!DOCTYPE html>
@@ -202,34 +121,145 @@ if (!empty($filter_hoscode)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>จัดการโครงการ DPAC - NCDs Prevention Portal</title>
+    <title>Smart DPAC Manager - NCDs Portal</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
-        .btn-cancel {
-            background-color: var(--color-red);
+        body {
+            background-color: var(--bg-main);
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 24px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 992px) {
+            .grid-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .filter-card {
+            background-color: var(--bg-card);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: var(--neumorph-flat);
+            margin-bottom: 20px;
+        }
+
+        .list-card {
+            background-color: var(--bg-card);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: var(--neumorph-inset);
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .list-body {
+            flex: 1;
+            overflow-y: auto;
+            margin-top: 15px;
+            padding-right: 5px;
+        }
+
+        .item-row {
+            background-color: var(--bg-main);
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            box-shadow: var(--neumorph-flat);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all var(--transition-speed);
+            border: 1px solid transparent;
+        }
+
+        .item-info h4 {
+            margin: 0 0 4px 0;
+            color: var(--text-primary);
+            font-size: 15.5px;
+            font-weight: 700;
+        }
+
+        .item-info p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* Custom Checkbox */
+        .target-checkbox {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            accent-color: var(--color-accent);
+        }
+
+        .vhv-row.selected {
+            background-color: var(--bg-darker) !important;
+            border-left: 4px solid var(--color-green) !important;
+            box-shadow: var(--neumorph-inset) !important;
+        }
+
+        .assign-btn {
+            background: var(--color-green);
             color: white;
             border: none;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: var(--neumorph-flat);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .assign-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            background: #059669;
+        }
+
+        .assign-btn:disabled {
+            background: #cbd5e1;
+            color: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-cancel {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.2);
             padding: 6px 12px;
             border-radius: 12px;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
             cursor: pointer;
             transition: all var(--transition-speed);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            box-shadow: 2px 2px 5px rgba(239, 68, 68, 0.2);
-            text-decoration: none;
         }
+
         .btn-cancel:hover {
-            transform: translateY(-1px);
-            box-shadow: 3px 3px 8px rgba(239, 68, 68, 0.35);
-            background-color: #dc2626 !important;
-        }
-        .btn-cancel:active {
-            transform: translateY(0);
-            box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.2);
+            background-color: #ef4444;
+            color: white;
         }
     </style>
 </head>
@@ -237,158 +267,387 @@ if (!empty($filter_hoscode)) {
     <?php include 'navbar.php'; ?>
 
     <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
-        <h2 style="margin-bottom: 4px;">ผู้เข้าร่วมโครงการปรับเปลี่ยนพฤติกรรม (DPAC)</h2>
-        <p style="color: var(--text-secondary); margin-bottom: 30px; font-size: 15px;">มอบหมายงานให้ อสม. ติดตามผลกลุ่มเสี่ยง</p>
+        <h2 style="color: var(--color-accent); margin-bottom: 5px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px;">
+            ระบบมอบหมายงานติดตามโครงการปรับเปลี่ยนพฤติกรรม (Smart DPAC Manager)
+        </h2>
+        <p style="color: var(--text-secondary); margin-bottom: 25px; font-size: 15px;">บริหารจัดการ อสม. ผู้ติดตามผลลัพธ์พฤติกรรมกลุ่มเสี่ยงเบาหวาน/ความดัน (DPAC)</p>
 
-        <?php if ($message): ?>
-            <div style="background-color: rgba(16, 185, 129, 0.15); border: 1px solid var(--color-green); color: var(--color-green); padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold;">
-                <?= htmlspecialchars($message) ?>
-            </div>
-        <?php endif; ?>
-
-        <!-- Filters Section -->
-        <div class="card-dark" style="margin-bottom: 25px;">
-            <form method="GET" action="dpac_manager.php" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
-                
-                <div style="flex: 1; min-width: 200px;">
-                    <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--text-secondary);">หน่วยบริการ / รพ.สต.</label>
-                    <?php if ($admin_hoscode !== null): ?>
-                        <input type="text" class="form-select" value="<?= htmlspecialchars($hc_names[$admin_hoscode] ?? '') ?>" readonly style="background-color: rgba(0, 0, 0, 0.1); cursor: not-allowed; color: var(--text-muted);">
-                        <input type="hidden" name="hoscode" value="<?= htmlspecialchars($admin_hoscode) ?>">
-                    <?php else: ?>
-                        <select name="hoscode" class="form-select" onchange="this.form.submit()">
-                            <option value="">-- ทุกแห่ง (ทั้งหมด) --</option>
-                            <?php foreach ($hc_names ?? [] as $code => $name): ?>
-                                <option value="<?= $code ?>" <?= ($filter_hoscode == $code) ? 'selected' : '' ?>><?= htmlspecialchars($name) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    <?php endif; ?>
-                </div>
-
-                <div style="flex: 1; min-width: 200px;">
-                    <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--text-secondary);">หมู่บ้าน</label>
-                    <select name="vhid" class="form-select" onchange="this.form.submit()">
-                        <option value="">-- ทุกหมู่บ้าน --</option>
-                        <?php foreach ($village_options as $val => $lbl): ?>
-                            <option value="<?= htmlspecialchars($val) ?>" <?= $filter_vhid == $val ? 'selected' : '' ?>><?= htmlspecialchars($lbl) ?></option>
+        <!-- Step 1: Select Responsibility -->
+        <div class="filter-card">
+            <h4 style="margin-top: 0; margin-bottom: 16px; color: var(--text-primary);">1. เลือกเขตรับผิดชอบ</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; min-width: 0;">
+                <div>
+                    <label class="form-label">ตำบล</label>
+                    <select id="tambon" class="form-select" onchange="onTambonChange()">
+                        <option value="">-- เลือกตำบล --</option>
+                        <?php foreach ($subsList as $sub): ?>
+                            <option value="<?= htmlspecialchars($sub['sub_district_code']) ?>"><?= htmlspecialchars($sub['sub_district_name']) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
-
-                <div>
-                    <button type="submit" class="btn-primary" style="height: 42px; padding: 0 20px; border-radius: var(--border-radius); font-weight: bold; cursor: pointer; border: none; background: var(--color-accent); color: white;">
-                        ค้นหา
-                    </button>
-                    <a href="dpac_manager.php" class="btn-primary" style="height: 42px; padding: 0 15px; border-radius: var(--border-radius); font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; background: rgba(13, 44, 84, 0.1); color: var(--text-primary); border: 1px solid var(--border-color); box-sizing: border-box; margin-left: 5px;">
-                        ล้างค่า
-                    </a>
+                <div id="hoscode_container" style="display: none;">
+                    <label class="form-label">หน่วยบริการ (รพ.สต.)</label>
+                    <select id="hoscode" class="form-select" onchange="onHoscodeChange()">
+                        <option value="">-- เลือกหน่วยบริการ --</option>
+                    </select>
                 </div>
-            </form>
+                <div id="moo_container">
+                    <label class="form-label">หมู่บ้าน</label>
+                    <select id="moo" class="form-select" onchange="fetchData()">
+                        <option value="">-- เลือกพื้นที่ก่อน --</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
-        <form method="post">
-            <input type="hidden" name="action" value="assign_dpac">
-            
-            <div class="card-dark" style="margin-bottom: 30px; border: 2px dashed var(--color-green); background-color: rgba(16, 185, 129, 0.02);">
-                <h3 style="color: var(--color-green); margin-bottom: 15px;">มอบหมายงานติดตามรอบใหม่</h3>
-                <div style="display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap;">
-                    
-                    <div style="flex: 1; min-width: 250px;">
-                        <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--text-secondary);">เลือก อสม. ที่รับผิดชอบ:</label>
-                        <select name="vhv_id" id="vhv_select" class="form-select" required>
-                            <option value="">-- เลือก อสม. --</option>
-                            <?php foreach ($vhvList as $v): ?>
-                                <?php
-                                $vhid_prefix = !empty($v['vhid_code']) && strlen($v['vhid_code']) >= 8 ? substr($v['vhid_code'], 0, 8) : '';
-                                ?>
-                                <option value="<?= htmlspecialchars($v['vhv_id']) ?>" data-vhid-prefix="<?= htmlspecialchars($vhid_prefix) ?>">
-                                    <?= htmlspecialchars($v['vhv_name']) ?> (<?= htmlspecialchars(get_vhv_responsibility_desc($v['vhid_code'])) ?>)
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
+        <!-- Step 2: Lists Grid -->
+        <div class="grid-container">
+            <!-- Left: Enrolled Targets -->
+            <div class="list-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
                     <div>
-                        <button type="submit" class="btn-primary" style="height: 52px; padding: 0 30px; border-radius: var(--border-radius); font-weight: bold; cursor: pointer; border: none; background: var(--color-green); color: white; box-shadow: var(--neumorph-flat);">
-                            สั่งงานติดตาม (Follow-up)
-                        </button>
+                        <h3 style="margin: 0; color: var(--text-primary);">ผู้เข้าร่วมโครงการปรับพฤติกรรม (DPAC)</h3>
+                        <span style="font-size: 12.5px; color: var(--text-muted);" id="target-count">พบ 0 ราย</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="select-all" class="target-checkbox" onchange="toggleSelectAll(this)">
+                        <label for="select-all" style="font-size: 13.5px; font-weight: bold; cursor: pointer; color: var(--text-primary);">เลือกทั้งหมด</label>
                     </div>
                 </div>
-            </div>
 
-            <div class="card-dark">
-                <h3 style="color: var(--color-accent); margin-bottom: 8px;">รายชื่อผู้เข้าร่วมโครงการ (<?= count($enrollments) ?> รายการ)</h3>
-                <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 20px;">* ทำเครื่องหมายถูกหน้าชื่อเพื่อมอบหมายงาน</p>
+                <!-- Live Search Bar -->
+                <div style="margin-top: 12px;">
+                    <input type="text" id="search-target" placeholder="🔍 พิมพ์ชื่อ-นามสกุล หรือบ้านเลขที่เพื่อค้นหา..." oninput="onSearchInput()"
+                        style="width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-color); background-color: var(--bg-main); color: var(--text-primary); font-size: 14px; box-sizing: border-box; box-shadow: var(--neumorph-inset); outline: none;">
+                </div>
 
-                <div class="table-responsive">
-                    <table class="admin-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 40px; text-align: center;"><input type="checkbox" id="selectAll"></th>
-                                <th>ชื่อ-นามสกุล</th>
-                                <th>ที่อยู่</th>
-                                <th>โรคประจำตัว</th>
-                                <th>จำนวนรอบติดตาม</th>
-                                <th>สถานะ อสม. ปัจจุบัน</th>
-                                <th style="width: 100px; text-align: center;">จัดการ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (empty($enrollments)): ?>
-                                <tr>
-                                    <td colspan="7" style="text-align: center; padding: 20px; color: var(--text-secondary);">ไม่มีผู้เข้าร่วมโครงการ</td>
-                                </tr>
-                            <?php else: ?>
-                                <?php foreach ($enrollments as $r): ?>
-                                    <tr>
-                                        <td style="text-align: center;"><input type="checkbox" name="enrollments[]" value="<?= htmlspecialchars($r['enrollment_id']) ?>"></td>
-                                        <td>
-                                            <strong style="color: var(--text-primary);"><?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?></strong><br>
-                                            <span style="font-size: 12px; color: var(--text-muted);"><?= htmlspecialchars($r['cid']) ?></span>
-                                        </td>
-                                        <td>บ้านเลขที่ <?= htmlspecialchars($r['house_no']) ?> หมู่ <?= htmlspecialchars($r['moo']) ?></td>
-                                        <td><strong style="color: var(--color-red);"><?= htmlspecialchars($r['risk_type']) ?></strong></td>
-                                        <td>
-                                            ทั้งหมด <?= $r['total_rounds'] ?> รอบ
-                                            <?php if ($r['pending_rounds'] > 0): ?>
-                                                <br><span style="color: var(--color-yellow); font-size: 12px; font-weight: bold;">(มีงานค้าง <?= $r['pending_rounds'] ?> งาน)</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?= $r['vhv_name'] ? '<strong style="color: var(--text-primary);">' . htmlspecialchars($r['vhv_name']) . '</strong>' : '<span style="color: var(--text-muted);">- ยังไม่มอบหมาย -</span>' ?>
-                                        </td>
-                                        <td style="text-align: center;">
-                                            <button type="button" class="btn-cancel" onclick="confirmCancelDPAC(<?= htmlspecialchars($r['enrollment_id']) ?>)">
-                                                <svg style="width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2;" viewBox="0 0 24 24">
-                                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                                </svg>
-                                                ยกเลิก
-                                            </button>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
+                <div class="list-body" id="target-list">
+                    <div style="text-align: center; color: var(--text-muted); padding: 40px;">กรุณาเลือกหมู่บ้าน</div>
                 </div>
             </div>
-        </form>
+
+            <!-- Right: VHVs list with workloads -->
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <div class="list-card" style="height: 480px;">
+                    <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+                        <h3 style="margin: 0; color: var(--text-primary);">รายชื่อ อสม. ในพื้นที่</h3>
+                        <span style="font-size: 12.5px; color: var(--text-muted);" id="vhv-count">พบ 0 ราย</span>
+                    </div>
+
+                    <div class="list-body" id="vhv-list">
+                        <div style="text-align: center; color: var(--text-muted); padding: 40px;">กรุณาเลือกหมู่บ้าน</div>
+                    </div>
+                </div>
+
+                <!-- Assignment Card -->
+                <div class="filter-card" style="margin-bottom: 0;">
+                    <h4 style="margin-top: 0; margin-bottom: 12px; color: var(--text-primary);">จัดการมอบหมายงาน</h4>
+                    <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+                        เลือกรายชื่อผู้รับบริการจากคอลัมน์ด้านซ้าย และคลิกเลือก อสม. จากด้านบนเพื่อมอบหมายงานติดตามผลพฤติกรรมรอบถัดไป
+                    </p>
+                    <div style="margin-bottom: 14px; font-size: 14px; font-weight: bold; color: var(--color-accent);" id="selected-summary">
+                        เลือกแล้ว 0 ราย
+                    </div>
+                    <button class="assign-btn" id="assign-btn" disabled onclick="assignDpacTasks()">
+                        🏃 มอบหมายงานติดตาม (Follow-up)
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <form id="cancel_dpac_form" method="post">
-        <input type="hidden" name="action" value="cancel_dpac">
-        <input type="hidden" name="enrollment_id" id="cancel_enrollment_id" value="">
-    </form>
-
     <script>
-        document.getElementById('selectAll').addEventListener('change', function(e) {
-            document.querySelectorAll('input[name="enrollments[]"]').forEach(cb => cb.checked = e.target.checked);
-        });
+        const tambonData = <?= json_encode($jsData, JSON_UNESCAPED_UNICODE) ?>;
+        let currentTargets = [];
+        let selectedEnrollmentIds = new Set();
+        let selectedVhvId = null;
 
-        function confirmCancelDPAC(enrollmentId) {
-            if (confirm('คุณต้องการยกเลิกผู้เข้าร่วมรายนี้ออกจากโครงการ DPAC ใช่หรือไม่? การติดตามทั้งหมดของรายนี้จะถูกลบออกด้วย')) {
-                document.getElementById('cancel_enrollment_id').value = enrollmentId;
-                document.getElementById('cancel_dpac_form').submit();
+        function onTambonChange() {
+            const tCode = document.getElementById('tambon').value;
+            const hContainer = document.getElementById('hoscode_container');
+            const hSelect = document.getElementById('hoscode');
+            const mSelect = document.getElementById('moo');
+
+            hSelect.innerHTML = '<option value="">-- เลือกหน่วยบริการ --</option>';
+            mSelect.innerHTML = '<option value="">-- เลือกพื้นที่ก่อน --</option>';
+            hContainer.style.display = 'none';
+
+            if (!tCode) {
+                fetchData();
+                return;
+            }
+
+            const tInfo = tambonData[tCode];
+            if (tInfo.hasSubUnits) {
+                hContainer.style.display = 'block';
+                for (let hc in tInfo.subUnits) {
+                    hSelect.innerHTML += `<option value="${hc}">${tInfo.subUnits[hc].name}</option>`;
+                }
+            } else {
+                populateMoo(tInfo.villages);
+                fetchData();
+            }
+        }
+
+        function onHoscodeChange() {
+            const tCode = document.getElementById('tambon').value;
+            const hCode = document.getElementById('hoscode').value;
+            if (tCode && hCode && tambonData[tCode].hasSubUnits) {
+                populateMoo(tambonData[tCode].subUnits[hCode].villages);
+                fetchData();
+            } else {
+                document.getElementById('moo').innerHTML = '<option value="">-- เลือกหน่วยบริการก่อน --</option>';
+                fetchData();
+            }
+        }
+
+        function populateMoo(villages) {
+            const mSelect = document.getElementById('moo');
+            mSelect.innerHTML = '<option value="">-- เลือกหมู่บ้าน --</option>';
+            villages.forEach(v => {
+                mSelect.innerHTML += `<option value="${v.moo}">หมู่ที่ ${v.moo} ${v.name}</option>`;
+            });
+        }
+
+        function fetchData() {
+            selectedEnrollmentIds.clear();
+            selectedVhvId = null;
+            document.getElementById('select-all').checked = false;
+            updateSelectedCount();
+
+            const tambon = document.getElementById('tambon').value;
+            const moo = document.getElementById('moo').value;
+            let hoscode = '';
+
+            if (!tambon || !moo) {
+                document.getElementById('target-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">กรุณาเลือกหมู่บ้าน</div>';
+                document.getElementById('vhv-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">กรุณาเลือกหมู่บ้าน</div>';
+                document.getElementById('target-count').innerText = 'พบ 0 ราย';
+                document.getElementById('vhv-count').innerText = 'พบ 0 ราย';
+                return;
+            }
+
+            if (tambonData[tambon].hasSubUnits) {
+                hoscode = document.getElementById('hoscode').value;
+            } else {
+                hoscode = tambonData[tambon].hoscode;
+            }
+
+            const vhidCode = tambon + moo.padStart(2, '0');
+
+            // Fetch Targets
+            fetch(`../api/get_dpac_data.php?type=targets&moo=${moo}&vhid=${vhidCode}&hoscode=${hoscode}`)
+                .then(r => r.json())
+                .then(data => {
+                    currentTargets = data;
+                    renderTargets();
+                })
+                .catch(() => {
+                    document.getElementById('target-list').innerHTML = '<div style="text-align: center; color: var(--color-red); padding: 40px;">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>';
+                });
+
+            // Fetch VHVs
+            fetch(`../api/get_dpac_data.php?type=vhvs&moo=${moo}&vhid=${vhidCode}&hoscode=${hoscode}`)
+                .then(r => r.json())
+                .then(data => {
+                    renderVhvs(data);
+                })
+                .catch(() => {
+                    document.getElementById('vhv-list').innerHTML = '<div style="text-align: center; color: var(--color-red); padding: 40px;">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>';
+                });
+        }
+
+        function onSearchInput() {
+            renderTargets();
+        }
+
+        function renderTargets() {
+            const list = document.getElementById('target-list');
+            const searchVal = (document.getElementById('search-target')?.value || '').trim().toLowerCase();
+
+            const filteredTargets = currentTargets.filter(t => {
+                if (!searchVal) return true;
+                const fullName = `${t.first_name} ${t.last_name}`.toLowerCase();
+                const houseNo = (t.house_no || '').toString().toLowerCase();
+                const cid = (t.cid || '').toString().toLowerCase();
+                return fullName.includes(searchVal) || houseNo.includes(searchVal) || cid.includes(searchVal);
+            });
+
+            if (filteredTargets.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">ไม่พบผู้เข้าร่วมโครงการในพื้นที่</div>';
+                document.getElementById('target-count').innerText = 'พบ 0 ราย';
+                return;
+            }
+
+            document.getElementById('target-count').innerText = `พบ ${filteredTargets.length} ราย`;
+
+            list.innerHTML = filteredTargets.map(t => {
+                const isChecked = selectedEnrollmentIds.has(t.enrollment_id.toString()) ? 'checked' : '';
+                const vhvLabel = t.assigned_vhv 
+                    ? `<span class="badge" style="background-color: rgba(34, 197, 94, 0.15); color: #22c55e;">อสม. ${t.assigned_vhv} (รอบติดตาม: ${t.total_rounds})</span>` 
+                    : '<span class="badge" style="background-color: rgba(239, 68, 68, 0.15); color: #ef4444;">ยังไม่มี อสม. รับผิดชอบ</span>';
+
+                return `
+                    <div class="item-row">
+                        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                            <input type="checkbox" class="target-checkbox" value="${t.enrollment_id}" ${isChecked} onchange="toggleSelectTarget(this, '${t.enrollment_id}')">
+                            <div class="item-info">
+                                <h4>${t.first_name} ${t.last_name} <span style="font-size:12px; color: var(--text-muted); font-weight:normal;">(${t.cid})</span></h4>
+                                <p>บ้านเลขที่: ${t.house_no} | หมู่ที่: ${t.moo} | กลุ่มพฤติกรรม: <strong style="color:var(--color-red);">${t.risk_type}</strong></p>
+                                <div style="margin-top: 6px;">${vhvLabel}</div>
+                            </div>
+                        </div>
+                        <button onclick="cancelDpacEnrollment('${t.enrollment_id}', '${t.first_name} ${t.last_name}')" class="btn-cancel" style="margin: 0; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight:bold;">
+                            ยกเลิกเข้าร่วม
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderVhvs(data) {
+            const list = document.getElementById('vhv-list');
+            if (!data || data.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">ไม่พบ อสม. ในเขตรับผิดชอบ</div>';
+                document.getElementById('vhv-count').innerText = 'พบ 0 ราย';
+                return;
+            }
+
+            document.getElementById('vhv-count').innerText = `พบ ${data.length} ราย`;
+
+            list.innerHTML = data.map(v => {
+                const isSelected = selectedVhvId === v.vhv_id ? 'selected' : '';
+                return `
+                    <div class="item-row vhv-row ${isSelected}" onclick="selectVhv('${v.vhv_id}')" style="cursor: pointer; border-left: 4px solid transparent; transition: all 0.2s;">
+                        <div class="item-info">
+                            <h4>อสม. ${v.vhv_name}</h4>
+                            <p style="font-size:12.5px; color:var(--text-secondary); margin-top:2px;">
+                                📋 งานคัดกรอง: <strong style="color:var(--color-accent);">${v.pending_screen_count}</strong> งาน | 
+                                🏃 ติดตาม DPAC: <strong style="color:var(--color-green);">${v.pending_dpac_count}</strong> งาน
+                            </p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleSelectTarget(checkbox, id) {
+            if (checkbox.checked) {
+                selectedEnrollmentIds.add(id.toString());
+            } else {
+                selectedEnrollmentIds.delete(id.toString());
+                document.getElementById('select-all').checked = false;
+            }
+            updateSelectedCount();
+        }
+
+        function toggleSelectAll(master) {
+            const checkboxes = document.querySelectorAll('#target-list .target-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = master.checked;
+                if (master.checked) {
+                    selectedEnrollmentIds.add(cb.value.toString());
+                } else {
+                    selectedEnrollmentIds.delete(cb.value.toString());
+                }
+            });
+            updateSelectedCount();
+        }
+
+        function selectVhv(vhvId) {
+            selectedVhvId = vhvId;
+            // Rerender VHV list using current DOM elements to maintain scroll
+            const rows = document.querySelectorAll('#vhv-list .vhv-row');
+            const dataVhvIds = [];
+            
+            // Re-fetch existing data state from DOM elements
+            rows.forEach((row, idx) => {
+                row.classList.remove('selected');
+                const onclickStr = row.getAttribute('onclick');
+                const match = onclickStr.match(/'([^']+)'/);
+                if (match && match[1] === vhvId) {
+                    row.classList.add('selected');
+                }
+            });
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            const count = selectedEnrollmentIds.size;
+            document.getElementById('selected-summary').innerText = `เลือกแล้ว ${count} ราย`;
+            
+            const assignBtn = document.getElementById('assign-btn');
+            if (count > 0 && selectedVhvId !== null) {
+                assignBtn.disabled = false;
+            } else {
+                assignBtn.disabled = true;
+            }
+        }
+
+        function assignDpacTasks() {
+            const enrollIds = Array.from(selectedEnrollmentIds);
+            if (enrollIds.length === 0) {
+                alert("กรุณาเลือกผู้เข้าร่วมโครงการที่ต้องการมอบหมายงานก่อนครับ");
+                return;
+            }
+            if (!selectedVhvId) {
+                alert("กรุณาเลือก อสม. เพื่อมอบหมายงานก่อนครับ");
+                return;
+            }
+
+            if (confirm(`ยืนยันมอบหมายงานติดตามโครงการ DPAC จำนวน ${enrollIds.length} ราย ให้กับ อสม. ที่ระบุ?`)) {
+                const btn = document.getElementById('assign-btn');
+                btn.disabled = true;
+                btn.innerText = '⏳ กำลังมอบหมายงาน...';
+
+                fetch('../api/assign_dpac.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        vhv_id: selectedVhvId,
+                        enrollment_ids: enrollIds
+                    })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert("มอบหมายงานเรียบร้อยแล้ว!");
+                        selectedEnrollmentIds.clear();
+                        fetchData(); // Reload lists
+                    } else {
+                        alert("เกิดข้อผิดพลาด: " + data.message);
+                        btn.disabled = false;
+                        btn.innerText = '🏃 มอบหมายงานติดตาม (Follow-up)';
+                    }
+                })
+                .catch(() => {
+                    alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+                    btn.disabled = false;
+                    btn.innerText = '🏃 มอบหมายงานติดตาม (Follow-up)';
+                });
+            }
+        }
+
+        function cancelDpacEnrollment(enrollmentId, name) {
+            if (confirm(`⚠️ ยืนยันยกเลิกการเข้าร่วมโครงการ DPAC ของ "${name}" ใช่หรือไม่?\n\nการดำเนินการนี้จะลบข้อมูลประวัติการติดตามผลทั้งหมดที่เกี่ยวข้องอย่างถาวร!`)) {
+                fetch('../api/cancel_dpac.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enrollment_id: enrollmentId })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert("ยกเลิกการเข้าร่วมโครงการเรียบร้อยแล้ว");
+                        selectedEnrollmentIds.delete(enrollmentId.toString());
+                        fetchData(); // Reload lists
+                    } else {
+                        alert("เกิดข้อผิดพลาด: " + data.message);
+                    }
+                })
+                .catch(() => {
+                    alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+                });
             }
         }
     </script>
