@@ -294,11 +294,17 @@ try {
                     </button>
                 </div>
 
-                <!-- Search Input Field -->
-                <div style="margin-top: 12px;">
+                <!-- Search & Status Filter Row -->
+                <div style="margin-top: 12px; display: flex; gap: 10px;">
                     <input type="text" id="search-target" placeholder="🔍 พิมพ์ชื่อ-นามสกุล หรือบ้านเลขที่เพื่อค้นหา..."
-                        style="width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-color); background-color: var(--bg-main); color: var(--text-primary); font-size: 14px; box-sizing: border-box; box-shadow: var(--neumorph-inset); transition: all 0.3s;"
+                        style="flex: 1; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-color); background-color: var(--bg-main); color: var(--text-primary); font-size: 14px; box-sizing: border-box; box-shadow: var(--neumorph-inset); transition: all 0.3s;"
                         oninput="onSearchInput()">
+                    <select id="filter-status" onchange="onStatusFilterChange()"
+                        style="width: 140px; padding: 0 10px; border-radius: 12px; border: 1px solid var(--border-color); background-color: var(--bg-main); color: var(--text-primary); font-size: 14px; box-sizing: border-box; box-shadow: var(--neumorph-inset); cursor: pointer;">
+                        <option value="all">ทั้งหมด</option>
+                        <option value="assigned">มอบหมายแล้ว</option>
+                        <option value="unassigned">ยังไม่มอบหมาย</option>
+                    </select>
                 </div>
 
                 <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
@@ -497,6 +503,9 @@ try {
             selectedCids.clear();
             const searchInput = document.getElementById('search-target');
             if (searchInput) searchInput.value = '';
+            
+            const statusFilter = document.getElementById('filter-status');
+            if (statusFilter) statusFilter.value = 'all';
 
             const tambon = document.getElementById('tambon').value;
             const moo = document.getElementById('moo').value;
@@ -538,20 +547,41 @@ try {
             renderTargets();
         }
 
+        function onStatusFilterChange() {
+            renderTargets();
+        }
+
         function renderTargets() {
             const list = document.getElementById('target-list');
             const searchVal = (document.getElementById('search-target')?.value || '').trim().toLowerCase();
+            const filterStatus = (document.getElementById('filter-status')?.value || 'all');
 
-            // Filter targets based on search query
+            // Filter targets based on search query and assignment status
             const filteredTargets = currentTargets.filter(t => {
-                if (!searchVal) return true;
-                const fullName = `${t.first_name} ${t.last_name}`.toLowerCase();
-                const houseNo = (t.house_no || '').toString().toLowerCase();
-                return fullName.includes(searchVal) || houseNo.includes(searchVal);
+                // 1. Search filter
+                if (searchVal) {
+                    const fullName = `${t.first_name} ${t.last_name}`.toLowerCase();
+                    const houseNo = (t.house_no || '').toString().toLowerCase();
+                    if (!fullName.includes(searchVal) && !houseNo.includes(searchVal)) return false;
+                }
+
+                // 2. Status filter
+                if (filterStatus === 'assigned') {
+                    if (!t.assigned_vhv) return false;
+                } else if (filterStatus === 'unassigned') {
+                    if (t.assigned_vhv) return false;
+                }
+
+                return true;
             });
 
-            if (searchVal) {
-                document.getElementById('target-count').innerText = `พบ ${filteredTargets.length} ราย (ค้นหา: "${searchVal}")`;
+            if (searchVal || filterStatus !== 'all') {
+                let filterLabel = '';
+                if (filterStatus === 'assigned') filterLabel = 'มอบหมายแล้ว';
+                if (filterStatus === 'unassigned') filterLabel = 'ยังไม่มอบหมาย';
+                const searchLabel = searchVal ? `ค้นหา: "${searchVal}"` : '';
+                const parts = [searchLabel, filterLabel].filter(Boolean);
+                document.getElementById('target-count').innerText = `พบ ${filteredTargets.length} ราย (${parts.join(', ')})`;
             } else {
                 document.getElementById('target-count').innerText = `พบ ${currentTargets.length} ราย`;
             }
