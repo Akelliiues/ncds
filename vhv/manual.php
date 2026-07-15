@@ -12,6 +12,10 @@ $vhvName = $is_vhv ? $_SESSION['vhv_name'] : '';
 
 $path_prefix = defined('ALLOW_GUEST_MANUAL') ? '' : '../';
 $back_url = defined('ALLOW_GUEST_MANUAL') ? ($is_vhv ? 'vhv/index.php' : 'index.php') : 'index.php';
+
+require_once __DIR__ . '/../config/db.php';
+$district = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
+$province = defined('PROVINCE_NAME') ? PROVINCE_NAME : 'อุบลราชธานี';
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -25,7 +29,7 @@ $back_url = defined('ALLOW_GUEST_MANUAL') ? ($is_vhv ? 'vhv/index.php' : 'index.
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>คู่มือ อสม. - NCDs Portal</title>
+    <title>คู่มือ อสม. อำเภอ<?= htmlspecialchars($district) ?> - NCDs Portal</title>
     <link rel="stylesheet" href="<?= $path_prefix ?>assets/css/style.css">
     <style>
         body {
@@ -495,7 +499,7 @@ $back_url = defined('ALLOW_GUEST_MANUAL') ? ($is_vhv ? 'vhv/index.php' : 'index.
                 </div>
                 <div class="accordion-content">
                     <div class="accordion-body">
-                        <p>เพื่อตอบสนองการลงพื้นที่จุดอับสัญญาณเน็ตในอำเภอตาลสุม ระบบติดตั้ง PWA ออฟไลน์โหมดอัตโนมัติ:</p>
+                        <p>เพื่อตอบสนองการลงพื้นที่จุดอับสัญญาณเน็ตในอำเภอ<?= htmlspecialchars($district) ?> ระบบติดตั้ง PWA ออฟไลน์โหมดอัตโนมัติ:</p>
                         <div class="alert-box alert-box-success">
                             <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                                 <path d="M5 13l4 4L19 7"></path>
