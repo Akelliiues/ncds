@@ -71,7 +71,7 @@ $leaderboardStmt = $pdo->query("
         u.is_hl_coach,
         v.village_name,
         (
-            SELECT COALESCE(SUM(CASE WHEN (r.followup_id IS NULL AND ta.assignment_id IS NOT NULL) OR (r.followup_id IS NOT NULL AND f.followup_id IS NOT NULL) THEN r.points_earned ELSE 0 END), 0)
+            SELECT COALESCE(SUM(CASE WHEN (r.followup_id IS NULL AND r.assignment_id IS NULL) OR (r.followup_id IS NULL AND ta.assignment_id IS NOT NULL) OR (r.followup_id IS NOT NULL AND f.followup_id IS NOT NULL) THEN r.points_earned ELSE 0 END), 0)
             FROM vhv_rewards r
             LEFT JOIN task_assignments ta ON r.assignment_id = ta.assignment_id
             LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id

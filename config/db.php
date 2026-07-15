@@ -541,6 +541,33 @@ try {
     // Fail silently or handle
 }
 
+// Auto-create vhv_surveys and vhv_survey_participants tables for R2R Survey
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `vhv_surveys` (
+        `survey_id` INT AUTO_INCREMENT PRIMARY KEY,
+        `hoscode` VARCHAR(9) NOT NULL,
+        `sub_district_code` VARCHAR(6) NOT NULL,
+        `score_peou` TINYINT NOT NULL,
+        `score_sq` TINYINT NOT NULL,
+        `score_iq` TINYINT NOT NULL,
+        `score_pu` TINYINT NOT NULL,
+        `score_bi` TINYINT NOT NULL,
+        `selected_tags` TEXT,
+        `submitted_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        `budget_year` INT NOT NULL DEFAULT 2026,
+        `is_sandbox` TINYINT NOT NULL DEFAULT 0
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `vhv_survey_participants` (
+        `vhv_id` VARCHAR(50) NOT NULL,
+        `budget_year` INT NOT NULL,
+        PRIMARY KEY (`vhv_id`, `budget_year`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+} catch (\PDOException $e) {
+    // Fail silently
+}
+
+
 
 // Auto-migration: Add advice_given column to screening_results if it doesn't exist
 try {

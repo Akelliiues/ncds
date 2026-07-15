@@ -350,6 +350,106 @@ $monthlyTrendStmt = $pdo->prepare("
 ");
 $monthlyTrendStmt->execute(array_merge($hoscodes, $hoscodes));
 $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// ==========================================
+// R2R Satisfaction Survey Stats Calculation
+// ==========================================
+$surveyStats = [
+    'count' => 0,
+    'peou_mean' => 0, 'peou_sd' => 0,
+    'sq_mean' => 0, 'sq_sd' => 0,
+    'iq_mean' => 0, 'iq_sd' => 0,
+    'pu_mean' => 0, 'pu_sd' => 0,
+    'bi_mean' => 0, 'bi_sd' => 0,
+    'total_mean' => 0, 'total_sd' => 0
+];
+
+$tagsCount = [];
+
+try {
+    // Query survey responses for current clinics (hoscodes)
+    $surveyStmt = $pdo->prepare("
+        SELECT score_peou, score_sq, score_iq, score_pu, score_bi, selected_tags
+        FROM vhv_surveys
+        WHERE hoscode IN ($inPlaceholders)
+    ");
+    $surveyStmt->execute($hoscodes);
+    $surveyResponses = $surveyStmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $surveyStats['count'] = count($surveyResponses);
+    
+    if ($surveyStats['count'] > 0) {
+        $peous = []; $sqs = []; $iqs = []; $pus = []; $bis = []; $totals = [];
+        
+        foreach ($surveyResponses as $sr) {
+            $peou = intval($sr['score_peou']);
+            $sq = intval($sr['score_sq']);
+            $iq = intval($sr['score_iq']);
+            $pu = intval($sr['score_pu']);
+            $bi = intval($sr['score_bi']);
+            
+            $peous[] = $peou;
+            $sqs[] = $sq;
+            $iqs[] = $iq;
+            $pus[] = $pu;
+            $bis[] = $bi;
+            
+            // Total score per response is average of the 5 aspects
+            $totals[] = ($peou + $sq + $iq + $pu + $bi) / 5;
+            
+            // Count tags
+            $tagsList = json_decode($sr['selected_tags'] ?? '[]', true);
+            if (is_array($tagsList)) {
+                foreach ($tagsList as $tag) {
+                    $tagsCount[$tag] = ($tagsCount[$tag] ?? 0) + 1;
+                }
+            }
+        }
+        
+        // Helper function to calculate mean and sample standard deviation
+        $calcStats = function($arr) {
+            $n = count($arr);
+            if ($n === 0) return ['mean' => 0, 'sd' => 0];
+            $mean = array_sum($arr) / $n;
+            
+            $variance = 0;
+            if ($n > 1) {
+                $sum_sq = 0;
+                foreach ($arr as $x) {
+                    $sum_sq += pow($x - $mean, 2);
+                }
+                $variance = $sum_sq / ($n - 1);
+            }
+            $sd = sqrt($variance);
+            return ['mean' => $mean, 'sd' => $sd];
+        };
+        
+        $statsPeou = $calcStats($peous);
+        $statsSq = $calcStats($sqs);
+        $statsIq = $calcStats($iqs);
+        $statsPu = $calcStats($pus);
+        $statsBi = $calcStats($bis);
+        $statsTotal = $calcStats($totals);
+        
+        $surveyStats['peou_mean'] = $statsPeou['mean'];
+        $surveyStats['peou_sd'] = $statsPeou['sd'];
+        $surveyStats['sq_mean'] = $statsSq['mean'];
+        $surveyStats['sq_sd'] = $statsSq['sd'];
+        $surveyStats['iq_mean'] = $statsIq['mean'];
+        $surveyStats['iq_sd'] = $statsIq['sd'];
+        $surveyStats['pu_mean'] = $statsPu['mean'];
+        $surveyStats['pu_sd'] = $statsPu['sd'];
+        $surveyStats['bi_mean'] = $statsBi['mean'];
+        $surveyStats['bi_sd'] = $statsBi['sd'];
+        $surveyStats['total_mean'] = $statsTotal['mean'];
+        $surveyStats['total_sd'] = $statsTotal['sd'];
+        
+        // Sort tags by frequency
+        arsort($tagsCount);
+    }
+} catch (\Throwable $e) {
+    // Fail silently
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -812,6 +912,134 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
             <?php endif; ?>
         </div>
+    </div>
+
+    <!-- R2R User Satisfaction & System Usability Evaluation Section -->
+    <h3 style="color: var(--color-accent); margin: 30px 0 16px 0; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+        <span>📋 สรุปผลสัมฤทธิ์ความพึงพอใจผู้ใช้งานสำหรับงานวิจัย R2R (TAM Evaluation Report)</span>
+    </h3>
+
+    <div class="card-dark" style="margin-bottom: 25px;">
+        <?php if ($surveyStats['count'] === 0): ?>
+            <div style="text-align: center; color: var(--text-secondary); padding: 40px 20px;">
+                <div style="font-size: 48px; margin-bottom: 12px;">📝</div>
+                <h4 style="margin: 0; font-size: 16px; font-weight: 800;">ยังไม่มีข้อมูลผลการตอบแบบประเมินความพึงพอใจ</h4>
+                <p style="margin: 6px 0 0 0; font-size: 13px; opacity: 0.8;">ระบบจะเริ่มวิเคราะห์เมื่อ อสม. ในเครือข่ายประเมินความพึงพอใจหลังส่งงานคัดกรอง</p>
+            </div>
+        <?php else: ?>
+            <?php
+            // Helper function to interpret Likert Scale score
+            if (!function_exists('interpretLikert')) {
+                function interpretLikert($score) {
+                    if ($score >= 4.50) return "<span style='color: var(--color-green); font-weight: bold;'>มากที่สุด</span>";
+                    if ($score >= 3.50) return "<span style='color: var(--color-green);'>มาก</span>";
+                    if ($score >= 2.50) return "<span style='color: var(--color-yellow);'>ปานกลาง</span>";
+                    if ($score >= 1.50) return "<span style='color: var(--color-red);'>น้อย</span>";
+                    return "<span style='color: var(--color-red); font-weight: bold;'>น้อยที่สุด</span>";
+                }
+            }
+            ?>
+            <div class="survey-r2r-summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                <div style="background: rgba(37, 99, 235, 0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(37, 99, 235, 0.15); text-align: center;">
+                    <div style="color: var(--text-secondary); font-size: 12.5px; font-weight: bold; margin-bottom: 4px;">จำนวนผู้ตอบแบบประเมิน (n)</div>
+                    <div style="font-size: 28px; font-weight: 800; color: var(--color-accent);"><?= number_format($surveyStats['count']) ?> <span style="font-size: 14px; font-weight: normal; color: var(--text-secondary);">ราย</span></div>
+                </div>
+                <div style="background: rgba(16, 185, 129, 0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.15); text-align: center;">
+                    <div style="color: var(--text-secondary); font-size: 12.5px; font-weight: bold; margin-bottom: 4px;">คะแนนเฉลี่ยภาพรวม (Mean - X̄)</div>
+                    <div style="font-size: 28px; font-weight: 800; color: var(--color-green);"><?= number_format($surveyStats['total_mean'], 2) ?> <span style="font-size: 14px; font-weight: normal; color: var(--text-secondary);">/ 5.00</span></div>
+                </div>
+                <div style="background: rgba(245, 158, 11, 0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(245, 158, 11, 0.15); text-align: center;">
+                    <div style="color: var(--text-secondary); font-size: 12.5px; font-weight: bold; margin-bottom: 4px;">ส่วนเบี่ยงเบนมาตรฐาน (S.D.)</div>
+                    <div style="font-size: 28px; font-weight: 800; color: var(--color-yellow);"><?= number_format($surveyStats['total_sd'], 2) ?></div>
+                </div>
+                <div style="background: rgba(168, 85, 247, 0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(168, 85, 247, 0.15); text-align: center; display: flex; flex-direction: column; justify-content: center;">
+                    <div style="color: var(--text-secondary); font-size: 12.5px; font-weight: bold; margin-bottom: 4px;">ระดับความพึงพอใจรวม</div>
+                    <div style="font-size: 20px; font-weight: 800;"><?= interpretLikert($surveyStats['total_mean']) ?></div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                <h4 style="margin: 0; font-size: 14px; color: var(--text-primary); font-weight: 800;">📋 ตารางแสดงผลสถิติความพึงพอใจแยกตามรายมิติ (TAM Framework)</h4>
+                <button type="button" onclick="copyR2RTable()" style="background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 12px; border-radius: 6px; font-size: 12.5px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.background='var(--border-color)'" onmouseout="this.style.background='var(--bg-main)'">
+                    📋 คัดลอกตาราง (R2R Copy)
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="admin-table" id="r2r-stat-table">
+                    <thead>
+                        <tr>
+                            <th>ประเด็นการประเมินตามกรอบแนวคิด (TAM Framework)</th>
+                            <th style="text-align: center; width: 140px;">ค่าเฉลี่ย (Mean - X̄)</th>
+                            <th style="text-align: center; width: 140px;">ส่วนเบี่ยงเบนมาตรฐาน (S.D.)</th>
+                            <th style="text-align: center; width: 140px;">ระดับความพึงพอใจ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>1. ด้านการรับรู้ความง่ายในการใช้งานแอปพลิเคชัน (Perceived Ease of Use - PEOU):</strong> ความสะดวก ปุ่มกด เมนูสอดคล้อง</td>
+                            <td style="text-align: center; font-weight: bold; color: var(--color-accent);"><?= number_format($surveyStats['peou_mean'], 2) ?></td>
+                            <td style="text-align: center;"><?= number_format($surveyStats['peou_sd'], 2) ?></td>
+                            <td style="text-align: center;"><?= interpretLikert($surveyStats['peou_mean']) ?></td>
+                        </tr>
+                        <tr>
+                            <td><strong>2. ด้านคุณภาพระบบประมวลผล (System Quality - SQ):</strong> ความรวดเร็วในการแสดงฟอร์ม บันทึกข้อมูลไม่ค้าง</td>
+                            <td style="text-align: center; font-weight: bold; color: var(--color-accent);"><?= number_format($surveyStats['sq_mean'], 2) ?></td>
+                            <td style="text-align: center;"><?= number_format($surveyStats['sq_sd'], 2) ?></td>
+                            <td style="text-align: center;"><?= interpretLikert($surveyStats['sq_mean']) ?></td>
+                        </tr>
+                        <tr>
+                            <td><strong>3. ด้านคุณภาพข้อมูลสารสนเทศ (Information Quality - IQ):</strong> ความถูกต้องและครบถ้วนของข้อมูลเป้าหมายและพิกัดบ้าน</td>
+                            <td style="text-align: center; font-weight: bold; color: var(--color-accent);"><?= number_format($surveyStats['iq_mean'], 2) ?></td>
+                            <td style="text-align: center;"><?= number_format($surveyStats['iq_sd'], 2) ?></td>
+                            <td style="text-align: center;"><?= interpretLikert($surveyStats['iq_mean']) ?></td>
+                        </tr>
+                        <tr>
+                            <td><strong>4. ด้านประโยชน์และการประยุกต์ใช้ (Perceived Usefulness - PU):</strong> การช่วยลดภาระงาน ลดการใช้กระดาษ และลดเวลา</td>
+                            <td style="text-align: center; font-weight: bold; color: var(--color-accent);"><?= number_format($surveyStats['pu_mean'], 2) ?></td>
+                            <td style="text-align: center;"><?= number_format($surveyStats['pu_sd'], 2) ?></td>
+                            <td style="text-align: center;"><?= interpretLikert($surveyStats['pu_mean']) ?></td>
+                        </tr>
+                        <tr>
+                            <td><strong>5. ด้านความตั้งใจในการใช้งานต่อเนื่อง (Behavioral Intention - BI):</strong> ความพึงพอใจโดยรวมและโอกาสใช้สนับสนุนในปีถัดไป</td>
+                            <td style="text-align: center; font-weight: bold; color: var(--color-accent);"><?= number_format($surveyStats['bi_mean'], 2) ?></td>
+                            <td style="text-align: center;"><?= number_format($surveyStats['bi_sd'], 2) ?></td>
+                            <td style="text-align: center;"><?= interpretLikert($surveyStats['bi_mean']) ?></td>
+                        </tr>
+                        <tr style="background-color: rgba(37, 99, 235, 0.05); font-weight: bold; border-top: 2px solid var(--border-color);">
+                            <td>สรุปผลรวมทุกด้าน</td>
+                            <td style="text-align: center; font-weight: bold; color: var(--color-green); font-size: 15px;"><?= number_format($surveyStats['total_mean'], 2) ?></td>
+                            <td style="text-align: center; font-size: 15px;"><?= number_format($surveyStats['total_sd'], 2) ?></td>
+                            <td style="text-align: center; font-size: 15px;"><?= interpretLikert($surveyStats['total_mean']) ?></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Popular Quick Tags list -->
+            <?php if (!empty($tagsCount)): ?>
+                <h4 style="margin: 24px 0 12px 0; font-size: 14px; color: var(--text-primary); font-weight: 800;">💬 ข้อคิดเห็นด่วนยอดนิยมจาก อสม. (Quick Feedback Tags)</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                    <?php foreach (array_slice($tagsCount, 0, 8) as $tag => $cnt): ?>
+                        <?php
+                        $percentage = ($cnt / $surveyStats['count']) * 100;
+                        // Color theme based on positive/negative keywords
+                        $isNegative = in_array($tag, ['ตัวหนังสือเล็กเกินไป', 'แอปพลิเคชันค้างบ่อย', 'ไม่มีเน็ตแล้วส่งงานยาก', 'ปุ่มกดยากเล็กน้อย']);
+                        $barColor = $isNegative ? 'var(--color-yellow)' : 'var(--color-accent)';
+                        ?>
+                        <div style="background: var(--bg-main); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-color);">
+                            <div style="display: flex; justify-content: space-between; font-size: 13.5px; font-weight: 800; margin-bottom: 6px;">
+                                <span style="color: var(--text-primary);"><?= htmlspecialchars($tag) ?></span>
+                                <span style="color: <?= $barColor ?>;"><?= number_format($percentage, 1) ?>% (<?= $cnt ?> ราย)</span>
+                            </div>
+                            <div style="background-color: var(--border-color); height: 8px; border-radius: 4px; overflow: hidden;">
+                                <div style="background-color: <?= $barColor ?>; width: <?= $percentage ?>%; height: 100%; border-radius: 4px;"></div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        <?php endif; ?>
     </div>
 
     <script>
@@ -1305,6 +1533,32 @@ $monthlyTrend = $monthlyTrendStmt->fetchAll(PDO::FETCH_ASSOC);
             } else {
                 insightElement.innerHTML = `แนวโน้มอัตราการเกิดกลุ่มเสี่ยงรายใหม่ค่อนข้าง **คงที่และทรงตัว** (ความชัน: ${slope.toFixed(2)} รายต่อเดือน) สถานการณ์ภาพรวมอยู่ในระดับคงตัวและสามารถควบคุมได้ตามมาตรฐาน แนะนำให้รักษารอบการเยี่ยมบ้านและการติดตามผลตามตารางปกติ`;
             }
+        }
+
+        // R2R Satisfaction Table Copy Helper
+        function copyR2RTable() {
+            const table = document.getElementById('r2r-stat-table');
+            if (!table) return;
+            const rows = table.querySelectorAll('tr');
+            let text = "ประเด็นการประเมินตามกรอบแนวคิด (TAM Framework)\tค่าเฉลี่ย (Mean - X̄)\tส่วนเบี่ยงเบนมาตรฐาน (S.D.)\tระดับความพึงพอใจ\n";
+            
+            rows.forEach((row, i) => {
+                if (i === 0) return; // skip header
+                const cols = row.querySelectorAll('td');
+                if (cols.length === 4) {
+                    const aspect = cols[0].innerText.replace(/[\r\n]/g, " ").replace(/\s+/g, " ").trim();
+                    const mean = cols[1].innerText.trim();
+                    const sd = cols[2].innerText.trim();
+                    const level = cols[3].innerText.trim();
+                    text += `${aspect}\t${mean}\t${sd}\t${level}\n`;
+                }
+            });
+            
+            navigator.clipboard.writeText(text).then(() => {
+                alert('คัดลอกตารางข้อมูลวิจัย R2R ไปยังคลิปบอร์ดแล้ว! คุณสามารถกดวาง (Ctrl+V) ลงในเอกสาร Microsoft Word หรือ Excel ได้ทันที โดยข้อความจะถูกแปลงเป็นตารางที่จัดคอลัมน์ให้อย่างสมบูรณ์ครับ');
+            }).catch(err => {
+                alert('ไม่สามารถคัดลอกข้อมูลได้: ' + err);
+            });
         }
     </script>
 </body>

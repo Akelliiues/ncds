@@ -101,6 +101,14 @@ try {
     $completedDpacStmt->execute([$vhvId]);
     $completedDpacTasks = $completedDpacStmt->fetchAll();
 
+    // Check if the current VHV has submitted the satisfaction survey
+    $hasSubmittedSurvey = false;
+    try {
+        $surveyCheck = $pdo->prepare("SELECT COUNT(*) FROM vhv_survey_participants WHERE vhv_id = ? AND budget_year = 2026");
+        $surveyCheck->execute([$vhvId]);
+        $hasSubmittedSurvey = ($surveyCheck->fetchColumn() > 0);
+    } catch (\Throwable $e) {}
+
     // If leader, fetch other VHVs for password reset based on rank
     if ($isLeader) {
         $hc_names = get_health_units();
@@ -286,8 +294,22 @@ try {
                         • <span style="color: #ec4899; font-weight: bold; background: rgba(236,72,153,0.1); padding: 2px 6px; border-radius: 4px;">👑 ประธาน อสม. อำเภอ</span>
                     <?php endif; ?>
                 </p>
-            </div>
         </div>
+
+        <!-- Floating Satisfaction Survey Banner -->
+        <?php if (!$hasSubmittedSurvey): ?>
+            <div id="survey-banner" style="background: linear-gradient(135deg, var(--color-accent) 0%, #1d4ed8 100%); color: white; padding: 16px; border-radius: var(--border-radius); margin: 0 16px 20px 16px; box-shadow: 0 8px 24px rgba(30, 58, 138, 0.2); position: relative; overflow: hidden; cursor: pointer; transition: transform 0.2s;" onclick="openSurveyModal()" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div style="position: absolute; right: -15px; bottom: -15px; font-size: 64px; opacity: 0.15; transform: rotate(15deg);">📝</div>
+                <div style="display: flex; align-items: center; gap: 12px; position: relative; z-index: 1;">
+                    <div style="font-size: 24px; animation: float-bubble 2s ease-in-out infinite;">🎁</div>
+                    <div style="flex-grow: 1;">
+                        <h4 style="margin: 0; font-size: 15px; font-weight: 800;">ร่วมตอบแบบประเมินความพึงพอใจ</h4>
+                        <p style="margin: 4px 0 0 0; font-size: 12.5px; opacity: 0.9;">เพื่อช่วยพัฒนาระบบคัดกรอง และรับแต้มโบนัสพิเศษ <strong>5 แต้ม</strong> สะสมทันที!</p>
+                    </div>
+                    <div style="background: white; color: var(--color-accent); font-size: 18px; font-weight: 800; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;">➡️</div>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <!-- Leader Password Reset Tool -->
         <?php if ($isLeader && !empty($subVhvs)): ?>
@@ -921,6 +943,328 @@ try {
             }
         });
     </script>
+
+    <?php if (!$hasSubmittedSurvey): ?>
+    <!-- canvas-confetti library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- Satisfaction Survey Modal -->
+    <div id="surveyModal" class="survey-modal">
+        <div class="survey-modal-content">
+            <div class="survey-header">
+                <h3 style="margin: 0; color: var(--color-accent); font-weight: 800; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+                    📝 แบบประเมินความพึงพอใจ
+                </h3>
+                <button onclick="closeSurveyModal()" style="background: none; border: none; font-size: 24px; color: var(--text-muted); cursor: pointer; padding: 4px;">&times;</button>
+            </div>
+            <div class="survey-body">
+                <p style="margin: 0 0 20px 0; font-size: 13.5px; color: var(--text-secondary); line-height: 1.5;">
+                    กรุณาให้คะแนนเพื่อใช้ปรับปรุงระบบบริหารจัดการ NCDs (ประเมินแล้วได้รับคะแนนสะสมพิเศษ <strong>+5 แต้ม</strong> ทันที!)
+                </p>
+
+                <!-- Q1 PEOU -->
+                <div style="margin-bottom: 16px;">
+                    <label class="survey-q-title">1. ความง่ายและสะดวกในการใช้งานแอปพลิเคชัน</label>
+                    <div class="survey-star-container" data-question="peou">
+                        <button type="button" class="survey-star-btn" data-value="1" onclick="setRating('peou', 1)">★</button>
+                        <button type="button" class="survey-star-btn" data-value="2" onclick="setRating('peou', 2)">★</button>
+                        <button type="button" class="survey-star-btn" data-value="3" onclick="setRating('peou', 3)">★</button>
+                        <button type="button" class="survey-star-btn" data-value="4" onclick="setRating('peou', 4)">★</button>
+                        <button type="button" class="survey-star-btn" data-value="5" onclick="setRating('peou', 5)">★</button>
+                    </div>
+                </div>
+
+                <!-- Q2 SQ -->
+                <div style="margin-bottom: 16px;">
+                    <label class="survey-q-title">2. ความรวดเร็วในการประมวลผลและการบันทึกข้อมูล</label>
+                    <div class="survey-star-container" data-question="sq">
+                        <button type="button" class="survey-star-btn" data-value="1" onclick="setRating('sq', 1)">★</button>
+                        <button type="button" class="survey-star-btn" data-value="2" onclick="setRating('sq', 2)">★</button>
+                        <button type="button" class="survey-star-btn" data-value="3" onclick="setRating('sq', 3)">★</button>
+                        <button type="button" class="survey-star-btn" data-value="4" onclick="setRating('sq', 4)">★</button>
+                        <button type="button" class="survey-star-btn" data-value="5" onclick="setRating('sq', 5)">★</button>
+                    </div>
+                </div>
+
+                <!-- Q3 IQ -->
+                <div style="margin-bottom: 16px;">
+                    <label class="survey-q-title">3. ความถูกต้องแม่นยำของข้อมูลพิกัดและรายชื่อ</label>
+                    <div class="survey-star-container" data-question="iq">
+                        <button type="button" class="survey-star-btn" data-value="1" onclick="setRating('iq', 1)">★</button>
+                        <button type="button" class="survey-star-btn" data-value="2" onclick="setRating('iq', 2)">★</button>
+                        <button type="button" class="survey-star-btn" data-value="3" onclick="setRating('iq', 3)">★</button>
+                        <button type="button" class="survey-star-btn" data-value="4" onclick="setRating('iq', 4)">★</button>
+                        <button type="button" class="survey-star-btn" data-value="5" onclick="setRating('iq', 5)">★</button>
+                    </div>
+                </div>
+
+                <!-- Q4 PU -->
+                <div style="margin-bottom: 16px;">
+                    <label class="survey-q-title">4. การช่วยลดภาระงานและลดระยะเวลาการทำคัดกรอง</label>
+                    <div class="survey-star-container" data-question="pu">
+                        <button type="button" class="survey-star-btn" data-value="1" onclick="setRating('pu', 1)">★</button>
+                        <button type="button" class="survey-star-btn" data-value="2" onclick="setRating('pu', 2)">★</button>
+                        <button type="button" class="survey-star-btn" data-value="3" onclick="setRating('pu', 3)">★</button>
+                        <button type="button" class="survey-star-btn" data-value="4" onclick="setRating('pu', 4)">★</button>
+                        <button type="button" class="survey-star-btn" data-value="5" onclick="setRating('pu', 5)">★</button>
+                    </div>
+                </div>
+
+                <!-- Q5 BI -->
+                <div style="margin-bottom: 24px;">
+                    <label class="survey-q-title">5. ความพึงพอใจภาพรวมและโอกาสใช้งานต่อในอนาคต</label>
+                    <div class="survey-star-container" data-question="bi">
+                        <button type="button" class="survey-star-btn" data-value="1" onclick="setRating('bi', 1)">★</button>
+                        <button type="button" class="survey-star-btn" data-value="2" onclick="setRating('bi', 2)">★</button>
+                        <button type="button" class="survey-star-btn" data-value="3" onclick="setRating('bi', 3)">★</button>
+                        <button type="button" class="survey-star-btn" data-value="4" onclick="setRating('bi', 4)">★</button>
+                        <button type="button" class="survey-star-btn" data-value="5" onclick="setRating('bi', 5)">★</button>
+                    </div>
+                </div>
+
+                <!-- Quick Tags (Multi-select) -->
+                <div>
+                    <label class="survey-q-title">ข้อความเสนอแนะเพิ่มเติมที่ตรงใจ (กดเพื่อเลือก)</label>
+                    <div class="survey-tag-container" id="survey-tags">
+                        <button type="button" class="survey-tag-btn" data-tag="ใช้งานง่ายมาก" onclick="toggleSurveyTag(this)">ใช้งานง่ายมาก</button>
+                        <button type="button" class="survey-tag-btn" data-tag="โหลดข้อมูลรวดเร็ว" onclick="toggleSurveyTag(this)">โหลดข้อมูลรวดเร็ว</button>
+                        <button type="button" class="survey-tag-btn" data-tag="สะสมแต้มสนุกเร้าใจ" onclick="toggleSurveyTag(this)">สะสมแต้มสนุกเร้าใจ</button>
+                        <button type="button" class="survey-tag-btn" data-tag="แผนที่แม่นยำมาก" onclick="toggleSurveyTag(this)">แผนที่แม่นยำมาก</button>
+                        <button type="button" class="survey-tag-btn" data-tag="ตัวหนังสือเล็กเกินไป" onclick="toggleSurveyTag(this)">ตัวหนังสือเล็กเกินไป</button>
+                        <button type="button" class="survey-tag-btn" data-tag="แอปพลิเคชันค้างบ่อย" onclick="toggleSurveyTag(this)">แอปพลิเคชันค้างบ่อย</button>
+                        <button type="button" class="survey-tag-btn" data-tag="ไม่มีเน็ตแล้วส่งงานยาก" onclick="toggleSurveyTag(this)">ไม่มีเน็ตแล้วส่งงานยาก</button>
+                        <button type="button" class="survey-tag-btn" data-tag="ปุ่มกดยากเล็กน้อย" onclick="toggleSurveyTag(this)">ปุ่มกดยากเล็กน้อย</button>
+                    </div>
+                </div>
+            </div>
+            <div class="survey-footer">
+                <button type="button" onclick="closeSurveyModal()" class="btn-cancel" style="padding: 10px 20px; font-size: 15px; font-weight: 800; border-radius: var(--border-radius); border: 1px solid var(--border-color); background: none; color: var(--text-secondary); cursor: pointer;">ยกเลิก</button>
+                <button type="button" onclick="submitSurvey()" class="btn-primary" style="padding: 10px 24px; font-size: 15px; font-weight: 800; border-radius: var(--border-radius); border: none; background-color: var(--color-accent); color: white; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                    ส่งแบบประเมิน 🚀
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Styles for survey modal -->
+    <style>
+        .survey-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .survey-modal-content {
+            background-color: var(--bg-card);
+            border-radius: var(--border-radius);
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+            animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 1px solid var(--border-color);
+        }
+        @keyframes modalFadeIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .survey-header {
+            padding: 20px 20px 10px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .survey-body {
+            padding: 20px;
+        }
+        .survey-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        .survey-q-title {
+            display: block;
+            font-size: 14.5px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin: 0 0 6px 0;
+        }
+        .survey-star-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .survey-star-btn {
+            font-size: 32px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: transform 0.2s, color 0.2s;
+            padding: 2px 6px;
+        }
+        .survey-star-btn.active {
+            color: var(--color-yellow);
+            transform: scale(1.2);
+        }
+        .survey-star-btn:active {
+            transform: scale(0.85);
+        }
+        .survey-tag-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .survey-tag-btn {
+            background-color: var(--bg-main);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            padding: 8px 14px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-block;
+        }
+        .survey-tag-btn.active {
+            background-color: var(--color-accent);
+            color: white;
+            border-color: var(--color-accent);
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+        }
+    </style>
+
+    <!-- Javascript logic for survey modal -->
+    <script>
+        const surveyRatings = {
+            peou: 0,
+            sq: 0,
+            iq: 0,
+            pu: 0,
+            bi: 0
+        };
+        const selectedSurveyTags = [];
+
+        function openSurveyModal() {
+            document.getElementById('surveyModal').style.display = 'flex';
+        }
+
+        function closeSurveyModal() {
+            document.getElementById('surveyModal').style.display = 'none';
+        }
+
+        function setRating(question, value) {
+            surveyRatings[question] = value;
+            const container = document.querySelector(`.survey-star-container[data-question="${question}"]`);
+            const stars = container.querySelectorAll('.survey-star-btn');
+            stars.forEach(star => {
+                const starVal = parseInt(star.getAttribute('data-value'));
+                if (starVal <= value) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+
+        function toggleSurveyTag(btn) {
+            const tag = btn.getAttribute('data-tag');
+            btn.classList.toggle('active');
+            if (btn.classList.contains('active')) {
+                if (!selectedSurveyTags.includes(tag)) {
+                    selectedSurveyTags.push(tag);
+                }
+            } else {
+                const index = selectedSurveyTags.indexOf(tag);
+                if (index > -1) {
+                    selectedSurveyTags.splice(index, 1);
+                }
+            }
+        }
+
+        function submitSurvey() {
+            // Validation
+            for (const q in surveyRatings) {
+                if (surveyRatings[q] === 0) {
+                    alert('กรุณาประเมินให้ครบถ้วนทั้ง 5 หัวข้อคำถาม');
+                    return;
+                }
+            }
+
+            const btnPrimary = document.querySelector('#surveyModal .btn-primary');
+            const originalText = btnPrimary.innerHTML;
+            btnPrimary.disabled = true;
+            btnPrimary.innerHTML = 'กำลังบันทึก... ⌛';
+
+            fetch('../api/submit_survey.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json; charset=utf-8'
+                },
+                body: JSON.stringify({
+                    peou: surveyRatings.peou,
+                    sq: surveyRatings.sq,
+                    iq: surveyRatings.iq,
+                    pu: surveyRatings.pu,
+                    bi: surveyRatings.bi,
+                    tags: selectedSurveyTags
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Confetti!
+                    if (window.confetti) {
+                        confetti({
+                            particleCount: 150,
+                            spread: 80,
+                            origin: { y: 0.6 }
+                        });
+                    }
+                    
+                    alert(data.message);
+                    closeSurveyModal();
+                    
+                    // Remove banner from UI
+                    const banner = document.getElementById('survey-banner');
+                    if (banner) {
+                        banner.style.transition = 'all 0.5s ease';
+                        banner.style.opacity = '0';
+                        banner.style.height = '0';
+                        banner.style.padding = '0';
+                        banner.style.margin = '0';
+                        setTimeout(() => banner.remove(), 500);
+                    }
+                } else {
+                    alert(data.message);
+                    btnPrimary.disabled = false;
+                    btnPrimary.innerHTML = originalText;
+                }
+            })
+            .catch(err => {
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์: ' + err.message);
+                btnPrimary.disabled = false;
+                btnPrimary.innerHTML = originalText;
+            });
+        }
+    </script>
+    <?php endif; ?>
+
     <?php include_once __DIR__ . '/../config/dev_modal.php'; ?>
 </body>
 </html>
