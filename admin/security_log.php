@@ -38,6 +38,22 @@ try {
 }
 
 // -----------------------------------------------------------------------
+// Sync survey participants to scan_security_log if not already present
+// -----------------------------------------------------------------------
+try {
+    $pdo->exec("
+        INSERT INTO scan_security_log (logged_at, vhv_id, vhv_name, hoscode, scanned_code, incident_type)
+        SELECT p.created_at, p.vhv_id, u.vhv_name, u.hoscode, 'SURVEY_2026', 'SATISFACTION_SURVEY'
+        FROM vhv_survey_participants p
+        JOIN vhv_users u ON p.vhv_id = u.vhv_id
+        LEFT JOIN scan_security_log sl ON sl.vhv_id = p.vhv_id AND sl.incident_type = 'SATISFACTION_SURVEY'
+        WHERE sl.id IS NULL
+    ");
+} catch (PDOException $e) {
+    // Ignore any sync issue
+}
+
+// -----------------------------------------------------------------------
 // Action: clear logs (super-admin only)
 // -----------------------------------------------------------------------
 $message = '';
@@ -177,6 +193,7 @@ $incident_labels = [
     'UNAUTHORIZED_SCAN'                         => ['label' => 'ไม่มีสิทธิ์สแกน', 'color' => '#f59e0b', 'bg' => 'rgba(245,158,11,0.12)'],
     'NO_ASSIGNMENT'                             => ['label' => 'ไม่มีงานมอบหมาย', 'color' => '#8b5cf6', 'bg' => 'rgba(139,92,246,0.12)'],
     'AUTHORIZED_SCAN'                           => ['label' => 'เข้าคัดกรอง (สำเร็จ)', 'color' => '#10b981', 'bg' => 'rgba(16,185,129,0.12)'],
+    'SATISFACTION_SURVEY'                       => ['label' => 'แบบประเมินความพึงพอใจ', 'color' => '#3b82f6', 'bg' => 'rgba(59,130,246,0.12)'],
 ];
 ?>
 <!DOCTYPE html>
@@ -366,9 +383,9 @@ $incident_labels = [
         <!-- Page header -->
         <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
             <div>
-                <h2 style="color:var(--color-accent);margin:0 0 6px;">🔐 Security Log — การสแกน QR ที่ผิดปกติ</h2>
+                <h2 style="color:var(--color-accent);margin:0 0 6px;">🔐 Security & Activity Log — การสแกนและบันทึกกิจกรรม</h2>
                 <p style="color:var(--text-secondary);margin:0;font-size:14px;">
-                    รายการบันทึกเมื่อ อสม. สแกน QR Code ที่ไม่ได้รับสิทธิ์ หรือสแกนนอกเขตรับผิดชอบ
+                    รายการบันทึกเหตุการณ์ความปลอดภัย การสแกน QR Code ที่ผิดปกติ หรือประวัติการตอบแบบสอบถาม
                     <?php if ($admin_hoscode): ?>
                         • แสดงเฉพาะ <strong><?= htmlspecialchars($hc_names[$admin_hoscode] ?? $admin_hoscode) ?></strong>
                     <?php endif; ?>

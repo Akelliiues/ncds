@@ -25,13 +25,14 @@ $hoscode = $admin_hoscode ? $admin_hoscode : ($_GET['hoscode'] ?? null);
 
 try {
     if ($type === 'targets') {
+        $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
         $query = "
             SELECT p.cid, p.first_name, p.last_name, p.house_no, p.birth, 
                    TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) AS age,
                    v.vhv_name as assigned_vhv, a.assignment_status,
                    p.health_status_origin, p.need_screen_dm, p.need_screen_ht
             FROM target_population p
-            LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026
+            LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026 AND a.is_sandbox = ?
             LEFT JOIN vhv_users v ON a.vhv_id = v.vhv_id
             WHERE (p.vhid_code = ? OR (CAST(p.moo AS UNSIGNED) = CAST(? AS UNSIGNED) AND p.hoscode = ?))
         ";
@@ -52,7 +53,7 @@ try {
         
         $target_hoscode = $admin_hoscode ? $admin_hoscode : ($_GET['hoscode'] ?? null);
         $hoscodeParam = $target_hoscode ?: '';
-        $params = [$vhid, $moo, $hoscodeParam];
+        $params = [$isSandboxVal, $vhid, $moo, $hoscodeParam];
         if ($target_hoscode) {
             $hoscodes = get_query_hoscodes($target_hoscode);
             $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
@@ -65,7 +66,7 @@ try {
         $stmt->execute($params);
         echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
     } elseif ($type === 'vhvs') {
-        $group = $_GET['group'] ?? '';
+        $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
         $query = "
             SELECT v.vhv_id, v.vhv_name, 
                    (
@@ -76,15 +77,18 @@ try {
                            WHERE a.vhv_id = v.vhv_id 
                              AND a.budget_year = 2026 
                              AND a.assignment_status = 'pending'
+                             AND a.is_sandbox = :is_sandbox1
                              AND (
-                                 (:group1 = 'suspect' AND p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
-                                 OR (:group2 != 'suspect' AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1))
+                                 (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+                                 OR 
+                                 (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
                              )
                        ) + (
                            SELECT COUNT(*) 
                            FROM dpac_followups f
                            WHERE f.vhv_id = v.vhv_id
                              AND f.status = 'pending'
+                             AND f.is_sandbox = :is_sandbox2
                        )
                    ) as total_task_count,
                    (
@@ -94,10 +98,32 @@ try {
                            JOIN target_population p ON a.target_cid = p.cid
                            WHERE a.vhv_id = v.vhv_id 
                              AND a.budget_year = 2026 
-                             AND p.vhid_code = :vhid1
+                             AND a.is_sandbox = :is_sandbox3
                              AND (
-                                 (:group3 = 'suspect' AND p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
-                                 OR (:group4 != 'suspect' AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1))
+                                 (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+                                 OR 
+                                 (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+                             )
+                       ) + (
+                           SELECT COUNT(*) 
+                           FROM dpac_followups f
+                           WHERE f.vhv_id = v.vhv_id
+                             AND f.is_sandbox = :is_sandbox4
+                       )
+                   ) as overall_total_count,
+                   (
+                       (
+                           SELECT COUNT(*) 
+                           FROM task_assignments a 
+                           JOIN target_population p ON a.target_cid = p.cid
+                           WHERE a.vhv_id = v.vhv_id 
+                             AND a.budget_year = 2026 
+                             AND p.vhid_code = :vhid1
+                             AND a.is_sandbox = :is_sandbox5
+                             AND (
+                                 (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+                                 OR 
+                                 (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
                              )
                        ) + (
                            SELECT COUNT(*) 
@@ -106,20 +132,23 @@ try {
                            JOIN target_population p ON e.cid = p.cid
                            WHERE f.vhv_id = v.vhv_id
                              AND p.vhid_code = :vhid2
+                             AND f.is_sandbox = :is_sandbox6
                        )
                    ) as village_task_count
-            FROM vhv_users v
-            WHERE v.vhid_code = :vhid3 AND v.approved = 1
+              FROM vhv_users v
+              WHERE v.vhid_code = :vhid3 AND v.approved = 1
         ";
         
         $params = [
-            'group1' => $group,
-            'group2' => $group,
-            'group3' => $group,
-            'group4' => $group,
             'vhid1'  => $vhid,
             'vhid2'  => $vhid,
-            'vhid3'  => $vhid
+            'vhid3'  => $vhid,
+            'is_sandbox1' => $isSandboxVal,
+            'is_sandbox2' => $isSandboxVal,
+            'is_sandbox3' => $isSandboxVal,
+            'is_sandbox4' => $isSandboxVal,
+            'is_sandbox5' => $isSandboxVal,
+            'is_sandbox6' => $isSandboxVal
         ];
         $target_hoscode = $admin_hoscode ? $admin_hoscode : ($_GET['hoscode'] ?? null);
         if ($target_hoscode) {

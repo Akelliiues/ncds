@@ -38,8 +38,8 @@ if ($score_peou < 1 || $score_peou > 5 ||
 }
 
 try {
-    // Query current VHV info (hoscode and vhid_code)
-    $vhvQuery = $pdo->prepare("SELECT hoscode, vhid_code FROM vhv_users WHERE vhv_id = ?");
+    // Query current VHV info (vhv_name, hoscode and vhid_code)
+    $vhvQuery = $pdo->prepare("SELECT vhv_name, hoscode, vhid_code FROM vhv_users WHERE vhv_id = ?");
     $vhvQuery->execute([$vhvId]);
     $vhvInfo = $vhvQuery->fetch(PDO::FETCH_ASSOC);
     
@@ -96,6 +96,20 @@ try {
         VALUES (?, 5.00, 'approved', NOW(), ?)
     ");
     $rewardStmt->execute([$vhvId, $isSandboxVal]);
+    
+    
+    // 5. Log activity to security log
+    $logStmt = $pdo->prepare("
+        INSERT INTO scan_security_log (logged_at, vhv_id, vhv_name, hoscode, scanned_code, incident_type, ip_address, user_agent)
+        VALUES (NOW(), ?, ?, ?, 'SURVEY_2026', 'SATISFACTION_SURVEY', ?, ?)
+    ");
+    $logStmt->execute([
+        $vhvId,
+        $vhvInfo['vhv_name'],
+        $hoscode,
+        $_SERVER['REMOTE_ADDR'] ?? null,
+        $_SERVER['HTTP_USER_AGENT'] ?? null
+    ]);
     
     $pdo->commit();
     

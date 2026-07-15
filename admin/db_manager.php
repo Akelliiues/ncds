@@ -200,6 +200,27 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
             transform: translateY(-1px);
         }
 
+        .btn-clean-orange {
+            background-color: rgba(245, 158, 11, 0.08); 
+            color: var(--color-yellow);
+            border: 1px solid rgba(245, 158, 11, 0.2); 
+            padding: 10px 20px; 
+            border-radius: 10px;
+            cursor: pointer; 
+            font-size: 13.5px; 
+            font-weight: 600; 
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-clean-orange:hover { 
+            background-color: var(--color-yellow); 
+            color: white; 
+            transform: translateY(-1px);
+        }
+
+
         /* ── Modal Overlay & Card ─────────────────── */
         .modal-overlay {
             position: fixed;
@@ -381,6 +402,9 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
                     </button>
                     <button class="btn-clean-green" onclick="openMaintenanceModal('cleanup_orphaned_data', 'เคลียร์ข้อมูลขยะและแต้มตกค้าง', 'ระบบจะทำการเคลียร์ข้อมูลแต้มลอยที่ไม่มีแหล่งตรวจอ้างอิง, แต้มประเมินความพึงพอใจที่ส่งซ้ำ, และแต้มของใบงานที่ถูกสั่งลบไปแล้วทั้งหมดออกจากฐานข้อมูลเพื่อคืนพื้นที่เก็บข้อมูล', '🧹')">
                         🧹 เคลียร์ข้อมูลขยะและแต้มตกค้าง
+                    </button>
+                    <button class="btn-clean-orange" onclick="openMaintenanceModal('cleanup_sandbox_data', 'เคลียร์งานค้างจากโหมดทดสอบ', 'ระบบจะทำการลบผลคัดกรอง แต้มสะสม และงานมอบหมายที่สร้างขึ้นในโหมดทดสอบทั้งหมด พร้อมทั้งกู้คืนใบงานคัดกรองจริงที่ถูกเขียนทับในโหมดทดสอบให้กลับมาเป็นปกติ เพื่อให้นำไปใช้คัดกรองข้อมูลจริงได้ทันที', '⚙️')">
+                        ⚙️ เคลียร์งานค้างจากโหมดทดสอบ
                     </button>
                 </div>
             </div>

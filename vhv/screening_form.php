@@ -31,7 +31,7 @@ if (!$isShell) {
             $checkStmt->execute([$hid]);
             $targets = $checkStmt->fetchAll(PDO::FETCH_COLUMN);
             if (!empty($targets)) {
-                $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status) VALUES (?, ?, 2026, 'pending')");
+                $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, 2026, 'pending', 1)");
                 foreach ($targets as $tc) {
                     $ins->execute([$tc, $vhvId]);
                 }
@@ -41,13 +41,14 @@ if (!$isShell) {
             $checkStmt->execute([$cid]);
             $pop = $checkStmt->fetch();
             if ($pop) {
-                $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status) VALUES (?, ?, 2026, 'pending')");
+                $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, 2026, 'pending', 1)");
                 $ins->execute([$cid, $vhvId]);
             }
         }
     }
 
     // Fetch residents based on hid or cid
+    $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
     if (!empty($hid)) {
         $residentsStmt = $pdo->prepare("
             SELECT p.*, a.assignment_id,
@@ -69,9 +70,14 @@ if (!$isShell) {
                    ) AS last_dtx_type
             FROM task_assignments a
             JOIN target_population p ON a.target_cid = p.cid
-            WHERE p.hid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('pending', 'skipped')
+            WHERE p.hid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('pending', 'skipped') AND a.is_sandbox = ?
+              AND (
+                  (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+                  OR 
+                  (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+              )
         ");
-        $residentsStmt->execute([$hid, $vhvId]);
+        $residentsStmt->execute([$hid, $vhvId, $isSandboxVal]);
         $residents = $residentsStmt->fetchAll();
 
         if (empty($residents)) {
@@ -79,9 +85,14 @@ if (!$isShell) {
                 SELECT p.*, a.assignment_status
                 FROM task_assignments a
                 JOIN target_population p ON a.target_cid = p.cid
-                WHERE p.hid = ? AND a.vhv_id = ? AND a.budget_year = 2026
+                WHERE p.hid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.is_sandbox = ?
+                  AND (
+                      (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+                      OR 
+                      (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+                  )
             ");
-            $historyStmt->execute([$hid, $vhvId]);
+            $historyStmt->execute([$hid, $vhvId, $isSandboxVal]);
             $history = $historyStmt->fetchAll();
         }
     } else {
@@ -105,9 +116,14 @@ if (!$isShell) {
                    ) AS last_dtx_type
             FROM task_assignments a
             JOIN target_population p ON a.target_cid = p.cid
-            WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('pending', 'skipped')
+            WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('pending', 'skipped') AND a.is_sandbox = ?
+              AND (
+                  (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+                  OR 
+                  (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+              )
         ");
-        $residentsStmt->execute([$cid, $vhvId]);
+        $residentsStmt->execute([$cid, $vhvId, $isSandboxVal]);
         $residents = $residentsStmt->fetchAll();
 
         if (empty($residents)) {
@@ -115,9 +131,14 @@ if (!$isShell) {
                 SELECT p.*, a.assignment_status
                 FROM task_assignments a
                 JOIN target_population p ON a.target_cid = p.cid
-                WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = 2026
+                WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.is_sandbox = ?
+                  AND (
+                      (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+                      OR 
+                      (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+                  )
             ");
-            $historyStmt->execute([$cid, $vhvId]);
+            $historyStmt->execute([$cid, $vhvId, $isSandboxVal]);
             $history = $historyStmt->fetchAll();
         }
     }

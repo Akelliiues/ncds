@@ -28,24 +28,31 @@ $limit = 50;
 $offset = ($page - 1) * $limit;
 
 // Build query
-$where = "hoscode = ?";
+$where = "p.hoscode = ?";
 $params = [$hoscode];
 
 if ($search !== '') {
-    $where .= " AND (cid LIKE ? OR first_name LIKE ? OR last_name LIKE ?)";
+    $where .= " AND (p.cid LIKE ? OR p.first_name LIKE ? OR p.last_name LIKE ?)";
     $params[] = '%' . $search . '%';
     $params[] = '%' . $search . '%';
     $params[] = '%' . $search . '%';
 }
 
 // Count total
-$countStmt = $pdo->prepare("SELECT COUNT(cid) FROM target_population WHERE $where");
+$countStmt = $pdo->prepare("SELECT COUNT(p.cid) FROM target_population p WHERE $where");
 $countStmt->execute($params);
 $totalRecords = $countStmt->fetchColumn();
 $totalPages = ceil($totalRecords / $limit);
 
 // Fetch data
-$sql = "SELECT cid, first_name, last_name, house_no, moo, birth, sex FROM target_population WHERE $where ORDER BY CAST(moo AS UNSIGNED) ASC, CAST(house_no AS UNSIGNED) ASC LIMIT $limit OFFSET $offset";
+$sql = "SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.birth, p.sex,
+               a.assignment_id, a.assignment_status, v.vhv_name
+        FROM target_population p
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026
+        LEFT JOIN vhv_users v ON a.vhv_id = v.vhv_id
+        WHERE $where 
+        ORDER BY CAST(p.moo AS UNSIGNED) ASC, CAST(p.house_no AS UNSIGNED) ASC 
+        LIMIT $limit OFFSET $offset";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -92,6 +99,20 @@ $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         .btn-danger:hover {
             background-color: var(--color-red);
+            color: white;
+        }
+        .btn-cancel-assign {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: var(--color-yellow);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .btn-cancel-assign:hover {
+            background-color: var(--color-yellow);
             color: white;
         }
         .pagination {
@@ -150,6 +171,7 @@ $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <th>หมู่</th>
                             <th>วันเกิด</th>
                             <th>เพศ</th>
+                            <th>งานมอบหมาย (ปี 2026)</th>
                             <th style="text-align: center;">จัดการ</th>
                         </tr>
                     </thead>
@@ -163,16 +185,41 @@ $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <td><?= htmlspecialchars($r['moo']) ?></td>
                                     <td><?= htmlspecialchars($r['birth']) ?></td>
                                     <td><?= $r['sex'] == '1' ? 'ชาย' : 'หญิง' ?></td>
+                                    <td>
+                                        <?php if ($r['assignment_id']): ?>
+                                            <div style="font-size: 13px;">
+                                                <?php if ($r['assignment_status'] === 'completed'): ?>
+                                                    <span style="color: var(--color-green); font-weight: bold;">✅ คัดกรองแล้ว</span>
+                                                <?php elseif ($r['assignment_status'] === 'skipped'): ?>
+                                                    <span style="color: var(--color-red); font-weight: bold;">❌ ข้ามเคสแล้ว</span>
+                                                <?php else: ?>
+                                                    <span style="color: var(--color-yellow); font-weight: bold;">⏳ รอคัดกรอง</span>
+                                                <?php endif; ?>
+                                                <div style="color: var(--text-secondary); font-size: 11.5px; margin-top: 3px;">
+                                                    อสม: <strong><?= htmlspecialchars($r['vhv_name'] ?? 'ไม่ระบุชื่อ') ?></strong>
+                                                </div>
+                                            </div>
+                                        <?php else: ?>
+                                            <span style="color: var(--text-muted); font-size: 12.5px;">— ยังไม่ได้มอบหมาย —</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td style="text-align: center;">
-                                        <button class="btn-danger" onclick="deleteRecord('<?= htmlspecialchars($r['cid']) ?>', '<?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?>')">
-                                            ลบข้อมูล
-                                        </button>
+                                        <div style="display: flex; gap: 8px; justify-content: center; align-items: center;">
+                                            <?php if ($r['assignment_id'] && $r['assignment_status'] === 'pending'): ?>
+                                                <button class="btn-cancel-assign" onclick="cancelRecordAssignment('<?= htmlspecialchars($r['cid']) ?>', '<?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?>')">
+                                                    ยกเลิกมอบงาน
+                                                </button>
+                                            <?php endif; ?>
+                                            <button class="btn-danger" onclick="deleteRecord('<?= htmlspecialchars($r['cid']) ?>', '<?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?>')">
+                                                ลบข้อมูล
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="7" style="text-align: center; padding: 30px; color: var(--text-muted);">ไม่พบข้อมูล</td>
+                                <td colspan="8" style="text-align: center; padding: 30px; color: var(--text-muted);">ไม่พบข้อมูล</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -207,6 +254,32 @@ $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
 
     <script>
+        function cancelRecordAssignment(cid, name) {
+            if (confirm(`⚠️ ยืนยันการยกเลิกการมอบหมายงานของ [${name}]?\n\nเป้าหมายรายนี้จะกลับมาเป็นสถานะ "ยังไม่ได้มอบหมาย" ในโหมดการทำงานปัจจุบัน`)) {
+                fetch('../api/cancel_assignment.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        'cid': cid
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert(`ยกเลิกการมอบหมายงานของ ${name} สำเร็จแล้ว`);
+                        window.location.reload();
+                    } else {
+                        alert("เกิดข้อผิดพลาด: " + data.message);
+                    }
+                })
+                .catch(err => {
+                    alert("เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย");
+                });
+            }
+        }
+
         function deleteRecord(cid, name) {
             if (confirm(`⚠️ ยืนยันการลบข้อมูลของ:\n\nชื่อ: ${name}\nเลขบัตร: ${cid}\n\nคำเตือน: ข้อมูลการคัดกรองและประวัติทั้งหมดที่เกี่ยวข้องจะถูกลบอย่างถาวร!`)) {
                 

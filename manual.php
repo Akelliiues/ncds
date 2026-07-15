@@ -17,7 +17,6 @@ if (!$is_admin) {
     require_once __DIR__ . '/vhv/manual.php';
 
     exit();
-
 }
 
 
@@ -31,11 +30,9 @@ $back_url = 'admin/index.php';
 if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
     $user_role_label = 'เจ้าหน้าที่ (โหมดผู้มาเยือน)';
-
 } else {
 
     $user_role_label = 'ผู้ดูแลระบบ/เจ้าหน้าที่ (' . htmlspecialchars($_SESSION['admin_username']) . ')';
-
 }
 
 ?>
@@ -52,12 +49,11 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>คู่มือการใช้งานระบบคัดกรอง NCDs Portal - อำเภอ<?= htmlspecialchars($district) ?></title>
+    <title>คู่มือการใช้งานระบบคัดกรอง NCDs Prevention Portal - อำเภอ<?= htmlspecialchars($district) ?></title>
 
     <link rel="stylesheet" href="assets/css/style.css">
 
     <style>
-
         :root {
 
             --color-primary-rgb: 13, 44, 84;
@@ -392,7 +388,8 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
                 padding: 10px 14px;
 
-                margin: 0 0 24px 0; /* Align with layout margins, no negative margins */
+                margin: 0 0 24px 0;
+                /* Align with layout margins, no negative margins */
 
                 border-radius: 20px;
 
@@ -438,7 +435,8 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
                 -webkit-overflow-scrolling: touch;
 
-                position: relative; /* Ensure offsetParent for offsetLeft is this container */
+                position: relative;
+                /* Ensure offsetParent for offsetLeft is this container */
 
             }
 
@@ -574,7 +572,8 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
                 border-radius: 20px;
 
-                box-shadow: none; /* Soften shadows on mobile margins */
+                box-shadow: none;
+                /* Soften shadows on mobile margins */
 
                 background-color: transparent;
 
@@ -594,7 +593,8 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
                 box-shadow: var(--neumorph-flat);
 
-                scroll-margin-top: 95px !important; /* Offset for mobile sticky menu to prevent content clipping */
+                scroll-margin-top: 95px !important;
+                /* Offset for mobile sticky menu to prevent content clipping */
 
             }
 
@@ -718,7 +718,7 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
 
 
-            table.manual-table th, 
+            table.manual-table th,
 
             table.manual-table td {
 
@@ -1633,7 +1633,6 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
             transform: translateY(-1px);
 
         }
-
     </style>
 
 </head>
@@ -1668,7 +1667,7 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
             <img src="assets/icon.png" alt="NCDs Prevention Logo">
 
-            <h1>📖 คู่มือการใช้งานระบบ NCD Portal</h1>
+            <h1>📖 คู่มือการใช้งานระบบ NCD Prevention Portal</h1>
 
             <p>ระบบจัดการคัดกรองโรคเรื้อรังเชิงรุก อำเภอ<?= htmlspecialchars($district) ?> จังหวัด<?= htmlspecialchars($province) ?></p>
 
@@ -2239,12 +2238,12 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
                         </div>
 
 
-                         <div style="background-color: var(--bg-darker); padding: 15px; border-radius: 12px; margin-top: 15px; border-left: 4px solid var(--color-primary);">
-                             <strong style="color: var(--color-primary); font-size: 15px; display: block; margin-bottom: 5px;">🌓 การปรับโหมด มืด/สว่าง (Dark & Light Mode):</strong>
-                             <p style="margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-secondary);">
-                                 อสม. สามารถสลับการแสดงผลของหน้าจอเป็นโหมดมืด (Dark Mode) สำหรับการลงพื้นที่คัดกรองในช่วงเย็นหรือค่ำเพื่อลดอาการล้าของสายตา โดยเข้าไปที่เมนู <strong>"ข้อมูลส่วนตัว"</strong> ด้านขวาล่างสุด แล้วกดปุ่มสลับหลอดไฟที่การ์ดโหมดมืด/สว่างได้ตามใจชอบ
-                             </p>
-                         </div>
+                        <div style="background-color: var(--bg-darker); padding: 15px; border-radius: 12px; margin-top: 15px; border-left: 4px solid var(--color-primary);">
+                            <strong style="color: var(--color-primary); font-size: 15px; display: block; margin-bottom: 5px;">🌓 การปรับโหมด มืด/สว่าง (Dark & Light Mode):</strong>
+                            <p style="margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-secondary);">
+                                อสม. สามารถสลับการแสดงผลของหน้าจอเป็นโหมดมืด (Dark Mode) สำหรับการลงพื้นที่คัดกรองในช่วงเย็นหรือค่ำเพื่อลดอาการล้าของสายตา โดยเข้าไปที่เมนู <strong>"ข้อมูลส่วนตัว"</strong> ด้านขวาล่างสุด แล้วกดปุ่มสลับหลอดไฟที่การ์ดโหมดมืด/สว่างได้ตามใจชอบ
+                            </p>
+                        </div>
 
                     </section>
 
@@ -2915,15 +2914,15 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
                         </div>
 
 
-                         <div style="background-color: var(--bg-darker); padding: 20px; border-radius: 16px; margin: 20px 0;">
-                             <strong style="color: var(--color-primary); font-size: 16px; display: block; margin-bottom: 10px;">📊 แดชบอร์ดควบคุมหลักและระบบสลับแสง โหมดมืด/สว่าง (Dashboard Cockpit & Dark Mode):</strong>
-                             <p style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.6; color: var(--text-secondary);">
-                                 <strong>1. การ์ดสรุปเป้าหมายคัดกรอง 4 หมวดหมู่:</strong> หน้าหลักแดชบอร์ดมีระบบแยกกลุ่มเป้าหมายคัดกรองออกเป็น 4 การ์ดหลัก ได้แก่ เป้าหมายคัดกรองเบาหวาน, เป้าหมายคัดกรองความดัน, เป้าหมายคัดกรองร่วม (DM+HT), และกลุ่มสงสัยป่วยสะสม (Suspect) ซึ่งเจ้าหน้าที่สามารถ<strong>คลิกที่การ์ดใดก็ได้</strong> เพื่อเปิดโมดอลตารางสรุปรายยอดคัดกรองแยกตามรายหมู่บ้าน (สำหรับ รพ.สต.) หรือแยกราย รพ.สต. (สำหรับอำเภอ) ได้ทันที
-                             </p>
-                             <p style="margin: 0; font-size: 14px; line-height: 1.6; color: var(--text-secondary);">
-                                 <strong>2. สวิตช์สลับโหมด มืด/สว่าง (Dark/Light Switch):</strong> เจ้าหน้าที่สามารถกดปุ่มรูปดวงอาทิตย์/ดวงจันทร์ ☀️/🌙 บนแถบนำทาง (Navbar) ด้านบนขวาเพื่อสลับโหมดการแสดงผลของหน้าจอ โดยระบบจะปรับสีพื้นหลัง การ์ด เมนู และแผนภูมิตัวเลขกราฟ ApexCharts ให้เป็นโหมดสีเข้มหรือสีสว่างโดยอัตโนมัติ เพื่อความสวยงามเป็นมืออาชีพและช่วยถนอมสายตาขณะใช้งาน
-                             </p>
-                         </div>
+                        <div style="background-color: var(--bg-darker); padding: 20px; border-radius: 16px; margin: 20px 0;">
+                            <strong style="color: var(--color-primary); font-size: 16px; display: block; margin-bottom: 10px;">📊 แดชบอร์ดควบคุมหลักและระบบสลับแสง โหมดมืด/สว่าง (Dashboard Cockpit & Dark Mode):</strong>
+                            <p style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.6; color: var(--text-secondary);">
+                                <strong>1. การ์ดสรุปเป้าหมายคัดกรอง 4 หมวดหมู่:</strong> หน้าหลักแดชบอร์ดมีระบบแยกกลุ่มเป้าหมายคัดกรองออกเป็น 4 การ์ดหลัก ได้แก่ เป้าหมายคัดกรองเบาหวาน, เป้าหมายคัดกรองความดัน, เป้าหมายคัดกรองร่วม (DM+HT), และกลุ่มสงสัยป่วยสะสม (Suspect) ซึ่งเจ้าหน้าที่สามารถ<strong>คลิกที่การ์ดใดก็ได้</strong> เพื่อเปิดโมดอลตารางสรุปรายยอดคัดกรองแยกตามรายหมู่บ้าน (สำหรับ รพ.สต.) หรือแยกราย รพ.สต. (สำหรับอำเภอ) ได้ทันที
+                            </p>
+                            <p style="margin: 0; font-size: 14px; line-height: 1.6; color: var(--text-secondary);">
+                                <strong>2. สวิตช์สลับโหมด มืด/สว่าง (Dark/Light Switch):</strong> เจ้าหน้าที่สามารถกดปุ่มรูปดวงอาทิตย์/ดวงจันทร์ ☀️/🌙 บนแถบนำทาง (Navbar) ด้านบนขวาเพื่อสลับโหมดการแสดงผลของหน้าจอ โดยระบบจะปรับสีพื้นหลัง การ์ด เมนู และแผนภูมิตัวเลขกราฟ ApexCharts ให้เป็นโหมดสีเข้มหรือสีสว่างโดยอัตโนมัติ เพื่อความสวยงามเป็นมืออาชีพและช่วยถนอมสายตาขณะใช้งาน
+                            </p>
+                        </div>
 
                     </section>
 
@@ -3717,7 +3716,7 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
                                     <p>ระบุชื่อหมู่บ้าน เลือกว่าอยู่ภายใต้ <strong>ตำบล</strong> ใด, เป็น <strong>หมู่ที่</strong> เท่าไร และอยู่ภายใต้ความรับผิดชอบของ <strong>หน่วยบริการ</strong> ใด<br>
 
-                                    💡 <strong>ระบบคำนวณรหัสหมู่บ้านอัตโนมัติ (VHID)</strong>: ระบบจะนำรหัสตำบลมารวมกับลำดับหมู่ที่ให้อย่างถูกต้อง (เช่น ตำบลจิกเทิง 340603 หมู่ที่ 1 จะได้รหัสหมู่บ้านเป็น 34060301) โดยระบบจะช่วยตรวจสอบป้องกันปัญหารหัสซ้ำซ้อนให้เอง</p>
+                                        💡 <strong>ระบบคำนวณรหัสหมู่บ้านอัตโนมัติ (VHID)</strong>: ระบบจะนำรหัสตำบลมารวมกับลำดับหมู่ที่ให้อย่างถูกต้อง (เช่น ตำบลจิกเทิง 340603 หมู่ที่ 1 จะได้รหัสหมู่บ้านเป็น 34060301) โดยระบบจะช่วยตรวจสอบป้องกันปัญหารหัสซ้ำซ้อนให้เอง</p>
 
                                 </div>
 
@@ -3803,19 +3802,19 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
                         } catch (Exception $e) {
                             $dynamic_units = [];
                         }
-                        
+
                         if (!empty($dynamic_units)):
                             foreach ($dynamic_units as $unit):
                         ?>
-                            <tr>
-                                <td><strong class="hl-text"><?= htmlspecialchars($unit['hoscode']) ?></strong></td>
-                                <td><?= htmlspecialchars($unit['hosname']) ?></td>
-                                <td><?= htmlspecialchars($unit['villages_list'] ?: 'ไม่มีหมู่บ้านที่ขึ้นตรงในระบบ') ?></td>
-                            </tr>
-                        <?php 
-                            endforeach; 
+                                <tr>
+                                    <td><strong class="hl-text"><?= htmlspecialchars($unit['hoscode']) ?></strong></td>
+                                    <td><?= htmlspecialchars($unit['hosname']) ?></td>
+                                    <td><?= htmlspecialchars($unit['villages_list'] ?: 'ไม่มีหมู่บ้านที่ขึ้นตรงในระบบ') ?></td>
+                                </tr>
+                            <?php
+                            endforeach;
                         else:
-                        ?>
+                            ?>
                             <tr>
                                 <td colspan="3" style="text-align: center; color: var(--text-muted);">ไม่พบข้อมูลหน่วยบริการในระบบ</td>
                             </tr>
@@ -3830,7 +3829,6 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
     <!-- JavaScript to handle navigation & interactive elements -->
 
     <script>
-
         function switchManualTab(role, button) {
 
             // Hide all tab contents
@@ -3901,7 +3899,9 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
                 if (targetEl) {
 
-                    targetEl.scrollIntoView({ behavior: 'smooth' });
+                    targetEl.scrollIntoView({
+                        behavior: 'smooth'
+                    });
 
                 }
 
@@ -3949,7 +3949,9 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
             if (targetElement) {
 
-                targetElement.scrollIntoView({ behavior: 'smooth' });
+                targetElement.scrollIntoView({
+                    behavior: 'smooth'
+                });
 
             }
 
@@ -4001,7 +4003,7 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
                 const offsetThreshold = isMobile ? 120 : 60; // Larger threshold on mobile due to sticky bar
 
-                
+
 
                 const sectionTop = section.offsetTop - offsetThreshold;
 
@@ -4071,7 +4073,7 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
             const backToDashboardBtn = document.getElementById("backToDashboardBtn");
 
-            
+
 
             const scrollTop = document.body.scrollTop || document.documentElement.scrollTop;
 
@@ -4128,7 +4130,6 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
             });
 
         }
-
     </script>
 
 

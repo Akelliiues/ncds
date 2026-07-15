@@ -31,6 +31,7 @@ if (empty($hid)) {
 }
 
 try {
+    $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
     // Check if input is a 13-digit CID or raw HID
     $isCid = preg_match('/^\d{13}$/', $hid);
 
@@ -40,9 +41,9 @@ try {
             SELECT a.assignment_id, p.vhid_code, p.hoscode, p.first_name, p.last_name
             FROM task_assignments a
             JOIN target_population p ON a.target_cid = p.cid
-            WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = 2026
+            WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.is_sandbox = ?
         ");
-        $stmt->execute([$hid, $vhvId]);
+        $stmt->execute([$hid, $vhvId, $isSandboxVal]);
         $assignments = $stmt->fetchAll();
 
         // Auto-assign in Sandbox Mode if target exists but no assignment
@@ -51,10 +52,10 @@ try {
             $checkStmt->execute([$hid]);
             $pop = $checkStmt->fetch();
             if ($pop) {
-                $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status) VALUES (?, ?, 2026, 'pending')");
+                $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, 2026, 'pending', 1)");
                 $ins->execute([$hid, $vhvId]);
                 
-                $stmt->execute([$hid, $vhvId]);
+                $stmt->execute([$hid, $vhvId, $isSandboxVal]);
                 $assignments = $stmt->fetchAll();
             }
         }
@@ -69,9 +70,9 @@ try {
             SELECT a.assignment_id, p.vhid_code, p.hoscode, p.first_name, p.last_name
             FROM task_assignments a
             JOIN target_population p ON a.target_cid = p.cid
-            WHERE p.hid = ? AND a.vhv_id = ? AND a.budget_year = 2026
+            WHERE p.hid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.is_sandbox = ?
         ");
-        $stmt->execute([$hid, $vhvId]);
+        $stmt->execute([$hid, $vhvId, $isSandboxVal]);
         $assignments = $stmt->fetchAll();
 
         // Auto-assign in Sandbox Mode if targets exist in house but no assignments to this VHV
@@ -80,12 +81,12 @@ try {
             $checkStmt->execute([$hid]);
             $targets = $checkStmt->fetchAll(PDO::FETCH_COLUMN);
             if (!empty($targets)) {
-                $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status) VALUES (?, ?, 2026, 'pending')");
+                $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, 2026, 'pending', 1)");
                 foreach ($targets as $tc) {
                     $ins->execute([$tc, $vhvId]);
                 }
                 
-                $stmt->execute([$hid, $vhvId]);
+                $stmt->execute([$hid, $vhvId, $isSandboxVal]);
                 $assignments = $stmt->fetchAll();
             }
         }

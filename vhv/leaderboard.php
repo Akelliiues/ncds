@@ -77,8 +77,28 @@ $leaderboardStmt = $pdo->query("
             LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id
             WHERE r.vhv_id = u.vhv_id AND r.approval_status IN ('approved', 'waiting') AND r.is_sandbox = 0
         ) as total_points,
-        (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026) as total_assigned,
-        (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026 AND assignment_status = 'completed') as completed,
+        (
+            SELECT COUNT(*) 
+            FROM task_assignments ta 
+            JOIN target_population p ON ta.target_cid = p.cid 
+            WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = 2026 AND ta.is_sandbox = 0
+              AND (
+                  (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+                  OR 
+                  (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+              )
+        ) as total_assigned,
+        (
+            SELECT COUNT(*) 
+            FROM task_assignments ta 
+            JOIN target_population p ON ta.target_cid = p.cid 
+            WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = 2026 AND ta.assignment_status = 'completed' AND ta.is_sandbox = 0
+              AND (
+                  (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+                  OR 
+                  (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+              )
+        ) as completed,
         (SELECT COUNT(*) FROM vhv_rewards WHERE vhv_id = u.vhv_id AND approval_status = 'waiting' AND is_sandbox = 0) as waiting_rewards
     FROM vhv_users u
     LEFT JOIN villages v ON u.vhid_code = v.vhid_code
@@ -165,7 +185,7 @@ if (!empty($hoscode)) {
             COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) as completed_targets
         FROM target_population p
         LEFT JOIN villages v ON p.moo = v.moo AND p.hoscode = v.hoscode
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026 AND a.is_sandbox = 0
         WHERE p.hoscode = ? 
           AND p.moo > 0 
           AND p.moo IS NOT NULL 
@@ -189,7 +209,7 @@ try {
             COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) as completed_targets
         FROM health_units u
         LEFT JOIN target_population p ON u.hoscode = p.hoscode AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026 AND a.is_sandbox = 0
         GROUP BY u.hoscode
         HAVING COUNT(DISTINCT p.cid) > 0
         ORDER BY (COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) / COUNT(DISTINCT p.cid)) DESC, u.hoscode ASC

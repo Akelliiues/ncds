@@ -6,7 +6,7 @@ $is_super_admin = (!isset($admin_hoscode) || empty($admin_hoscode)) && (isset($_
 
 $is_core_active = in_array($current_page, ['index.php', 'profile.php', 'leaderboard.php']);
 $is_targets_active = in_array($current_page, ['target_manager.php', 'dpac_manager.php']);
-$is_work_active = in_array($current_page, ['assignment.php', 'vhv_approval.php', 'print_qr.php']);
+$is_work_active = in_array($current_page, ['assignment.php', 'vhv_approval.php', 'print_qr.php', 'vhv_tasks.php']);
 $is_reports_active = in_array($current_page, ['analytics.php', 'reports.php', 'security_log.php']);
 $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php', 'resolve_all_duplicates.php', 'db_manager.php', 'user_manager.php', 'unit_house_manager.php', 'update.php']);
 ?>
@@ -18,9 +18,10 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
     })();
 </script>
 <style>
-.btn-theme-toggle:hover {
-    background-color: var(--bg-darker) !important;
-}
+    .btn-theme-toggle:hover {
+        background-color: var(--bg-darker) !important;
+    }
+
     /* Premium Categorized Dropdowns Style */
     .admin-nav-links {
         display: flex;
@@ -117,13 +118,16 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
     }
 
     .nav-dropdown-content a {
-        color: #4b5563 !important; /* High contrast dark grey text on light background */
+        color: #4b5563 !important;
+        /* High contrast dark grey text on light background */
         text-decoration: none !important;
         padding: 10px 18px !important;
-        margin: 0 !important; /* Override any global margins */
+        margin: 0 !important;
+        /* Override any global margins */
         display: flex !important;
         align-items: center !important;
-        justify-content: flex-start !important; /* Left-align the contents */
+        justify-content: flex-start !important;
+        /* Left-align the contents */
         gap: 12px !important;
         font-size: 13.5px !important;
         font-weight: 600 !important;
@@ -150,8 +154,10 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
     }
 
     .nav-dropdown-content a:hover {
-        background: rgba(13, 44, 84, 0.08) !important; /* Soft navy background on hover */
-        color: #0d2c54 !important; /* Premium navy text for high contrast */
+        background: rgba(13, 44, 84, 0.08) !important;
+        /* Soft navy background on hover */
+        color: #0d2c54 !important;
+        /* Premium navy text for high contrast */
         transform: none !important;
     }
 
@@ -204,16 +210,19 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
         visibility: hidden;
         transition: all var(--transition-speed) ease-in-out;
     }
+
     .back-to-top.show {
         opacity: 1;
         visibility: visible;
     }
+
     .back-to-top:hover {
         background-color: var(--color-accent);
         color: white;
         transform: translateY(-3px);
         box-shadow: 0 6px 16px rgba(13, 44, 84, 0.35);
     }
+
     .back-to-top:active {
         transform: translateY(-1px);
     }
@@ -224,11 +233,27 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
     </div>
     <style>
         @keyframes slideDown {
-            from { transform: translateY(-100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
+
         /* Disable submit and action buttons visually for visitor */
-        button[type="submit"], input[type="submit"], .btn-danger, .btn-action, .btn-save, .admin-btn-action, form button, .button-action, button.numpad-btn {
+        button[type="submit"],
+        input[type="submit"],
+        .btn-danger,
+        .btn-action,
+        .btn-save,
+        .admin-btn-action,
+        form button,
+        .button-action,
+        button.numpad-btn {
             opacity: 0.65;
             cursor: not-allowed !important;
             pointer-events: none !important;
@@ -348,6 +373,12 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
                     </svg>
                     พิมพ์ QR Code บ้าน
                 </a>
+                <a href="vhv_tasks.php" class="<?= $current_page == 'vhv_tasks.php' ? 'active' : '' ?>">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2"></path>
+                    </svg>
+                    เช็คงาน อสม.
+                </a>
             </div>
         </div>
 
@@ -422,7 +453,7 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path>
                     </svg>
-                    จัดการฐานข้อมูลระบบ / Sandbox
+                    จัดการฐานข้อมูล / โหมดจำลอง
                 </a>
                 <?php if ($is_super_admin): ?>
                     <a href="user_manager.php" class="<?= $current_page == 'user_manager.php' ? 'active' : '' ?>">

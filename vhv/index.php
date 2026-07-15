@@ -27,6 +27,8 @@ $subVhvs = [];
 $db_error = '';
 
 try {
+    $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
+
     $pendingStmt = $pdo->prepare("
         SELECT a.assignment_id, a.assignment_status, p.cid, p.hid, p.first_name, p.last_name, p.house_no, p.moo, p.sex, p.birth, p.need_screen_dm, p.need_screen_ht, p.health_status_origin,
                COALESCE(
@@ -47,10 +49,15 @@ try {
                ) AS last_dtx_type
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status = 'pending'
+        WHERE a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status = 'pending' AND a.is_sandbox = ?
+          AND (
+              (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+              OR 
+              (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+          )
         ORDER BY LENGTH(p.house_no), p.house_no
     ");
-    $pendingStmt->execute([$vhvId]);
+    $pendingStmt->execute([$vhvId, $isSandboxVal]);
     $pendingTasks = $pendingStmt->fetchAll();
 
     $completedStmt = $pdo->prepare("
@@ -65,10 +72,15 @@ try {
         LEFT JOIN screening_results sr ON a.assignment_id = sr.assignment_id
         LEFT JOIN staging_hdc_ht ht ON p.cid = ht.cid
         LEFT JOIN staging_hdc_dm dm ON p.cid = dm.cid
-        WHERE a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('completed', 'skipped')
+        WHERE a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('completed', 'skipped') AND a.is_sandbox = ?
+          AND (
+              (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+              OR 
+              (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+          )
         ORDER BY a.assigned_at DESC
     ");
-    $completedStmt->execute([$vhvId]);
+    $completedStmt->execute([$vhvId, $isSandboxVal]);
     $completedTasks = $completedStmt->fetchAll();
 
     // Fetch DPAC followups
@@ -78,10 +90,10 @@ try {
         FROM dpac_followups f
         JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
         JOIN target_population p ON e.cid = p.cid
-        WHERE f.vhv_id = ? AND f.status = 'pending'
+        WHERE f.vhv_id = ? AND f.status = 'pending' AND f.is_sandbox = ?
         ORDER BY p.moo, p.house_no
     ");
-    $dpacStmt->execute([$vhvId]);
+    $dpacStmt->execute([$vhvId, $isSandboxVal]);
     $dpacTasks = $dpacStmt->fetchAll();
 
     // Fetch completed DPAC followups
@@ -95,10 +107,10 @@ try {
         JOIN target_population p ON e.cid = p.cid
         LEFT JOIN staging_hdc_ht ht ON p.cid = ht.cid
         LEFT JOIN staging_hdc_dm dm ON p.cid = dm.cid
-        WHERE f.vhv_id = ? AND f.status = 'completed'
+        WHERE f.vhv_id = ? AND f.status = 'completed' AND f.is_sandbox = ?
         ORDER BY f.completed_at DESC
     ");
-    $completedDpacStmt->execute([$vhvId]);
+    $completedDpacStmt->execute([$vhvId, $isSandboxVal]);
     $completedDpacTasks = $completedDpacStmt->fetchAll();
 
     // Check if the current VHV has submitted the satisfaction survey

@@ -20,13 +20,18 @@ if (!$data || empty($data['vhv_id']) || empty($data['enrollment_ids']) || !is_ar
 $vhvId = $data['vhv_id'];
 $enrollmentIds = $data['enrollment_ids'];
 
+// Fetch VHV details for verification
+$vhvCheckStmt = $pdo->prepare("SELECT hoscode, vhid_code FROM vhv_users WHERE vhv_id = ?");
+$vhvCheckStmt->execute([$vhvId]);
+$vhvRow = $vhvCheckStmt->fetch();
+if (!$vhvRow) {
+    echo json_encode(['status' => 'error', 'message' => 'ไม่พบข้อมูล อสม.']);
+    exit();
+}
+
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 if ($admin_hoscode) {
-    // Check VHV authority
-    $vhvCheckStmt = $pdo->prepare("SELECT hoscode FROM vhv_users WHERE vhv_id = ?");
-    $vhvCheckStmt->execute([$vhvId]);
-    $vhvRow = $vhvCheckStmt->fetch();
-    if (!$vhvRow || $vhvRow['hoscode'] !== $admin_hoscode) {
+    if ($vhvRow['hoscode'] !== $admin_hoscode) {
         echo json_encode(['status' => 'error', 'message' => 'คุณไม่มีสิทธิ์มอบหมายงานให้กับ อสม. นอกสังกัด']);
         exit();
     }
@@ -42,17 +47,24 @@ try {
 
     $success = 0;
     foreach ($enrollmentIds as $eid) {
-        // If non-super admin, verify enrollment is in their hoscode
+        $eCheck = $pdo->prepare("
+            SELECT p.hoscode, p.vhid_code, p.first_name, p.last_name
+            FROM dpac_enrollments e 
+            JOIN target_population p ON e.cid = p.cid 
+            WHERE e.enrollment_id = ?
+        ");
+        $eCheck->execute([$eid]);
+        $eRow = $eCheck->fetch(PDO::FETCH_ASSOC);
+        if (!$eRow) {
+            throw new \Exception("ไม่พบข้อมูลผู้เข้าร่วมโครงการ ID: $eid");
+        }
+
+        if ($eRow['vhid_code'] !== $vhvRow['vhid_code']) {
+            throw new \Exception("ผู้เข้าร่วมโครงการ {$eRow['first_name']} {$eRow['last_name']} อยู่คนละหมู่บ้านกับ อสม. ไม่สามารถดำเนินการได้");
+        }
+
         if ($admin_hoscode) {
-            $eCheck = $pdo->prepare("
-                SELECT p.hoscode 
-                FROM dpac_enrollments e 
-                JOIN target_population p ON e.cid = p.cid 
-                WHERE e.enrollment_id = ?
-            ");
-            $eCheck->execute([$eid]);
-            $eHos = $eCheck->fetchColumn();
-            if ($eHos !== $admin_hoscode) {
+            if ($eRow['hoscode'] !== $admin_hoscode) {
                 throw new \Exception("ไม่พบสิทธิ์เข้าถึงข้อมูลผู้เข้าร่วมโครงการ ID: $eid");
             }
         }

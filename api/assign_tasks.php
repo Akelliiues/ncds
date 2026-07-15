@@ -23,14 +23,19 @@ $currentYear = 2026;
 $staffName = "ผู้ดูแลระบบ (Smart Assignment)";
 $reason = "แอดมินจัดสรรแบบระบุตัว";
 
+// Fetch VHV details for verification
+$vhvCheckStmt = $pdo->prepare("SELECT hoscode, vhid_code FROM vhv_users WHERE vhv_id = ?");
+$vhvCheckStmt->execute([$vhvId]);
+$vhvRow = $vhvCheckStmt->fetch();
+if (!$vhvRow) {
+    echo json_encode(['status' => 'error', 'message' => 'ไม่พบข้อมูล อสม.']);
+    exit();
+}
+
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 if ($admin_hoscode) {
     $allowed_hoscodes = [$admin_hoscode];
-    // Check VHV authority
-    $vhvCheckStmt = $pdo->prepare("SELECT hoscode FROM vhv_users WHERE vhv_id = ?");
-    $vhvCheckStmt->execute([$vhvId]);
-    $vhvRow = $vhvCheckStmt->fetch();
-    if (!$vhvRow || !in_array($vhvRow['hoscode'], $allowed_hoscodes)) {
+    if (!in_array($vhvRow['hoscode'], $allowed_hoscodes)) {
         echo json_encode(['status' => 'error', 'message' => 'คุณไม่มีสิทธิ์มอบหมายงานให้กับ อสม. นอกสังกัด']);
         exit();
     }
@@ -40,7 +45,7 @@ try {
     $pdo->beginTransaction();
 
     foreach ($cids as $cid) {
-        $tStmt = $pdo->prepare("SELECT first_name, last_name, hoscode FROM target_population WHERE cid = ?");
+        $tStmt = $pdo->prepare("SELECT first_name, last_name, hoscode, vhid_code FROM target_population WHERE cid = ?");
         $tStmt->execute([$cid]);
         $tRow = $tStmt->fetch();
         if (!$tRow) {
@@ -48,15 +53,21 @@ try {
         }
         $residentName = $tRow['first_name'] . ' ' . $tRow['last_name'];
 
+        if ($tRow['vhid_code'] !== $vhvRow['vhid_code']) {
+            throw new \Exception("กลุ่มเป้าหมาย {$residentName} อยู่คนละหมู่บ้านกับ อสม. ไม่สามารถดำเนินการได้");
+        }
+
         if ($admin_hoscode) {
             if (!in_array($tRow['hoscode'], $allowed_hoscodes)) {
                 throw new \Exception("กลุ่มเป้าหมาย {$residentName} อยู่นอกเขตบริการ ไม่สามารถดำเนินการได้");
             }
         }
 
-        // Check existing assignment
-        $checkStmt = $pdo->prepare("SELECT * FROM task_assignments WHERE target_cid = ? AND budget_year = ?");
-        $checkStmt->execute([$cid, $currentYear]);
+        $isSandboxVal = isSandboxMode($tRow['hoscode']) ? 1 : 0;
+
+        // Check existing assignment in the current mode
+        $checkStmt = $pdo->prepare("SELECT * FROM task_assignments WHERE target_cid = ? AND budget_year = ? AND is_sandbox = ?");
+        $checkStmt->execute([$cid, $currentYear, $isSandboxVal]);
         $existing = $checkStmt->fetch();
 
         if ($existing) {
@@ -92,7 +103,6 @@ try {
             }
         } else {
             // New assignment
-            $isSandboxVal = isSandboxMode() ? 1 : 0;
             $insertStmt = $pdo->prepare("
                 INSERT INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox)
                 VALUES (?, ?, ?, 'pending', ?)
