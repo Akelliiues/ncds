@@ -126,6 +126,7 @@ if (isset($_POST['trigger_update']) && $update_available) {
                 
                 $success = "ระบบได้รับการอัปเกรดเป็นเวอร์ชันใหม่เรียบร้อยแล้ว!";
                 $update_available = false;
+                $_SESSION['installed_updates'] = $new_updates_list;
                 
                 // Reload local changelog
                 if (file_exists($local_changelog_file)) {
@@ -419,7 +420,28 @@ $current_page = 'update.php';
         <?php endif; ?>
 
         <?php if ($success): ?>
-            <div class="alert-box alert-success">🎉 <?= htmlspecialchars($success) ?></div>
+            <div class="alert-box alert-success" style="text-align: left;">
+                <h4 style="margin: 0 0 10px 0; color: #166534; font-size: 16px; font-weight: 800;">
+                    🎉 <?= htmlspecialchars($success) ?>
+                </h4>
+                <?php 
+                $installed = $_SESSION['installed_updates'] ?? [];
+                unset($_SESSION['installed_updates']); // Clear after showing
+                if (!empty($installed)): 
+                ?>
+                    <div style="margin-top: 15px; border-top: 1px dashed rgba(22, 101, 52, 0.25); padding-top: 12px;">
+                        <strong style="font-size: 13.5px; color: #166534; display: block; margin-bottom: 8px;">📋 รายการปรับปรุงที่ติดตั้งสำเร็จ:</strong>
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <?php foreach ($installed as $item): ?>
+                                <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: #14532d; line-height: 1.5;">
+                                    <span style="color: #22c55e; font-weight: bold; flex-shrink: 0;">✔️</span>
+                                    <span><?= htmlspecialchars($item['title']) ?></span>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
         <?php endif; ?>
 
         <div class="update-card">
