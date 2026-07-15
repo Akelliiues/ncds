@@ -438,12 +438,14 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
                     </svg>
                     จัดการหน่วยบริการ & บ้าน
                 </a>
-                <a href="update.php" class="<?= $current_page == 'update.php' ? 'active' : '' ?>">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5" />
-                    </svg>
-                    อัปเดตระบบ (Update)
-                </a>
+                <?php if (empty($_SESSION['admin_hoscode'])): ?>
+                    <a href="update.php" class="<?= $current_page == 'update.php' ? 'active' : '' ?>">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5" />
+                        </svg>
+                        อัปเดตระบบ (Update)
+                    </a>
+                <?php endif; ?>
             </div>
         </div>
 
