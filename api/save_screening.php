@@ -181,19 +181,36 @@ try {
             $approvalStatus = 'approved';
         }
 
-        // Insert VHV reward points
-        $rewardStmt = $pdo->prepare("
-            INSERT INTO vhv_rewards (vhv_id, screening_id, assignment_id, points_earned, approval_status, approved_at, is_sandbox)
-            VALUES (?, ?, ?, 1, ?, ?, ?)
-        ");
-        $rewardStmt->execute([
-            $vhvId,
-            $screeningId,
-            $assignmentId,
-            $approvalStatus,
-            $approvalStatus === 'approved' ? date('Y-m-d H:i:s') : null,
-            $isSandboxVal
-        ]);
+        // Check if reward already exists for this assignment to prevent duplicate points
+        $chkStmt = $pdo->prepare("SELECT reward_id FROM vhv_rewards WHERE assignment_id = ?");
+        $chkStmt->execute([$assignmentId]);
+        $existingReward = $chkStmt->fetch();
+
+        if ($existingReward) {
+            $rewardStmt = $pdo->prepare("
+                UPDATE vhv_rewards 
+                SET vhv_id = ?, screening_id = ?, points_earned = 1, approval_status = ?, approved_at = ?, is_sandbox = ?
+                WHERE reward_id = ?
+            ");
+            $rewardStmt->execute([
+                $vhvId, $screeningId, $approvalStatus,
+                $approvalStatus === 'approved' ? date('Y-m-d H:i:s') : null,
+                $isSandboxVal, $existingReward['reward_id']
+            ]);
+        } else {
+            $rewardStmt = $pdo->prepare("
+                INSERT INTO vhv_rewards (vhv_id, screening_id, assignment_id, points_earned, approval_status, approved_at, is_sandbox)
+                VALUES (?, ?, ?, 1, ?, ?, ?)
+            ");
+            $rewardStmt->execute([
+                $vhvId,
+                $screeningId,
+                $assignmentId,
+                $approvalStatus,
+                $approvalStatus === 'approved' ? date('Y-m-d H:i:s') : null,
+                $isSandboxVal
+            ]);
+        }
 
         // 5. Auto-update house coordinates from VHV's GPS if valid
         if ($lat != 0 && $lng != 0 && !empty($hoscode) && !$isSandboxVal) {
@@ -358,11 +375,25 @@ try {
         $screeningId = $pdo->lastInsertId();
 
         // 3. Award VHV +1 reward point immediately (approval_status = 'approved') to motivate them
-        $rewardStmt = $pdo->prepare("
-            INSERT INTO vhv_rewards (vhv_id, screening_id, assignment_id, points_earned, approval_status, approved_at, is_sandbox)
-            VALUES (?, ?, ?, 1, 'approved', CURRENT_TIMESTAMP, ?)
-        ");
-        $rewardStmt->execute([$vhvId, $screeningId, $assignmentId, $isSandboxVal]);
+        // Check if reward already exists for this assignment to prevent duplicate points
+        $chkStmt = $pdo->prepare("SELECT reward_id FROM vhv_rewards WHERE assignment_id = ?");
+        $chkStmt->execute([$assignmentId]);
+        $existingReward = $chkStmt->fetch();
+
+        if ($existingReward) {
+            $rewardStmt = $pdo->prepare("
+                UPDATE vhv_rewards 
+                SET vhv_id = ?, screening_id = ?, points_earned = 1, approval_status = 'approved', approved_at = CURRENT_TIMESTAMP, is_sandbox = ?
+                WHERE reward_id = ?
+            ");
+            $rewardStmt->execute([$vhvId, $screeningId, $isSandboxVal, $existingReward['reward_id']]);
+        } else {
+            $rewardStmt = $pdo->prepare("
+                INSERT INTO vhv_rewards (vhv_id, screening_id, assignment_id, points_earned, approval_status, approved_at, is_sandbox)
+                VALUES (?, ?, ?, 1, 'approved', CURRENT_TIMESTAMP, ?)
+            ");
+            $rewardStmt->execute([$vhvId, $screeningId, $assignmentId, $isSandboxVal]);
+        }
 
         $pdo->commit();
 
