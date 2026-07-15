@@ -165,8 +165,12 @@ if (!empty($hoscode)) {
         FROM target_population p
         LEFT JOIN villages v ON p.moo = v.moo AND p.hoscode = v.hoscode
         LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026
-        WHERE p.hoscode = ? AND p.moo > 0 AND p.moo IS NOT NULL
+        WHERE p.hoscode = ? 
+          AND p.moo > 0 
+          AND p.moo IS NOT NULL 
+          AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY p.moo
+        HAVING total_targets > 0
         ORDER BY p.moo ASC
     ";
     $villStmt = $pdo->prepare($villQuery);
@@ -183,7 +187,7 @@ try {
             COUNT(DISTINCT p.cid) as total_targets,
             COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) as completed_targets
         FROM health_units u
-        LEFT JOIN target_population p ON u.hoscode = p.hoscode
+        LEFT JOIN target_population p ON u.hoscode = p.hoscode AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026
         GROUP BY u.hoscode
         HAVING COUNT(DISTINCT p.cid) > 0
