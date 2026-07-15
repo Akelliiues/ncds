@@ -297,6 +297,110 @@ $current_page = 'update.php';
             border: 1.5px solid #22c55e;
             color: #22c55e;
         }
+        /* Custom Confirmation Modal Styles */
+        .custom-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .modal-overlay {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .modal-content {
+            position: relative;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 480px;
+            width: 90%;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            animation: modal-anim 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes modal-anim {
+            from {
+                transform: scale(0.9) translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+        .modal-icon {
+            font-size: 50px;
+            margin-bottom: 15px;
+        }
+        .modal-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin: 0 0 12px 0;
+        }
+        .modal-message {
+            font-size: 14.5px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .modal-warning {
+            background-color: rgba(245, 158, 11, 0.08);
+            border-left: 4px solid #f59e0b;
+            color: #d97706;
+            font-size: 13px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            text-align: left;
+            line-height: 1.5;
+            margin-bottom: 25px;
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        .btn-modal-cancel {
+            background: rgba(148, 163, 184, 0.15);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+        }
+        .btn-modal-cancel:hover {
+            background: rgba(148, 163, 184, 0.25);
+        }
+        .btn-modal-confirm {
+            background: linear-gradient(135deg, #ff9800 0%, #f44336 100%);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(244, 67, 54, 0.3);
+            transition: all var(--transition-speed);
+        }
+        .btn-modal-confirm:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(244, 67, 54, 0.5);
+        }
     </style>
 </head>
 <body class="admin-body">
@@ -338,7 +442,7 @@ $current_page = 'update.php';
         </div>
 
         <div style="text-align: center; margin-bottom: 40px;">
-            <form method="POST" action="update.php" onsubmit="return confirmUpdate(event)">
+            <form method="POST" action="update.php" id="update-form" onsubmit="return confirmUpdate(event)">
                 <?php if ($update_available): ?>
                     <button type="submit" name="trigger_update" class="btn-update" id="update-btn">
                         🚀 ตรวจพบเวอร์ชันใหม่! คลิกเพื่ออัปเดตระบบทันที
@@ -412,14 +516,48 @@ $current_page = 'update.php';
         <?php endif; ?>
     </div>
 
+    <!-- Custom Confirmation Modal -->
+    <div id="confirm-modal" class="custom-modal" style="display: none;">
+        <div class="modal-overlay" onclick="closeConfirmModal()"></div>
+        <div class="modal-content">
+            <div class="modal-icon">⚠️</div>
+            <h3 class="modal-title">ยืนยันการอัปเดตระบบ</h3>
+            <p class="modal-message">
+                คุณต้องการเริ่มดำเนินการดาวน์โหลดและติดตั้งตัวอัปเกรดระบบ NCDs Portal รุ่นล่าสุดใช่หรือไม่?
+            </p>
+            <div class="modal-warning">
+                💡 <strong>ปลอดภัย:</strong> ไฟล์การตั้งค่าฐานข้อมูล (db_config.php) และค่า LINE API Token (line_config.php) ของหน่วยงานของคุณจะได้รับการคุ้มครองและจะไม่ถูกเขียนทับอย่างแน่นอน
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-modal-cancel" onclick="closeConfirmModal()">ยกเลิก</button>
+                <button type="button" class="btn-modal-confirm" onclick="proceedWithUpdate()">🚀 เริ่มการอัปเดต</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        let isConfirmed = false;
+
         function confirmUpdate(e) {
-            if (confirm("ยืนยันการเริ่มอัปเดตระบบใช่หรือไม่?\n\n* ระบบจะยังคงรักษาไฟล์เชื่อมฐานข้อมูล (db_config.php) และ LINE API Token (line_config.php) เดิมของคุณไว้อย่างปลอดภัย")) {
-                showLoading();
+            if (isConfirmed) {
                 return true;
             }
             e.preventDefault();
+            // Open the custom modal
+            document.getElementById('confirm-modal').style.display = 'flex';
             return false;
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').style.display = 'none';
+        }
+
+        function proceedWithUpdate() {
+            isConfirmed = true;
+            closeConfirmModal();
+            showLoading();
+            // Programmatically submit the form
+            document.getElementById('update-form').submit();
         }
 
         function showLoading() {
