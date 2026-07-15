@@ -526,7 +526,12 @@ $current_page = 'update.php';
                 คุณต้องการเริ่มดำเนินการดาวน์โหลดและติดตั้งตัวอัปเกรดระบบ NCDs Portal รุ่นล่าสุดใช่หรือไม่?
             </p>
             <div class="modal-warning">
-                💡 <strong>ปลอดภัย:</strong> ไฟล์การตั้งค่าฐานข้อมูล (db_config.php) และค่า LINE API Token (line_config.php) ของหน่วยงานของคุณจะได้รับการคุ้มครองและจะไม่ถูกเขียนทับอย่างแน่นอน
+                <strong>🔒 ความมั่นใจในการอัปเดตระบบ:</strong>
+                <ul style="margin: 8px 0 0 0; padding-left: 20px; font-size: 12.5px; line-height: 1.6;">
+                    <li><strong>ข้อมูลคัดกรองปลอดภัย 100%:</strong> ประวัติการบันทึกคัดกรอง ผลงาน อสม. พิกัดตำแหน่งบ้าน และข้อมูลเดิมทั้งหมดในฐานข้อมูลจะไม่สูญหายหรือเสียหายแน่นอน</li>
+                    <li><strong>ทำงานได้ต่อเนื่องอย่างไร้รอยต่อ:</strong> อสม. และเจ้าหน้าที่ยังคงสแกนคัดกรอง ส่งการ์ดความห่วงใย หรือใช้งานระบบได้ปกติทันทีโดยไม่ต้องตั้งค่าใหม่</li>
+                    <li><strong>ปกป้องค่าเชื่อมต่อของพื้นที่:</strong> ไฟล์รหัสผ่านเชื่อมฐานข้อมูล (db_config.php) และ LINE Token (line_config.php) เดิมของหน่วยงานจะถูกละเว้นและไม่ถูกเขียนทับอย่างปลอดภัย</li>
+                </ul>
             </div>
             <div class="modal-actions">
                 <button type="button" class="btn-modal-cancel" onclick="closeConfirmModal()">ยกเลิก</button>
