@@ -220,6 +220,26 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
             transform: translateY(-1px);
         }
 
+        .btn-clean-purple {
+            background-color: rgba(139, 92, 246, 0.08); 
+            color: #8b5cf6;
+            border: 1px solid rgba(139, 92, 246, 0.2); 
+            padding: 10px 20px; 
+            border-radius: 10px;
+            cursor: pointer; 
+            font-size: 13.5px; 
+            font-weight: 600; 
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-clean-purple:hover { 
+            background-color: #8b5cf6; 
+            color: white; 
+            transform: translateY(-1px);
+        }
+
 
         /* ── Modal Overlay & Card ─────────────────── */
         .modal-overlay {
@@ -405,6 +425,9 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
                     </button>
                     <button class="btn-clean-orange" onclick="openMaintenanceModal('cleanup_sandbox_data', 'เคลียร์งานค้างจากโหมดทดสอบ', 'ระบบจะทำการลบผลคัดกรอง แต้มสะสม และงานมอบหมายที่สร้างขึ้นในโหมดทดสอบทั้งหมด พร้อมทั้งกู้คืนใบงานคัดกรองจริงที่ถูกเขียนทับในโหมดทดสอบให้กลับมาเป็นปกติ เพื่อให้นำไปใช้คัดกรองข้อมูลจริงได้ทันที', '⚙️')">
                         ⚙️ เคลียร์งานค้างจากโหมดทดสอบ
+                    </button>
+                    <button class="btn-clean-purple" onclick="openMaintenanceModal('resolve_all_duplicates', 'ควบรวมข้อมูลเป้าหมายซ้ำซ้อน', 'ระบบจะทำการค้นหาและควบรวมข้อมูลเป้าหมายที่ซ้ำซ้อนกันในระบบ ( Mock CID กับ CID จริง) เข้าด้วยกัน โดยโอนย้ายประวัติการตรวจ ใบงานมอบหมาย และคะแนนสะสมเดิมทั้งหมดแบบรวมศูนย์อย่างปลอดภัย', '🔗')">
+                        🔗 ควบรวมเป้าหมายซ้ำซ้อน
                     </button>
                 </div>
             </div>
