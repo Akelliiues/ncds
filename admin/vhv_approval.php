@@ -659,13 +659,34 @@ try {
                 <?php endif; ?>
 
                 <!-- Moo filter -->
-                <div style="width: 120px; min-width: 100px;">
+                <div style="flex: 1.5; min-width: 180px;">
                     <label for="filter_moo" style="display: block; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-primary);">หมู่ที่</label>
                     <select name="moo_filter" id="filter_moo" class="form-select" style="box-shadow: var(--neumorph-inset); height: 44px; font-size: 14px;">
                         <option value="">-- ทั้งหมด --</option>
-                        <?php for ($i = 1; $i <= 20; $i++): ?>
-                            <option value="<?= $i ?>" <?= $moo_filter === $i ? 'selected' : '' ?>>หมู่ <?= $i ?></option>
-                        <?php endfor; ?>
+                        <?php
+                        $villages_list = [];
+                        try {
+                            $target_hos = $admin_hoscode ?: $hoscode_filter;
+                            if ($target_hos) {
+                                $vStmt = $pdo->prepare("SELECT DISTINCT moo, village_name FROM villages WHERE hoscode = ? ORDER BY moo ASC");
+                                $vStmt->execute([$target_hos]);
+                                $villages_list = $vStmt->fetchAll();
+                            } else {
+                                $vStmt = $pdo->query("SELECT DISTINCT moo, village_name, hoscode FROM villages ORDER BY hoscode ASC, moo ASC");
+                                $villages_list = $vStmt->fetchAll();
+                            }
+                        } catch (PDOException $e) {
+                            // Fallback if schema/table issue
+                        }
+
+                        foreach ($villages_list as $v):
+                            $v_moo_num = intval($v['moo']);
+                            $v_hos_prefix = (!$admin_hoscode && empty($hoscode_filter)) ? ('[' . ($hc_names[$v['hoscode']] ?? $v['hoscode']) . '] ') : '';
+                        ?>
+                            <option value="<?= $v_moo_num ?>" <?= $moo_filter === $v_moo_num ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($v_hos_prefix) ?>หมู่ที่ <?= $v_moo_num ?> บ้าน<?= htmlspecialchars($v['village_name']) ?>
+                            </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
 
