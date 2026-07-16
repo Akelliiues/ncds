@@ -29,13 +29,15 @@ if ($admin_hoscode) {
     // Query target groups by health_status_origin
     $groupStmt = $pdo->prepare("
         SELECT 
-            SUM(CASE WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 1 ELSE 0 END) as group_dm,
-            SUM(CASE WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 1 ELSE 0 END) as group_ht,
-            SUM(CASE WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 1 ELSE 0 END) as group_both,
-            SUM(CASE WHEN need_screen_dm = 1 OR need_screen_ht = 1 THEN 1 ELSE 0 END) as group_risk,
-            SUM(CASE WHEN health_status_origin = 'NORMAL' AND (need_screen_dm = 0 AND need_screen_ht = 0) THEN 1 ELSE 0 END) as group_normal,
-            SUM(CASE WHEN health_status_origin = 'SUSPECT' THEN 1 ELSE 0 END) as group_suspected
-        FROM target_population WHERE hoscode IN ($inPlaceholders)
+            SUM(CASE WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 0 THEN 1 ELSE 0 END) as group_dm,
+            SUM(CASE WHEN p.need_screen_dm = 0 AND p.need_screen_ht = 1 THEN 1 ELSE 0 END) as group_ht,
+            SUM(CASE WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 1 THEN 1 ELSE 0 END) as group_both,
+            SUM(CASE WHEN p.need_screen_dm = 1 OR p.need_screen_ht = 1 THEN 1 ELSE 0 END) as group_risk,
+            SUM(CASE WHEN p.health_status_origin = 'NORMAL' AND (p.need_screen_dm = 0 AND p.need_screen_ht = 0) THEN 1 ELSE 0 END) as group_normal,
+            SUM(CASE WHEN p.health_status_origin = 'SUSPECT' THEN 1 ELSE 0 END) as group_suspected
+        FROM target_population p
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed'
+        WHERE p.hoscode IN ($inPlaceholders) AND a.assignment_id IS NULL
     ");
     $groupStmt->execute($hoscodes);
     $groupCounts = $groupStmt->fetch(PDO::FETCH_ASSOC);
@@ -44,21 +46,24 @@ if ($admin_hoscode) {
     $groupDetailStmt = $pdo->prepare("
         SELECT 
             CASE 
-                WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
-                WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
-                WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
-                WHEN health_status_origin = 'SUSPECT' THEN 'SUSPECT'
+                WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 1 THEN 'BOTH'
+                WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 0 THEN 'DM_ONLY'
+                WHEN p.need_screen_dm = 0 AND p.need_screen_ht = 1 THEN 'HT_ONLY'
+                WHEN p.health_status_origin = 'SUSPECT' THEN 'SUSPECT'
                 ELSE 'NORMAL'
             END as health_status_origin,
             COUNT(*) as count 
-        FROM target_population 
-        WHERE hoscode IN ($inPlaceholders) AND (need_screen_dm = 1 OR need_screen_ht = 1 OR health_status_origin = 'SUSPECT')
+        FROM target_population p
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed'
+        WHERE p.hoscode IN ($inPlaceholders) 
+          AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1 OR p.health_status_origin = 'SUSPECT')
+          AND a.assignment_id IS NULL
         GROUP BY 
             CASE 
-                WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
-                WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
-                WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
-                WHEN health_status_origin = 'SUSPECT' THEN 'SUSPECT'
+                WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 1 THEN 'BOTH'
+                WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 0 THEN 'DM_ONLY'
+                WHEN p.need_screen_dm = 0 AND p.need_screen_ht = 1 THEN 'HT_ONLY'
+                WHEN p.health_status_origin = 'SUSPECT' THEN 'SUSPECT'
                 ELSE 'NORMAL'
             END
         ORDER BY FIELD(health_status_origin, 'BOTH','DM_ONLY','HT_ONLY','SUSPECT','NORMAL')
@@ -114,29 +119,31 @@ if ($admin_hoscode) {
     // Card 1 Detail: Targets per village (moo) and health status origin
     $mooQuery = $pdo->prepare("
         SELECT 
-            hoscode, 
-            moo, 
+            p.hoscode, 
+            p.moo, 
             CASE 
-                WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
-                WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
-                WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
-                WHEN health_status_origin = 'SUSPECT' THEN 'SUSPECT'
+                WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 1 THEN 'BOTH'
+                WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 0 THEN 'DM_ONLY'
+                WHEN p.need_screen_dm = 0 AND p.need_screen_ht = 1 THEN 'HT_ONLY'
+                WHEN p.health_status_origin = 'SUSPECT' THEN 'SUSPECT'
                 ELSE 'NORMAL'
             END as health_status_origin,
             COUNT(*) as count 
-        FROM target_population 
-        WHERE hoscode IN ($inPlaceholders) AND (need_screen_dm = 1 OR need_screen_ht = 1 OR health_status_origin = 'SUSPECT') 
+        FROM target_population p
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed'
+        WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1 OR p.health_status_origin = 'SUSPECT') 
+          AND a.assignment_id IS NULL
         GROUP BY 
-            hoscode, 
-            moo,
+            p.hoscode, 
+            p.moo,
             CASE 
-                WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
-                WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
-                WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
-                WHEN health_status_origin = 'SUSPECT' THEN 'SUSPECT'
+                WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 1 THEN 'BOTH'
+                WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 0 THEN 'DM_ONLY'
+                WHEN p.need_screen_dm = 0 AND p.need_screen_ht = 1 THEN 'HT_ONLY'
+                WHEN p.health_status_origin = 'SUSPECT' THEN 'SUSPECT'
                 ELSE 'NORMAL'
             END
-        ORDER BY moo
+        ORDER BY p.moo
     ");
     $mooQuery->execute($hoscodes);
     $targetsDetail = $mooQuery->fetchAll(PDO::FETCH_ASSOC);
@@ -371,13 +378,15 @@ if ($admin_hoscode) {
     // Query target groups by health_status_origin
     $groupStmtSa = $pdo->prepare("
         SELECT 
-            SUM(CASE WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 1 ELSE 0 END) as group_dm,
-            SUM(CASE WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 1 ELSE 0 END) as group_ht,
-            SUM(CASE WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 1 ELSE 0 END) as group_both,
-            SUM(CASE WHEN need_screen_dm = 1 OR need_screen_ht = 1 THEN 1 ELSE 0 END) as group_risk,
-            SUM(CASE WHEN health_status_origin = 'NORMAL' AND (need_screen_dm = 0 AND need_screen_ht = 0) THEN 1 ELSE 0 END) as group_normal,
-            SUM(CASE WHEN health_status_origin = 'SUSPECT' THEN 1 ELSE 0 END) as group_suspected
-        FROM target_population WHERE hoscode IN ($inPlaceholdersSa)
+            SUM(CASE WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 0 THEN 1 ELSE 0 END) as group_dm,
+            SUM(CASE WHEN p.need_screen_dm = 0 AND p.need_screen_ht = 1 THEN 1 ELSE 0 END) as group_ht,
+            SUM(CASE WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 1 THEN 1 ELSE 0 END) as group_both,
+            SUM(CASE WHEN p.need_screen_dm = 1 OR p.need_screen_ht = 1 THEN 1 ELSE 0 END) as group_risk,
+            SUM(CASE WHEN p.health_status_origin = 'NORMAL' AND (p.need_screen_dm = 0 AND p.need_screen_ht = 0) THEN 1 ELSE 0 END) as group_normal,
+            SUM(CASE WHEN p.health_status_origin = 'SUSPECT' THEN 1 ELSE 0 END) as group_suspected
+        FROM target_population p
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed'
+        WHERE p.hoscode IN ($inPlaceholdersSa) AND a.assignment_id IS NULL
     ");
     $groupStmtSa->execute($valid_hoscodes);
     $groupCounts = $groupStmtSa->fetch(PDO::FETCH_ASSOC);
@@ -392,21 +401,24 @@ if ($admin_hoscode) {
     $groupDetailStmtSa = $pdo->prepare("
         SELECT 
             CASE 
-                WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
-                WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
-                WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
-                WHEN health_status_origin = 'SUSPECT' THEN 'SUSPECT'
+                WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 1 THEN 'BOTH'
+                WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 0 THEN 'DM_ONLY'
+                WHEN p.need_screen_dm = 0 AND p.need_screen_ht = 1 THEN 'HT_ONLY'
+                WHEN p.health_status_origin = 'SUSPECT' THEN 'SUSPECT'
                 ELSE 'NORMAL'
             END as health_status_origin,
             COUNT(*) as count 
-        FROM target_population 
-        WHERE hoscode IN ($inPlaceholdersSa) AND (need_screen_dm = 1 OR need_screen_ht = 1 OR health_status_origin = 'SUSPECT')
+        FROM target_population p
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed'
+        WHERE p.hoscode IN ($inPlaceholdersSa) 
+          AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1 OR p.health_status_origin = 'SUSPECT')
+          AND a.assignment_id IS NULL
         GROUP BY 
             CASE 
-                WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
-                WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
-                WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
-                WHEN health_status_origin = 'SUSPECT' THEN 'SUSPECT'
+                WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 1 THEN 'BOTH'
+                WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 0 THEN 'DM_ONLY'
+                WHEN p.need_screen_dm = 0 AND p.need_screen_ht = 1 THEN 'HT_ONLY'
+                WHEN p.health_status_origin = 'SUSPECT' THEN 'SUSPECT'
                 ELSE 'NORMAL'
             END
         ORDER BY FIELD(health_status_origin, 'BOTH','DM_ONLY','HT_ONLY','SUSPECT','NORMAL')
@@ -417,27 +429,29 @@ if ($admin_hoscode) {
     // Card 1 Detail: Targets per hoscode and health status origin
     $targetsDetailStmt = $pdo->prepare("
         SELECT 
-            hoscode, 
+            p.hoscode, 
             CASE 
-                WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
-                WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
-                WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
-                WHEN health_status_origin = 'SUSPECT' THEN 'SUSPECT'
+                WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 1 THEN 'BOTH'
+                WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 0 THEN 'DM_ONLY'
+                WHEN p.need_screen_dm = 0 AND p.need_screen_ht = 1 THEN 'HT_ONLY'
+                WHEN p.health_status_origin = 'SUSPECT' THEN 'SUSPECT'
                 ELSE 'NORMAL'
             END as health_status_origin,
             COUNT(*) as count 
-        FROM target_population 
-        WHERE hoscode IN ($inPlaceholdersSa) AND (need_screen_dm = 1 OR need_screen_ht = 1 OR health_status_origin = 'SUSPECT') 
+        FROM target_population p
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed'
+        WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1 OR p.health_status_origin = 'SUSPECT') 
+          AND a.assignment_id IS NULL
         GROUP BY 
-            hoscode,
+            p.hoscode,
             CASE 
-                WHEN need_screen_dm = 1 AND need_screen_ht = 1 THEN 'BOTH'
-                WHEN need_screen_dm = 1 AND need_screen_ht = 0 THEN 'DM_ONLY'
-                WHEN need_screen_dm = 0 AND need_screen_ht = 1 THEN 'HT_ONLY'
-                WHEN health_status_origin = 'SUSPECT' THEN 'SUSPECT'
+                WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 1 THEN 'BOTH'
+                WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 0 THEN 'DM_ONLY'
+                WHEN p.need_screen_dm = 0 AND p.need_screen_ht = 1 THEN 'HT_ONLY'
+                WHEN p.health_status_origin = 'SUSPECT' THEN 'SUSPECT'
                 ELSE 'NORMAL'
             END
-        ORDER BY hoscode
+        ORDER BY p.hoscode
     ");
     $targetsDetailStmt->execute($valid_hoscodes);
     $targetsDetail = $targetsDetailStmt->fetchAll(PDO::FETCH_ASSOC);
