@@ -633,6 +633,16 @@ try {
             </a>
         </div>
 
+        <?php
+        // Fetch all villages for dynamic JavaScript filtering
+        try {
+            $allVillagesStmt = $pdo->query("SELECT moo, village_name, hoscode FROM villages ORDER BY hoscode ASC, moo ASC");
+            $allVillagesJson = json_encode($allVillagesStmt->fetchAll(PDO::FETCH_ASSOC));
+        } catch (PDOException $e) {
+            $allVillagesJson = "[]";
+        }
+        ?>
+
         <!-- Search and Filter Form -->
         <div class="card-dark" style="padding: 20px; margin-bottom: 24px;">
             <form method="GET" style="display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;">
@@ -1193,6 +1203,49 @@ try {
         function confirmAndSubmitSwap() {
             document.getElementById('confirmSwapModal').style.display = 'none';
         }
+
+        // Dynamic VHV Approval Moo Filter Option Updater
+        const dbVillages = <?= $allVillagesJson ?>;
+        const initialMooFilter = <?= json_encode($moo_filter) ?>;
+        const adminHoscode = <?= json_encode($admin_hoscode) ?>;
+
+        function updateMooFilterOptions() {
+            const hosSelect = document.getElementById('filter_hoscode');
+            const mooSelect = document.getElementById('filter_moo');
+            if (!mooSelect) return;
+
+            const selectedHos = adminHoscode || (hosSelect ? hosSelect.value : '');
+            const currentSelectedValue = mooSelect.value;
+            
+            // Clear options except first "-- ทั้งหมด --"
+            mooSelect.innerHTML = '<option value="">-- ทั้งหมด --</option>';
+
+            // Filter and add options
+            dbVillages.forEach(v => {
+                if (!selectedHos || v.hoscode === selectedHos) {
+                    let vName = v.village_name;
+                    if (!vName.startsWith('บ้าน')) {
+                        vName = 'บ้าน' + vName;
+                    }
+                    const opt = document.createElement('option');
+                    opt.value = parseInt(v.moo);
+                    opt.textContent = `หมู่ที่ ${parseInt(v.moo)} ${vName}`;
+                    
+                    // Maintain selection if matches
+                    if (parseInt(v.moo) === parseInt(initialMooFilter) || parseInt(v.moo) === parseInt(currentSelectedValue)) {
+                        opt.selected = true;
+                    }
+                    mooSelect.appendChild(opt);
+                }
+            });
+        }
+
+        const hosSelectEl = document.getElementById('filter_hoscode');
+        if (hosSelectEl) {
+            hosSelectEl.addEventListener('change', updateMooFilterOptions);
+        }
+        
+        document.addEventListener('DOMContentLoaded', updateMooFilterOptions);
     </script>
 </body>
 </html>
