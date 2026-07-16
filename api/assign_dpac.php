@@ -48,7 +48,7 @@ try {
     $success = 0;
     foreach ($enrollmentIds as $eid) {
         $eCheck = $pdo->prepare("
-            SELECT p.hoscode, p.vhid_code, p.moo, p.first_name, p.last_name
+            SELECT p.hoscode, p.vhid_code, p.moo, p.first_name, p.last_name, p.house_no
             FROM dpac_enrollments e 
             JOIN target_population p ON e.cid = p.cid 
             WHERE e.enrollment_id = ?
@@ -61,11 +61,13 @@ try {
 
         $targetMoo = intval($eRow['moo'] ?? 0);
         $vhvMoo = intval($vhvRow['vhv_moo'] ?? 0);
+        $isOutsideArea = ($targetMoo === 0 || (isset($eRow['house_no']) && strpos($eRow['house_no'], 'นอกเขต') !== false));
 
         $vhidMatches = (!empty($eRow['vhid_code']) && !empty($vhvRow['vhid_code']) && $eRow['vhid_code'] === $vhvRow['vhid_code']);
         $mooMatches = ($targetMoo === $vhvMoo && $eRow['hoscode'] === $vhvRow['hoscode']);
+        $outsideAreaAllowed = ($isOutsideArea && $eRow['hoscode'] === $vhvRow['hoscode']);
 
-        if (!$vhidMatches && !$mooMatches) {
+        if (!$vhidMatches && !$mooMatches && !$outsideAreaAllowed) {
             throw new \Exception("ผู้เข้าร่วมโครงการ {$eRow['first_name']} {$eRow['last_name']} (หมู่ {$targetMoo}) อยู่คนละหมู่บ้านกับ อสม. (หมู่ {$vhvMoo}) ไม่สามารถดำเนินการได้");
         }
 

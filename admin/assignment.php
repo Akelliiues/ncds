@@ -503,7 +503,7 @@ try {
             selectedCids.clear();
             const searchInput = document.getElementById('search-target');
             if (searchInput) searchInput.value = '';
-            
+
             const statusFilter = document.getElementById('filter-status');
             if (statusFilter) statusFilter.value = 'all';
 
@@ -602,7 +602,7 @@ try {
                     } else if (t.assignment_status === 'skipped') {
                         assignedText = `<span style="color: var(--color-red); font-size: 12px; font-weight: bold;">❌ ข้ามเคสแล้ว (อสม. ${t.assigned_vhv})</span>`;
                     } else {
-                        assignedText = `<span style="color: var(--color-yellow); font-size: 12px; font-weight: bold;">⏳ มอบหมายแล้ว (${t.assigned_vhv})</span>`;
+                        assignedText = `<span style="color: var(--color-yellow); font-size: 12px; font-weight: bold;">⏳ มอบหมาย (${t.assigned_vhv})</span>`;
                         cancelBtn = `<button onclick="cancelAssignment('${t.cid}', '${(t.first_name + ' ' + t.last_name).replace(/'/g, "\\'")}')"
                             style="margin-left:8px; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--color-red, #ef4444); background: transparent; color: var(--color-red, #ef4444); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
                             onmouseover="this.style.background='rgba(239,68,68,0.12)'"

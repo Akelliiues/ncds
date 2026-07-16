@@ -458,6 +458,8 @@ if ($action === 'clear_hoscode') {
             JOIN target_population p ON a.target_cid = p.cid
             JOIN vhv_users v ON a.vhv_id = v.vhv_id
             WHERE p.vhid_code != v.vhid_code
+              AND p.moo != 0
+              AND p.house_no NOT LIKE '%นอกเขต%'
               AND a.assignment_status = 'pending'
         ");
 
@@ -467,6 +469,8 @@ if ($action === 'clear_hoscode') {
             JOIN vhv_users v ON e.assigned_vhv_id = v.vhv_id
             SET e.assigned_vhv_id = NULL
             WHERE p.vhid_code != v.vhid_code
+              AND p.moo != 0
+              AND p.house_no NOT LIKE '%นอกเขต%'
               AND EXISTS (
                   SELECT 1 FROM dpac_followups f 
                   WHERE f.enrollment_id = e.enrollment_id 
@@ -481,6 +485,8 @@ if ($action === 'clear_hoscode') {
             JOIN target_population p ON e.cid = p.cid
             JOIN vhv_users v ON f.vhv_id = v.vhv_id
             WHERE p.vhid_code != v.vhid_code
+              AND p.moo != 0
+              AND p.house_no NOT LIKE '%นอกเขต%'
               AND f.status = 'pending'
         ");
 
