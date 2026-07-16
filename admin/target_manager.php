@@ -43,19 +43,6 @@ try {
     }
 }
 
-// Clean up target populations: set need_screen = 0 for HDC targets (is_manual = 0) with no task assignments
-try {
-    $pdo->exec("
-        UPDATE target_population t
-        LEFT JOIN task_assignments ta ON t.cid = ta.target_cid AND ta.budget_year = 2026
-        SET t.need_screen_dm = 0, t.need_screen_ht = 0
-        WHERE (t.is_manual IS NULL OR t.is_manual = 0)
-          AND ta.assignment_id IS NULL
-    ");
-} catch (\Exception $e) {
-    // Fail silently
-}
-
 // Self-healing merge: merge any newly imported masked target duplicates with unmasked JHCIS records
 try {
     $dupesQuery = $pdo->query("

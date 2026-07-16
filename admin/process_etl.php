@@ -513,18 +513,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
                 
                 $lat = ($exists['latitude'] !== null && $exists['latitude'] != 0) ? $exists['latitude'] : null;
                 $lng = ($exists['longitude'] !== null && $exists['longitude'] != 0) ? $exists['longitude'] : null;
-                // สำหรับเป้าจาก HDC: จะเป็นเป้าคัดกรองได้ต่อเมื่อเป็นกลุ่มที่กำหนดเป็นเป้าหมายด้วยตนเอง (is_manual = 1) 
-                // หรือเป็นกลุ่มที่มีงานมอบหมาย/คัดกรองไปแล้วเท่านั้น หากไม่ใช่ให้เคลียร์ค่าเป็น 0
-                $hasAssignment = isset($assignedCidsMap[$realCid]);
-                $isManualTarget = isset($exists['is_manual']) && $exists['is_manual'] == 1;
-
-                if ($isManualTarget || $hasAssignment) {
-                    $needScreenDm = ($exists['need_screen_dm'] == 1);
-                    $needScreenHt = ($exists['need_screen_ht'] == 1);
-                } else {
-                    $needScreenDm = false;
-                    $needScreenHt = false;
-                }
+                // รักษาค่าเป้าหมายเดิมของประชากรที่มีในฐานข้อมูลอยู่แล้ว ไม่ให้เปลี่ยนหรือรีเซ็ต
+                $needScreenDm = ($exists['need_screen_dm'] == 1);
+                $needScreenHt = ($exists['need_screen_ht'] == 1);
                 
                 // รักษาค่า hid ดั้งเดิมของ JHCIS ที่นำเข้าไว้
                 $finalHid = !empty($exists['hid']) && $exists['hid'] !== '000000000000000' ? $exists['hid'] : ($hid ?: null);
