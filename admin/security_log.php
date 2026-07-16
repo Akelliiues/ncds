@@ -194,8 +194,10 @@ $incident_labels = [
     'CROSS_DISTRICT_UNAUTHORIZED_SCAN_BLOCKED' => ['label' => 'สแกนข้ามเขต', 'color' => '#ef4444', 'bg' => 'rgba(239,68,68,0.12)'],
     'UNAUTHORIZED_SCAN'                         => ['label' => 'ไม่มีสิทธิ์สแกน', 'color' => '#f59e0b', 'bg' => 'rgba(245,158,11,0.12)'],
     'NO_ASSIGNMENT'                             => ['label' => 'ไม่มีงานมอบหมาย', 'color' => '#8b5cf6', 'bg' => 'rgba(139,92,246,0.12)'],
-    'AUTHORIZED_SCAN'                           => ['label' => 'เข้าคัดกรอง (สำเร็จ)', 'color' => '#10b981', 'bg' => 'rgba(16,185,129,0.12)'],
-    'SATISFACTION_SURVEY'                       => ['label' => 'แบบประเมินความพึงพอใจ', 'color' => '#3b82f6', 'bg' => 'rgba(59,130,246,0.12)'],
+    'AUTHORIZED_SCAN'                           => ['label' => 'เข้าสู่ฟอร์มคัดกรอง', 'color' => '#3b82f6', 'bg' => 'rgba(59,130,246,0.12)'],
+    'SCREENING_COMPLETE'                         => ['label' => 'คัดกรองสำเร็จ', 'color' => '#10b981', 'bg' => 'rgba(16,185,129,0.12)'],
+    'SCREENING_SKIPPED'                          => ['label' => 'ข้ามการคัดกรอง', 'color' => '#6b7280', 'bg' => 'rgba(107,114,128,0.12)'],
+    'SATISFACTION_SURVEY'                       => ['label' => 'แบบประเมินความพึงพอใจ', 'color' => '#8b5cf6', 'bg' => 'rgba(139,92,246,0.12)'],
 ];
 ?>
 <!DOCTYPE html>

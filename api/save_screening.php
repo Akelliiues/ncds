@@ -231,6 +231,26 @@ try {
             $updateHomeStmt->execute([$lat, $lng, $hid, $hoscode]);
         }
 
+        // บันทึก Log บันทึกคัดกรองสำเร็จ
+        try {
+            $logStmt = $pdo->prepare("
+                INSERT INTO scan_security_log (vhv_id, vhv_name, hoscode, scanned_code, scan_lat, scan_lng, ip_address, user_agent, incident_type)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'SCREENING_COMPLETE')
+            ");
+            $logStmt->execute([
+                $vhvId,
+                $_SESSION['vhv_name'] ?? null,
+                $_SESSION['hoscode'] ?? null,
+                $targetCid,
+                $lat > 0 ? $lat : null,
+                $lng > 0 ? $lng : null,
+                $_SERVER['REMOTE_ADDR'] ?? null,
+                $_SERVER['HTTP_USER_AGENT'] ?? null
+            ]);
+        } catch (\Exception $logEx) {
+            // Ignore log error
+        }
+
         $pdo->commit();
 
         // 4. LINE flex notifications check
@@ -393,6 +413,26 @@ try {
                 VALUES (?, ?, ?, 1, 'approved', CURRENT_TIMESTAMP, ?)
             ");
             $rewardStmt->execute([$vhvId, $screeningId, $assignmentId, $isSandboxVal]);
+        }
+
+        // บันทึก Log ข้ามการคัดกรอง
+        try {
+            $logStmt = $pdo->prepare("
+                INSERT INTO scan_security_log (vhv_id, vhv_name, hoscode, scanned_code, scan_lat, scan_lng, ip_address, user_agent, incident_type)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'SCREENING_SKIPPED')
+            ");
+            $logStmt->execute([
+                $vhvId,
+                $_SESSION['vhv_name'] ?? null,
+                $_SESSION['hoscode'] ?? null,
+                $targetCid,
+                $lat > 0 ? $lat : null,
+                $lng > 0 ? $lng : null,
+                $_SERVER['REMOTE_ADDR'] ?? null,
+                $_SERVER['HTTP_USER_AGENT'] ?? null
+            ]);
+        } catch (\Exception $logEx) {
+            // Ignore log error
         }
 
         $pdo->commit();
