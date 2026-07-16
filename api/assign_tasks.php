@@ -24,7 +24,7 @@ $staffName = "ผู้ดูแลระบบ (Smart Assignment)";
 $reason = "แอดมินจัดสรรแบบระบุตัว";
 
 // Fetch VHV details for verification
-$vhvCheckStmt = $pdo->prepare("SELECT hoscode, vhid_code FROM vhv_users WHERE vhv_id = ?");
+$vhvCheckStmt = $pdo->prepare("SELECT hoscode, vhid_code, vhv_moo FROM vhv_users WHERE vhv_id = ?");
 $vhvCheckStmt->execute([$vhvId]);
 $vhvRow = $vhvCheckStmt->fetch();
 if (!$vhvRow) {
@@ -45,7 +45,7 @@ try {
     $pdo->beginTransaction();
 
     foreach ($cids as $cid) {
-        $tStmt = $pdo->prepare("SELECT first_name, last_name, hoscode, vhid_code FROM target_population WHERE cid = ?");
+        $tStmt = $pdo->prepare("SELECT first_name, last_name, hoscode, vhid_code, moo FROM target_population WHERE cid = ?");
         $tStmt->execute([$cid]);
         $tRow = $tStmt->fetch();
         if (!$tRow) {
@@ -53,8 +53,14 @@ try {
         }
         $residentName = $tRow['first_name'] . ' ' . $tRow['last_name'];
 
-        if ($tRow['vhid_code'] !== $vhvRow['vhid_code']) {
-            throw new \Exception("กลุ่มเป้าหมาย {$residentName} อยู่คนละหมู่บ้านกับ อสม. ไม่สามารถดำเนินการได้");
+        $targetMoo = intval($tRow['moo'] ?? 0);
+        $vhvMoo = intval($vhvRow['vhv_moo'] ?? 0);
+
+        $vhidMatches = (!empty($tRow['vhid_code']) && !empty($vhvRow['vhid_code']) && $tRow['vhid_code'] === $vhvRow['vhid_code']);
+        $mooMatches = ($targetMoo === $vhvMoo && $tRow['hoscode'] === $vhvRow['hoscode']);
+
+        if (!$vhidMatches && !$mooMatches) {
+            throw new \Exception("กลุ่มเป้าหมาย {$residentName} (หมู่ {$targetMoo}) อยู่คนละหมู่บ้านกับ อสม. (หมู่ {$vhvMoo}) ไม่สามารถดำเนินการได้");
         }
 
         if ($admin_hoscode) {

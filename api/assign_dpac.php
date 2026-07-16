@@ -21,7 +21,7 @@ $vhvId = $data['vhv_id'];
 $enrollmentIds = $data['enrollment_ids'];
 
 // Fetch VHV details for verification
-$vhvCheckStmt = $pdo->prepare("SELECT hoscode, vhid_code FROM vhv_users WHERE vhv_id = ?");
+$vhvCheckStmt = $pdo->prepare("SELECT hoscode, vhid_code, vhv_moo FROM vhv_users WHERE vhv_id = ?");
 $vhvCheckStmt->execute([$vhvId]);
 $vhvRow = $vhvCheckStmt->fetch();
 if (!$vhvRow) {
@@ -48,7 +48,7 @@ try {
     $success = 0;
     foreach ($enrollmentIds as $eid) {
         $eCheck = $pdo->prepare("
-            SELECT p.hoscode, p.vhid_code, p.first_name, p.last_name
+            SELECT p.hoscode, p.vhid_code, p.moo, p.first_name, p.last_name
             FROM dpac_enrollments e 
             JOIN target_population p ON e.cid = p.cid 
             WHERE e.enrollment_id = ?
@@ -59,8 +59,14 @@ try {
             throw new \Exception("ไม่พบข้อมูลผู้เข้าร่วมโครงการ ID: $eid");
         }
 
-        if ($eRow['vhid_code'] !== $vhvRow['vhid_code']) {
-            throw new \Exception("ผู้เข้าร่วมโครงการ {$eRow['first_name']} {$eRow['last_name']} อยู่คนละหมู่บ้านกับ อสม. ไม่สามารถดำเนินการได้");
+        $targetMoo = intval($eRow['moo'] ?? 0);
+        $vhvMoo = intval($vhvRow['vhv_moo'] ?? 0);
+
+        $vhidMatches = (!empty($eRow['vhid_code']) && !empty($vhvRow['vhid_code']) && $eRow['vhid_code'] === $vhvRow['vhid_code']);
+        $mooMatches = ($targetMoo === $vhvMoo && $eRow['hoscode'] === $vhvRow['hoscode']);
+
+        if (!$vhidMatches && !$mooMatches) {
+            throw new \Exception("ผู้เข้าร่วมโครงการ {$eRow['first_name']} {$eRow['last_name']} (หมู่ {$targetMoo}) อยู่คนละหมู่บ้านกับ อสม. (หมู่ {$vhvMoo}) ไม่สามารถดำเนินการได้");
         }
 
         if ($admin_hoscode) {
