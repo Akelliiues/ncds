@@ -129,7 +129,12 @@ try {
             $normalizedVhvVhid = (strpos($vhidCode, '3420') === 0) ? '3418' . substr($vhidCode, 4) : $vhidCode;
             
             if ($normalizedHouseVhid !== $normalizedVhvVhid) {
-                $incidentType = 'CROSS_DISTRICT_UNAUTHORIZED_SCAN_BLOCKED';
+                $isHospitalVhv = (!empty($hoscode) && strpos($hoscode, '10') === 0);
+                $isTargetInHospitalZone = (!empty($houseInfo['hoscode']) && strpos($houseInfo['hoscode'], '10') === 0);
+                
+                if (!($isHospitalVhv && $isTargetInHospitalZone)) {
+                    $incidentType = 'CROSS_DISTRICT_UNAUTHORIZED_SCAN_BLOCKED';
+                }
             }
         }
     }

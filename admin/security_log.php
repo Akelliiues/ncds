@@ -153,8 +153,10 @@ try {
 $logs = [];
 try {
     $dataStmt = $pdo->prepare("
-        SELECT sl.*
+        SELECT sl.*, v.village_name, u.vhv_moo
         FROM scan_security_log sl
+        LEFT JOIN vhv_users u ON sl.vhv_id = u.vhv_id COLLATE utf8mb4_unicode_ci
+        LEFT JOIN villages v ON u.vhid_code = v.vhid_code COLLATE utf8mb4_unicode_ci
         WHERE $whereSQL
         ORDER BY sl.logged_at DESC
         LIMIT $limit OFFSET $offset
@@ -500,8 +502,9 @@ $incident_labels = [
                                 <th>วันที่ / เวลา</th>
                                 <th>อสม. (ID)</th>
                                 <th>ชื่อ</th>
+                                <th>หมู่บ้านที่สังกัด</th>
                                 <th>สังกัด</th>
-                                <th>รหัสที่สแกน (HID/CID)</th>
+                                <th>HID/CID</th>
                                 <th>ประเภทเหตุการณ์</th>
                                 <th>พิกัด GPS</th>
                                 <th>IP Address</th>
@@ -523,10 +526,17 @@ $incident_labels = [
                                             <?= htmlspecialchars($log['vhv_id']) ?>
                                         </code>
                                     </td>
-                                    <td style="font-weight:600;color:var(--text-primary);">
+                                    <td style="font-weight:600;color:var(--text-primary);white-space:nowrap;">
                                         <?= htmlspecialchars($log['vhv_name'] ?: '—') ?>
                                     </td>
-                                    <td style="font-size:13px;color:var(--text-secondary);">
+                                    <td style="font-size:13.5px;color:var(--text-primary);white-space:nowrap;">
+                                        <?php if (!empty($log['village_name'])): ?>
+                                            <?= 'ม.' . intval($log['vhv_moo']) . ' ' . htmlspecialchars($log['village_name']) ?>
+                                        <?php else: ?>
+                                            <span style="color:var(--text-muted);">—</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td style="font-size:13px;color:var(--text-secondary);white-space:nowrap;">
                                         <?= htmlspecialchars($hc_names[$log['hoscode']] ?? ($log['hoscode'] ?: '—')) ?>
                                     </td>
                                     <td>

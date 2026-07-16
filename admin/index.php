@@ -961,13 +961,13 @@ if ($admin_hoscode) {
                     <thead>
                         <tr>
                             <th>ประเภทกิจกรรม</th>
-                            <th>เลขที่</th>
+                            <th style="white-space: nowrap;">เลขที่</th>
                             <th>หมู่บ้าน</th>
                             <th>หมู่</th>
                             <th>ความดันโลหิต</th>
                             <th>ค่าน้ำตาล (DTX)</th>
                             <th>ดัชนีมวลกาย (BMI)</th>
-                            <th>ความเสี่ยง (CV Risk)</th>
+                            <th>ความเสี่ยง<br>(CV Risk)</th>
                             <th>อสม. ผู้บันทึก</th>
                             <th>พิกัดบันทึก</th>
                         </tr>
@@ -1067,7 +1067,7 @@ if ($admin_hoscode) {
                                         </div>
                                     </td>
                                     <td><?= htmlspecialchars($rs['house_no']) ?></td>
-                                    <td>
+                                    <td style="white-space: nowrap;">
                                         <?php
                                         $logical_tambon = $hoscode_villages[$rs['hoscode']]['tambon'] ?? $rs['sub_district_code'] ?? null;
                                         $village_only = $hoscode_villages[$rs['hoscode']]['villages'][intval($rs['moo'])] ?? get_village_only_name($logical_tambon, $rs['moo']);
@@ -1107,7 +1107,7 @@ if ($admin_hoscode) {
                                             -
                                         <?php endif; ?>
                                     </td>
-                                    <td><?= htmlspecialchars($rs['vhv_name']) ?></td>
+                                    <td style="white-space: nowrap;"><?= htmlspecialchars($rs['vhv_name']) ?></td>
                                     <td style="font-size: 13px; color: var(--text-secondary);">
                                         <?php if ($rs['screening_lat'] && $rs['screening_lng']): ?>
                                             <?= round($rs['screening_lat'], 5) ?>, <?= round($rs['screening_lng'], 5) ?>
