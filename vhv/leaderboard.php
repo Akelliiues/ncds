@@ -550,10 +550,12 @@ $hcNames = get_health_units();
                     }
                     ?>
                     <div class="leaderboard-row"
-                        style="<?= $leader['vhv_id'] === $currentVhvId ? 'box-shadow: var(--neumorph-inset); background-color: var(--bg-darker);' : '' ?> display: flex; align-items: center; padding: 18px 16px; border-radius: var(--border-radius); background: var(--bg-card); box-shadow: var(--neumorph-flat); margin-bottom: 16px; position: relative; overflow: hidden;">
+                        style="<?= $leader['vhv_id'] === $currentVhvId 
+                            ? 'background: rgba(13, 110, 253, 0.09) !important; border: 2px solid var(--color-accent); box-shadow: var(--neumorph-inset) !important;' 
+                            : 'background: var(--bg-card); box-shadow: var(--neumorph-flat);' ?> display: flex; align-items: center; padding: 18px 16px; border-radius: var(--border-radius); margin-bottom: 16px; position: relative; overflow: hidden;">
 
                         <!-- Faded background watermark rank number -->
-                        <div style="position: absolute; right: 80px; bottom: -20px; font-size: 80px; font-weight: 900; color: rgba(13, 44, 84, 0.04); pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif;">
+                        <div style="position: absolute; right: 80px; bottom: -20px; font-size: 80px; font-weight: 900; color: rgba(13, 44, 84, 0.18); pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif;">
                             <?= $rankNum ?>
                         </div>
 
