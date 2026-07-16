@@ -57,6 +57,9 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
     <title>จัดการฐานข้อมูล (DB Manager) - Admin</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
+        button, select, input, textarea {
+            font-family: 'Outfit', 'Sarabun', sans-serif !important;
+        }
         /* Toggle Switch CSS */
         .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
         .switch input { opacity: 0; width: 0; height: 0; }
