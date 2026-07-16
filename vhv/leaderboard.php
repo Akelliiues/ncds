@@ -62,8 +62,10 @@ function getPositiveTitle($rank)
     return '';
 }
 
+$isSandboxVal = isSandboxMode() ? 1 : 0;
+
 // Query Top 50 VHVs with points breakdown and subqueries for badges calculation
-$leaderboardStmt = $pdo->query("
+$leaderboardStmt = $pdo->prepare("
     SELECT 
         u.vhv_id, 
         u.vhv_name, 
@@ -75,13 +77,13 @@ $leaderboardStmt = $pdo->query("
             FROM vhv_rewards r
             LEFT JOIN task_assignments ta ON r.assignment_id = ta.assignment_id
             LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id
-            WHERE r.vhv_id = u.vhv_id AND r.approval_status IN ('approved', 'waiting') AND r.is_sandbox = 0
+            WHERE r.vhv_id = u.vhv_id AND r.approval_status IN ('approved', 'waiting') AND r.is_sandbox = :is_sandbox1
         ) as total_points,
         (
             SELECT COUNT(*) 
             FROM task_assignments ta 
             JOIN target_population p ON ta.target_cid = p.cid 
-            WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = 2026 AND ta.is_sandbox = 0
+            WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = 2026 AND ta.is_sandbox = :is_sandbox2
               AND (
                   (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
                   OR 
@@ -92,19 +94,25 @@ $leaderboardStmt = $pdo->query("
             SELECT COUNT(*) 
             FROM task_assignments ta 
             JOIN target_population p ON ta.target_cid = p.cid 
-            WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = 2026 AND ta.assignment_status = 'completed' AND ta.is_sandbox = 0
+            WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = 2026 AND ta.assignment_status = 'completed' AND ta.is_sandbox = :is_sandbox3
               AND (
                   (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
                   OR 
                   (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
               )
         ) as completed,
-        (SELECT COUNT(*) FROM vhv_rewards WHERE vhv_id = u.vhv_id AND approval_status = 'waiting' AND is_sandbox = 0) as waiting_rewards
+        (SELECT COUNT(*) FROM vhv_rewards WHERE vhv_id = u.vhv_id AND approval_status = 'waiting' AND is_sandbox = :is_sandbox4) as waiting_rewards
     FROM vhv_users u
     LEFT JOIN villages v ON u.vhid_code = v.vhid_code
     WHERE u.approved = 1
     ORDER BY total_points DESC, u.vhv_name ASC
 ");
+$leaderboardStmt->execute([
+    'is_sandbox1' => $isSandboxVal,
+    'is_sandbox2' => $isSandboxVal,
+    'is_sandbox3' => $isSandboxVal,
+    'is_sandbox4' => $isSandboxVal
+]);
 $allLeaders = $leaderboardStmt->fetchAll();
 $totalVhvs = count($allLeaders);
 
@@ -185,7 +193,7 @@ if (!empty($hoscode)) {
             COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) as completed_targets
         FROM target_population p
         LEFT JOIN villages v ON p.moo = v.moo AND p.hoscode = v.hoscode
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026 AND a.is_sandbox = 0
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026 AND a.is_sandbox = ?
         WHERE p.hoscode = ? 
           AND p.moo > 0 
           AND p.moo IS NOT NULL 
@@ -195,7 +203,7 @@ if (!empty($hoscode)) {
         ORDER BY p.moo ASC
     ";
     $villStmt = $pdo->prepare($villQuery);
-    $villStmt->execute([$hoscode]);
+    $villStmt->execute([$isSandboxVal, $hoscode]);
     $villageStats = $villStmt->fetchAll();
 }
 
@@ -209,12 +217,14 @@ try {
             COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) as completed_targets
         FROM health_units u
         LEFT JOIN target_population p ON u.hoscode = p.hoscode AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026 AND a.is_sandbox = 0
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026 AND a.is_sandbox = ?
         GROUP BY u.hoscode
         HAVING COUNT(DISTINCT p.cid) > 0
         ORDER BY (COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) / COUNT(DISTINCT p.cid)) DESC, u.hoscode ASC
     ";
-    $hospitalStats = $pdo->query($hosQuery)->fetchAll();
+    $hosStmt = $pdo->prepare($hosQuery);
+    $hosStmt->execute([$isSandboxVal]);
+    $hospitalStats = $hosStmt->fetchAll();
 } catch (\Exception $e) {
     // Fail silently
 }

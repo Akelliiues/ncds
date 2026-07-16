@@ -286,6 +286,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
         $screenedCids = $pdo->query("SELECT DISTINCT target_cid FROM task_assignments WHERE assignment_status IN ('completed', 'skipped') AND budget_year = 2026")->fetchAll(PDO::FETCH_COLUMN);
         $screenedCidsMap = array_flip($screenedCids);
 
+        // ดึงรายชื่อเป้าหมายที่ได้รับการมอบหมายงานทั้งหมดในปีงบประมาณปัจจุบัน
+        $assignedCids = $pdo->query("SELECT DISTINCT target_cid FROM task_assignments WHERE budget_year = 2026")->fetchAll(PDO::FETCH_COLUMN);
+        $assignedCidsMap = array_flip($assignedCids);
+
         // 1. Resolve mock-to-real CID transitions based on staging_jhcis_person
         $stmtFindMockMatches = $pdo->query("
             SELECT t.cid AS mock_cid, s.cid AS real_cid, t.hoscode, t.pid
@@ -401,7 +405,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
                 SELECT t.cid, t.hoscode, t.pid, t.hid, t.house_no, t.moo, t.sub_district_code, t.vhid_code,
                        COALESCE(t.latitude, h.latitude) as latitude,
                        COALESCE(t.longitude, h.longitude) as longitude,
-                       t.need_screen_dm, t.need_screen_ht
+                       t.need_screen_dm, t.need_screen_ht, t.is_manual
                 FROM target_population t
                 LEFT JOIN jhcis_homes h ON t.hoscode = h.hoscode AND t.hid = h.hid
                 WHERE t.hoscode IN ($hoscodeList)
@@ -411,7 +415,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
                 SELECT t.cid, t.hoscode, t.pid, t.hid, t.house_no, t.moo, t.sub_district_code, t.vhid_code,
                        COALESCE(t.latitude, h.latitude) as latitude,
                        COALESCE(t.longitude, h.longitude) as longitude,
-                       t.need_screen_dm, t.need_screen_ht
+                       t.need_screen_dm, t.need_screen_ht, t.is_manual
                 FROM target_population t
                 LEFT JOIN jhcis_homes h ON t.hoscode = h.hoscode AND t.hid = h.hid
             ")->fetchAll();
@@ -509,8 +513,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
                 
                 $lat = ($exists['latitude'] !== null && $exists['latitude'] != 0) ? $exists['latitude'] : null;
                 $lng = ($exists['longitude'] !== null && $exists['longitude'] != 0) ? $exists['longitude'] : null;
-                if ($exists['need_screen_dm'] == 1) $needScreenDm = true;
-                if ($exists['need_screen_ht'] == 1) $needScreenHt = true;
+                // สำหรับเป้าจาก HDC: จะเป็นเป้าคัดกรองได้ต่อเมื่อเป็นกลุ่มที่กำหนดเป็นเป้าหมายด้วยตนเอง (is_manual = 1) 
+                // หรือเป็นกลุ่มที่มีงานมอบหมาย/คัดกรองไปแล้วเท่านั้น หากไม่ใช่ให้เคลียร์ค่าเป็น 0
+                $hasAssignment = isset($assignedCidsMap[$realCid]);
+                $isManualTarget = isset($exists['is_manual']) && $exists['is_manual'] == 1;
+
+                if ($isManualTarget || $hasAssignment) {
+                    $needScreenDm = ($exists['need_screen_dm'] == 1);
+                    $needScreenHt = ($exists['need_screen_ht'] == 1);
+                } else {
+                    $needScreenDm = false;
+                    $needScreenHt = false;
+                }
                 
                 // รักษาค่า hid ดั้งเดิมของ JHCIS ที่นำเข้าไว้
                 $finalHid = !empty($exists['hid']) && $exists['hid'] !== '000000000000000' ? $exists['hid'] : ($hid ?: null);
@@ -539,8 +553,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
                 if (strpos($insertCid, '*') !== false && !empty($hoscode) && !empty($pid)) {
                     $insertCid = str_pad($hoscode, 5, '0', STR_PAD_LEFT) . str_pad($pid, 8, '0', STR_PAD_LEFT);
                 }
-                $insertStmt = $pdo->prepare("INSERT INTO target_population (cid, hid, pid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode, latitude, longitude, health_status_origin, need_screen_dm, need_screen_ht) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $insertStmt->execute([$insertCid, $hid, $pid, $firstName, $lastName, $sex, $birth, $houseNo, $moo, $subDistrictCode, $checkVhid, $hoscode, null, null, $healthStatusOrigin, $needScreenDm?1:0, $needScreenHt?1:0]);
+                // สำหรับเป้าใหม่ที่นำเข้าจาก HDC จะไม่ถูกตั้งเป็นเป้าหมายคัดกรองตั้งแต่แรก
+                $insertStmt = $pdo->prepare("INSERT INTO target_population (cid, hid, pid, first_name, last_name, sex, birth, house_no, moo, sub_district_code, vhid_code, hoscode, latitude, longitude, health_status_origin, need_screen_dm, need_screen_ht, is_manual) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0)");
+                $insertStmt->execute([$insertCid, $hid, $pid, $firstName, $lastName, $sex, $birth, $houseNo, $moo, $subDistrictCode, $checkVhid, $hoscode, null, null, $healthStatusOrigin]);
                 $inserted++;
             }
         }

@@ -43,6 +43,19 @@ try {
     }
 }
 
+// Clean up target populations: set need_screen = 0 for HDC targets (is_manual = 0) with no task assignments
+try {
+    $pdo->exec("
+        UPDATE target_population t
+        LEFT JOIN task_assignments ta ON t.cid = ta.target_cid AND ta.budget_year = 2026
+        SET t.need_screen_dm = 0, t.need_screen_ht = 0
+        WHERE (t.is_manual IS NULL OR t.is_manual = 0)
+          AND ta.assignment_id IS NULL
+    ");
+} catch (\Exception $e) {
+    // Fail silently
+}
+
 // Self-healing merge: merge any newly imported masked target duplicates with unmasked JHCIS records
 try {
     $dupesQuery = $pdo->query("
@@ -663,10 +676,10 @@ if (isset($_GET['action'])) {
                 if ($req_tambon && $req_moo && $req_hoscode) {
                     $moo_str = str_pad($req_moo, 2, '0', STR_PAD_LEFT);
                     $vhid_code = $req_tambon . $moo_str;
-                    $stmtUpd = $pdo->prepare("UPDATE target_population SET $field = ?, moo = ?, sub_district_code = ?, vhid_code = ?, hoscode = ?, updated_at = NOW() WHERE cid = ?");
+                    $stmtUpd = $pdo->prepare("UPDATE target_population SET $field = ?, is_manual = 1, moo = ?, sub_district_code = ?, vhid_code = ?, hoscode = ?, updated_at = NOW() WHERE cid = ?");
                     $stmtUpd->execute([$status, $req_moo, $req_tambon, $vhid_code, $req_hoscode, $cid]);
                 } else {
-                    $stmtUpd = $pdo->prepare("UPDATE target_population SET $field = ?, updated_at = NOW() WHERE cid = ?");
+                    $stmtUpd = $pdo->prepare("UPDATE target_population SET $field = ?, is_manual = 1, updated_at = NOW() WHERE cid = ?");
                     $stmtUpd->execute([$status, $cid]);
                 }
                 echo json_encode(['status' => 'success']);
@@ -817,10 +830,10 @@ if (isset($_GET['action'])) {
                 if ($req_tambon && $req_moo && $req_hoscode) {
                     $moo_str = str_pad($req_moo, 2, '0', STR_PAD_LEFT);
                     $vhid_code = $req_tambon . $moo_str;
-                    $updTarget = $pdo->prepare("UPDATE target_population SET $field = 1, moo = ?, sub_district_code = ?, vhid_code = ?, hoscode = ? WHERE cid = ?");
+                    $updTarget = $pdo->prepare("UPDATE target_population SET $field = 1, is_manual = 1, moo = ?, sub_district_code = ?, vhid_code = ?, hoscode = ? WHERE cid = ?");
                     $updTarget->execute([$req_moo, $req_tambon, $vhid_code, $req_hoscode, $cid]);
                 } else {
-                    $updTarget = $pdo->prepare("UPDATE target_population SET $field = 1 WHERE cid = ?");
+                    $updTarget = $pdo->prepare("UPDATE target_population SET $field = 1, is_manual = 1 WHERE cid = ?");
                     $updTarget->execute([$cid]);
                 }
             }
