@@ -71,7 +71,7 @@ try {
             }
         }
 
-        $isSandboxVal = isSandboxMode($tRow['hoscode']) ? 1 : 0;
+        $isSandboxVal = isSandboxMode($vhvRow['hoscode']) ? 1 : 0;
 
         // Check existing assignment in the current mode
         $checkStmt = $pdo->prepare("SELECT * FROM task_assignments WHERE target_cid = ? AND budget_year = ? AND is_sandbox = ?");

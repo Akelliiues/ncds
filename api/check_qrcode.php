@@ -70,14 +70,14 @@ try {
             SELECT a.assignment_id, p.vhid_code, p.hoscode, p.first_name, p.last_name
             FROM task_assignments a
             JOIN target_population p ON a.target_cid = p.cid
-            WHERE p.hid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.is_sandbox = ?
+            WHERE CAST(p.hid AS UNSIGNED) = CAST(? AS UNSIGNED) AND a.vhv_id = ? AND a.budget_year = 2026 AND a.is_sandbox = ?
         ");
         $stmt->execute([$hid, $vhvId, $isSandboxVal]);
         $assignments = $stmt->fetchAll();
 
         // Auto-assign in Sandbox Mode if targets exist in house but no assignments to this VHV
         if (empty($assignments) && isSandboxMode($hoscode)) {
-            $checkStmt = $pdo->prepare("SELECT cid FROM target_population WHERE hid = ?");
+            $checkStmt = $pdo->prepare("SELECT cid FROM target_population WHERE CAST(hid AS UNSIGNED) = CAST(? AS UNSIGNED)");
             $checkStmt->execute([$hid]);
             $targets = $checkStmt->fetchAll(PDO::FETCH_COLUMN);
             if (!empty($targets)) {
@@ -97,7 +97,7 @@ try {
         $houseStmt = $pdo->prepare("
             SELECT vhid_code, hoscode 
             FROM target_population 
-            WHERE hid = ? 
+            WHERE CAST(hid AS UNSIGNED) = CAST(? AS UNSIGNED) 
             ORDER BY 
                 CASE WHEN vhid_code = ? THEN 0 ELSE 1 END,
                 CASE WHEN hoscode = ? THEN 0 ELSE 1 END

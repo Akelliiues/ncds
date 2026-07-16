@@ -70,7 +70,7 @@ if (!$isShell) {
                    ) AS last_dtx_type
             FROM task_assignments a
             JOIN target_population p ON a.target_cid = p.cid
-            WHERE p.hid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('pending', 'skipped') AND a.is_sandbox = ?
+            WHERE CAST(p.hid AS UNSIGNED) = CAST(? AS UNSIGNED) AND a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('pending', 'skipped') AND a.is_sandbox = ?
               AND (
                   (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
                   OR 
@@ -85,7 +85,7 @@ if (!$isShell) {
                 SELECT p.*, a.assignment_status
                 FROM task_assignments a
                 JOIN target_population p ON a.target_cid = p.cid
-                WHERE p.hid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.is_sandbox = ?
+                WHERE CAST(p.hid AS UNSIGNED) = CAST(? AS UNSIGNED) AND a.vhv_id = ? AND a.budget_year = 2026 AND a.is_sandbox = ?
                   AND (
                       (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
                       OR 

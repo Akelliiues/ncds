@@ -39,7 +39,7 @@ if ($admin_hoscode) {
 
 try {
     $pdo->beginTransaction();
-    $isSandboxVal = isSandboxMode($admin_hoscode) ? 1 : 0;
+    $isSandboxVal = isSandboxMode($vhvRow['hoscode']) ? 1 : 0;
     
     $roundStmt = $pdo->prepare("SELECT IFNULL(MAX(round_number), 0) + 1 FROM dpac_followups WHERE enrollment_id = ?");
     $insertStmt = $pdo->prepare("INSERT INTO dpac_followups (enrollment_id, vhv_id, round_number, is_sandbox) VALUES (?, ?, ?, ?)");
