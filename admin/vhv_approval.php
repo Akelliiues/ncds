@@ -681,10 +681,13 @@ try {
 
                         foreach ($villages_list as $v):
                             $v_moo_num = intval($v['moo']);
-                            $v_hos_prefix = (!$admin_hoscode && empty($hoscode_filter)) ? ('[' . ($hc_names[$v['hoscode']] ?? $v['hoscode']) . '] ') : '';
+                            $vName = $v['village_name'];
+                            if (mb_strpos($vName, 'บ้าน') !== 0) {
+                                $vName = 'บ้าน' . $vName;
+                            }
                         ?>
                             <option value="<?= $v_moo_num ?>" <?= $moo_filter === $v_moo_num ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($v_hos_prefix) ?>หมู่ที่ <?= $v_moo_num ?> บ้าน<?= htmlspecialchars($v['village_name']) ?>
+                                หมู่ที่ <?= $v_moo_num ?> <?= htmlspecialchars($vName) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
