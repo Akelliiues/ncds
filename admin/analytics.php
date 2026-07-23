@@ -461,6 +461,263 @@ try {
 } catch (\Throwable $e) {
     // Fail silently
 }
+
+// =========================================================================
+// 6. Predictive Disease Conversion Risk (Moderate risk targets at risk of turning into new NCD cases)
+// =========================================================================
+$predictiveRaw = [];
+try {
+    $predictiveStmt = $pdo->prepare("
+        SELECT 
+            p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
+            COALESCE(FLOOR(DATEDIFF(CURRENT_DATE, p.dob)/365.25), 48) AS age,
+            s.sys_bp1, s.dia_bp1, s.dtx_value, s.bmi, s.family_history, s.created_at AS screen_date
+        FROM task_assignments a
+        JOIN target_population p ON a.target_cid = p.cid
+        JOIN screening_results s ON a.assignment_id = s.assignment_id
+        JOIN (
+            SELECT target_cid, MAX(assignment_id) as max_aid
+            FROM task_assignments
+            WHERE assignment_status = 'completed'
+            GROUP BY target_cid
+        ) latest_a ON a.assignment_id = latest_a.max_aid
+        WHERE a.assignment_status = 'completed' 
+          AND p.hoscode IN ($inPlaceholders)
+          AND (
+              (s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)
+          )
+    ");
+    $predictiveStmt->execute($hoscodes);
+    $predictiveRaw = $predictiveStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (\Throwable $ex) {
+    try {
+        $predictiveStmt = $pdo->prepare("
+            SELECT 
+                p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode, 48 AS age,
+                s.sys_bp1, s.dia_bp1, s.dtx_value, s.bmi, s.family_history, s.created_at AS screen_date
+            FROM task_assignments a
+            JOIN target_population p ON a.target_cid = p.cid
+            JOIN screening_results s ON a.assignment_id = s.assignment_id
+            JOIN (
+                SELECT target_cid, MAX(assignment_id) as max_aid
+                FROM task_assignments
+                WHERE assignment_status = 'completed'
+                GROUP BY target_cid
+            ) latest_a ON a.assignment_id = latest_a.max_aid
+            WHERE a.assignment_status = 'completed' 
+              AND p.hoscode IN ($inPlaceholders)
+              AND (
+                  (s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)
+              )
+        ");
+        $predictiveStmt->execute($hoscodes);
+        $predictiveRaw = $predictiveStmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (\Throwable $e2) {}
+}
+
+$conversionRiskList = [];
+$highConversionCount = 0;
+
+foreach ($predictiveRaw as $row) {
+    $score = 0;
+    $factors = [];
+    
+    if (($row['sys_bp1'] ?? 0) >= 130 || ($row['dia_bp1'] ?? 0) >= 85) {
+        $score += 30;
+        $factors[] = "BP โซนสูง (" . $row['sys_bp1'] . "/" . $row['dia_bp1'] . ")";
+    }
+    if (($row['dtx_value'] ?? 0) >= 110) {
+        $score += 30;
+        $factors[] = "DTX โซนสูง (" . $row['dtx_value'] . " mg/dL)";
+    }
+    if (($row['bmi'] ?? 0) >= 25) {
+        $score += 20;
+        $factors[] = "BMI เกิน (" . number_format($row['bmi'], 1) . ")";
+    }
+    if (!empty($row['family_history']) && !in_array($row['family_history'], ['NONE', 'ไม่มี', '0'])) {
+        $score += 10;
+        $factors[] = "มีประวัติครอบครัว";
+    }
+    if (($row['age'] ?? 0) >= 45) {
+        $score += 10;
+        $factors[] = "อายุ 45+";
+    }
+    
+    if ($score >= 50) {
+        $highConversionCount++;
+    }
+    
+    $v_name = $hoscode_villages[$row['hoscode']]['villages'][intval($row['moo'])] ?? get_village_only_name($hoscode_villages[$row['hoscode']]['tambon'] ?? '', $row['moo']);
+    
+    $conversionRiskList[] = [
+        'cid' => $row['cid'],
+        'name' => $row['first_name'] . ' ' . $row['last_name'],
+        'house_no' => $row['house_no'],
+        'moo' => $row['moo'],
+        'village' => $v_name ?: 'หมู่ที่ ' . $row['moo'],
+        'hc' => $hc_names[$row['hoscode']] ?? $row['hoscode'],
+        'age' => $row['age'],
+        'score' => $score,
+        'factors' => implode(', ', $factors)
+    ];
+}
+
+usort($conversionRiskList, function($a, $b) {
+    return $b['score'] <=> $a['score'];
+});
+$topConversionRisks = array_slice($conversionRiskList, 0, 10);
+
+// =========================================================================
+// 7. VHV Quality & Impact Analytics
+// =========================================================================
+$vhvImpactData = [];
+try {
+    $vhvImpactStmt = $pdo->prepare("
+        SELECT 
+            u.user_id, u.full_name AS vhv_name, u.hoscode, u.village,
+            COUNT(DISTINCT a.assignment_id) as total_screened,
+            SUM(CASE WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN 1 ELSE 0 END) as risk_found,
+            COUNT(DISTINCT e.enrollment_id) as total_dpac_enrolled,
+            SUM(CASE 
+                WHEN max_f.max_round > 1 AND (
+                    (f1.health_risk_level = 'เสี่ยงสูง' AND fl.health_risk_level IN ('เสี่ยง', 'ปกติ')) OR
+                    (f1.health_risk_level = 'เสี่ยง' AND fl.health_risk_level = 'ปกติ') OR
+                    (f1.bp_sys > fl.bp_sys AND f1.bp_sys >= 140) OR
+                    (f1.fbs > fl.fbs AND f1.fbs >= 126)
+                ) THEN 1 ELSE 0
+            END) as dpac_improved_count
+        FROM users u
+        JOIN task_assignments a ON (u.full_name = a.assigned_vhv OR CAST(u.user_id AS CHAR) = a.assigned_vhv)
+        JOIN screening_results s ON a.assignment_id = s.assignment_id
+        LEFT JOIN dpac_enrollments e ON a.target_cid = e.cid
+        LEFT JOIN dpac_followups f1 ON e.enrollment_id = f1.enrollment_id AND f1.round_number = 1 AND f1.status = 'completed'
+        LEFT JOIN dpac_followups fl ON e.enrollment_id = fl.enrollment_id AND fl.status = 'completed'
+        LEFT JOIN (
+            SELECT enrollment_id, MAX(round_number) as max_round
+            FROM dpac_followups
+            WHERE status = 'completed'
+            GROUP BY enrollment_id
+        ) max_f ON fl.enrollment_id = max_f.enrollment_id AND fl.round_number = max_f.max_round
+        WHERE a.assignment_status = 'completed' AND u.hoscode IN ($inPlaceholders)
+        GROUP BY u.user_id, u.full_name, u.hoscode, u.village
+        HAVING total_screened >= 2
+        ORDER BY dpac_improved_count DESC, risk_found DESC
+        LIMIT 5
+    ");
+    $vhvImpactStmt->execute($hoscodes);
+    $vhvImpactData = $vhvImpactStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (\Throwable $e) {}
+
+$totalScreenedAll = 0;
+$totalRiskFoundAll = 0;
+foreach ($vhvImpactData as $vi) {
+    $totalScreenedAll += intval($vi['total_screened']);
+    $totalRiskFoundAll += intval($vi['risk_found']);
+}
+$avgYieldRate = $totalScreenedAll > 0 ? round(($totalRiskFoundAll / $totalScreenedAll) * 100, 1) : 0;
+
+// =========================================================================
+// 8. Age-Gender Pyramid & Screening Gap
+// =========================================================================
+$ageGroups = ['35-44 ปี', '45-54 ปี', '55-64 ปี', '65 ปีขึ้นไป'];
+$maleTotal = [0, 0, 0, 0];
+$maleScreened = [0, 0, 0, 0];
+$femaleTotal = [0, 0, 0, 0];
+$femaleScreened = [0, 0, 0, 0];
+
+try {
+    $pyramidStmt = $pdo->prepare("
+        SELECT 
+            COALESCE(p.sex, '1') as sex,
+            CASE 
+                WHEN COALESCE(FLOOR(DATEDIFF(CURRENT_DATE, p.dob)/365.25), 45) BETWEEN 35 AND 44 THEN '35-44 ปี'
+                WHEN COALESCE(FLOOR(DATEDIFF(CURRENT_DATE, p.dob)/365.25), 45) BETWEEN 45 AND 54 THEN '45-54 ปี'
+                WHEN COALESCE(FLOOR(DATEDIFF(CURRENT_DATE, p.dob)/365.25), 45) BETWEEN 55 AND 64 THEN '55-64 ปี'
+                ELSE '65 ปีขึ้นไป'
+            END AS age_group,
+            COUNT(*) as total_target,
+            SUM(CASE WHEN a.assignment_status = 'completed' THEN 1 ELSE 0 END) as screened_count
+        FROM target_population p
+        LEFT JOIN (
+            SELECT DISTINCT target_cid, 'completed' as assignment_status 
+            FROM task_assignments 
+            WHERE assignment_status = 'completed'
+        ) a ON p.cid = a.target_cid
+        WHERE p.hoscode IN ($inPlaceholders)
+        GROUP BY sex, age_group
+        ORDER BY age_group ASC
+    ");
+    $pyramidStmt->execute($hoscodes);
+    $pyramidRaw = $pyramidStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    foreach ($pyramidRaw as $row) {
+        $gIdx = array_search($row['age_group'], $ageGroups);
+        if ($gIdx !== false) {
+            $isMale = (in_array((string)$row['sex'], ['1', 'M', 'ชาย', 'male'], true));
+            if ($isMale) {
+                $maleTotal[$gIdx] += intval($row['total_target']);
+                $maleScreened[$gIdx] += intval($row['screened_count']);
+            } else {
+                $femaleTotal[$gIdx] += intval($row['total_target']);
+                $femaleScreened[$gIdx] += intval($row['screened_count']);
+            }
+        }
+    }
+} catch (\Throwable $e) {}
+
+// =========================================================================
+// 9. DPAC Retention & Dropout Analytics
+// =========================================================================
+$retentionData = ['total_enrolled' => 0, 'round1_count' => 0, 'round2_count' => 0, 'round3_count' => 0, 'round4_count' => 0];
+try {
+    $retentionStmt = $pdo->prepare("
+        SELECT 
+            COUNT(DISTINCT e.enrollment_id) as total_enrolled,
+            SUM(CASE WHEN f1.completed_count >= 1 THEN 1 ELSE 0 END) as round1_count,
+            SUM(CASE WHEN f2.completed_count >= 1 THEN 1 ELSE 0 END) as round2_count,
+            SUM(CASE WHEN f3.completed_count >= 1 THEN 1 ELSE 0 END) as round3_count,
+            SUM(CASE WHEN f4.completed_count >= 1 THEN 1 ELSE 0 END) as round4_count
+        FROM dpac_enrollments e
+        JOIN target_population p ON e.cid = p.cid
+        LEFT JOIN (SELECT enrollment_id, COUNT(*) as completed_count FROM dpac_followups WHERE round_number = 1 AND status = 'completed' GROUP BY enrollment_id) f1 ON e.enrollment_id = f1.enrollment_id
+        LEFT JOIN (SELECT enrollment_id, COUNT(*) as completed_count FROM dpac_followups WHERE round_number = 2 AND status = 'completed' GROUP BY enrollment_id) f2 ON e.enrollment_id = f2.enrollment_id
+        LEFT JOIN (SELECT enrollment_id, COUNT(*) as completed_count FROM dpac_followups WHERE round_number = 3 AND status = 'completed' GROUP BY enrollment_id) f3 ON e.enrollment_id = f3.enrollment_id
+        LEFT JOIN (SELECT enrollment_id, COUNT(*) as completed_count FROM dpac_followups WHERE round_number = 4 AND status = 'completed' GROUP BY enrollment_id) f4 ON e.enrollment_id = f4.enrollment_id
+        WHERE p.hoscode IN ($inPlaceholders)
+    ");
+    $retentionStmt->execute($hoscodes);
+    $res = $retentionStmt->fetch(PDO::FETCH_ASSOC);
+    if ($res) $retentionData = $res;
+} catch (\Throwable $e) {}
+
+$dropoutList = [];
+try {
+    $dropoutStmt = $pdo->prepare("
+        SELECT 
+            e.enrollment_id, e.risk_type, e.created_at AS enroll_date,
+            p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
+            max_f.max_round, max_f.last_date,
+            DATEDIFF(CURRENT_DATE, max_f.last_date) AS days_since_last,
+            a.assigned_vhv
+        FROM dpac_enrollments e
+        JOIN target_population p ON e.cid = p.cid
+        JOIN (
+            SELECT enrollment_id, MAX(round_number) as max_round, MAX(completed_at) as last_date
+            FROM dpac_followups
+            WHERE status = 'completed'
+            GROUP BY enrollment_id
+        ) max_f ON e.enrollment_id = max_f.enrollment_id
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid
+        WHERE e.status = 'active' 
+          AND max_f.max_round < 4 
+          AND DATEDIFF(CURRENT_DATE, max_f.last_date) >= 30
+          AND p.hoscode IN ($inPlaceholders)
+        ORDER BY days_since_last DESC
+        LIMIT 10
+    ");
+    $dropoutStmt->execute($hoscodes);
+    $dropoutList = $dropoutStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (\Throwable $e) {}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -609,9 +866,72 @@ try {
             </span>
             ระบบวิเคราะห์ข้อมูลเชิงลึก (Advanced Analytics)
         </h2>
-        <p style="color: var(--text-secondary); margin-bottom: 30px; font-size: 15px;">
-            หน่วยบริการผู้รับผิดชอบ: <strong style="color: var(--color-accent);"><?= htmlspecialchars($admin_title) ?></strong>
-        </p>
+        <!-- Executive Actions Bar -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; gap: 12px; flex-wrap: wrap;" class="no-print">
+            <div style="font-size: 14px; font-weight: bold; color: var(--text-secondary);">
+                📊 รายงานวิเคราะห์ข้อมูลเชิงลึกขั้นสูง (Advanced Analytics Suite)
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button type="button" onclick="exportR2RCSV()" class="btn-control" style="background: rgba(14, 165, 233, 0.12); color: #0ea5e9; border-color: rgba(14, 165, 233, 0.3);">
+                    📥 ดาวน์โหลดชุดข้อมูล R2R (CSV)
+                </button>
+                <button type="button" onclick="window.print()" class="btn-control" style="background: rgba(34, 197, 94, 0.12); color: #22c55e; border-color: rgba(34, 197, 94, 0.3);">
+                    🖨️ พิมพ์สรุปภาพรวมผู้บริหาร (Print Brief)
+                </button>
+            </div>
+        </div>
+
+        <!-- Module 1: Predictive Disease Conversion Risk -->
+        <div class="card-dark" style="margin-bottom: 30px; padding: 24px; border-top: 4px solid #f59e0b;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                <h3 style="color: #f59e0b; margin: 0; font-size: 17px; display: flex; align-items: center; gap: 8px;">
+                    <span>🔮 การทำนายความเสี่ยงการเกิดโรครายใหม่ (Predictive Conversion Risk Model)</span>
+                </h3>
+                <span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: bold;">
+                    เสี่ยงสูงต่อการเกิดโรครายใหม่: <?= number_format($highConversionCount) ?> ราย
+                </span>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 13.5px; margin-bottom: 16px; line-height: 1.6;">
+                วิเคราะห์จากกลุ่มเสี่ยงปานกลาง (Pre-hypertension / Pre-diabetes) โดยคำนวณปัจจัยเสี่ยงผสม (ค่า BP/DTX โซนบน, ดัชนีมวลกาย BMI, ประวัติครอบครัว และอายุ) เพื่อให้ รพ.สต. และ อสม. เร่งลงพื้นที่ป้องกันล่วงหน้า 6-12 เดือน
+            </p>
+
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align: center; width: 60px;">ลำดับ</th>
+                            <th>ชื่อ-นามสกุล</th>
+                            <th>หน่วยบริการ / หมู่บ้าน</th>
+                            <th style="text-align: center;">อายุ</th>
+                            <th style="text-align: center;">โอกาสป่วย (%)</th>
+                            <th>ปัจจัยเสี่ยงหลัก</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($topConversionRisks)): ?>
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 20px;">ไม่พบประชากรกลุ่มเสี่ยงเฝ้าระวังสูงในระบบ</td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($topConversionRisks as $idx => $r): ?>
+                                <tr>
+                                    <td style="text-align: center; font-weight: bold;"><?= $idx + 1 ?></td>
+                                    <td style="font-weight: bold; color: var(--text-primary);"><?= htmlspecialchars($r['name']) ?></td>
+                                    <td><?= htmlspecialchars($r['hc']) ?> (<?= htmlspecialchars($r['village']) ?> บ้านเลขที่ <?= htmlspecialchars($r['house_no']) ?>)</td>
+                                    <td style="text-align: center;"><?= $r['age'] ?> ปี</td>
+                                    <td style="text-align: center;">
+                                        <span style="background: <?= $r['score'] >= 60 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)' ?>; color: <?= $r['score'] >= 60 ? '#ef4444' : '#f59e0b' ?>; padding: 4px 10px; border-radius: 12px; font-weight: bold;">
+                                            <?= $r['score'] ?>%
+                                        </span>
+                                    </td>
+                                    <td style="font-size: 12.5px; color: var(--text-secondary);"><?= htmlspecialchars($r['factors']) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
         <!-- AI-Powered Executive Summary Diagnostic Card -->
         <div class="card-dark" style="margin-bottom: 30px; border-left: 4px solid var(--color-primary); padding: 24px;">
@@ -793,6 +1113,104 @@ try {
             <div class="card-dark">
                 <h4 style="color: var(--color-accent); margin-bottom: 16px; font-size: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">📈 อัตราการเปลี่ยนแปลงความรุนแรงของกลุ่มเสี่ยง (Risk Transition)</h4>
                 <div id="chart-risk-transition"></div>
+            </div>
+        </div>
+
+        <!-- Module 2: VHV Quality & Health Impact -->
+        <div class="card-dark" style="margin-bottom: 30px; padding: 24px; border-top: 4px solid #10b981;">
+            <h3 style="color: #10b981; margin-top: 0; margin-bottom: 16px; font-size: 17px; display: flex; align-items: center; gap: 8px;">
+                <span>🏆 ประสิทธิผลและคุณภาพการปฏิบัติงาน อสม. (VHV Quality & Health Impact)</span>
+            </h3>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; margin-bottom: 20px;">
+                <div style="background: rgba(16, 185, 129, 0.06); padding: 16px; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.2); text-align: center;">
+                    <div style="color: var(--text-secondary); font-size: 13px; font-weight: bold; margin-bottom: 4px;">อัตราคัดกรองพบกลุ่มเสี่ยงเฉลี่ย (Screening Yield)</div>
+                    <div style="font-size: 26px; font-weight: 800; color: #10b981;"><?= $avgYieldRate ?>%</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">(พบเสี่ยง <?= number_format($totalRiskFoundAll) ?> ราย จากที่สแกน <?= number_format($totalScreenedAll) ?> ราย)</div>
+                </div>
+            </div>
+
+            <h4 style="color: var(--text-primary); font-size: 14px; margin-bottom: 12px; font-weight: bold;">🥇 5 อันดับ อสม. ดีเด่นด้านผลสัมฤทธิ์สุขภาพ (Health Impact Champion VHVs)</h4>
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align: center; width: 60px;">อันดับ</th>
+                            <th>ชื่อ อสม.</th>
+                            <th>หน่วยบริการ / สังกัด</th>
+                            <th style="text-align: right;">คัดกรอง (ราย)</th>
+                            <th style="text-align: right;">พบเสี่ยงจริง (ราย)</th>
+                            <th style="text-align: right;">อัตรา Yield (%)</th>
+                            <th style="text-align: right;">ลูกบ้านสุขภาพดีขึ้น (ราย)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($vhvImpactData)): ?>
+                            <tr>
+                                <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 20px;">ยังไม่มีข้อมูลผลงาน อสม.</td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($vhvImpactData as $idx => $v): ?>
+                                <?php 
+                                $yRate = $v['total_screened'] > 0 ? round(($v['risk_found'] / $v['total_screened']) * 100, 1) : 0;
+                                ?>
+                                <tr>
+                                    <td style="text-align: center; font-weight: bold;"><?= $idx + 1 ?></td>
+                                    <td style="font-weight: bold; color: var(--color-accent);"><?= htmlspecialchars($v['vhv_name']) ?></td>
+                                    <td><?= htmlspecialchars($hc_names[$v['hoscode']] ?? $v['hoscode']) ?> (<?= htmlspecialchars($v['village'] ?? '-') ?>)</td>
+                                    <td style="text-align: right;"><?= number_format($v['total_screened']) ?></td>
+                                    <td style="text-align: right; font-weight: bold;"><?= number_format($v['risk_found']) ?></td>
+                                    <td style="text-align: right; color: var(--color-accent); font-weight: bold;"><?= $yRate ?>%</td>
+                                    <td style="text-align: right; color: #10b981; font-weight: 800; font-size: 15px;"><?= number_format($v['dpac_improved_count']) ?> ราย</td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Modules 3 & 4 Grid: Demographic Pyramid & DPAC Retention -->
+        <div class="dashboard-grid">
+            <div class="card-dark">
+                <h4 style="color: var(--color-accent); margin-bottom: 16px; font-size: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                    📊 ปิรามิดครอบคลุมการคัดกรองตามช่วงอายุและเพศ (Demographic Equity)
+                </h4>
+                <div id="chart-age-gender-pyramid"></div>
+                <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 10px; line-height: 1.5; background: rgba(14,165,233,0.05); padding: 10px; border-radius: 8px;">
+                    💡 <strong>การวิเคราะห์ความเท่าเทียม:</strong> ช่วยระบุกลุ่มวัยเป้าหมายที่ตกสำรวจ (เช่น กลุ่มชายวัยทำงาน 35-44 ปี) เพื่อจัดรอบลงสแกนคัดกรองสเปเชียลคลินิกนอกเวลาราชการ
+                </div>
+            </div>
+
+            <div class="card-dark">
+                <h4 style="color: #ec4899; margin-bottom: 16px; font-size: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                    📉 การคงอยู่ในระบบและการหลุดติดตาม (DPAC Retention Funnel)
+                </h4>
+                <div id="chart-dpac-retention"></div>
+                
+                <?php if (!empty($dropoutList)): ?>
+                    <h5 style="color: #ef4444; font-size: 13px; margin: 16px 0 8px 0; font-weight: bold;">⚠️ รายชื่อเฝ้าระวังหลุดติดตามเกิน 30 วัน (Dropout Alarm Top 5)</h5>
+                    <div style="max-height: 180px; overflow-y: auto;">
+                        <table class="admin-table" style="font-size: 12px;">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อผู้รับการติดตาม</th>
+                                    <th>ขาดนัด</th>
+                                    <th>อสม. สังกัด</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach (array_slice($dropoutList, 0, 5) as $d): ?>
+                                    <tr>
+                                        <td><strong><?= htmlspecialchars($d['first_name'] . ' ' . $d['last_name']) ?></strong> (หมู่ <?= $d['moo'] ?>)</td>
+                                        <td style="color: #ef4444; font-weight: bold;"><?= $d['days_since_last'] ?> วัน</td>
+                                        <td><?= htmlspecialchars($d['assigned_vhv'] ?: 'ยังไม่มอบหมาย') ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -1545,6 +1963,114 @@ try {
             } else {
                 insightElement.innerHTML = `แนวโน้มอัตราการเกิดกลุ่มเสี่ยงรายใหม่ค่อนข้าง **คงที่และทรงตัว** (ความชัน: ${slope.toFixed(2)} รายต่อเดือน) สถานการณ์ภาพรวมอยู่ในระดับคงตัวและสามารถควบคุมได้ตามมาตรฐาน แนะนำให้รักษารอบการเยี่ยมบ้านและการติดตามผลตามตารางปกติ`;
             }
+        }
+
+        // ------------------ DEMOGRAPHIC PYRAMID CHART ------------------
+        var optionsPyramid = {
+            series: [{
+                name: 'ชาย (คัดกรองแล้ว)',
+                data: <?= json_encode(array_map(function($v) { return -$v; }, $maleScreened)) ?>
+            }, {
+                name: 'หญิง (คัดกรองแล้ว)',
+                data: <?= json_encode($femaleScreened) ?>
+            }],
+            chart: {
+                type: 'bar',
+                height: 280,
+                stacked: true,
+                background: 'transparent',
+                toolbar: { show: false }
+            },
+            colors: ['#0ea5e9', '#ec4899'],
+            plotOptions: {
+                bar: {
+                    horizontal: true,
+                    barHeight: '60%',
+                    borderRadius: 4
+                }
+            },
+            dataLabels: { enabled: false },
+            stroke: { width: 1, colors: ['transparent'] },
+            grid: { xaxis: { lines: { show: false } } },
+            yaxis: {
+                categories: <?= json_encode($ageGroups) ?>,
+                labels: { style: { colors: '#9ca3af' } }
+            },
+            xaxis: {
+                labels: {
+                    formatter: function (val) {
+                        return Math.abs(val) + " ราย";
+                    },
+                    style: { colors: '#9ca3af' }
+                }
+            },
+            tooltip: {
+                y: {
+                    formatter: function (val) {
+                        return Math.abs(val) + " ราย";
+                    }
+                }
+            },
+            legend: { labels: { colors: '#9ca3af' } }
+        };
+        var chartPyramid = new ApexCharts(document.querySelector("#chart-age-gender-pyramid"), optionsPyramid);
+        chartPyramid.render();
+
+        // ------------------ DPAC RETENTION FUNNEL CHART ------------------
+        var optionsRetention = {
+            series: [{
+                name: 'จำนวนผู้เข้าติดตาม',
+                data: [
+                    <?= intval($retentionData['total_enrolled']) ?>,
+                    <?= intval($retentionData['round1_count']) ?>,
+                    <?= intval($retentionData['round2_count']) ?>,
+                    <?= intval($retentionData['round3_count']) ?>,
+                    <?= intval($retentionData['round4_count']) ?>
+                ]
+            }],
+            chart: {
+                type: 'bar',
+                height: 240,
+                background: 'transparent',
+                toolbar: { show: false }
+            },
+            colors: ['#a78bfa'],
+            plotOptions: {
+                bar: {
+                    borderRadius: 6,
+                    columnWidth: '45%',
+                    distributed: true
+                }
+            },
+            dataLabels: { enabled: true },
+            xaxis: {
+                categories: ['ลงทะเบียน', 'รอบ 1', 'รอบ 2', 'รอบ 3', 'รอบ 4'],
+                labels: { style: { colors: '#9ca3af' } }
+            },
+            yaxis: { labels: { style: { colors: '#9ca3af' } } },
+            legend: { show: false }
+        };
+        var chartRetention = new ApexCharts(document.querySelector("#chart-dpac-retention"), optionsRetention);
+        chartRetention.render();
+
+        // CSV R2R Export function
+        function exportR2RCSV() {
+            let csv = "\uFEFF"; // UTF-8 BOM
+            csv += "CID,ชื่อ-นามสกุล,บ้านเลขที่,หมู่ที่,หน่วยบริการ,อายุ,คะแนนความเสี่ยงทำนาย(%),ปัจจัยเสี่ยง\n";
+            
+            const risks = <?= json_encode($topConversionRisks) ?>;
+            risks.forEach(r => {
+                csv += `"${r.cid}","${r.name}","${r.house_no}","${r.moo}","${r.hc}","${r.age}","${r.score}","${r.factors}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `R2R_Analytics_Export_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         // R2R Satisfaction Table Copy Helper
