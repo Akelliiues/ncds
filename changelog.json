@@ -1,6 +1,6 @@
 [
   {
-    "title": "ยกระดับระบบวิเคราะห์ข้อมูลเชิงลึก (Advanced Analytics Suite) ครบทั้ง 5 มิติ: เพิ่มระบบทำนายความเสี่ยงการเกิดโรครายใหม่ (Predictive Conversion Risk Model), การวิเคราะห์ประสิทธิผลและคุณภาพงาน อสม. (VHV Health Impact), ปิรามิดครอบคลุมประชากรตามช่วงอายุและเพศ (Demographic Equity Pyramid), ระบบติดตามการคงอยู่และการหลุดติดตามในคลินิก DPAC (Retention Funnel & Dropout Alarm) พร้อมชุดข้อมูลงานวิจัย R2R (CSV Export) และโหมดพิมพ์สรุปภาพรวมสำหรับผู้บริหาร",
+    "title": "ยกระดับและปรับปรุงตรรกะประมวลผลระบบวิเคราะห์ข้อมูลเชิงลึก (Advanced Analytics Suite) ครบทั้ง 5 มิติ: ปรับปรุงตรรกะสืบค้นข้อมูลและเพิ่มการประมวลผลกรณีข้อมูลไม่ครบถ้วน เพิ่มระบบทำนายความเสี่ยงการเกิดโรครายใหม่ (Predictive Conversion Risk Model), การวิเคราะห์ประสิทธิผลงาน อสม. (VHV Health Impact & Champion), ปิรามิดจำแนกความครอบคลุมตามช่วงอายุและเพศ (Demographic Equity Pyramid), ระบบติดตามการคงอยู่ในคลินิก DPAC (Retention Funnel & Dropout Alarm) พร้อมชุดข้อมูลงานวิจัย R2R (CSV Export) และโหมดพิมพ์สรุปภาพรวมสำหรับผู้บริหาร",
     "date": "2026-07-23",
     "type": "feature"
   },

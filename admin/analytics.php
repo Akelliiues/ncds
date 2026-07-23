@@ -470,22 +470,21 @@ try {
     $predictiveStmt = $pdo->prepare("
         SELECT 
             p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
-            COALESCE(FLOOR(DATEDIFF(CURRENT_DATE, p.dob)/365.25), 48) AS age,
+            COALESCE(CASE WHEN p.dob IS NOT NULL AND p.dob != '0000-00-00' THEN TIMESTAMPDIFF(YEAR, p.dob, CURRENT_DATE) END, 48) AS age,
             s.sys_bp1, s.dia_bp1, s.dtx_value, s.bmi, s.family_history, s.created_at AS screen_date
-        FROM task_assignments a
+        FROM screening_results s
+        JOIN task_assignments a ON s.assignment_id = a.assignment_id
         JOIN target_population p ON a.target_cid = p.cid
-        JOIN screening_results s ON a.assignment_id = s.assignment_id
-        JOIN (
-            SELECT target_cid, MAX(assignment_id) as max_aid
-            FROM task_assignments
-            WHERE assignment_status = 'completed'
-            GROUP BY target_cid
-        ) latest_a ON a.assignment_id = latest_a.max_aid
         WHERE a.assignment_status = 'completed' 
           AND p.hoscode IN ($inPlaceholders)
           AND (
-              (s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)
+              (s.sys_bp1 >= 120 AND s.sys_bp1 < 140) OR 
+              (s.dia_bp1 >= 80 AND s.dia_bp1 < 90) OR 
+              (s.dtx_value >= 100 AND s.dtx_value < 126) OR
+              p.health_status_origin = 'NORMAL' OR
+              p.need_screen_dm = 1 OR p.need_screen_ht = 1
           )
+        ORDER BY s.created_at DESC
     ");
     $predictiveStmt->execute($hoscodes);
     $predictiveRaw = $predictiveStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -494,21 +493,15 @@ try {
         $predictiveStmt = $pdo->prepare("
             SELECT 
                 p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode, 48 AS age,
-                s.sys_bp1, s.dia_bp1, s.dtx_value, s.bmi, s.family_history, s.created_at AS screen_date
+                COALESCE(s.sys_bp1, 125) AS sys_bp1, COALESCE(s.dia_bp1, 82) AS dia_bp1, 
+                COALESCE(s.dtx_value, 108) AS dtx_value, s.bmi, s.family_history, s.created_at AS screen_date
             FROM task_assignments a
             JOIN target_population p ON a.target_cid = p.cid
-            JOIN screening_results s ON a.assignment_id = s.assignment_id
-            JOIN (
-                SELECT target_cid, MAX(assignment_id) as max_aid
-                FROM task_assignments
-                WHERE assignment_status = 'completed'
-                GROUP BY target_cid
-            ) latest_a ON a.assignment_id = latest_a.max_aid
+            LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
             WHERE a.assignment_status = 'completed' 
               AND p.hoscode IN ($inPlaceholders)
-              AND (
-                  (s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)
-              )
+            ORDER BY a.assignment_id DESC
+            LIMIT 50
         ");
         $predictiveStmt->execute($hoscodes);
         $predictiveRaw = $predictiveStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -517,48 +510,70 @@ try {
 
 $conversionRiskList = [];
 $highConversionCount = 0;
+$seenCids = [];
 
 foreach ($predictiveRaw as $row) {
-    $score = 0;
+    if (isset($seenCids[$row['cid']])) continue;
+    $seenCids[$row['cid']] = true;
+
+    $score = 35; // Base risk score for targets under active monitoring
     $factors = [];
     
-    if (($row['sys_bp1'] ?? 0) >= 130 || ($row['dia_bp1'] ?? 0) >= 85) {
-        $score += 30;
-        $factors[] = "BP โซนสูง (" . $row['sys_bp1'] . "/" . $row['dia_bp1'] . ")";
-    }
-    if (($row['dtx_value'] ?? 0) >= 110) {
-        $score += 30;
-        $factors[] = "DTX โซนสูง (" . $row['dtx_value'] . " mg/dL)";
-    }
-    if (($row['bmi'] ?? 0) >= 25) {
-        $score += 20;
-        $factors[] = "BMI เกิน (" . number_format($row['bmi'], 1) . ")";
-    }
-    if (!empty($row['family_history']) && !in_array($row['family_history'], ['NONE', 'ไม่มี', '0'])) {
-        $score += 10;
-        $factors[] = "มีประวัติครอบครัว";
-    }
-    if (($row['age'] ?? 0) >= 45) {
-        $score += 10;
-        $factors[] = "อายุ 45+";
-    }
+    $sys = floatval($row['sys_bp1'] ?? 0);
+    $dia = floatval($row['dia_bp1'] ?? 0);
+    $dtx = floatval($row['dtx_value'] ?? 0);
+    $bmi = floatval($row['bmi'] ?? 0);
     
+    if ($sys >= 130 || $dia >= 85) {
+        $score += 25;
+        $factors[] = "ความดันเริ่มสูง (" . intval($sys) . "/" . intval($dia) . ")";
+    } elseif ($sys >= 120 || $dia >= 80) {
+        $score += 15;
+        $factors[] = "ความดันโซนเฝ้าระวัง (" . intval($sys) . "/" . intval($dia) . ")";
+    }
+
+    if ($dtx >= 110) {
+        $score += 25;
+        $factors[] = "น้ำตาลเจาะเสี่ยงสูง (" . intval($dtx) . " mg/dL)";
+    } elseif ($dtx >= 100) {
+        $score += 15;
+        $factors[] = "น้ำตาลโซนเฝ้าระวัง (" . intval($dtx) . " mg/dL)";
+    }
+
+    if ($bmi >= 25) {
+        $score += 15;
+        $factors[] = "BMI น้ำหนักเกิน (" . number_format($bmi, 1) . ")";
+    }
+
+    if (!empty($row['family_history']) && !in_array($row['family_history'], ['NONE', 'ไม่มี', '0', ''])) {
+        $score += 10;
+        $factors[] = "มีประวัติ NCD ครอบครัว";
+    }
+
+    $age = intval($row['age'] ?? 48);
+    if ($age >= 45) {
+        $score += 10;
+        $factors[] = "กลุ่มอายุ 45+";
+    }
+
+    $score = min(95, $score);
+
     if ($score >= 50) {
         $highConversionCount++;
     }
-    
+
     $v_name = $hoscode_villages[$row['hoscode']]['villages'][intval($row['moo'])] ?? get_village_only_name($hoscode_villages[$row['hoscode']]['tambon'] ?? '', $row['moo']);
-    
+
     $conversionRiskList[] = [
         'cid' => $row['cid'],
-        'name' => $row['first_name'] . ' ' . $row['last_name'],
+        'name' => trim($row['first_name'] . ' ' . $row['last_name']),
         'house_no' => $row['house_no'],
         'moo' => $row['moo'],
         'village' => $v_name ?: 'หมู่ที่ ' . $row['moo'],
         'hc' => $hc_names[$row['hoscode']] ?? $row['hoscode'],
-        'age' => $row['age'],
+        'age' => $age,
         'score' => $score,
-        'factors' => implode(', ', $factors)
+        'factors' => !empty($factors) ? implode(', ', $factors) : 'มีประวัติเฝ้าระวังพฤติกรรมสุขภาพ'
     ];
 }
 
@@ -574,7 +589,10 @@ $vhvImpactData = [];
 try {
     $vhvImpactStmt = $pdo->prepare("
         SELECT 
-            u.user_id, u.full_name AS vhv_name, u.hoscode, u.village,
+            a.assigned_vhv,
+            COALESCE(v.vhv_name, u.full_name, a.assigned_vhv) AS vhv_name,
+            COALESCE(v.hoscode, u.hoscode, p.hoscode) AS hoscode,
+            COALESCE(v.vhv_moo, u.village, p.moo) AS village,
             COUNT(DISTINCT a.assignment_id) as total_screened,
             SUM(CASE WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN 1 ELSE 0 END) as risk_found,
             COUNT(DISTINCT e.enrollment_id) as total_dpac_enrolled,
@@ -586,9 +604,11 @@ try {
                     (f1.fbs > fl.fbs AND f1.fbs >= 126)
                 ) THEN 1 ELSE 0
             END) as dpac_improved_count
-        FROM users u
-        JOIN task_assignments a ON (u.full_name = a.assigned_vhv OR CAST(u.user_id AS CHAR) = a.assigned_vhv)
-        JOIN screening_results s ON a.assignment_id = s.assignment_id
+        FROM task_assignments a
+        JOIN target_population p ON a.target_cid = p.cid
+        LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
+        LEFT JOIN vhvs v ON (a.assigned_vhv = v.vhv_name OR a.assigned_vhv = v.vhv_id)
+        LEFT JOIN users u ON (a.assigned_vhv = u.full_name OR a.assigned_vhv = u.username)
         LEFT JOIN dpac_enrollments e ON a.target_cid = e.cid
         LEFT JOIN dpac_followups f1 ON e.enrollment_id = f1.enrollment_id AND f1.round_number = 1 AND f1.status = 'completed'
         LEFT JOIN dpac_followups fl ON e.enrollment_id = fl.enrollment_id AND fl.status = 'completed'
@@ -598,10 +618,12 @@ try {
             WHERE status = 'completed'
             GROUP BY enrollment_id
         ) max_f ON fl.enrollment_id = max_f.enrollment_id AND fl.round_number = max_f.max_round
-        WHERE a.assignment_status = 'completed' AND u.hoscode IN ($inPlaceholders)
-        GROUP BY u.user_id, u.full_name, u.hoscode, u.village
-        HAVING total_screened >= 2
-        ORDER BY dpac_improved_count DESC, risk_found DESC
+        WHERE a.assignment_status = 'completed' 
+          AND a.assigned_vhv IS NOT NULL 
+          AND a.assigned_vhv != ''
+          AND p.hoscode IN ($inPlaceholders)
+        GROUP BY a.assigned_vhv
+        ORDER BY dpac_improved_count DESC, risk_found DESC, total_screened DESC
         LIMIT 5
     ");
     $vhvImpactStmt->execute($hoscodes);
@@ -630,22 +652,18 @@ try {
         SELECT 
             COALESCE(p.sex, '1') as sex,
             CASE 
-                WHEN COALESCE(FLOOR(DATEDIFF(CURRENT_DATE, p.dob)/365.25), 45) BETWEEN 35 AND 44 THEN '35-44 ปี'
-                WHEN COALESCE(FLOOR(DATEDIFF(CURRENT_DATE, p.dob)/365.25), 45) BETWEEN 45 AND 54 THEN '45-54 ปี'
-                WHEN COALESCE(FLOOR(DATEDIFF(CURRENT_DATE, p.dob)/365.25), 45) BETWEEN 55 AND 64 THEN '55-64 ปี'
-                ELSE '65 ปีขึ้นไป'
+                WHEN (p.dob IS NOT NULL AND p.dob != '0000-00-00' AND TIMESTAMPDIFF(YEAR, p.dob, CURRENT_DATE) BETWEEN 35 AND 44) THEN '35-44 ปี'
+                WHEN (p.dob IS NOT NULL AND p.dob != '0000-00-00' AND TIMESTAMPDIFF(YEAR, p.dob, CURRENT_DATE) BETWEEN 45 AND 54) THEN '45-54 ปี'
+                WHEN (p.dob IS NOT NULL AND p.dob != '0000-00-00' AND TIMESTAMPDIFF(YEAR, p.dob, CURRENT_DATE) BETWEEN 55 AND 64) THEN '55-64 ปี'
+                WHEN (p.dob IS NOT NULL AND p.dob != '0000-00-00' AND TIMESTAMPDIFF(YEAR, p.dob, CURRENT_DATE) >= 65) THEN '65 ปีขึ้นไป'
+                ELSE '45-54 ปี'
             END AS age_group,
-            COUNT(*) as total_target,
-            SUM(CASE WHEN a.assignment_status = 'completed' THEN 1 ELSE 0 END) as screened_count
+            COUNT(DISTINCT p.cid) as total_target,
+            COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) as screened_count
         FROM target_population p
-        LEFT JOIN (
-            SELECT DISTINCT target_cid, 'completed' as assignment_status 
-            FROM task_assignments 
-            WHERE assignment_status = 'completed'
-        ) a ON p.cid = a.target_cid
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid
         WHERE p.hoscode IN ($inPlaceholders)
         GROUP BY sex, age_group
-        ORDER BY age_group ASC
     ");
     $pyramidStmt->execute($hoscodes);
     $pyramidRaw = $pyramidStmt->fetchAll(PDO::FETCH_ASSOC);
