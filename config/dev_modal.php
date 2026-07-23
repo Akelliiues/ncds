@@ -460,6 +460,10 @@ if (file_exists($json_file)) {
         const modal = document.getElementById('dev-portal-modal');
         if (!modal) return;
 
+        // ฝั่ง อสม. (VHV) ไม่แสดง popup อัตโนมัติ — เปิดได้เมื่อกดไอคอนเท่านั้น
+        const isVhv = window.location.pathname.includes('/vhv/');
+        if (isVhv) return;
+
         // Check local storage for daily limit
         const today = new Date().toDateString();
         const lastShown = localStorage.getItem('ncd_dev_modal_last_shown');
@@ -472,14 +476,6 @@ if (file_exists($json_file)) {
 
             // Disable body scroll
             document.body.style.overflow = 'hidden';
-
-            // สำหรับ อสม. ให้ปิดเองอัตโนมัติภายใน 6 วินาที
-            const isVhv = window.location.pathname.includes('/vhv/');
-            if (isVhv) {
-                setTimeout(function() {
-                    closeDevModal();
-                }, 6000);
-            }
         }
     });
 

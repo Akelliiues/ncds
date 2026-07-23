@@ -28,15 +28,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('SW: Registration failed:', err);
             });
 
-        // Auto reload when new SW is activated
+        // Auto reload when new SW is activated (clears old manifest cache)
         let refreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
             if (!refreshing) {
                 refreshing = true;
                 console.log('SW: New version activated, reloading...');
-                window.location.reload();
+                showUpdateToast();
+                setTimeout(() => window.location.reload(), 1500);
             }
         });
+
+        // Listen for SW_UPDATED message (sent by new SW after activate)
+        navigator.serviceWorker.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'SW_UPDATED') {
+                console.log('SW: Update confirmed via message.');
+            }
+        });
+    }
+
+    // showUpdateToast: แสดง toast แจ้งผู้ใช้ว่าแอปกำลัง update (ล้าง cache เก่า)
+    function showUpdateToast() {
+        const existing = document.getElementById('sw-update-toast');
+        if (existing) return;
+        const toast = document.createElement('div');
+        toast.id = 'sw-update-toast';
+        toast.innerHTML = '🔄 กำลังอัปเดตแอป NCDs ตาลสุม...';
+        toast.style.cssText = `
+            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+            background: #1e40af; color: #fff; padding: 12px 24px;
+            border-radius: 24px; font-size: 15px; font-weight: 700;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4); z-index: 99999;
+            white-space: nowrap; animation: fadeInUp 0.3s ease;
+        `;
+        document.body.appendChild(toast);
     }
 
     // 2. Custom PWA Install Banner for Android/Chrome

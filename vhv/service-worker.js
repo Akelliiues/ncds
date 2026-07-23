@@ -1,6 +1,6 @@
 // vhv/service-worker.js
 
-const CACHE_NAME = 'ncd-tansum-v6_20260702';
+const CACHE_NAME = 'ncd-tansum-v7_20260717'; // bumped: force-clear old PWA cache (incl. ม่วงสามสิบ installs)
 const ASSETS_TO_CACHE = [
     'login.php',
     'index.php',
@@ -39,7 +39,15 @@ self.addEventListener('activate', event => {
                     }
                 })
             );
-        }).then(() => self.clients.claim())
+        }).then(() => {
+            self.clients.claim();
+            // Notify all open tabs that a new version is active
+            self.clients.matchAll({ type: 'window' }).then(clients => {
+                clients.forEach(client => {
+                    client.postMessage({ type: 'SW_UPDATED' });
+                });
+            });
+        })
     );
 });
 
