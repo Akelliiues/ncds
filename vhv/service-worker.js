@@ -1,6 +1,6 @@
 // vhv/service-worker.js
 
-const CACHE_NAME = 'ncd-tansum-v7_20260717'; // bumped: force-clear old PWA cache (incl. ม่วงสามสิบ installs)
+const CACHE_NAME = 'ncd-tansum-v8_20260725'; // bumped: compact dev modal & auto-dismiss update for mobile PWA
 const ASSETS_TO_CACHE = [
     'login.php',
     'index.php',

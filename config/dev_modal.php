@@ -2,6 +2,15 @@
 // config/dev_modal.php
 date_default_timezone_set('Asia/Bangkok');
 
+if (session_status() === PHP_SESSION_NONE) {
+    @session_start();
+}
+
+$is_vhv_context = isset($_SESSION['vhv_id'])
+    || (isset($_SERVER['SCRIPT_NAME']) && strpos(strtolower($_SERVER['SCRIPT_NAME']), 'vhv') !== false)
+    || (isset($_SERVER['PHP_SELF']) && strpos(strtolower($_SERVER['PHP_SELF']), 'vhv') !== false)
+    || (isset($_SERVER['REQUEST_URI']) && strpos(strtolower($_SERVER['REQUEST_URI']), 'vhv') !== false);
+
 function get_system_last_update_modal()
 {
     $last_update = null;
@@ -58,51 +67,12 @@ function get_system_build_number_modal($last_update_ts)
 $last_update_ts = get_system_last_update_modal();
 $build_number = get_system_build_number_modal($last_update_ts);
 
-// Format last update string for UI
-$thai_months = [
-    1 => 'มกราคม',
-    'กุมภาพันธ์',
-    'มีนาคม',
-    'เมษายน',
-    'พฤษภาคม',
-    'มิถุนายน',
-    'กรกฎาคม',
-    'สิงหาคม',
-    'กันยายน',
-    'ตุลาคม',
-    'พฤศจิกายน',
-    'ธันวาคม'
-];
-$day = date('j', $last_update_ts);
-$month = $thai_months[intval(date('n', $last_update_ts))];
-$year = date('Y', $last_update_ts) + 543;
-$last_update_str = "$day $month $year";
-
-$system_updates = [];
-
 // Dynamic path prefix depending on execution directory context
 $path_prefix = '';
 if (file_exists('assets/aboutus.png')) {
     $path_prefix = '';
 } else {
     $path_prefix = '../';
-}
-
-$json_file = __DIR__ . '/../changelog.json';
-if (file_exists($json_file)) {
-    $json_data = json_decode(file_get_contents($json_file), true);
-    if (is_array($json_data)) {
-        $count = 0;
-        foreach ($json_data as $item) {
-            $system_updates[] = [
-                'title' => $item['title'] ?? '',
-                'date' => $item['date'] ?? '',
-                'type' => $item['type'] ?? 'feature'
-            ];
-            $count++;
-            if ($count >= 3) break; // Limit to top 3
-        }
-    }
 }
 ?>
 
@@ -111,19 +81,20 @@ if (file_exists($json_file)) {
         position: fixed;
         top: 0;
         left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(11, 15, 25, 0.7);
-        backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(11, 15, 25, 0.65);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
         z-index: 99999;
         display: flex;
         align-items: center;
         justify-content: center;
+        padding: 16px;
         opacity: 0;
-        transition: opacity 0.12s cubic-bezier(0.16, 1, 0.3, 1);
-        will-change: opacity;
+        transition: opacity 0.2s ease;
         box-sizing: border-box;
+        cursor: pointer;
     }
 
     .dev-modal-overlay.show {
@@ -131,19 +102,20 @@ if (file_exists($json_file)) {
     }
 
     .dev-modal-container {
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 28px;
-        width: 90%;
-        max-width: 820px;
-        max-height: 90vh;
-        box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6);
+        background: var(--bg-card, #ffffff);
+        border: 1px solid var(--border-color, rgba(226, 232, 240, 0.8));
+        border-radius: 24px;
+        width: 100%;
+        max-width: 420px;
+        box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.4);
         position: relative;
         overflow: hidden;
-        transform: scale(0.95);
-        transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1);
-        will-change: transform;
+        transform: scale(0.92);
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         box-sizing: border-box;
+        padding: 24px 20px 20px 20px;
+        cursor: pointer;
+        text-align: center;
     }
 
     .dev-modal-overlay.show .dev-modal-container {
@@ -152,366 +124,230 @@ if (file_exists($json_file)) {
 
     .dev-modal-close {
         position: absolute;
-        top: 18px;
-        right: 22px;
+        top: 14px;
+        right: 16px;
         background: none;
         border: none;
-        color: var(--text-muted);
-        font-size: 32px;
+        color: var(--text-muted, #94a3b8);
+        font-size: 26px;
         font-weight: bold;
         cursor: pointer;
-        transition: all 0.2s ease;
-        z-index: 20;
+        transition: color 0.15s ease;
         line-height: 1;
+        z-index: 10;
     }
 
     .dev-modal-close:hover {
         color: #ef4444;
-        transform: scale(1.1);
     }
 
-    .dev-modal-body {
-        display: flex;
-        flex-direction: row;
-        box-sizing: border-box;
-    }
-
-    .dev-modal-left {
-        flex: 1;
-        padding: 40px;
-        background: rgba(13, 44, 84, 0.03);
-        border-right: 1px solid var(--border-color);
+    .dev-app-header {
         display: flex;
         flex-direction: column;
         align-items: center;
-        text-align: center;
-        justify-content: center;
-        box-sizing: border-box;
-    }
-
-    .dev-modal-right {
-        flex: 1.25;
-        padding: 40px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        box-sizing: border-box;
-    }
-
-    .dev-app-logo-wrapper {
-        position: relative;
-        display: inline-block;
+        gap: 8px;
+        margin-bottom: 16px;
     }
 
     .dev-app-logo {
-        width: 90px;
-        height: 90px;
+        width: 68px;
+        height: 68px;
         object-fit: contain;
-        border-radius: 20px;
-        filter: drop-shadow(0 8px 20px rgba(13, 44, 84, 0.15));
-        transition: transform 0.3s ease;
-    }
-
-    .dev-app-logo:hover {
-        transform: scale(1.05) rotate(2deg);
+        border-radius: 16px;
+        filter: drop-shadow(0 6px 14px rgba(13, 44, 84, 0.15));
     }
 
     .dev-app-title {
-        font-size: 21px;
+        font-size: 18px;
         font-weight: 800;
-        margin: 18px 0 6px 0;
-        color: var(--text-primary);
+        margin: 0;
+        color: var(--text-primary, #0f172a);
         line-height: 1.3;
     }
 
     .dev-app-subtitle {
-        font-size: 13.5px;
-        color: var(--color-accent);
-        font-weight: 800;
-        letter-spacing: 0.5px;
+        font-size: 12.5px;
+        color: var(--color-accent, #0284c7);
+        font-weight: 700;
         margin: 0;
     }
 
     .dev-divider {
-        width: 60px;
+        width: 48px;
         height: 3px;
-        background: var(--color-primary);
-        margin: 20px 0;
+        background: var(--color-primary, #0284c7);
+        margin: 14px auto;
         border-radius: 2px;
+        opacity: 0.8;
     }
 
     .dev-profile-section {
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: 14px;
         text-align: left;
-        background: var(--bg-main);
-        padding: 16px;
-        border-radius: 20px;
+        background: var(--bg-main, #f8fafc);
+        padding: 14px 16px;
+        border-radius: 18px;
         width: 100%;
         box-sizing: border-box;
-        border: 1px solid var(--border-color);
+        border: 1px solid var(--border-color, rgba(226, 232, 240, 0.8));
+        margin-bottom: 16px;
     }
 
     .dev-avatar {
-        width: 56px;
-        height: 56px;
+        width: 52px;
+        height: 52px;
         border-radius: 50%;
         object-fit: cover;
-        border: 2px solid var(--border-color);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border: 2px solid var(--color-primary, #0284c7);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
         flex-shrink: 0;
     }
 
+    .dev-profile-info {
+        display: flex;
+        flex-direction: column;
+    }
+
     .dev-badge {
-        background: rgba(2, 132, 199, 0.1);
+        background: rgba(2, 132, 199, 0.12);
         color: #0284c7;
-        font-size: 10.5px;
+        font-size: 10px;
         font-weight: 800;
-        padding: 3px 9px;
-        border-radius: 7px;
+        padding: 2px 8px;
+        border-radius: 6px;
         display: inline-block;
-        margin-bottom: 4px;
-        text-transform: uppercase;
+        margin-bottom: 3px;
+        width: fit-content;
     }
 
     .dev-name {
-        font-size: 15px;
+        font-size: 14.5px;
         font-weight: 800;
         margin: 0;
-        color: var(--text-primary);
+        color: var(--text-primary, #0f172a);
         line-height: 1.3;
     }
 
     .dev-title {
-        font-size: 12.5px;
-        color: var(--text-secondary);
+        font-size: 12px;
+        color: var(--text-secondary, #64748b);
         margin: 2px 0 0 0;
         line-height: 1.3;
     }
 
-    .dev-section-title {
-        font-size: 16px;
-        font-weight: 800;
-        color: var(--text-primary);
-        margin: 0 0 20px 0;
+    .dev-footer-info {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
+        font-size: 11.5px;
+        color: var(--text-muted, #94a3b8);
     }
 
-    .dev-updates-list {
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-        margin-bottom: 24px;
+    .dev-version-tag {
+        font-weight: 700;
+        color: var(--text-secondary, #64748b);
+        background: rgba(0, 0, 0, 0.04);
+        padding: 3px 10px;
+        border-radius: 10px;
     }
 
-    .dev-update-item {
-        display: flex;
-        gap: 12px;
-        align-items: flex-start;
-    }
-
-    .dev-update-icon {
-        font-size: 16px;
-        flex-shrink: 0;
-        margin-top: 2px;
-    }
-
-    .dev-update-content {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-    }
-
-    .dev-update-text {
-        font-size: 13.5px;
-        margin: 0;
-        color: var(--text-primary);
-        line-height: 1.45;
-        font-weight: 600;
-    }
-
-    .dev-update-date {
+    .dev-dismiss-hint {
         font-size: 11px;
-        color: var(--text-muted);
+        color: #0284c7;
+        font-weight: 600;
+        animation: pulseHint 2s infinite ease-in-out;
     }
 
-    .dev-version-info {
-        display: flex;
-        justify-content: space-between;
-        font-size: 12.5px;
-        color: var(--text-secondary);
-        background: var(--bg-main);
-        padding: 10px 18px;
-        border-radius: 12px;
-        margin-bottom: 20px;
-        border: 1px solid var(--border-color);
-    }
-
-    .dev-btn-ok {
-        background: var(--color-primary);
-        color: #ffffff;
-        border: none;
-        border-radius: 14px;
-        padding: 14px;
-        font-weight: 800;
-        font-size: 14.5px;
-        cursor: pointer;
-        transition: all var(--transition-speed);
-        width: 100%;
-        box-shadow: 0 4px 12px rgba(13, 44, 84, 0.2);
-    }
-
-    .dev-btn-ok:hover {
-        background: var(--color-primary-hover);
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(13, 44, 84, 0.3);
-    }
-
-    /* Responsiveness */
-    @media (max-width: 768px) {
-        .dev-modal-body {
-            flex-direction: column;
-        }
-
-        .dev-modal-left {
-            border-right: none;
-            border-bottom: 1px solid var(--border-color);
-            padding: 30px 24px;
-        }
-
-        .dev-modal-right {
-            padding: 30px 24px;
-        }
-
-        .dev-modal-container {
-            max-height: 95vh;
-            overflow-y: auto;
-        }
-
-        .dev-divider {
-            margin: 14px 0;
-        }
+    @keyframes pulseHint {
+        0%, 100% { opacity: 0.7; }
+        50% { opacity: 1; }
     }
 </style>
 
 <div id="dev-portal-modal" class="dev-modal-overlay" style="display: none;" onclick="closeDevModal()">
-    <div class="dev-modal-container" onclick="handleContainerClick(event)">
+    <div class="dev-modal-container" onclick="closeDevModal()">
         <button class="dev-modal-close" onclick="closeDevModal()">&times;</button>
 
-        <div class="dev-modal-body">
-            <!-- Left Side: Profile and App Logo -->
-            <div class="dev-modal-left">
-                <div class="dev-app-logo-wrapper">
-                    <img src="<?= $path_prefix ?>assets/aboutus.png" alt="App Logo" class="dev-app-logo">
-                </div>
-                <h2 class="dev-app-title">NCDs Prevention Portal</h2>
-                <p class="dev-app-subtitle">สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?></p>
+        <!-- Compact Developer Info Card -->
+        <div class="dev-app-header">
+            <img src="<?= $path_prefix ?>assets/aboutus.png" alt="App Logo" class="dev-app-logo">
+            <h2 class="dev-app-title">NCDs Prevention Portal</h2>
+            <p class="dev-app-subtitle">สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?></p>
+        </div>
 
-                <div class="dev-divider"></div>
+        <div class="dev-divider"></div>
 
-                <div class="dev-profile-section">
-                    <img src="<?= $path_prefix ?>assets/developer.jpg" alt="Developer Avatar" class="dev-avatar">
-                    <div class="dev-profile-info">
-                        <span class="dev-badge">ผู้พัฒนาระบบ</span>
-                        <h4 class="dev-name">นายบุญธรรม พันธ์ใหญ่</h4>
-                        <p class="dev-title">นักวิชาการคอมพิวเตอร์ สสอ.<?= DISTRICT_NAME ?></p>
-                    </div>
-                </div>
+        <div class="dev-profile-section">
+            <img src="<?= $path_prefix ?>assets/developer.jpg" alt="Developer Avatar" class="dev-avatar">
+            <div class="dev-profile-info">
+                <span class="dev-badge">ผู้พัฒนาระบบ</span>
+                <h4 class="dev-name">นายบุญธรรม พันธ์ใหญ่</h4>
+                <p class="dev-title">นักวิชาการคอมพิวเตอร์ สสอ.<?= DISTRICT_NAME ?></p>
             </div>
+        </div>
 
-            <!-- Right Side: System Info & Updates -->
-            <div class="dev-modal-right">
-                <div>
-                    <h3 class="dev-section-title">✨ บันทึกการปรับปรุงล่าสุด</h3>
-
-                    <div class="dev-updates-list">
-                        <?php foreach ($system_updates as $up):
-                            $icon = '🚀';
-                            if ($up['type'] === 'fix') $icon = '🔧';
-                            elseif ($up['type'] === 'security') $icon = '🔒';
-                        ?>
-                            <div class="dev-update-item">
-                                <span class="dev-update-icon"><?= $icon ?></span>
-                                <div class="dev-update-content">
-                                    <p class="dev-update-text"><?= htmlspecialchars($up['title']) ?></p>
-                                    <span class="dev-update-date">อัปเดตเมื่อ: <?= htmlspecialchars($up['date']) ?></span>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <div>
-                    <div class="dev-version-info" style="margin-bottom: 0;">
-                        <span>เวอร์ชัน: <strong>2.6.0 (Build <?= htmlspecialchars($build_number) ?>)</strong></span>
-                        <span>iT.SSOTansum</span>
-                    </div>
-                </div>
-            </div>
+        <div class="dev-footer-info">
+            <span class="dev-version-tag">v2.6.0 (Build <?= htmlspecialchars($build_number) ?>)</span>
+            <span class="dev-dismiss-hint">⏱️ หายไปเองใน 5 วินาที (หรือแตะที่ใดก็ได้เพื่อปิด)</span>
         </div>
     </div>
 </div>
 
 <script>
+    let devModalAutoCloseTimer = null;
+
     document.addEventListener("DOMContentLoaded", function() {
         const modal = document.getElementById('dev-portal-modal');
         if (!modal) return;
 
-        // ฝั่ง อสม. (VHV) ไม่แสดง popup อัตโนมัติ — เปิดได้เมื่อกดไอคอนเท่านั้น
-        const isVhv = window.location.pathname.includes('/vhv/');
-        if (isVhv) return;
-
-        // Check local storage for daily limit
+        // Check local storage for daily limit (or new version key)
         const today = new Date().toDateString();
-        const lastShown = localStorage.getItem('ncd_dev_modal_last_shown');
+        const lastShown = localStorage.getItem('ncd_dev_modal_last_shown_v2');
 
         if (lastShown !== today) {
-            modal.style.display = 'flex';
-            // Force reflow
-            modal.offsetHeight;
-            modal.classList.add('show');
-
-            // Disable body scroll
-            document.body.style.overflow = 'hidden';
+            openDevModal();
         }
     });
-
-    function handleContainerClick(e) {
-        const isVhv = window.location.pathname.includes('/vhv/');
-        if (isVhv) {
-            // อสม. แตะตรงไหนก็ได้เพื่อปิด
-            closeDevModal();
-        } else {
-            // แอดมินสามารถคลิกอ่านข้อความโดยไม่ปิด (คลิกข้างนอกค่อยปิด)
-            e.stopPropagation();
-        }
-    }
 
     function openDevModal(e) {
         if (e) e.preventDefault();
         const modal = document.getElementById('dev-portal-modal');
         if (!modal) return;
+
         modal.style.display = 'flex';
         modal.offsetHeight; // Force reflow
         modal.classList.add('show');
-        document.body.style.overflow = 'hidden';
+
+        // Clear existing auto-close timer if any
+        if (devModalAutoCloseTimer) {
+            clearTimeout(devModalAutoCloseTimer);
+        }
+
+        // Auto-close after 5 seconds
+        devModalAutoCloseTimer = setTimeout(function() {
+            closeDevModal();
+        }, 5000);
     }
 
     function closeDevModal() {
         const modal = document.getElementById('dev-portal-modal');
         if (!modal || !modal.classList.contains('show')) return;
 
+        if (devModalAutoCloseTimer) {
+            clearTimeout(devModalAutoCloseTimer);
+            devModalAutoCloseTimer = null;
+        }
+
         modal.classList.remove('show');
         setTimeout(() => {
             modal.style.display = 'none';
-            document.body.style.overflow = '';
 
-            // Save showing timestamp
+            // Save showing timestamp so it doesn't pop up again today unless clicked manually
             const today = new Date().toDateString();
-            localStorage.setItem('ncd_dev_modal_last_shown', today);
-        }, 120);
+            localStorage.setItem('ncd_dev_modal_last_shown_v2', today);
+        }, 180);
     }
 </script>
