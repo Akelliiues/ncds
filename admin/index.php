@@ -361,6 +361,30 @@ if ($admin_hoscode) {
     ");
     $chartDpacStmt->execute($hoscodes);
     $chartDpacData = $chartDpacStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // --- RE-SCREENING MULTI-ROUND CHARTS DATA (ADMIN) ---
+    $chartRescreenStmt = $pdo->prepare("
+        SELECT 
+            p.hoscode, 
+            p.moo,
+            COUNT(DISTINCT p.cid) as total_targets,
+            COUNT(DISTINCT CASE WHEN ta.round_number = 1 AND ta.assignment_status = 'completed' THEN p.cid END) as r1_completed,
+            COUNT(DISTINCT CASE WHEN ta.round_number = 2 AND ta.assignment_status = 'pending' THEN p.cid END) as r2_assigned,
+            COUNT(DISTINCT CASE WHEN ta.round_number = 2 AND ta.assignment_status = 'completed' THEN p.cid END) as r2_completed,
+            COUNT(DISTINCT CASE WHEN ta.round_number >= 3 AND ta.assignment_status = 'pending' THEN p.cid END) as r3_assigned,
+            COUNT(DISTINCT CASE WHEN ta.round_number >= 3 AND ta.assignment_status = 'completed' THEN p.cid END) as r3_completed
+        FROM target_population p
+        LEFT JOIN task_assignments ta ON p.cid = ta.target_cid AND ta.budget_year = 2026 AND ta.is_sandbox = ?
+        WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+        GROUP BY p.hoscode, p.moo
+        ORDER BY p.hoscode, p.moo
+    ");
+    $chartRescreenStmt->execute(array_merge([$isSandboxVal], $hoscodes));
+    $chartRescreenData = $chartRescreenStmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($chartRescreenData as &$row) {
+        $row['village_name'] = get_village_display_name_by_hoscode($row['hoscode'], $row['moo']);
+    }
+    unset($row);
 } else {
     $valid_hoscodes = get_query_hoscodes();
     $inPlaceholdersSa = implode(',', array_fill(0, count($valid_hoscodes), '?'));
@@ -652,6 +676,25 @@ if ($admin_hoscode) {
     ");
     $chartDpacStmt->execute($valid_hoscodes);
     $chartDpacData = $chartDpacStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // --- RE-SCREENING MULTI-ROUND CHARTS DATA (SUPER ADMIN) ---
+    $chartRescreenStmt = $pdo->prepare("
+        SELECT 
+            p.hoscode,
+            COUNT(DISTINCT p.cid) as total_targets,
+            COUNT(DISTINCT CASE WHEN ta.round_number = 1 AND ta.assignment_status = 'completed' THEN p.cid END) as r1_completed,
+            COUNT(DISTINCT CASE WHEN ta.round_number = 2 AND ta.assignment_status = 'pending' THEN p.cid END) as r2_assigned,
+            COUNT(DISTINCT CASE WHEN ta.round_number = 2 AND ta.assignment_status = 'completed' THEN p.cid END) as r2_completed,
+            COUNT(DISTINCT CASE WHEN ta.round_number >= 3 AND ta.assignment_status = 'pending' THEN p.cid END) as r3_assigned,
+            COUNT(DISTINCT CASE WHEN ta.round_number >= 3 AND ta.assignment_status = 'completed' THEN p.cid END) as r3_completed
+        FROM target_population p
+        LEFT JOIN task_assignments ta ON p.cid = ta.target_cid AND ta.budget_year = 2026 AND ta.is_sandbox = ?
+        WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+        GROUP BY p.hoscode
+        ORDER BY p.hoscode
+    ");
+    $chartRescreenStmt->execute(array_merge([$isSandboxVal], $valid_hoscodes));
+    $chartRescreenData = $chartRescreenStmt->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
 <!DOCTYPE html>
@@ -965,6 +1008,58 @@ if ($admin_hoscode) {
                 </h3>
                 <div id="chart-trend"></div>
             </div>
+        </div>
+
+        <!-- Chart 5: Multi-Round Re-screening Performance Chart -->
+        <div class="card-dark" style="margin-top: 24px;">
+            <h3 style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: rgba(99, 102, 241, 0.15); color: #6366f1;">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </span>
+                    <span>🔄 ความก้าวหน้าและร้อยละผลงานการคัดกรองติดตามซ้ำรายรอบ (Multi-Round Re-screening Performance)</span>
+                </div>
+                <div style="font-size: 12px; font-weight: 600; color: var(--text-muted);">
+                    <?= $admin_hoscode ? 'เปรียบเทียบรายหมู่บ้าน' : 'เปรียบเทียบรายหน่วยบริการ (รพ.สต.)' ?>
+                </div>
+            </h3>
+
+            <!-- Overview Badges -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                <?php
+                $totAll = array_sum(array_column($chartRescreenData, 'total_targets')) ?: 1;
+                $r1All = array_sum(array_column($chartRescreenData, 'r1_completed'));
+                $r2AssignedAll = array_sum(array_column($chartRescreenData, 'r2_assigned'));
+                $r2CompAll = array_sum(array_column($chartRescreenData, 'r2_completed'));
+                $r3AssignedAll = array_sum(array_column($chartRescreenData, 'r3_assigned'));
+                $r3CompAll = array_sum(array_column($chartRescreenData, 'r3_completed'));
+
+                $pctR1 = number_format(($r1All / $totAll) * 100, 1);
+                $denomR2 = ($r2CompAll + $r2AssignedAll) > 0 ? ($r2CompAll + $r2AssignedAll) : ($r1All > 0 ? $r1All : 1);
+                $pctR2 = number_format(($r2CompAll / $denomR2) * 100, 1);
+                $denomR3 = ($r3CompAll + $r3AssignedAll) > 0 ? ($r3CompAll + $r3AssignedAll) : ($r2CompAll > 0 ? $r2CompAll : 1);
+                $pctR3 = number_format(($r3CompAll / $denomR3) * 100, 1);
+                ?>
+                <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.2); padding: 12px 16px; border-radius: 12px;">
+                    <div style="font-size: 12px; color: var(--color-green); font-weight: 600;">✅ รอบที่ 1 (Baseline)</div>
+                    <div style="font-size: 20px; font-weight: bold; color: var(--text-color); margin-top: 4px;"><?= number_format($r1All) ?> <span style="font-size: 13px; color: var(--color-green);">(<?= $pctR1 ?>%)</span></div>
+                    <div style="font-size: 11px; color: var(--text-muted);">คัดกรองเสร็จจากเป้าหมาย <?= number_format($totAll) ?> ราย</div>
+                </div>
+                <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); padding: 12px 16px; border-radius: 12px;">
+                    <div style="font-size: 12px; color: #3b82f6; font-weight: 600;">🔄 รอบที่ 2 (คัดกรองติดตามซ้ำ)</div>
+                    <div style="font-size: 20px; font-weight: bold; color: var(--text-color); margin-top: 4px;"><?= number_format($r2CompAll) ?> <span style="font-size: 13px; color: #3b82f6;">(<?= $pctR2 ?>%)</span></div>
+                    <div style="font-size: 11px; color: var(--text-muted);">คัดกรองสำเร็จจากงานมอบหมาย <?= number_format($r2CompAll + $r2AssignedAll) ?> ราย</div>
+                </div>
+                <div style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2); padding: 12px 16px; border-radius: 12px;">
+                    <div style="font-size: 12px; color: #8b5cf6; font-weight: 600;">🔄 รอบที่ 3+ (ติดตามต่อเนื่อง)</div>
+                    <div style="font-size: 20px; font-weight: bold; color: var(--text-color); margin-top: 4px;"><?= number_format($r3CompAll) ?> <span style="font-size: 13px; color: #8b5cf6;">(<?= $pctR3 ?>%)</span></div>
+                    <div style="font-size: 11px; color: var(--text-muted);">คัดกรองสำเร็จจากงานมอบหมาย <?= number_format($r3CompAll + $r3AssignedAll) ?> ราย</div>
+                </div>
+            </div>
+
+            <div id="chart-rescreen"></div>
         </div>
 
         <!-- Recent Screenings Table -->
@@ -1571,6 +1666,93 @@ if ($admin_hoscode) {
                 new ApexCharts(document.querySelector("#chart-trend"), optionsTrend).render();
             } else {
                 document.querySelector("#chart-trend").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 100px; font-size: 14px;">ยังไม่มีข้อมูลแนวโน้มการคัดกรองรายวัน</div>';
+            }
+
+            // Re-screening Multi-Round Chart
+            const rescreenRaw = <?= json_encode($chartRescreenData) ?>;
+            const rescreenCategories = rescreenRaw.map(d => isRegularAdmin ? (d.village_name || "หมู่ " + d.moo) : (hcNamesChart[d.hoscode] || d.hoscode));
+            const r1Completed = rescreenRaw.map(d => parseInt(d.r1_completed) || 0);
+            const r2Completed = rescreenRaw.map(d => parseInt(d.r2_completed) || 0);
+            const r3Completed = rescreenRaw.map(d => parseInt(d.r3_completed) || 0);
+
+            if (rescreenRaw && rescreenRaw.length > 0) {
+                var optionsRescreen = {
+                    series: [{
+                        name: 'รอบที่ 1 (Baseline)',
+                        data: r1Completed
+                    }, {
+                        name: 'ติดตามซ้ำ รอบที่ 2',
+                        data: r2Completed
+                    }, {
+                        name: 'ติดตามซ้ำ รอบที่ 3+',
+                        data: r3Completed
+                    }],
+                    chart: {
+                        type: 'bar',
+                        height: 350,
+                        background: 'transparent',
+                        toolbar: {
+                            show: false
+                        }
+                    },
+                    theme: {
+                        mode: localStorage.getItem('theme') || 'light'
+                    },
+                    colors: ['#22c55e', '#3b82f6', '#8b5cf6'],
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            colors: '#9ca3af'
+                        }
+                    },
+                    plotOptions: {
+                        bar: {
+                            horizontal: false,
+                            columnWidth: '55%',
+                            borderRadius: 4
+                        },
+                    },
+                    dataLabels: {
+                        enabled: false
+                    },
+                    xaxis: {
+                        categories: rescreenCategories,
+                        labels: {
+                            style: {
+                                colors: '#9ca3af'
+                            }
+                        }
+                    },
+                    yaxis: {
+                        labels: {
+                            style: {
+                                colors: '#9ca3af'
+                            }
+                        }
+                    },
+                    tooltip: {
+                        theme: localStorage.getItem('theme') || 'light',
+                        y: {
+                            formatter: function(val, opts) {
+                                const dataObj = rescreenRaw[opts.dataPointIndex];
+                                const seriesIdx = opts.seriesIndex;
+                                let denominator = parseInt(dataObj.total_targets) || 1;
+                                if (seriesIdx === 1) {
+                                    denominator = (parseInt(dataObj.r2_completed) || 0) + (parseInt(dataObj.r2_assigned) || 0);
+                                    if (denominator === 0) denominator = parseInt(dataObj.r1_completed) || 1;
+                                } else if (seriesIdx === 2) {
+                                    denominator = (parseInt(dataObj.r3_completed) || 0) + (parseInt(dataObj.r3_assigned) || 0);
+                                    if (denominator === 0) denominator = parseInt(dataObj.r2_completed) || 1;
+                                }
+                                const pct = ((val / denominator) * 100).toFixed(1);
+                                return val + " ราย (" + pct + "% ของงานมอบหมายรอบนี้)";
+                            }
+                        }
+                    }
+                };
+                new ApexCharts(document.querySelector("#chart-rescreen"), optionsRescreen).render();
+            } else {
+                document.querySelector("#chart-rescreen").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 100px; font-size: 14px;">ยังไม่มีข้อมูลการคัดกรองติดตามซ้ำ</div>';
             }
 
             // Overall Progress Chart (Horizontal Bar Leaderboard)
