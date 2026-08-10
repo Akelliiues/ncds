@@ -285,17 +285,17 @@ if ($admin_hoscode) {
 
     $chartRiskStmt = $pdo->prepare("
         SELECT p.hoscode, MAX(p.sub_district_code) as sub_district_code, p.moo,
-               COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN p.cid END) as high_risk,
-               COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as moderate_risk,
-               COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as normal,
-               COUNT(DISTINCT CASE WHEN p.cid NOT IN (SELECT ta.target_cid FROM task_assignments ta WHERE ta.assignment_status = 'completed') THEN p.cid END) as unscreened
+               COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN p.cid END) as high_risk,
+               COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as moderate_risk,
+               COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as normal,
+               COUNT(DISTINCT CASE WHEN s.screening_id IS NULL THEN p.cid END) as unscreened
         FROM target_population p
-        LEFT JOIN task_assignments a ON a.assignment_id = (
-            SELECT assignment_id FROM task_assignments ta 
-            WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' 
-            ORDER BY ta.round_number DESC, ta.assignment_id DESC LIMIT 1
+        LEFT JOIN screening_results s ON s.screening_id = (
+            SELECT sr.screening_id FROM screening_results sr 
+            LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id
+            WHERE sr.target_cid = p.cid OR ta2.target_cid = p.cid
+            ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1
         )
-        LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
         WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY p.hoscode, p.moo
         ORDER BY p.hoscode, p.moo
@@ -378,18 +378,22 @@ if ($admin_hoscode) {
             p.hoscode, 
             p.moo,
             COUNT(DISTINCT p.cid) as total_targets,
-            COUNT(DISTINCT CASE WHEN (ta.round_number = 1 OR ta.round_number IS NULL OR ta.round_number = 0) AND ta.assignment_status = 'completed' THEN p.cid END) as r1_completed,
+            COUNT(DISTINCT CASE WHEN (
+                (ta.round_number = 1 OR ta.round_number IS NULL OR ta.round_number = 0) AND ta.assignment_status = 'completed'
+                OR (sr.round_number = 1 OR sr.round_number IS NULL OR sr.round_number = 0)
+            ) THEN p.cid END) as r1_completed,
             COUNT(DISTINCT CASE WHEN ta.round_number = 2 AND ta.assignment_status = 'pending' THEN p.cid END) as r2_assigned,
-            COUNT(DISTINCT CASE WHEN ta.round_number = 2 AND ta.assignment_status = 'completed' THEN p.cid END) as r2_completed,
+            COUNT(DISTINCT CASE WHEN (ta.round_number = 2 AND ta.assignment_status = 'completed') OR sr.round_number = 2 THEN p.cid END) as r2_completed,
             COUNT(DISTINCT CASE WHEN ta.round_number >= 3 AND ta.assignment_status = 'pending' THEN p.cid END) as r3_assigned,
-            COUNT(DISTINCT CASE WHEN ta.round_number >= 3 AND ta.assignment_status = 'completed' THEN p.cid END) as r3_completed
+            COUNT(DISTINCT CASE WHEN (ta.round_number >= 3 AND ta.assignment_status = 'completed') OR sr.round_number >= 3 THEN p.cid END) as r3_completed
         FROM target_population p
         LEFT JOIN task_assignments ta ON p.cid = ta.target_cid AND (ta.budget_year = 2026 OR ta.budget_year IS NULL) AND ta.is_sandbox = ?
+        LEFT JOIN screening_results sr ON (p.cid = sr.target_cid OR ta.assignment_id = sr.assignment_id) AND sr.is_sandbox = ?
         WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY p.hoscode, p.moo
         ORDER BY p.hoscode, p.moo
     ");
-    $chartRescreenStmt->execute(array_merge([$isSandboxVal], $hoscodes));
+    $chartRescreenStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $hoscodes));
     $chartRescreenData = $chartRescreenStmt->fetchAll(PDO::FETCH_ASSOC);
     foreach ($chartRescreenData as &$row) {
         $row['village_name'] = get_village_display_name_by_hoscode($row['hoscode'], $row['moo']);
@@ -607,19 +611,20 @@ if ($admin_hoscode) {
 
     $chartRiskStmt = $pdo->prepare("
         SELECT p.hoscode,
-               COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN p.cid END) as high_risk,
-               COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as moderate_risk,
-               COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as normal,
-               COUNT(DISTINCT CASE WHEN p.cid NOT IN (SELECT ta.target_cid FROM task_assignments ta WHERE ta.assignment_status = 'completed') THEN p.cid END) as unscreened
+               COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN p.cid END) as high_risk,
+               COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as moderate_risk,
+               COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as normal,
+               COUNT(DISTINCT CASE WHEN s.screening_id IS NULL THEN p.cid END) as unscreened
         FROM target_population p
-        LEFT JOIN task_assignments a ON a.assignment_id = (
-            SELECT assignment_id FROM task_assignments ta 
-            WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' 
-            ORDER BY ta.round_number DESC, ta.assignment_id DESC LIMIT 1
+        LEFT JOIN screening_results s ON s.screening_id = (
+            SELECT sr.screening_id FROM screening_results sr 
+            LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id
+            WHERE sr.target_cid = p.cid OR ta2.target_cid = p.cid
+            ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1
         )
-        LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
         WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY p.hoscode
+        ORDER BY p.hoscode
     ");
     $chartRiskStmt->execute($valid_hoscodes);
     $chartRiskData = $chartRiskStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -694,18 +699,22 @@ if ($admin_hoscode) {
         SELECT 
             p.hoscode,
             COUNT(DISTINCT p.cid) as total_targets,
-            COUNT(DISTINCT CASE WHEN (ta.round_number = 1 OR ta.round_number IS NULL OR ta.round_number = 0) AND ta.assignment_status = 'completed' THEN p.cid END) as r1_completed,
+            COUNT(DISTINCT CASE WHEN (
+                (ta.round_number = 1 OR ta.round_number IS NULL OR ta.round_number = 0) AND ta.assignment_status = 'completed'
+                OR (sr.round_number = 1 OR sr.round_number IS NULL OR sr.round_number = 0)
+            ) THEN p.cid END) as r1_completed,
             COUNT(DISTINCT CASE WHEN ta.round_number = 2 AND ta.assignment_status = 'pending' THEN p.cid END) as r2_assigned,
-            COUNT(DISTINCT CASE WHEN ta.round_number = 2 AND ta.assignment_status = 'completed' THEN p.cid END) as r2_completed,
+            COUNT(DISTINCT CASE WHEN (ta.round_number = 2 AND ta.assignment_status = 'completed') OR sr.round_number = 2 THEN p.cid END) as r2_completed,
             COUNT(DISTINCT CASE WHEN ta.round_number >= 3 AND ta.assignment_status = 'pending' THEN p.cid END) as r3_assigned,
-            COUNT(DISTINCT CASE WHEN ta.round_number >= 3 AND ta.assignment_status = 'completed' THEN p.cid END) as r3_completed
+            COUNT(DISTINCT CASE WHEN (ta.round_number >= 3 AND ta.assignment_status = 'completed') OR sr.round_number >= 3 THEN p.cid END) as r3_completed
         FROM target_population p
         LEFT JOIN task_assignments ta ON p.cid = ta.target_cid AND (ta.budget_year = 2026 OR ta.budget_year IS NULL) AND ta.is_sandbox = ?
+        LEFT JOIN screening_results sr ON (p.cid = sr.target_cid OR ta.assignment_id = sr.assignment_id) AND sr.is_sandbox = ?
         WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY p.hoscode
         ORDER BY p.hoscode
     ");
-    $chartRescreenStmt->execute(array_merge([$isSandboxVal], $valid_hoscodes));
+    $chartRescreenStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $valid_hoscodes));
     $chartRescreenData = $chartRescreenStmt->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
