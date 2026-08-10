@@ -50,7 +50,42 @@ $beforeAfterStmt = $pdo->prepare("
 $beforeAfterStmt->execute($hoscodes);
 $beforeAfterData = $beforeAfterStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Summarize stats
+// NCD Multi-Round Re-screening Before-After Query (Round 1 vs Latest Round)
+$ncdBeforeAfterStmt = $pdo->prepare("
+    SELECT 
+        p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
+        s1.sys_bp1 AS sbp_r1, s1.dia_bp1 AS dbp_r1, s1.dtx_value AS dtx_r1, s1.bmi AS bmi_r1, s1.created_at AS date_r1,
+        sl.sys_bp1 AS sbp_latest, sl.dia_bp1 AS dbp_latest, sl.dtx_value AS dtx_latest, sl.bmi AS bmi_latest, sl.created_at AS date_latest,
+        al.round_number AS latest_round
+    FROM target_population p
+    JOIN task_assignments a1 ON p.cid = a1.target_cid AND a1.round_number = 1 AND a1.assignment_status = 'completed' AND a1.budget_year = 2026
+    JOIN screening_results s1 ON a1.assignment_id = s1.assignment_id
+    JOIN task_assignments al ON p.cid = al.target_cid AND al.round_number > 1 AND al.assignment_status = 'completed' AND al.budget_year = 2026
+    JOIN screening_results sl ON al.assignment_id = sl.assignment_id
+    JOIN (
+        SELECT target_cid, MAX(round_number) as max_round
+        FROM task_assignments
+        WHERE assignment_status = 'completed' AND budget_year = 2026
+        GROUP BY target_cid
+    ) max_a ON al.target_cid = max_a.target_cid AND al.round_number = max_a.max_round
+    WHERE p.hoscode IN ($inPlaceholders)
+    ORDER BY sl.created_at DESC
+");
+$ncdBeforeAfterStmt->execute($hoscodes);
+$ncdBeforeAfterData = $ncdBeforeAfterStmt->fetchAll(PDO::FETCH_ASSOC);
+
+$ncdTotalAnalyzed = count($ncdBeforeAfterData);
+$ncdImprovedBpCount = 0;
+$ncdImprovedDtxCount = 0;
+
+foreach ($ncdBeforeAfterData as $row) {
+    if ($row['sbp_r1'] !== null && $row['sbp_latest'] !== null && $row['sbp_latest'] < $row['sbp_r1']) {
+        $ncdImprovedBpCount++;
+    }
+    if ($row['dtx_r1'] !== null && $row['dtx_latest'] !== null && $row['dtx_latest'] < $row['dtx_r1']) {
+        $ncdImprovedDtxCount++;
+    }
+}
 $totalAnalyzed = count($beforeAfterData);
 $improvedBpCount = 0;
 $improvedFbsCount = 0;

@@ -312,6 +312,72 @@ if ($admin_hoscode !== null) {
             box-shadow: 0 4px 8px rgba(239, 68, 68, 0.15);
         }
 
+        .btn-view-detail {
+            background-color: rgba(59, 130, 246, 0.1);
+            color: #2563eb;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 4px 9px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11.5px;
+            font-weight: bold;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .btn-view-detail:hover {
+            background-color: #2563eb;
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .badge-rescreen {
+            background-color: rgba(99, 102, 241, 0.12);
+            color: #6366f1;
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 4px;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(13, 44, 84, 0.45);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 24px;
+            width: 90%;
+            max-width: 580px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-color);
+        }
+
+        .metric-card {
+            background: var(--bg-main);
+            border-radius: 12px;
+            padding: 12px 14px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--neumorph-inset);
+        }
+
         .form-label {
             display: block;
             margin-bottom: 6px;
@@ -633,20 +699,42 @@ if ($admin_hoscode !== null) {
                 currentNcdTasks.forEach(t => {
                     let statusHtml = '';
                     let actionHtml = '';
+                    const roundNum = parseInt(t.round_number) || 1;
+                    const roundBadge = roundNum > 1 
+                        ? `<span class="badge-rescreen">🔄 รอบที่ ${roundNum}</span>`
+                        : `<span style="color:var(--text-muted); font-size:11px;"> (รอบ 1)</span>`;
 
                     if (t.assignment_status === 'completed') {
-                        statusHtml = '<span style="color:var(--color-green); font-weight:bold;">✅ คัดกรองแล้ว</span>';
-                        actionHtml = '<span style="color:var(--text-muted); font-size:12px;">—</span>';
+                        let summaryBadge = '';
+                        if (t.sys_bp1 || t.dtx_value) {
+                            const bpText = t.sys_bp1 ? `${t.sys_bp1}/${t.dia_bp1}` : '-';
+                            const dtxText = t.dtx_value ? `${t.dtx_value}` : '-';
+                            summaryBadge = `<div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">BP: <strong>${bpText}</strong> | DTX: <strong>${dtxText}</strong></div>`;
+                        }
+                        statusHtml = `<span style="color:var(--color-green); font-weight:bold;">✅ คัดกรองแล้ว</span> ${roundBadge}${summaryBadge}`;
+                        actionHtml = `<button class="btn-view-detail" onclick="openScreeningModal(${t.task_id})">🔍 ดูผลเดิม</button>`;
                     } else if (t.assignment_status === 'skipped') {
-                        statusHtml = '<span style="color:var(--color-red); font-weight:bold;">❌ ข้ามเคสแล้ว</span>';
-                        actionHtml = '<span style="color:var(--text-muted); font-size:12px;">—</span>';
+                        const reasonText = t.skipped_reason ? `<div style="font-size:11px; color:var(--text-muted); margin-top:2px;">เหตุ: ${t.skipped_reason}</div>` : '';
+                        statusHtml = `<span style="color:var(--color-red); font-weight:bold;">❌ ข้ามเคสแล้ว</span> ${roundBadge}${reasonText}`;
+                        actionHtml = `<button class="btn-view-detail" onclick="openScreeningModal(${t.task_id})">🔍 ดูเหตุผล</button>`;
                     } else {
-                        statusHtml = '<span style="color:var(--color-yellow); font-weight:bold;">⏳ รอคัดกรอง</span>';
+                        let prevInfoBadge = '';
+                        if (t.prev_sys_bp1 || t.prev_dtx_value) {
+                            const pBp = t.prev_sys_bp1 ? `${t.prev_sys_bp1}/${t.prev_dia_bp1}` : '-';
+                            const pDtx = t.prev_dtx_value ? `${t.prev_dtx_value}` : '-';
+                            const pRound = t.prev_round_number ? `รอบที่ ${t.prev_round_number}` : 'เดิม';
+                            prevInfoBadge = `<div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">📜 ผลเดิม (${pRound}): BP <strong>${pBp}</strong> | DTX <strong>${pDtx}</strong></div>`;
+                        }
+                        statusHtml = `<span style="color:var(--color-yellow); font-weight:bold;">⏳ รอคัดกรอง</span> ${roundBadge}${prevInfoBadge}`;
                         actionHtml = `<button class="btn-cancel-assign" onclick="cancelAssignment('screen', '${t.cid}', ${t.task_id}, '${(t.first_name + ' ' + t.last_name).replace(/'/g, "\\'")}')">ดึงคืน</button>`;
                         ncdPending++;
                     }
 
-                    let dateText = formatThaiDate(t.assigned_at);
+                    const dateVal = (t.assignment_status === 'completed' || t.assignment_status === 'skipped') && t.screened_at 
+                        ? t.screened_at 
+                        : t.assigned_at;
+                    const datePrefix = t.assignment_status === 'completed' ? 'คัดกรอง: ' : (t.assignment_status === 'skipped' ? 'บันทึก: ' : 'มอบหมาย: ');
+                    let dateText = datePrefix + formatThaiDate(dateVal);
 
                     ncdTbody.innerHTML += `
                         <tr>
@@ -662,7 +750,9 @@ if ($admin_hoscode !== null) {
                 });
                 btnCancelNcd.style.display = ncdPending > 0 ? 'inline-flex' : 'none';
             }
-            ncdText.innerHTML = `งานค้าง: <strong style="color:var(--color-yellow);">${ncdPending}</strong> | ทั้งหมด: <strong>${currentNcdTasks.length}</strong> ใบ`;
+            const ncdCompleted = currentNcdTasks.filter(t => t.assignment_status === 'completed').length;
+            const ncdSkipped = currentNcdTasks.filter(t => t.assignment_status === 'skipped').length;
+            ncdText.innerHTML = `งานค้าง: <strong style="color:var(--color-yellow);">${ncdPending}</strong> | คัดกรองสำเร็จ: <strong style="color:var(--color-green);">${ncdCompleted}</strong> | ข้ามเคส: <strong style="color:var(--color-red);">${ncdSkipped}</strong> | รวมมอบหมายทั้งหมด: <strong>${currentNcdTasks.length}</strong> ใบ`;
 
             // 2. Render DPAC Followups
             const dpacTbody = document.getElementById('dpac-list-body');
@@ -682,18 +772,29 @@ if ($admin_hoscode !== null) {
                     let roundHtml = `<span style="background-color: rgba(99, 102, 241, 0.1); color: #6366f1; border: 1px solid rgba(99, 102, 241, 0.3); padding: 3px 6px; border-radius: 12px; font-size: 11px; font-weight: bold;">ครั้งที่ ${t.round_number} (${t.risk_type})</span>`;
 
                     if (t.assignment_status === 'completed') {
-                        statusHtml = '<span style="color:var(--color-green); font-weight:bold;">✅ ติดตามแล้ว</span>';
-                        actionHtml = '<span style="color:var(--text-muted); font-size:12px;">—</span>';
+                        let summaryBadge = '';
+                        if (t.sys_bp1 || t.dtx_value || t.weight) {
+                            const bpText = t.sys_bp1 ? `${t.sys_bp1}/${t.dia_bp1}` : '-';
+                            const dtxText = t.dtx_value ? `${t.dtx_value}` : '-';
+                            summaryBadge = `<div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">BP: <strong>${bpText}</strong> | FBS: <strong>${dtxText}</strong></div>`;
+                        }
+                        statusHtml = `<span style="color:var(--color-green); font-weight:bold;">✅ ติดตามแล้ว</span>${summaryBadge}`;
+                        actionHtml = `<button class="btn-view-detail" onclick="openDpacModal(${t.task_id})">🔍 ดูผลเดิม</button>`;
                     } else if (t.assignment_status === 'skipped') {
-                        statusHtml = '<span style="color:var(--color-red); font-weight:bold;">❌ ข้ามรอบแล้ว</span>';
-                        actionHtml = '<span style="color:var(--text-muted); font-size:12px;">—</span>';
+                        const reasonText = t.skipped_reason ? `<div style="font-size:11px; color:var(--text-muted); margin-top:2px;">เหตุ: ${t.skipped_reason}</div>` : '';
+                        statusHtml = `<span style="color:var(--color-red); font-weight:bold;">❌ ข้ามรอบแล้ว</span>${reasonText}`;
+                        actionHtml = `<button class="btn-view-detail" onclick="openDpacModal(${t.task_id})">🔍 ดูเหตุผล</button>`;
                     } else {
                         statusHtml = '<span style="color:var(--color-yellow); font-weight:bold;">⏳ รอติดตาม</span>';
                         actionHtml = `<button class="btn-cancel-assign" onclick="cancelAssignment('dpac', '${t.cid}', ${t.task_id}, '${(t.first_name + ' ' + t.last_name).replace(/'/g, "\\'")}')">ดึงคืน</button>`;
                         dpacPending++;
                     }
 
-                    let dateText = formatThaiDate(t.assigned_at);
+                    const dateVal = (t.assignment_status === 'completed' || t.assignment_status === 'skipped') && t.screened_at 
+                        ? t.screened_at 
+                        : t.assigned_at;
+                    const datePrefix = t.assignment_status === 'completed' ? 'ติดตาม: ' : 'มอบหมาย: ';
+                    let dateText = datePrefix + formatThaiDate(dateVal);
 
                     dpacTbody.innerHTML += `
                         <tr>
@@ -709,14 +810,176 @@ if ($admin_hoscode !== null) {
                 });
                 btnCancelDpac.style.display = dpacPending > 0 ? 'inline-flex' : 'none';
             }
-            dpacText.innerHTML = `งานค้าง: <strong style="color:var(--color-yellow);">${dpacPending}</strong> | ทั้งหมด: <strong>${currentDpacTasks.length}</strong> ใบ`;
+            const dpacCompleted = currentDpacTasks.filter(t => t.assignment_status === 'completed').length;
+            const dpacSkipped = currentDpacTasks.filter(t => t.assignment_status === 'skipped').length;
+            dpacText.innerHTML = `งานค้าง: <strong style="color:var(--color-yellow);">${dpacPending}</strong> | ติดตามสำเร็จ: <strong style="color:var(--color-green);">${dpacCompleted}</strong> | รวมมอบหมายทั้งหมด: <strong>${currentDpacTasks.length}</strong> ใบ`;
+        }
+
+        function openScreeningModal(taskId) {
+            const task = currentNcdTasks.find(t => t.task_id == taskId);
+            if (!task) return;
+
+            document.getElementById('modal-screen-title').innerHTML = `📋 รายละเอียดผลการคัดกรอง NCD (รอบที่ ${task.round_number || 1})`;
+            document.getElementById('modal-screen-subtitle').innerHTML = `ผู้รับการคัดกรอง: <strong>${task.first_name} ${task.last_name}</strong> (CID: ${task.cid}) | อายุ ${task.age} ปี | บ้านเลขที่ ${task.house_no} ม.${task.moo}`;
+
+            const modalBody = document.getElementById('modal-screen-body');
+
+            if (task.assignment_status === 'skipped') {
+                modalBody.innerHTML = `
+                    <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 12px; padding: 16px; margin-top: 10px;">
+                        <h4 style="margin: 0 0 8px 0; color: var(--color-red);">❌ สถานะ: ข้ามการคัดกรอง (รอบที่ ${task.round_number || 1})</h4>
+                        <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>เหตุผลที่ระบุ:</strong> ${task.skipped_reason || 'ไม่ระบุเหตุผล'}</p>
+                        <p style="margin: 0; font-size: 13px; color: var(--text-muted);">วันที่บันทึก: ${formatThaiDate(task.screened_at || task.assigned_at)}</p>
+                    </div>
+                `;
+            } else {
+                // Formatting Blood Pressure
+                let bp1 = (task.sys_bp1 && task.dia_bp1) ? `${task.sys_bp1}/${task.dia_bp1} mmHg` : 'ไม่ได้ระบุ';
+                let bp2 = (task.sys_bp2 && task.dia_bp2) ? `${task.sys_bp2}/${task.dia_bp2} mmHg` : 'ไม่ได้วัดซ้ำ';
+                let dtx = task.dtx_value ? `${task.dtx_value} mg/dL (${task.dtx_type === 'fpg' ? 'งดอาหาร 8 ชม.' : 'ไม่งดอาหาร/สุ่ม'})` : 'ไม่ได้ตรวจ';
+                let bmiText = task.bmi ? `${task.bmi}` : '-';
+                let weightText = task.weight ? `${task.weight} กก.` : '-';
+                let heightText = task.height ? `${task.height} ซม.` : '-';
+                let waistText = task.waist ? `${task.waist} ซม.` : '-';
+                let cvRisk = task.cv_risk_score ? `${task.cv_risk_score}%` : 'ไม่มีข้อมูล';
+
+                // Behavior assessment helper
+                const formatRisk = (val) => {
+                    if (val === 'risk' || val === 'yes' || val === '1' || val === 1) return '<span style="color:var(--color-red); font-weight:bold;">⚠️ เสี่ยง</span>';
+                    if (val === 'normal' || val === 'no' || val === '0' || val === 0) return '<span style="color:var(--color-green); font-weight:bold;">ปกติ</span>';
+                    return '<span style="color:var(--text-muted);">-</span>';
+                };
+
+                modalBody.innerHTML = `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+                        <div class="metric-card">
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">🩸 ความดันโลหิต (ครั้งที่ 1)</div>
+                            <div style="font-size: 16px; font-weight: bold; color: var(--text-primary);">${bp1}</div>
+                            ${task.sys_bp2 ? `<div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">ครั้งที่ 2: ${bp2}</div>` : ''}
+                        </div>
+                        <div class="metric-card">
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">🍬 น้ำตาลในเลือด (DTX)</div>
+                            <div style="font-size: 16px; font-weight: bold; color: var(--text-primary);">${dtx}</div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 12px;">
+                        <div class="metric-card" style="text-align: center;">
+                            <div style="font-size: 11.5px; color: var(--text-secondary);">น้ำหนัก / ส่วนสูง</div>
+                            <div style="font-size: 14px; font-weight: bold; margin-top: 2px;">${weightText} / ${heightText}</div>
+                        </div>
+                        <div class="metric-card" style="text-align: center;">
+                            <div style="font-size: 11.5px; color: var(--text-secondary);">รอบเอว</div>
+                            <div style="font-size: 14px; font-weight: bold; margin-top: 2px;">${waistText}</div>
+                        </div>
+                        <div class="metric-card" style="text-align: center;">
+                            <div style="font-size: 11.5px; color: var(--text-secondary);">ดัชนีมวลกาย (BMI)</div>
+                            <div style="font-size: 14px; font-weight: bold; margin-top: 2px; color: var(--color-primary);">${bmiText}</div>
+                        </div>
+                    </div>
+
+                    <div style="background: var(--bg-main); border-radius: 12px; padding: 12px; margin-top: 12px; border: 1px solid var(--border-color);">
+                        <div style="font-size: 13px; font-weight: bold; color: var(--text-primary); margin-bottom: 8px;">🏃 พฤติกรรมสุขภาพ & ความเสี่ยง CVD</div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; font-size: 12.5px;">
+                            <div>การกินอาหาร: ${formatRisk(task.diet_risk)}</div>
+                            <div>ออกกำลังกาย: ${formatRisk(task.exercise_risk)}</div>
+                            <div>ความเครียด: ${formatRisk(task.stress_risk)}</div>
+                            <div>การสูบบุหรี่: ${formatRisk(task.smoking_risk)}</div>
+                            <div>ดื่มสุรา: ${formatRisk(task.alcohol_risk)}</div>
+                            <div>โอกาสเกิด CVD: <strong>${cvRisk}</strong></div>
+                        </div>
+                    </div>
+
+                    ${task.advice_given ? `
+                        <div style="background: rgba(59, 130, 246, 0.06); border-radius: 12px; padding: 12px; margin-top: 12px; border: 1px solid rgba(59, 130, 246, 0.2);">
+                            <div style="font-size: 12.5px; font-weight: bold; color: #2563eb; margin-bottom: 4px;">💬 คำแนะนำที่ให้:</div>
+                            <div style="font-size: 13px; color: var(--text-primary);">${task.advice_given}</div>
+                        </div>
+                    ` : ''}
+
+                    <div style="margin-top: 12px; font-size: 12px; color: var(--text-muted); display: flex; justify-content: space-between;">
+                        <span>📅 วันที่คัดกรอง: <strong>${task.screened_at ? formatThaiDate(task.screened_at) + ' ' + (task.screened_at.split(' ')[1] || '') : 'ไม่ระบุ'}</strong></span>
+                        <span>รอบงาน: <strong>รอบที่ ${task.round_number || 1}</strong></span>
+                    </div>
+                `;
+            }
+
+            document.getElementById('screening-detail-modal').style.display = 'flex';
+        }
+
+        function openDpacModal(taskId) {
+            const task = currentDpacTasks.find(t => t.task_id == taskId);
+            if (!task) return;
+
+            document.getElementById('modal-screen-title').innerHTML = `🏃 รายละเอียดการติดตาม DPAC (ครั้งที่ ${task.round_number || 1})`;
+            document.getElementById('modal-screen-subtitle').innerHTML = `ผู้รับการติดตาม: <strong>${task.first_name} ${task.last_name}</strong> (CID: ${task.cid}) | กลุ่มความเสี่ยง: ${task.risk_type || '-'}`;
+
+            const modalBody = document.getElementById('modal-screen-body');
+
+            if (task.assignment_status === 'skipped') {
+                modalBody.innerHTML = `
+                    <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 12px; padding: 16px; margin-top: 10px;">
+                        <h4 style="margin: 0 0 8px 0; color: var(--color-red);">❌ สถานะ: ข้ามการติดตามรอบนี้</h4>
+                        <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>เหตุผลที่ระบุ:</strong> ${task.skipped_reason || 'ไม่ระบุเหตุผล'}</p>
+                        <p style="margin: 0; font-size: 13px; color: var(--text-muted);">วันที่บันทึก: ${formatThaiDate(task.screened_at || task.assigned_at)}</p>
+                    </div>
+                `;
+            } else {
+                let bp = (task.sys_bp1 && task.dia_bp1) ? `${task.sys_bp1}/${task.dia_bp1} mmHg` : 'ไม่ได้ระบุ';
+                let fbs = task.dtx_value ? `${task.dtx_value} mg/dL` : 'ไม่ได้ตรวจ';
+                let weightText = task.weight ? `${task.weight} กก.` : '-';
+                let waistText = task.waist ? `${task.waist} ซม.` : '-';
+
+                modalBody.innerHTML = `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+                        <div class="metric-card">
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">🩸 ความดันโลหิต</div>
+                            <div style="font-size: 16px; font-weight: bold; color: var(--text-primary);">${bp}</div>
+                        </div>
+                        <div class="metric-card">
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">🍬 ระดับน้ำตาล (FBS)</div>
+                            <div style="font-size: 16px; font-weight: bold; color: var(--text-primary);">${fbs}</div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px;">
+                        <div class="metric-card" style="text-align: center;">
+                            <div style="font-size: 11.5px; color: var(--text-secondary);">น้ำหนัก</div>
+                            <div style="font-size: 14px; font-weight: bold; margin-top: 2px;">${weightText}</div>
+                        </div>
+                        <div class="metric-card" style="text-align: center;">
+                            <div style="font-size: 11.5px; color: var(--text-secondary);">รอบเอว</div>
+                            <div style="font-size: 14px; font-weight: bold; margin-top: 2px;">${waistText}</div>
+                        </div>
+                    </div>
+
+                    ${task.advice_given ? `
+                        <div style="background: rgba(99, 102, 241, 0.06); border-radius: 12px; padding: 12px; margin-top: 12px; border: 1px solid rgba(99, 102, 241, 0.2);">
+                            <div style="font-size: 12.5px; font-weight: bold; color: #6366f1; margin-bottom: 4px;">💬 คำแนะนำในการปรับเปลี่ยนพฤติกรรม:</div>
+                            <div style="font-size: 13px; color: var(--text-primary);">${task.advice_given}</div>
+                        </div>
+                    ` : ''}
+
+                    <div style="margin-top: 12px; font-size: 12px; color: var(--text-muted); display: flex; justify-content: space-between;">
+                        <span>📅 วันที่ติดตามผล: <strong>${task.screened_at ? formatThaiDate(task.screened_at) + ' ' + (task.screened_at.split(' ')[1] || '') : 'ไม่ระบุ'}</strong></span>
+                        <span>รอบงาน: <strong>ครั้งที่ ${task.round_number || 1}</strong></span>
+                    </div>
+                `;
+            }
+
+            document.getElementById('screening-detail-modal').style.display = 'flex';
+        }
+
+        function closeScreeningModal() {
+            document.getElementById('screening-detail-modal').style.display = 'none';
         }
 
         function cancelAssignment(taskType, cid, taskId, name) {
             const bodyData = taskType === 'dpac' ? {
                 followup_id: taskId
             } : {
-                cid: cid
+                cid: cid,
+                task_id: taskId
             };
             const confirmMsg = taskType === 'dpac' ?
                 `⚠️ ยืนยันยกเลิกใบงานติดตาม DPAC ของ [${name}]?\n\nงานติดตามรอบนี้จะถูกดึงคืน อสม. จะไม่เห็นงานนี้ในมือถือทันที` :
@@ -771,7 +1034,8 @@ if ($admin_hoscode !== null) {
                 const bodyData = t.task_type === 'dpac' ? {
                     followup_id: t.task_id
                 } : {
-                    cid: t.cid
+                    cid: t.cid,
+                    task_id: t.task_id
                 };
                 return fetch('../api/cancel_assignment.php', {
                     method: 'POST',
@@ -796,6 +1060,29 @@ if ($admin_hoscode !== null) {
                 });
         }
     </script>
+
+    <!-- Screening Details Modal -->
+    <div id="screening-detail-modal" class="modal-overlay" onclick="if(event.target === this) closeScreeningModal()">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                <div>
+                    <h3 style="margin: 0; color: var(--color-primary); font-size: 17px;" id="modal-screen-title">📋 ผลการคัดกรอง NCD</h3>
+                    <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 13px;" id="modal-screen-subtitle">รายละเอียดการตรวจคัดกรองสุขภาพ</p>
+                </div>
+                <button type="button" onclick="closeScreeningModal()" style="background: none; border: none; font-size: 24px; color: var(--text-muted); cursor: pointer; line-height: 1; padding: 0 4px;">&times;</button>
+            </div>
+            
+            <div id="modal-screen-body">
+                <!-- Dynamic Content -->
+            </div>
+
+            <div style="text-align: right; margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border-color);">
+                <button type="button" onclick="closeScreeningModal()" style="background: var(--bg-main); color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px 18px; border-radius: 10px; font-weight: bold; cursor: pointer;">
+                    ปิดหน้าต่าง
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

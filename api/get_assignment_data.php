@@ -29,10 +29,15 @@ try {
         $query = "
             SELECT p.cid, p.first_name, p.last_name, p.house_no, p.birth, 
                    TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) AS age,
-                   v.vhv_name as assigned_vhv, a.assignment_status,
+                   v.vhv_name as assigned_vhv, a.assignment_status, a.round_number,
+                   (SELECT IFNULL(MAX(round_number), 0) FROM task_assignments ta WHERE ta.target_cid = p.cid AND ta.budget_year = 2026 AND ta.assignment_status = 'completed' AND ta.is_sandbox = ?) as max_completed_round,
                    p.health_status_origin, p.need_screen_dm, p.need_screen_ht
             FROM target_population p
-            LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026 AND a.is_sandbox = ?
+            LEFT JOIN task_assignments a ON a.assignment_id = (
+                SELECT assignment_id FROM task_assignments ta 
+                WHERE ta.target_cid = p.cid AND ta.budget_year = 2026 AND ta.is_sandbox = ?
+                ORDER BY ta.round_number DESC, ta.assignment_id DESC LIMIT 1
+            )
             LEFT JOIN vhv_users v ON a.vhv_id = v.vhv_id
             WHERE (p.vhid_code = ? OR (CAST(p.moo AS UNSIGNED) = CAST(? AS UNSIGNED) AND p.hoscode = ?))
         ";
@@ -53,7 +58,7 @@ try {
         
         $target_hoscode = $admin_hoscode ? $admin_hoscode : ($_GET['hoscode'] ?? null);
         $hoscodeParam = $target_hoscode ?: '';
-        $params = [$isSandboxVal, $vhid, $moo, $hoscodeParam];
+        $params = [$isSandboxVal, $isSandboxVal, $vhid, $moo, $hoscodeParam];
         if ($target_hoscode) {
             $hoscodes = get_query_hoscodes($target_hoscode);
             $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
@@ -73,16 +78,10 @@ try {
                        (
                            SELECT COUNT(*) 
                            FROM task_assignments a 
-                           JOIN target_population p ON a.target_cid = p.cid
                            WHERE a.vhv_id = v.vhv_id 
                              AND a.budget_year = 2026 
                              AND a.assignment_status = 'pending'
                              AND a.is_sandbox = :is_sandbox1
-                             AND (
-                                 (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-                                 OR 
-                                 (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
-                             )
                        ) + (
                            SELECT COUNT(*) 
                            FROM dpac_followups f
@@ -95,15 +94,9 @@ try {
                        (
                            SELECT COUNT(*) 
                            FROM task_assignments a 
-                           JOIN target_population p ON a.target_cid = p.cid
                            WHERE a.vhv_id = v.vhv_id 
                              AND a.budget_year = 2026 
                              AND a.is_sandbox = :is_sandbox3
-                             AND (
-                                 (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-                                 OR 
-                                 (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
-                             )
                        ) + (
                            SELECT COUNT(*) 
                            FROM dpac_followups f
@@ -120,11 +113,6 @@ try {
                              AND a.budget_year = 2026 
                              AND p.vhid_code = :vhid1
                              AND a.is_sandbox = :is_sandbox5
-                             AND (
-                                 (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-                                 OR 
-                                 (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
-                             )
                        ) + (
                            SELECT COUNT(*) 
                            FROM dpac_followups f

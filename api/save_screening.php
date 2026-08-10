@@ -128,6 +128,8 @@ try {
         $cvRiskScore = (float)($_POST['cv_risk_score'] ?? 0);
         $adviceGiven = $_POST['advice_given'] ?? '';
 
+        $roundNumber = (int)($assignment['round_number'] ?? 1);
+
         // 0. ปกป้องคะแนน อสม. คนเก่าโดยการเซ็ตค่า FK ใน vhv_rewards เป็น NULL ก่อนทำการลบผลลัพธ์คัดกรองเก่า
         $nullifyStmt = $pdo->prepare("
             UPDATE vhv_rewards 
@@ -142,14 +144,14 @@ try {
 
         $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
 
-        // 1. Insert into screening_results
+        // 1. Insert into screening_results with round_number
         $screenStmt = $pdo->prepare("
             INSERT INTO screening_results 
-            (assignment_id, sys_bp1, dia_bp1, sys_bp2, dia_bp2, dtx_value, dtx_type, weight, height, waist, bmi, diet_risk, exercise_risk, stress_risk, smoking_risk, alcohol_risk, cv_risk_score, screening_lat, screening_lng, advice_given, is_sandbox)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (assignment_id, round_number, sys_bp1, dia_bp1, sys_bp2, dia_bp2, dtx_value, dtx_type, weight, height, waist, bmi, diet_risk, exercise_risk, stress_risk, smoking_risk, alcohol_risk, cv_risk_score, screening_lat, screening_lng, advice_given, is_sandbox)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $screenStmt->execute([
-            $assignmentId, $sys1, $dia1, $sys2, $dia2, $dtx, $dtxType,
+            $assignmentId, $roundNumber, $sys1, $dia1, $sys2, $dia2, $dtx, $dtxType,
             $weight, $height, $waist, round($bmi, 2),
             $diet, $exercise, $stress, $smoking, $alcohol, $cvRiskScore,
             $lat, $lng, $adviceGiven, $isSandboxVal
@@ -386,12 +388,14 @@ try {
         }
         $updateAssign->execute([$assignmentId]);
 
+        $roundNumber = (int)($assignment['round_number'] ?? 1);
+
         // 2. Insert record in screening_results with skipped reason
         $screenStmt = $pdo->prepare("
-            INSERT INTO screening_results (assignment_id, skipped_reason, screening_lat, screening_lng, is_sandbox)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO screening_results (assignment_id, round_number, skipped_reason, screening_lat, screening_lng, is_sandbox)
+            VALUES (?, ?, ?, ?, ?, ?)
         ");
-        $screenStmt->execute([$assignmentId, $skippedReason, $lat, $lng, $isSandboxVal]);
+        $screenStmt->execute([$assignmentId, $roundNumber, $skippedReason, $lat, $lng, $isSandboxVal]);
         $screeningId = $pdo->lastInsertId();
 
         // 3. Award VHV +1 reward point immediately (approval_status = 'approved') to motivate them

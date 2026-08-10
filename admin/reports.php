@@ -69,6 +69,7 @@ $filter_age = $_GET['age'] ?? '';
 $filter_screen_status = $_GET['screen_status'] ?? 'all';
 $filter_vhv_status = $_GET['vhv_status'] ?? 'all';
 $filter_vhv_progress = $_GET['vhv_progress'] ?? 'all';
+$filter_round = $_GET['round'] ?? '1'; // Default '1' Baseline for annual reports
 
 // Force sub-admin to see only their hoscode
 if ($admin_hoscode !== null) {
@@ -95,13 +96,18 @@ if ($filter_source === 'screened') {
     // Query VHV screened results
     $sql = "
         SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.sub_district_code, COALESCE(v.hoscode, p.hoscode) as hoscode,
-               s.sys_bp1, s.dia_bp1, s.dtx_value, s.bmi, s.cv_risk_score, s.created_at
+               s.sys_bp1, s.dia_bp1, s.dtx_value, s.bmi, s.cv_risk_score, s.created_at, a.round_number
         FROM screening_results s
         JOIN task_assignments a ON s.assignment_id = a.assignment_id
         JOIN target_population p ON a.target_cid = p.cid
         LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
         WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ";
+
+    if ($filter_round !== 'all') {
+        $sql .= " AND a.round_number = ?";
+        $params[] = intval($filter_round);
+    }
 
     if ($filter_hoscode) {
         $hoscodes = get_query_hoscodes($filter_hoscode);
@@ -903,6 +909,19 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                                 รายงานสรุปสถิติภาพรวมระดับ รพ.สต.</option>
                         </select>
                     </div>
+
+                    <?php if ($filter_source === 'screened'): ?>
+                        <!-- Screening Round selection -->
+                        <div class="form-group">
+                            <label>รอบการคัดกรอง</label>
+                            <select name="round" class="form-select" onchange="this.form.submit()">
+                                <option value="1" <?= $filter_round === '1' ? 'selected' : '' ?>>รอบที่ 1 (ประจำปี/Baseline - ส่งรายงาน HDC)</option>
+                                <option value="2" <?= $filter_round === '2' ? 'selected' : '' ?>>🔄 รอบที่ 2 (คัดกรองติดตามซ้ำ)</option>
+                                <option value="3" <?= $filter_round === '3' ? 'selected' : '' ?>>🔄 รอบที่ 3 (คัดกรองติดตามซ้ำ)</option>
+                                <option value="all" <?= $filter_round === 'all' ? 'selected' : '' ?>>ทุกรอบคัดกรอง</option>
+                            </select>
+                        </div>
+                    <?php endif; ?>
 
                     <?php if ($filter_source === 'unscreened'): ?>
                         <!-- Screening Status selection -->

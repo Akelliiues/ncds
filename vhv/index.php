@@ -30,7 +30,7 @@ try {
     $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
 
     $pendingStmt = $pdo->prepare("
-        SELECT a.assignment_id, a.assignment_status, p.cid, p.hid, p.first_name, p.last_name, p.house_no, p.moo, p.sex, p.birth, p.need_screen_dm, p.need_screen_ht, p.health_status_origin,
+        SELECT a.assignment_id, a.assignment_status, a.round_number, p.cid, p.hid, p.first_name, p.last_name, p.house_no, p.moo, p.sex, p.birth, p.need_screen_dm, p.need_screen_ht, p.health_status_origin,
                COALESCE(
                    (SELECT sr.sys_bp1 FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
                    (SELECT ht.sbp FROM staging_hdc_ht ht WHERE ht.cid = p.cid ORDER BY ht.imported_at DESC LIMIT 1)
@@ -61,7 +61,7 @@ try {
     $pendingTasks = $pendingStmt->fetchAll();
 
     $completedStmt = $pdo->prepare("
-        SELECT a.assignment_id, a.assignment_status, p.cid, p.hid, p.first_name, p.last_name, p.house_no, p.moo, p.sex, p.birth,
+        SELECT a.assignment_id, a.assignment_status, a.round_number, p.cid, p.hid, p.first_name, p.last_name, p.house_no, p.moo, p.sex, p.birth,
                sr.sys_bp1, sr.dia_bp1, sr.sys_bp2, sr.dia_bp2, sr.dtx_value, sr.dtx_type,
                sr.weight, sr.height, sr.waist, sr.bmi, sr.diet_risk, sr.exercise_risk,
                sr.stress_risk, sr.smoking_risk, sr.alcohol_risk, sr.cv_risk_score,
@@ -407,9 +407,14 @@ try {
                                 สิทธิ์การคัดกรอง: 
                                 <?php if ($pt['need_screen_dm']): ?>
                                     <span style="color: var(--color-accent);">DM</span>
-                                  <?php endif; ?>
+                                <?php endif; ?>
                                 <?php if ($pt['need_screen_ht']): ?>
                                     <span style="color: var(--color-primary); margin-left: 5px;">HT</span>
+                                <?php endif; ?>
+                                <?php if (intval($pt['round_number'] ?? 1) > 1): ?>
+                                    <span style="background-color: rgba(99, 102, 241, 0.15); color: #6366f1; border: 1px solid rgba(99, 102, 241, 0.3); padding: 2px 6px; border-radius: 10px; font-size: 11px; font-weight: bold; margin-left: 6px;">
+                                        🔄 คัดกรองซ้ำ ครั้งที่ <?= $pt['round_number'] ?>
+                                    </span>
                                 <?php endif; ?>
                             </p>
                         </div>

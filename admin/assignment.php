@@ -330,7 +330,16 @@ try {
                 </div>
 
                 <div style="margin-top: 12px; font-size: 14px; color: var(--text-secondary);">
-                    <p>👉 เลือกประชากรทางซ้ายมือ และกดปุ่ม <b>"มอบหมาย"</b> ที่ อสม. ด้านล่างนี้</p>
+                    <p style="margin-bottom: 8px;">👉 เลือกประชากรทางซ้ายมือ เลือกเปิดรอบคัดกรอง และกดปุ่ม <b>"มอบหมาย"</b> ที่ อสม. ด้านล่างนี้</p>
+                    <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; background: var(--bg-main); padding: 8px 14px; border-radius: 12px; border: 1px solid var(--border-color);">
+                        <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">🎯 รอบการคัดกรอง:</span>
+                        <select id="assign-round-select" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--color-primary); font-size: 13px; font-weight: 800;">
+                            <option value="auto" selected>✨ อัตโนมัติ (ต่อรอบ 1 ➔ 2 ➔ 3 อัตโนมัติ)</option>
+                            <option value="1">รอบที่ 1 (ประจำปี / Baseline)</option>
+                            <option value="2">🔄 รอบที่ 2 (คัดกรองติดตามซ้ำ)</option>
+                            <option value="3">🔄 รอบที่ 3 (คัดกรองติดตามซ้ำ)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="list-body" id="vhv-list">
@@ -596,21 +605,28 @@ try {
             filteredTargets.forEach(t => {
                 let assignedText = '';
                 let cancelBtn = '';
+                const completedRound = parseInt(t.max_completed_round) || 0;
+                const currentRound = parseInt(t.round_number) || 1;
+
                 if (t.assigned_vhv) {
                     if (t.assignment_status === 'completed') {
-                        assignedText = `<span style="color: var(--color-green); font-size: 12px; font-weight: bold;">✅ คัดกรองแล้ว (อสม. ${t.assigned_vhv})</span>`;
+                        assignedText = `<span style="color: var(--color-green); font-size: 12px; font-weight: bold;">✅ คัดกรองรอบที่ ${currentRound} แล้ว (อสม. ${t.assigned_vhv})</span>`;
                     } else if (t.assignment_status === 'skipped') {
-                        assignedText = `<span style="color: var(--color-red); font-size: 12px; font-weight: bold;">❌ ข้ามเคสแล้ว (อสม. ${t.assigned_vhv})</span>`;
+                        assignedText = `<span style="color: var(--color-red); font-size: 12px; font-weight: bold;">❌ ข้ามเคสรอบที่ ${currentRound} (อสม. ${t.assigned_vhv})</span>`;
                     } else {
-                        assignedText = `<span style="color: var(--color-yellow); font-size: 12px; font-weight: bold;">⏳ มอบหมาย (${t.assigned_vhv})</span>`;
-                        cancelBtn = `<button onclick="cancelAssignment('${t.cid}', '${(t.first_name + ' ' + t.last_name).replace(/'/g, "\\'")}')"
+                        assignedText = `<span style="color: var(--color-yellow); font-size: 12px; font-weight: bold;">⏳ รอดำเนินการรอบที่ ${currentRound} (${t.assigned_vhv})</span>`;
+                        cancelBtn = `<button onclick="cancelAssignment('${t.cid}', '${(t.first_name + ' ' + t.last_name).replace(/'/g, "\\'")}', ${t.assignment_id || 0})"
                             style="margin-left:8px; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--color-red, #ef4444); background: transparent; color: var(--color-red, #ef4444); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
                             onmouseover="this.style.background='rgba(239,68,68,0.12)'"
                             onmouseout="this.style.background='transparent'"
                         >ยกเลิก</button>`;
                     }
                 } else {
-                    assignedText = '<span style="color: var(--text-muted); font-size: 12px;">(ยังไม่มอบหมาย)</span>';
+                    if (completedRound > 0) {
+                        assignedText = `<span style="color: var(--color-accent); font-size: 12px; font-weight: bold;">✨ ผ่านรอบ ${completedRound} แล้ว ➔ พร้อมต่อรอบ ${completedRound + 1}</span>`;
+                    } else {
+                        assignedText = '<span style="color: var(--text-muted); font-size: 12px;">(ยังไม่มอบหมาย - รอบ 1)</span>';
+                    }
                 }
 
                 html += `
@@ -704,25 +720,37 @@ try {
                 return;
             }
 
-            // Find selected targets that are already completed/skipped
-            const screenedTargets = currentTargets.filter(t =>
-                cids.includes(t.cid) &&
-                (t.assignment_status === 'completed' || t.assignment_status === 'skipped')
+            const roundVal = document.getElementById('assign-round-select')?.value || 'auto';
+
+            // Check targets that already completed previous round
+            const completedTargets = currentTargets.filter(t =>
+                cids.includes(t.cid) && t.assignment_status === 'completed'
             );
 
-            if (screenedTargets.length > 0) {
-                const names = screenedTargets.map(t => `- ${t.first_name} ${t.last_name} (${t.assignment_status === 'completed' ? 'คัดกรองเสร็จแล้ว' : 'ข้ามเคสแล้ว'})`).join('\n');
+            // Only show warning if admin explicitly forces Round 1 overwrite
+            if (roundVal === '1' && completedTargets.length > 0) {
+                const names = completedTargets.map(t => `- ${t.first_name} ${t.last_name}`).join('\n');
                 const confirmProceed = confirm(
-                    `⚠️ คำเตือนสำคัญ!\n\n` +
-                    `ตรวจพบกลุ่มเป้าหมายที่มีการคัดกรองเสร็จสิ้นแล้ว ดังนี้:\n${names}\n\n` +
-                    `หากเปลี่ยนตัว อสม. ผลคัดกรองเดิมที่เคยบันทึกไว้จะถูกรีเซ็ตล้าง และ อสม. คนใหม่จะต้องทำการบันทึกข้อมูลใหม่อีกรอบ!\n\n` +
-                    `*(หมายเหตุ: คะแนนสะสมและประวัติผลงานของ อสม. ท่านเดิมที่เคยทำไว้จะถูกเก็บรักษาไว้ ไม่ถูกลบหาย)*\n\n` +
-                    `คุณแน่ใจหรือว่าต้องการเขียนทับผลงานการคัดกรองเดิมและสลับตัว อสม. สำหรับเป้าหมายเหล่านี้หรือไม่?`
+                    `⚠️ แจ้งเตือนการเลือกบังคับคัดกรองรอบที่ 1:\n\n` +
+                    `ตรวจพบกลุ่มเป้าหมายที่เคยคัดกรองสำเร็จแล้ว ดังนี้:\n${names}\n\n` +
+                    `หากท่านต้องการให้เปิดงานคัดกรองซ้ำ (รอบที่ 2, 3...) โดยไม่เขียนทับข้อมูลเดิม แนะนำให้เลือก '✨ อัตโนมัติ (ต่อรอบ)' แทนครับ\n\n` +
+                    `คุณแน่ใจหรือว่าต้องการบังคับระบุเป็นรอบที่ 1 หรือไม่?`
                 );
                 if (!confirmProceed) return;
             }
 
-            if (confirm(`ยืนยันมอบหมายงาน ${cids.length} ราย ให้ อสม. ท่านนี้?`)) {
+            let confirmMsg = '';
+            if (roundVal === 'auto') {
+                if (completedTargets.length > 0) {
+                    confirmMsg = `ยืนยันมอบหมายงาน ${cids.length} ราย ให้ อสม. ท่านนี้?\n\n(ระบบจะเปิดงานคัดกรองซ้ำรอบถัดไป ให้อัตโนมัติ โดยเก็บผลการคัดกรองเดิมไว้ครบถ้วน)`;
+                } else {
+                    confirmMsg = `ยืนยันมอบหมายงาน ${cids.length} ราย ให้ อสม. ท่านนี้?`;
+                }
+            } else {
+                confirmMsg = `ยืนยันมอบหมายงาน (รอบที่ ${roundVal}) จำนวน ${cids.length} ราย ให้ อสม. ท่านนี้?`;
+            }
+
+            if (confirm(confirmMsg)) {
                 fetch('../api/assign_tasks.php', {
                         method: 'POST',
                         headers: {
@@ -730,7 +758,8 @@ try {
                         },
                         body: JSON.stringify({
                             vhv_id: vhvId,
-                            target_cids: cids
+                            target_cids: cids,
+                            round_number: roundVal
                         })
                     })
                     .then(r => r.json())
@@ -778,7 +807,7 @@ try {
             }
         }
 
-        function cancelAssignment(cid, name) {
+        function cancelAssignment(cid, name, assignmentId = 0) {
             if (!confirm(`ยืนยันยกเลิกการมอบหมายงานของ\n"${name}"\n\nรายชื่อนี้จะกลับสู่สถานะ "ยังไม่มอบหมาย" และ อสม. จะไม่เห็นงานนี้อีกต่อไป`)) {
                 return;
             }
@@ -789,7 +818,8 @@ try {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        cid: cid
+                        cid: cid,
+                        assignment_id: assignmentId
                     })
                 })
                 .then(r => r.json())

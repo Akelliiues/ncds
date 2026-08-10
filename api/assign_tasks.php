@@ -41,6 +41,19 @@ if ($admin_hoscode) {
     }
 }
 
+$requestedRound = isset($data['round_number']) && is_numeric($data['round_number']) ? (int)$data['round_number'] : 0;
+
+try {
+    $idxNew = $pdo->query("SHOW INDEX FROM `task_assignments` WHERE Key_name = 'udx_cid_year_round_sb'")->fetchAll();
+    if (empty($idxNew)) {
+        $pdo->exec("ALTER TABLE `task_assignments` ADD UNIQUE KEY `udx_cid_year_round_sb` (`target_cid`, `budget_year`, `round_number`, `is_sandbox`)");
+    }
+    $idxOld = $pdo->query("SHOW INDEX FROM `task_assignments` WHERE Key_name = 'udx_cid_year'")->fetchAll();
+    if (!empty($idxOld)) {
+        $pdo->exec("ALTER TABLE `task_assignments` DROP INDEX `udx_cid_year`");
+    }
+} catch (\PDOException $e) {}
+
 try {
     $pdo->beginTransaction();
 
@@ -73,49 +86,58 @@ try {
 
         $isSandboxVal = isSandboxMode($vhvRow['hoscode']) ? 1 : 0;
 
-        // Check existing assignment in the current mode
-        $checkStmt = $pdo->prepare("SELECT * FROM task_assignments WHERE target_cid = ? AND budget_year = ? AND is_sandbox = ?");
-        $checkStmt->execute([$cid, $currentYear, $isSandboxVal]);
-        $existing = $checkStmt->fetch();
+        // Check if there is an existing PENDING assignment for this target
+        $pendingCheck = $pdo->prepare("
+            SELECT * FROM task_assignments 
+            WHERE target_cid = ? AND budget_year = ? AND assignment_status = 'pending' AND is_sandbox = ? 
+            ORDER BY round_number DESC LIMIT 1
+        ");
+        $pendingCheck->execute([$cid, $currentYear, $isSandboxVal]);
+        $existingPending = $pendingCheck->fetch();
 
-        if ($existing) {
-            if ($existing['vhv_id'] !== $vhvId) {
-                // ปกป้องคะแนนของ อสม. คนเดิม: เซ็ตค่า screening_id ใน vhv_rewards ให้เป็น NULL ก่อนเปลี่ยนตัว
-                // เพื่อไม่ให้โดนลบคะแนนตามกลไก Cascade ในภายหลัง
-                if (in_array($existing['assignment_status'], ['completed', 'skipped'])) {
-                    $nullifyStmt = $pdo->prepare("
-                        UPDATE vhv_rewards 
-                        SET screening_id = NULL 
-                        WHERE screening_id IN (SELECT screening_id FROM screening_results WHERE assignment_id = ?)
-                    ");
-                    $nullifyStmt->execute([$existing['assignment_id']]);
-                }
+        if ($existingPending) {
+            // Update VHV for existing pending assignment
+            if ($existingPending['vhv_id'] !== $vhvId) {
+                $oldVhvId = $existingPending['vhv_id'];
+                $targetRound = $existingPending['round_number'];
 
-                $oldVhvId = $existing['vhv_id'];
-                
-                // Update assignment
                 $updateStmt = $pdo->prepare("
                     UPDATE task_assignments 
-                    SET vhv_id = ?, assignment_status = 'pending', assigned_at = CURRENT_TIMESTAMP 
+                    SET vhv_id = ?, assigned_at = CURRENT_TIMESTAMP 
                     WHERE assignment_id = ?
                 ");
-                $updateStmt->execute([$vhvId, $existing['assignment_id']]);
+                $updateStmt->execute([$vhvId, $existingPending['assignment_id']]);
 
                 // Log history
-                $note = "เปลี่ยนจาก VHV: $oldVhvId เป็น $vhvId โดย $staffName ($reason)";
+                $note = "เปลี่ยนจาก VHV: $oldVhvId เป็น $vhvId โดย $staffName ($reason) - รอบที่ $targetRound";
                 $logStmt = $pdo->prepare("
                     INSERT INTO assignment_history_log (assignment_id, action, note)
                     VALUES (?, 'REASSIGN', ?)
                 ");
-                $logStmt->execute([$existing['assignment_id'], $note]);
+                $logStmt->execute([$existingPending['assignment_id'], $note]);
             }
         } else {
-            // New assignment
+            // No pending assignment exists (target is either new or has completed previous rounds)
+            if ($requestedRound > 0) {
+                $targetRound = $requestedRound;
+            } else {
+                // Auto-detect next round: max completed round + 1
+                $maxRoundStmt = $pdo->prepare("
+                    SELECT IFNULL(MAX(round_number), 0) 
+                    FROM task_assignments 
+                    WHERE target_cid = ? AND budget_year = ? AND is_sandbox = ?
+                ");
+                $maxRoundStmt->execute([$cid, $currentYear, $isSandboxVal]);
+                $maxRound = (int)$maxRoundStmt->fetchColumn();
+                $targetRound = $maxRound + 1;
+            }
+
+            // Insert new assignment for targetRound
             $insertStmt = $pdo->prepare("
-                INSERT INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox)
-                VALUES (?, ?, ?, 'pending', ?)
+                INSERT INTO task_assignments (target_cid, vhv_id, budget_year, round_number, assignment_status, is_sandbox)
+                VALUES (?, ?, ?, ?, 'pending', ?)
             ");
-            $insertStmt->execute([$cid, $vhvId, $currentYear, $isSandboxVal]);
+            $insertStmt->execute([$cid, $vhvId, $currentYear, $targetRound, $isSandboxVal]);
         }
     }
 

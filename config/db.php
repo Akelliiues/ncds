@@ -1837,6 +1837,35 @@ try {
                 $pdo->exec("ALTER TABLE `dpac_followups` ADD COLUMN `is_sandbox_completed` TINYINT(1) DEFAULT 0");
             }
         } catch (\PDOException $e) {}
+
+        // 4. Auto-migration for NCD Multi-Round Re-screening
+        try {
+            $checkTaRound = $pdo->query("SHOW COLUMNS FROM `task_assignments` LIKE 'round_number'")->fetchAll();
+            if (empty($checkTaRound)) {
+                $pdo->exec("ALTER TABLE `task_assignments` ADD COLUMN `round_number` INT NOT NULL DEFAULT 1");
+            }
+        } catch (\PDOException $e) {}
+
+        try {
+            $checkSrRound = $pdo->query("SHOW COLUMNS FROM `screening_results` LIKE 'round_number'")->fetchAll();
+            if (empty($checkSrRound)) {
+                $pdo->exec("ALTER TABLE `screening_results` ADD COLUMN `round_number` INT NOT NULL DEFAULT 1");
+            }
+        } catch (\PDOException $e) {}
+
+        try {
+            $indexStmt2 = $pdo->query("SHOW INDEX FROM `task_assignments` WHERE Key_name = 'udx_cid_year_round_sb'")->fetchAll();
+            if (empty($indexStmt2)) {
+                $pdo->exec("ALTER TABLE `task_assignments` ADD UNIQUE KEY `udx_cid_year_round_sb` (`target_cid`, `budget_year`, `round_number`, `is_sandbox`)");
+            }
+        } catch (\PDOException $e) {}
+
+        try {
+            $indexStmt = $pdo->query("SHOW INDEX FROM `task_assignments` WHERE Key_name = 'udx_cid_year'")->fetchAll();
+            if (!empty($indexStmt)) {
+                $pdo->exec("ALTER TABLE `task_assignments` DROP INDEX `udx_cid_year`");
+            }
+        } catch (\PDOException $e) {}
     }
 } catch (\Exception $e) {
     // Fail silently

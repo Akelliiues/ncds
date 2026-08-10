@@ -80,23 +80,36 @@ if (isset($data['followup_id'])) {
 }
 
 // CASE 2: NCD Screening Cancellation
-$cid = trim($data['cid']);
+$cid = isset($data['cid']) ? trim($data['cid']) : '';
+$assignmentId = isset($data['task_id']) ? intval($data['task_id']) : (isset($data['assignment_id']) ? intval($data['assignment_id']) : 0);
 
 try {
     $isSandboxVal = isSandboxMode($admin_hoscode) ? 1 : 0;
-    // ดึง assignment ที่จะยกเลิก
-    $stmt = $pdo->prepare("
-        SELECT ta.assignment_id, ta.vhv_id, ta.assignment_status, tp.hoscode
-        FROM task_assignments ta
-        JOIN target_population tp ON ta.target_cid = tp.cid
-        WHERE ta.target_cid = ? AND ta.budget_year = ? AND ta.is_sandbox = ?
-        LIMIT 1
-    ");
-    $stmt->execute([$cid, $currentYear, $isSandboxVal]);
+
+    if ($assignmentId > 0) {
+        $stmt = $pdo->prepare("
+            SELECT ta.assignment_id, ta.vhv_id, ta.assignment_status, ta.target_cid, tp.hoscode
+            FROM task_assignments ta
+            JOIN target_population tp ON ta.target_cid = tp.cid
+            WHERE ta.assignment_id = ? AND ta.is_sandbox = ?
+            LIMIT 1
+        ");
+        $stmt->execute([$assignmentId, $isSandboxVal]);
+    } else {
+        // Fetch ONLY latest PENDING assignment for this CID
+        $stmt = $pdo->prepare("
+            SELECT ta.assignment_id, ta.vhv_id, ta.assignment_status, ta.target_cid, tp.hoscode
+            FROM task_assignments ta
+            JOIN target_population tp ON ta.target_cid = tp.cid
+            WHERE ta.target_cid = ? AND ta.budget_year = ? AND ta.assignment_status = 'pending' AND ta.is_sandbox = ?
+            ORDER BY ta.round_number DESC LIMIT 1
+        ");
+        $stmt->execute([$cid, $currentYear, $isSandboxVal]);
+    }
     $assignment = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$assignment) {
-        echo json_encode(['status' => 'error', 'message' => 'ไม่พบข้อมูลการมอบหมายงานในโหมดการทำงานปัจจุบัน']);
+        echo json_encode(['status' => 'error', 'message' => 'ไม่พบข้อมูลการมอบหมายงานรอดำเนินการที่สามารถยกเลิกได้ (ไม่สามารถยกเลิกงานที่คัดกรองเสร็จแล้ว)']);
         exit();
     }
 
@@ -121,12 +134,12 @@ try {
     ");
     $logStmt->execute([
         $assignment['assignment_id'],
-        "ยกเลิกการมอบหมายงานโดยผู้ดูแลระบบ (CID: $cid)"
+        "ยกเลิกการมอบหมายงานโดยผู้ดูแลระบบ (CID: {$assignment['target_cid']})"
     ]);
 
-    // ลบ assignment(s) ทั้งหมดของ CID นี้สำหรับปีงบประมาณนี้และในโหมดการทำงานปัจจุบัน
-    $delStmt = $pdo->prepare("DELETE FROM task_assignments WHERE target_cid = ? AND budget_year = ? AND is_sandbox = ?");
-    $delStmt->execute([$cid, $currentYear, $isSandboxVal]);
+    // ลบเฉพาะใบงานรอดำเนินการ (pending) ของ assignment_id นี้เท่านั้น เพื่อรักษาประวัติผลงานย้อนหลัง
+    $delStmt = $pdo->prepare("DELETE FROM task_assignments WHERE assignment_id = ? AND assignment_status = 'pending'");
+    $delStmt->execute([$assignment['assignment_id']]);
 
     // ลบคะแนนสะสมที่เกี่ยวข้อง (ถ้ามี)
     $delRewards = $pdo->prepare("DELETE FROM vhv_rewards WHERE assignment_id = ?");

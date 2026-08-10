@@ -51,7 +51,7 @@ if (!$isShell) {
     $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
     if (!empty($hid)) {
         $residentsStmt = $pdo->prepare("
-            SELECT p.*, a.assignment_id,
+            SELECT p.*, a.assignment_id, a.round_number,
                    COALESCE(
                        (SELECT sr.sys_bp1 FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
                        (SELECT ht.sbp FROM staging_hdc_ht ht WHERE ht.cid = p.cid ORDER BY ht.imported_at DESC LIMIT 1)
@@ -97,7 +97,7 @@ if (!$isShell) {
         }
     } else {
         $residentsStmt = $pdo->prepare("
-            SELECT p.*, a.assignment_id,
+            SELECT p.*, a.assignment_id, a.round_number,
                    COALESCE(
                        (SELECT sr.sys_bp1 FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
                        (SELECT ht.sbp FROM staging_hdc_ht ht WHERE ht.cid = p.cid ORDER BY ht.imported_at DESC LIMIT 1)
@@ -369,6 +369,11 @@ if (!$isShell) {
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                     <div>
                                         <strong style="font-size: 18px; color: var(--text-primary);"><?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?></strong>
+                                        <?php if (intval($r['round_number'] ?? 1) > 1): ?>
+                                            <span style="background-color: rgba(99, 102, 241, 0.15); color: #6366f1; border: 1px solid rgba(99, 102, 241, 0.3); padding: 2px 6px; border-radius: 10px; font-size: 12px; font-weight: bold; margin-left: 6px;">
+                                                🔄 คัดกรองซ้ำ ครั้งที่ <?= $r['round_number'] ?>
+                                            </span>
+                                        <?php endif; ?>
                                         <p style="margin: 4px 0 0 0; font-size: 14px; color: var(--text-secondary);">
                                             เพศ: <?= $r['sex'] == '1' ? 'ชาย' : 'หญิง' ?> • อายุ: <?= date_diff(date_create($r['birth']), date_create('today'))->y ?> ปี
                                         </p>
