@@ -127,7 +127,7 @@ try {
 
     $pdo->beginTransaction();
 
-    // บันทึก log ก่อนลบ
+    // 1. บันทึก log ก่อนการยกเลิก
     $logStmt = $pdo->prepare("
         INSERT INTO assignment_history_log (assignment_id, action, note)
         VALUES (?, 'CANCEL', ?)
@@ -137,13 +137,32 @@ try {
         "ยกเลิกการมอบหมายงานโดยผู้ดูแลระบบ (CID: {$assignment['target_cid']})"
     ]);
 
-    // ลบเฉพาะใบงานรอดำเนินการ (pending) ของ assignment_id นี้เท่านั้น เพื่อรักษาประวัติผลงานย้อนหลัง
+    // 2. ป้องกันการลบข้อมูลแบบ CASCADE โดยการรับประกัน target_cid และปลดล็อก assignment_id บน screening_results
+    $ensureCidStmt = $pdo->prepare("
+        UPDATE screening_results 
+        SET target_cid = ? 
+        WHERE (target_cid IS NULL OR target_cid = '') AND assignment_id = ?
+    ");
+    $ensureCidStmt->execute([$assignment['target_cid'], $assignment['assignment_id']]);
+
+    $unlinkSrStmt = $pdo->prepare("
+        UPDATE screening_results 
+        SET assignment_id = NULL 
+        WHERE assignment_id = ?
+    ");
+    $unlinkSrStmt->execute([$assignment['assignment_id']]);
+
+    // 3. ปลดล็อกตารางคะแนนสะสมก่อนลบใบงาน
+    $unlinkRwStmt = $pdo->prepare("
+        UPDATE vhv_rewards 
+        SET assignment_id = NULL 
+        WHERE assignment_id = ?
+    ");
+    $unlinkRwStmt->execute([$assignment['assignment_id']]);
+
+    // 4. ลบเฉพาะใบงานรอดำเนินการ (pending) ของ assignment_id นี้เท่านั้น
     $delStmt = $pdo->prepare("DELETE FROM task_assignments WHERE assignment_id = ? AND assignment_status = 'pending'");
     $delStmt->execute([$assignment['assignment_id']]);
-
-    // ลบคะแนนสะสมที่เกี่ยวข้อง (ถ้ามี)
-    $delRewards = $pdo->prepare("DELETE FROM vhv_rewards WHERE assignment_id = ?");
-    $delRewards->execute([$assignment['assignment_id']]);
 
     $pdo->commit();
 

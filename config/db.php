@@ -1872,15 +1872,16 @@ try {
             $checkSrCid = $pdo->query("SHOW COLUMNS FROM `screening_results` LIKE 'target_cid'")->fetchAll();
             if (empty($checkSrCid)) {
                 $pdo->exec("ALTER TABLE `screening_results` ADD COLUMN `target_cid` VARCHAR(13) NULL AFTER `assignment_id`");
-                $pdo->exec("UPDATE screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id SET sr.target_cid = ta.target_cid WHERE sr.target_cid IS NULL");
             }
+            $pdo->exec("UPDATE screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id SET sr.target_cid = ta.target_cid WHERE sr.target_cid IS NULL OR sr.target_cid = ''");
         } catch (\PDOException $e) {}
 
         try {
-            $fkCheck = $pdo->query("SELECT CONSTRAINT_NAME FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'fk_screen_assignment' AND TABLE_NAME = 'screening_results'")->fetchAll();
-            if (!empty($fkCheck)) {
-                $pdo->exec("ALTER TABLE `screening_results` DROP FOREIGN KEY `fk_screen_assignment`");
-            }
+            $pdo->exec("ALTER TABLE `screening_results` MODIFY COLUMN `assignment_id` INT(11) NULL");
+        } catch (\PDOException $e) {}
+
+        try {
+            $pdo->exec("ALTER TABLE `screening_results` DROP FOREIGN KEY `fk_screen_assignment`");
         } catch (\PDOException $e) {}
     }
 } catch (\Exception $e) {
