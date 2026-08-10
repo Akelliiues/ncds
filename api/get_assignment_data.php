@@ -34,6 +34,13 @@ try {
                        IFNULL((SELECT MAX(CASE WHEN ta.round_number IS NULL OR ta.round_number = 0 THEN 1 ELSE ta.round_number END) FROM task_assignments ta WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' AND ta.is_sandbox = ?), 0),
                        IFNULL((SELECT MAX(CASE WHEN sr.round_number IS NULL OR sr.round_number = 0 THEN 1 ELSE sr.round_number END) FROM screening_results sr LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id WHERE (sr.target_cid = p.cid OR ta2.target_cid = p.cid) AND sr.is_sandbox = ?), 0)
                    ) as max_completed_round,
+                   (
+                       SELECT v2.vhv_name 
+                       FROM task_assignments ta_prev 
+                       LEFT JOIN vhv_users v2 ON ta_prev.vhv_id = v2.vhv_id 
+                       WHERE ta_prev.target_cid = p.cid AND ta_prev.assignment_status = 'completed' AND ta_prev.is_sandbox = ?
+                       ORDER BY ta_prev.round_number DESC, ta_prev.assignment_id DESC LIMIT 1
+                   ) as prev_vhv_name,
                    p.health_status_origin, p.need_screen_dm, p.need_screen_ht
             FROM target_population p
             LEFT JOIN task_assignments a ON a.assignment_id = (
@@ -61,7 +68,7 @@ try {
         
         $target_hoscode = $admin_hoscode ? $admin_hoscode : ($_GET['hoscode'] ?? null);
         $hoscodeParam = $target_hoscode ?: '';
-        $params = [$isSandboxVal, $isSandboxVal, $isSandboxVal, $vhid, $moo, $hoscodeParam];
+        $params = [$isSandboxVal, $isSandboxVal, $isSandboxVal, $isSandboxVal, $vhid, $moo, $hoscodeParam];
         if ($target_hoscode) {
             $hoscodes = get_query_hoscodes($target_hoscode);
             $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
