@@ -118,18 +118,22 @@ try {
             }
         } else {
             // No pending assignment exists (target is either new or has completed previous rounds)
-            if ($requestedRound > 0) {
+            // Check max completed round to preserve Round 1 Baseline Checkpoint
+            $maxRoundStmt = $pdo->prepare("
+                SELECT IFNULL(MAX(round_number), 0) 
+                FROM task_assignments 
+                WHERE target_cid = ? AND budget_year = ? AND assignment_status = 'completed' AND is_sandbox = ?
+            ");
+            $maxRoundStmt->execute([$cid, $currentYear, $isSandboxVal]);
+            $maxCompletedRound = (int)$maxRoundStmt->fetchColumn();
+
+            if ($maxCompletedRound >= 1 && $requestedRound <= 1) {
+                // Round 1 is locked as Checkpoint! Automatically promote new assignment to next round (Round 2+)
+                $targetRound = $maxCompletedRound + 1;
+            } else if ($requestedRound > 0) {
                 $targetRound = $requestedRound;
             } else {
-                // Auto-detect next round: max completed round + 1
-                $maxRoundStmt = $pdo->prepare("
-                    SELECT IFNULL(MAX(round_number), 0) 
-                    FROM task_assignments 
-                    WHERE target_cid = ? AND budget_year = ? AND is_sandbox = ?
-                ");
-                $maxRoundStmt->execute([$cid, $currentYear, $isSandboxVal]);
-                $maxRound = (int)$maxRoundStmt->fetchColumn();
-                $targetRound = $maxRound + 1;
+                $targetRound = $maxCompletedRound + 1;
             }
 
             // Insert new assignment for targetRound

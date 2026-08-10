@@ -93,6 +93,10 @@ try {
         throw new Exception("ไม่พบข้อมูลใบงานมอบหมายที่ระบุ หรือท่านไม่ได้รับสิทธิ์มอบหมายในใบงานนี้");
     }
 
+    if ($assignment['assignment_status'] === 'completed' && (int)$assignment['round_number'] === 1) {
+        throw new Exception("ผลการคัดกรองรอบที่ 1 ถูกล็อคเป็นจุดเซฟประจำปี (Baseline Checkpoint) เรียบร้อยแล้ว ไม่สามารถแก้ไขย้อนหลังได้");
+    }
+
     $targetCid = $assignment['target_cid'];
     $hid = $assignment['hid'];
     $hoscode = $assignment['hoscode'] ?? '';

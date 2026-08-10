@@ -623,7 +623,7 @@ try {
                     }
                 } else {
                     if (completedRound > 0) {
-                        assignedText = `<span style="color: var(--color-accent); font-size: 12px; font-weight: bold;">✨ ผ่านรอบ ${completedRound} แล้ว ➔ พร้อมต่อรอบ ${completedRound + 1}</span>`;
+                        assignedText = `<span style="color: var(--color-accent); font-size: 12px; font-weight: bold;">🔒 ล็อคจุดเซฟรอบที่ ${completedRound} แล้ว ➔ พร้อมต่อรอบ ${completedRound + 1}</span>`;
                     } else {
                         assignedText = '<span style="color: var(--text-muted); font-size: 12px;">(ยังไม่มอบหมาย - รอบ 1)</span>';
                     }
