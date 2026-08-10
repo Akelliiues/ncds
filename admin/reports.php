@@ -96,17 +96,17 @@ if ($filter_source === 'screened') {
     // Query VHV screened results
     $sql = "
         SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.sub_district_code, COALESCE(v.hoscode, p.hoscode) as hoscode,
-               s.sys_bp1, s.dia_bp1, s.dtx_value, s.bmi, s.cv_risk_score, s.created_at, a.round_number
+               s.sys_bp1, s.dia_bp1, s.dtx_value, s.bmi, s.cv_risk_score, s.created_at, IFNULL(s.round_number, a.round_number) as round_number
         FROM screening_results s
-        JOIN task_assignments a ON s.assignment_id = a.assignment_id
-        JOIN target_population p ON a.target_cid = p.cid
+        LEFT JOIN task_assignments a ON s.assignment_id = a.assignment_id
+        JOIN target_population p ON (s.target_cid = p.cid OR a.target_cid = p.cid)
         LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
         WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ";
 
     if ($filter_round !== 'all') {
-        $sql .= " AND a.round_number = ?";
-        $params[] = intval($filter_round);
+        $rNum = intval($filter_round);
+        $sql .= " AND (IFNULL(s.round_number, a.round_number) = $rNum OR (s.round_number IS NULL AND a.round_number IS NULL AND $rNum = 1))";
     }
 
     if ($filter_hoscode) {
@@ -160,18 +160,27 @@ if ($filter_source === 'screened') {
         SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.sub_district_code, COALESCE(v.hoscode, p.hoscode) as hoscode,
                s.sys_bp1, s.dia_bp1, s.dtx_value, s.bmi, s.cv_risk_score, s.created_at,
                p.health_status_origin as risk, p.need_screen_dm, p.need_screen_ht,
-               CASE WHEN s.created_at IS NOT NULL THEN 'screened' ELSE 'unscreened' END as screen_status
+               CASE WHEN (s.screening_id IS NOT NULL OR a.assignment_id IS NOT NULL) THEN 'screened' ELSE 'unscreened' END as screen_status
         FROM target_population p
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed'
-        LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
+        LEFT JOIN task_assignments a ON a.assignment_id = (
+            SELECT assignment_id FROM task_assignments ta 
+            WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' 
+            ORDER BY ta.round_number DESC, ta.assignment_id DESC LIMIT 1
+        )
+        LEFT JOIN screening_results s ON s.screening_id = (
+            SELECT sr.screening_id FROM screening_results sr 
+            LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id
+            WHERE sr.target_cid = p.cid OR ta2.target_cid = p.cid
+            ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1
+        )
         LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
         WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ";
 
     if ($filter_screen_status === 'screened') {
-        $sql .= " AND s.created_at IS NOT NULL";
+        $sql .= " AND (s.screening_id IS NOT NULL OR a.assignment_id IS NOT NULL)";
     } elseif ($filter_screen_status === 'unscreened') {
-        $sql .= " AND s.created_at IS NULL";
+        $sql .= " AND s.screening_id IS NULL AND a.assignment_id IS NULL";
     }
 
     if ($filter_hoscode) {
@@ -336,24 +345,26 @@ if ($filter_source === 'screened') {
                SUM(CASE WHEN EXISTS (
                    SELECT 1 FROM task_assignments a 
                    WHERE a.target_cid = p.cid AND a.assignment_status = 'completed'
+               ) OR EXISTS (
+                   SELECT 1 FROM screening_results sr WHERE sr.target_cid = p.cid
                ) THEN 1 ELSE 0 END) as completed_screenings,
                SUM(CASE WHEN EXISTS (
-                   SELECT 1 FROM task_assignments a 
-                   JOIN screening_results s ON s.assignment_id = a.assignment_id
-                   WHERE a.target_cid = p.cid AND a.assignment_status = 'completed'
+                   SELECT 1 FROM screening_results s 
+                   LEFT JOIN task_assignments a ON s.assignment_id = a.assignment_id
+                   WHERE (s.target_cid = p.cid OR a.target_cid = p.cid)
                      AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126)
                ) THEN 1 ELSE 0 END) as high_risk_count,
                SUM(CASE WHEN EXISTS (
-                   SELECT 1 FROM task_assignments a 
-                   JOIN screening_results s ON s.assignment_id = a.assignment_id
-                   WHERE a.target_cid = p.cid AND a.assignment_status = 'completed'
+                   SELECT 1 FROM screening_results s 
+                   LEFT JOIN task_assignments a ON s.assignment_id = a.assignment_id
+                   WHERE (s.target_cid = p.cid OR a.target_cid = p.cid)
                      AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126)
                      AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125))
                ) THEN 1 ELSE 0 END) as moderate_risk_count,
                SUM(CASE WHEN EXISTS (
-                   SELECT 1 FROM task_assignments a 
-                   JOIN screening_results s ON s.assignment_id = a.assignment_id
-                   WHERE a.target_cid = p.cid AND a.assignment_status = 'completed'
+                   SELECT 1 FROM screening_results s 
+                   LEFT JOIN task_assignments a ON s.assignment_id = a.assignment_id
+                   WHERE (s.target_cid = p.cid OR a.target_cid = p.cid)
                      AND s.sys_bp1 < 120 AND s.dia_bp1 < 80 AND (s.dtx_value < 100 OR s.dtx_value IS NULL) AND (s.cv_risk_score < 10 OR s.cv_risk_score IS NULL)
                ) THEN 1 ELSE 0 END) as normal_risk_count
          FROM target_population p
@@ -394,24 +405,26 @@ if ($filter_source === 'screened') {
                SUM(CASE WHEN EXISTS (
                    SELECT 1 FROM task_assignments a 
                    WHERE a.target_cid = p.cid AND a.assignment_status = 'completed'
+               ) OR EXISTS (
+                   SELECT 1 FROM screening_results sr WHERE sr.target_cid = p.cid
                ) THEN 1 ELSE 0 END) as completed_screenings,
                SUM(CASE WHEN EXISTS (
-                   SELECT 1 FROM task_assignments a 
-                   JOIN screening_results s ON s.assignment_id = a.assignment_id
-                   WHERE a.target_cid = p.cid AND a.assignment_status = 'completed'
+                   SELECT 1 FROM screening_results s 
+                   LEFT JOIN task_assignments a ON s.assignment_id = a.assignment_id
+                   WHERE (s.target_cid = p.cid OR a.target_cid = p.cid)
                      AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126)
                ) THEN 1 ELSE 0 END) as high_risk_count,
                SUM(CASE WHEN EXISTS (
-                   SELECT 1 FROM task_assignments a 
-                   JOIN screening_results s ON s.assignment_id = a.assignment_id
-                   WHERE a.target_cid = p.cid AND a.assignment_status = 'completed'
+                   SELECT 1 FROM screening_results s 
+                   LEFT JOIN task_assignments a ON s.assignment_id = a.assignment_id
+                   WHERE (s.target_cid = p.cid OR a.target_cid = p.cid)
                      AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126)
                      AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125))
                ) THEN 1 ELSE 0 END) as moderate_risk_count,
                SUM(CASE WHEN EXISTS (
-                   SELECT 1 FROM task_assignments a 
-                   JOIN screening_results s ON s.assignment_id = a.assignment_id
-                   WHERE a.target_cid = p.cid AND a.assignment_status = 'completed'
+                   SELECT 1 FROM screening_results s 
+                   LEFT JOIN task_assignments a ON s.assignment_id = a.assignment_id
+                   WHERE (s.target_cid = p.cid OR a.target_cid = p.cid)
                      AND s.sys_bp1 < 120 AND s.dia_bp1 < 80 AND (s.dtx_value < 100 OR s.dtx_value IS NULL) AND (s.cv_risk_score < 10 OR s.cv_risk_score IS NULL)
                ) THEN 1 ELSE 0 END) as normal_risk_count
         FROM target_population p
