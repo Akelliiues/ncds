@@ -58,10 +58,10 @@ try {
             sr.advice_given,
             sr.created_at AS screened_at,
             sr.screening_lat, sr.screening_lng,
-            (SELECT sr_prev.sys_bp1 FROM screening_results sr_prev JOIN task_assignments ta_prev ON sr_prev.assignment_id = ta_prev.assignment_id WHERE ta_prev.target_cid = p.cid AND ta_prev.assignment_status = 'completed' ORDER BY sr_prev.created_at DESC LIMIT 1) AS prev_sys_bp1,
-            (SELECT sr_prev.dia_bp1 FROM screening_results sr_prev JOIN task_assignments ta_prev ON sr_prev.assignment_id = ta_prev.assignment_id WHERE ta_prev.target_cid = p.cid AND ta_prev.assignment_status = 'completed' ORDER BY sr_prev.created_at DESC LIMIT 1) AS prev_dia_bp1,
-            (SELECT sr_prev.dtx_value FROM screening_results sr_prev JOIN task_assignments ta_prev ON sr_prev.assignment_id = ta_prev.assignment_id WHERE ta_prev.target_cid = p.cid AND ta_prev.assignment_status = 'completed' ORDER BY sr_prev.created_at DESC LIMIT 1) AS prev_dtx_value,
-            (SELECT ta_prev.round_number FROM screening_results sr_prev JOIN task_assignments ta_prev ON sr_prev.assignment_id = ta_prev.assignment_id WHERE ta_prev.target_cid = p.cid AND ta_prev.assignment_status = 'completed' ORDER BY sr_prev.created_at DESC LIMIT 1) AS prev_round_number
+            (SELECT sr_prev.sys_bp1 FROM screening_results sr_prev LEFT JOIN task_assignments ta_prev ON sr_prev.assignment_id = ta_prev.assignment_id WHERE (sr_prev.target_cid = p.cid OR ta_prev.target_cid = p.cid) ORDER BY sr_prev.created_at DESC, sr_prev.screening_id DESC LIMIT 1) AS prev_sys_bp1,
+            (SELECT sr_prev.dia_bp1 FROM screening_results sr_prev LEFT JOIN task_assignments ta_prev ON sr_prev.assignment_id = ta_prev.assignment_id WHERE (sr_prev.target_cid = p.cid OR ta_prev.target_cid = p.cid) ORDER BY sr_prev.created_at DESC, sr_prev.screening_id DESC LIMIT 1) AS prev_dia_bp1,
+            (SELECT sr_prev.dtx_value FROM screening_results sr_prev LEFT JOIN task_assignments ta_prev ON sr_prev.assignment_id = ta_prev.assignment_id WHERE (sr_prev.target_cid = p.cid OR ta_prev.target_cid = p.cid) ORDER BY sr_prev.created_at DESC, sr_prev.screening_id DESC LIMIT 1) AS prev_dtx_value,
+            (SELECT IFNULL(sr_prev.round_number, ta_prev.round_number) FROM screening_results sr_prev LEFT JOIN task_assignments ta_prev ON sr_prev.assignment_id = ta_prev.assignment_id WHERE (sr_prev.target_cid = p.cid OR ta_prev.target_cid = p.cid) ORDER BY sr_prev.created_at DESC, sr_prev.screening_id DESC LIMIT 1) AS prev_round_number
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
         LEFT JOIN screening_results sr ON a.assignment_id = sr.assignment_id

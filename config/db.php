@@ -1866,6 +1866,22 @@ try {
                 $pdo->exec("ALTER TABLE `task_assignments` DROP INDEX `udx_cid_year`");
             }
         } catch (\PDOException $e) {}
+
+        // 5. Data Durability Migration: Add target_cid directly to screening_results and drop CASCADE constraint
+        try {
+            $checkSrCid = $pdo->query("SHOW COLUMNS FROM `screening_results` LIKE 'target_cid'")->fetchAll();
+            if (empty($checkSrCid)) {
+                $pdo->exec("ALTER TABLE `screening_results` ADD COLUMN `target_cid` VARCHAR(13) NULL AFTER `assignment_id`");
+                $pdo->exec("UPDATE screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id SET sr.target_cid = ta.target_cid WHERE sr.target_cid IS NULL");
+            }
+        } catch (\PDOException $e) {}
+
+        try {
+            $fkCheck = $pdo->query("SELECT CONSTRAINT_NAME FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'fk_screen_assignment' AND TABLE_NAME = 'screening_results'")->fetchAll();
+            if (!empty($fkCheck)) {
+                $pdo->exec("ALTER TABLE `screening_results` DROP FOREIGN KEY `fk_screen_assignment`");
+            }
+        } catch (\PDOException $e) {}
     }
 } catch (\Exception $e) {
     // Fail silently

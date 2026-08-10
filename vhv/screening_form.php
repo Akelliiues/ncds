@@ -53,19 +53,19 @@ if (!$isShell) {
         $residentsStmt = $pdo->prepare("
             SELECT p.*, a.assignment_id, a.round_number,
                    COALESCE(
-                       (SELECT sr.sys_bp1 FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
+                       (SELECT sr.sys_bp1 FROM screening_results sr LEFT JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE (sr.target_cid = p.cid OR ta.target_cid = p.cid) ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1),
                        (SELECT ht.sbp FROM staging_hdc_ht ht WHERE ht.cid = p.cid ORDER BY ht.imported_at DESC LIMIT 1)
                    ) AS last_sbp,
                    COALESCE(
-                       (SELECT sr.dia_bp1 FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
+                       (SELECT sr.dia_bp1 FROM screening_results sr LEFT JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE (sr.target_cid = p.cid OR ta.target_cid = p.cid) ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1),
                        (SELECT ht.dbp FROM staging_hdc_ht ht WHERE ht.cid = p.cid ORDER BY ht.imported_at DESC LIMIT 1)
                    ) AS last_dbp,
                    COALESCE(
-                       (SELECT sr.dtx_value FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
+                       (SELECT sr.dtx_value FROM screening_results sr LEFT JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE (sr.target_cid = p.cid OR ta.target_cid = p.cid) ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1),
                        (SELECT dm.bslevel FROM staging_hdc_dm dm WHERE dm.cid = p.cid ORDER BY dm.imported_at DESC LIMIT 1)
                    ) AS last_dtx,
                    COALESCE(
-                       (SELECT sr.dtx_type FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
+                       (SELECT sr.dtx_type FROM screening_results sr LEFT JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE (sr.target_cid = p.cid OR ta.target_cid = p.cid) ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1),
                        'fpg'
                    ) AS last_dtx_type
             FROM task_assignments a
@@ -99,19 +99,19 @@ if (!$isShell) {
         $residentsStmt = $pdo->prepare("
             SELECT p.*, a.assignment_id, a.round_number,
                    COALESCE(
-                       (SELECT sr.sys_bp1 FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
+                       (SELECT sr.sys_bp1 FROM screening_results sr LEFT JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE (sr.target_cid = p.cid OR ta.target_cid = p.cid) ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1),
                        (SELECT ht.sbp FROM staging_hdc_ht ht WHERE ht.cid = p.cid ORDER BY ht.imported_at DESC LIMIT 1)
                    ) AS last_sbp,
                    COALESCE(
-                       (SELECT sr.dia_bp1 FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
+                       (SELECT sr.dia_bp1 FROM screening_results sr LEFT JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE (sr.target_cid = p.cid OR ta.target_cid = p.cid) ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1),
                        (SELECT ht.dbp FROM staging_hdc_ht ht WHERE ht.cid = p.cid ORDER BY ht.imported_at DESC LIMIT 1)
                    ) AS last_dbp,
                    COALESCE(
-                       (SELECT sr.dtx_value FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
+                       (SELECT sr.dtx_value FROM screening_results sr LEFT JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE (sr.target_cid = p.cid OR ta.target_cid = p.cid) ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1),
                        (SELECT dm.bslevel FROM staging_hdc_dm dm WHERE dm.cid = p.cid ORDER BY dm.imported_at DESC LIMIT 1)
                    ) AS last_dtx,
                    COALESCE(
-                       (SELECT sr.dtx_type FROM screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' ORDER BY sr.created_at DESC LIMIT 1),
+                       (SELECT sr.dtx_type FROM screening_results sr LEFT JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE (sr.target_cid = p.cid OR ta.target_cid = p.cid) ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1),
                        'fpg'
                    ) AS last_dtx_type
             FROM task_assignments a
