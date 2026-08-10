@@ -71,7 +71,7 @@ if ($admin_hoscode) {
     $groupDetailStmt->execute($hoscodes);
     $groupDetail = $groupDetailStmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $screened = $pdo->prepare("SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'completed' AND p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)");
+    $screened = $pdo->prepare("SELECT COUNT(DISTINCT p.cid) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'completed' AND p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)");
     $screened->execute($hoscodes);
     $screened_val = $screened->fetchColumn();
 
@@ -258,8 +258,8 @@ if ($admin_hoscode) {
     // --- NEW CHARTS DATA (ADMIN) ---
     $chartCoverageStmt = $pdo->prepare("
         SELECT p.hoscode, p.moo,
-               COUNT(*) as total_targets,
-               SUM(CASE WHEN a.assignment_status = 'completed' THEN 1 ELSE 0 END) as screened
+               COUNT(DISTINCT p.cid) as total_targets,
+               COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) as screened
         FROM target_population p
         LEFT JOIN task_assignments a ON p.cid = a.target_cid
         WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
@@ -275,12 +275,16 @@ if ($admin_hoscode) {
 
     $chartRiskStmt = $pdo->prepare("
         SELECT p.hoscode, MAX(p.sub_district_code) as sub_district_code, p.moo,
-               SUM(CASE WHEN a.assignment_status = 'completed' AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN 1 ELSE 0 END) as high_risk,
-               SUM(CASE WHEN a.assignment_status = 'completed' AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as moderate_risk,
-               SUM(CASE WHEN a.assignment_status = 'completed' AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as normal,
-               SUM(CASE WHEN a.assignment_status IS NULL OR a.assignment_status != 'completed' THEN 1 ELSE 0 END) as unscreened
+               COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN p.cid END) as high_risk,
+               COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as moderate_risk,
+               COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as normal,
+               COUNT(DISTINCT CASE WHEN p.cid NOT IN (SELECT ta.target_cid FROM task_assignments ta WHERE ta.assignment_status = 'completed') THEN p.cid END) as unscreened
         FROM target_population p
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid
+        LEFT JOIN task_assignments a ON a.assignment_id = (
+            SELECT assignment_id FROM task_assignments ta 
+            WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' 
+            ORDER BY ta.round_number DESC, ta.assignment_id DESC LIMIT 1
+        )
         LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
         WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY p.hoscode, p.moo
@@ -364,7 +368,7 @@ if ($admin_hoscode) {
     $metricsStmt = $pdo->prepare("
         SELECT 
             (SELECT COUNT(*) FROM target_population WHERE hoscode IN ($inPlaceholdersSa) AND (need_screen_dm = 1 OR need_screen_ht = 1)) as total_targets,
-            (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'completed' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as screened_count,
+            (SELECT COUNT(DISTINCT p.cid) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'completed' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as screened_count,
             (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'pending' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as pending_count,
             (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as skipped_count,
             (SELECT SUM(r.points_earned) FROM vhv_rewards r JOIN vhv_users v ON r.vhv_id = v.vhv_id LEFT JOIN task_assignments ta ON r.assignment_id = ta.assignment_id LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id WHERE v.hoscode IN ($inPlaceholdersSa) AND v.approved = 1 AND r.approval_status IN ('approved', 'waiting') AND ((r.followup_id IS NULL AND r.assignment_id IS NULL) OR (r.followup_id IS NULL AND ta.assignment_id IS NOT NULL) OR (r.followup_id IS NOT NULL AND f.followup_id IS NOT NULL))) as total_points,
@@ -555,8 +559,8 @@ if ($admin_hoscode) {
     // --- NEW CHARTS DATA (SUPER ADMIN) ---
     $chartCoverageStmt = $pdo->prepare("
         SELECT p.hoscode, 
-               COUNT(*) as total_targets,
-               SUM(CASE WHEN a.assignment_status = 'completed' THEN 1 ELSE 0 END) as screened
+               COUNT(DISTINCT p.cid) as total_targets,
+               COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) as screened
         FROM target_population p
         LEFT JOIN task_assignments a ON p.cid = a.target_cid
         WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
@@ -567,12 +571,16 @@ if ($admin_hoscode) {
 
     $chartRiskStmt = $pdo->prepare("
         SELECT p.hoscode,
-               SUM(CASE WHEN a.assignment_status = 'completed' AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN 1 ELSE 0 END) as high_risk,
-               SUM(CASE WHEN a.assignment_status = 'completed' AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as moderate_risk,
-               SUM(CASE WHEN a.assignment_status = 'completed' AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as normal,
-               SUM(CASE WHEN a.assignment_status IS NULL OR a.assignment_status != 'completed' THEN 1 ELSE 0 END) as unscreened
+               COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN p.cid END) as high_risk,
+               COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as moderate_risk,
+               COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as normal,
+               COUNT(DISTINCT CASE WHEN p.cid NOT IN (SELECT ta.target_cid FROM task_assignments ta WHERE ta.assignment_status = 'completed') THEN p.cid END) as unscreened
         FROM target_population p
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid
+        LEFT JOIN task_assignments a ON a.assignment_id = (
+            SELECT assignment_id FROM task_assignments ta 
+            WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' 
+            ORDER BY ta.round_number DESC, ta.assignment_id DESC LIMIT 1
+        )
         LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
         WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY p.hoscode
