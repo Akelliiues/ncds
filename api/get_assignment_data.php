@@ -35,7 +35,7 @@ try {
             FROM target_population p
             LEFT JOIN task_assignments a ON a.assignment_id = (
                 SELECT assignment_id FROM task_assignments ta 
-                WHERE ta.target_cid = p.cid AND ta.budget_year = 2026 AND ta.is_sandbox = ?
+                WHERE ta.target_cid = p.cid AND ta.budget_year = 2026 AND ta.assignment_status = 'pending' AND ta.is_sandbox = ?
                 ORDER BY ta.round_number DESC, ta.assignment_id DESC LIMIT 1
             )
             LEFT JOIN vhv_users v ON a.vhv_id = v.vhv_id
