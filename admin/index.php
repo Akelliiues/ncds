@@ -17,6 +17,7 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 $hc_names = get_health_units();
 
 $admin_title = get_admin_title();
+$isSandboxVal = isSandboxMode($admin_hoscode ? $admin_hoscode : null) ? 1 : 0;
 
 if ($admin_hoscode) {
     $hoscodes = get_query_hoscodes($admin_hoscode);
@@ -368,13 +369,13 @@ if ($admin_hoscode) {
             p.hoscode, 
             p.moo,
             COUNT(DISTINCT p.cid) as total_targets,
-            COUNT(DISTINCT CASE WHEN ta.round_number = 1 AND ta.assignment_status = 'completed' THEN p.cid END) as r1_completed,
+            COUNT(DISTINCT CASE WHEN (ta.round_number = 1 OR ta.round_number IS NULL OR ta.round_number = 0) AND ta.assignment_status = 'completed' THEN p.cid END) as r1_completed,
             COUNT(DISTINCT CASE WHEN ta.round_number = 2 AND ta.assignment_status = 'pending' THEN p.cid END) as r2_assigned,
             COUNT(DISTINCT CASE WHEN ta.round_number = 2 AND ta.assignment_status = 'completed' THEN p.cid END) as r2_completed,
             COUNT(DISTINCT CASE WHEN ta.round_number >= 3 AND ta.assignment_status = 'pending' THEN p.cid END) as r3_assigned,
             COUNT(DISTINCT CASE WHEN ta.round_number >= 3 AND ta.assignment_status = 'completed' THEN p.cid END) as r3_completed
         FROM target_population p
-        LEFT JOIN task_assignments ta ON p.cid = ta.target_cid AND ta.budget_year = 2026 AND ta.is_sandbox = ?
+        LEFT JOIN task_assignments ta ON p.cid = ta.target_cid AND (ta.budget_year = 2026 OR ta.budget_year IS NULL) AND ta.is_sandbox = ?
         WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY p.hoscode, p.moo
         ORDER BY p.hoscode, p.moo
@@ -682,13 +683,13 @@ if ($admin_hoscode) {
         SELECT 
             p.hoscode,
             COUNT(DISTINCT p.cid) as total_targets,
-            COUNT(DISTINCT CASE WHEN ta.round_number = 1 AND ta.assignment_status = 'completed' THEN p.cid END) as r1_completed,
+            COUNT(DISTINCT CASE WHEN (ta.round_number = 1 OR ta.round_number IS NULL OR ta.round_number = 0) AND ta.assignment_status = 'completed' THEN p.cid END) as r1_completed,
             COUNT(DISTINCT CASE WHEN ta.round_number = 2 AND ta.assignment_status = 'pending' THEN p.cid END) as r2_assigned,
             COUNT(DISTINCT CASE WHEN ta.round_number = 2 AND ta.assignment_status = 'completed' THEN p.cid END) as r2_completed,
             COUNT(DISTINCT CASE WHEN ta.round_number >= 3 AND ta.assignment_status = 'pending' THEN p.cid END) as r3_assigned,
             COUNT(DISTINCT CASE WHEN ta.round_number >= 3 AND ta.assignment_status = 'completed' THEN p.cid END) as r3_completed
         FROM target_population p
-        LEFT JOIN task_assignments ta ON p.cid = ta.target_cid AND ta.budget_year = 2026 AND ta.is_sandbox = ?
+        LEFT JOIN task_assignments ta ON p.cid = ta.target_cid AND (ta.budget_year = 2026 OR ta.budget_year IS NULL) AND ta.is_sandbox = ?
         WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY p.hoscode
         ORDER BY p.hoscode
