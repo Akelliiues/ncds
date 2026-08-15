@@ -961,7 +961,7 @@ if ($admin_hoscode) {
                             <path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
                         </svg>
                     </span>
-                    <span>สัดส่วนคัดกรอง / เป้าหมาย</span>
+                    <span>สัดส่วนคัดกรอง / เป้าหมาย (แยกรอบ)</span>
                 </h3>
                 <div id="chart-total-pie"></div>
             </div>
@@ -975,7 +975,7 @@ if ($admin_hoscode) {
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                         </svg>
                     </span>
-                    <span>มิติกลุ่มเป้าหมาย (Cockpit)</span>
+                    <span>Cockpit ประสิทธิภาพการคัดกรองรายรอบ</span>
                 </h3>
                 <div id="chart-cockpit-radar"></div>
             </div>
@@ -1980,10 +1980,12 @@ if ($admin_hoscode) {
 
             var optionsTotalPie = {
                 series: [
-                    <?= intval($metrics['screened_count']) ?>,
-                    Math.max(0, <?= intval($metrics['total_targets']) ?> - <?= intval($metrics['screened_count']) ?>)
+                    <?= intval($r1All) ?>,
+                    <?= intval($r2CompAll) ?>,
+                    <?= intval($r3CompAll) ?>,
+                    Math.max(0, <?= intval($metrics['total_targets']) ?> - <?= intval($r1All) ?>)
                 ],
-                labels: ['คัดกรองแล้ว', 'ยังไม่คัดกรอง'],
+                labels: ['คัดกรองรอบ 1', 'ติดตามสำเร็จรอบ 2', 'ติดตามสำเร็จรอบ 3+', 'ยังไม่คัดกรองรอบ 1'],
                 chart: {
                     type: 'pie',
                     height: 280,
@@ -1992,7 +1994,7 @@ if ($admin_hoscode) {
                 theme: {
                     mode: localStorage.getItem('theme') || 'light'
                 },
-                colors: ['#22c55e', '#4b5563'],
+                colors: ['#22c55e', '#3b82f6', '#8b5cf6', '#4b5563'],
                 stroke: {
                     show: false
                 },
@@ -2020,22 +2022,18 @@ if ($admin_hoscode) {
                 document.querySelector("#chart-total-pie").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 50px;">ไม่มีข้อมูล</div>';
             }
 
-            // Cockpit Radar Chart
+            // Screening performance cockpit: comparable percentages instead of
+            // overlapping population counts.
+            const cockpitCoverageR1 = Math.min(100, <?= $totAll > 0 ? round(($r1All / $totAll) * 100, 1) : 0 ?>);
+            const cockpitReachR2 = Math.min(100, <?= $r1All > 0 ? round((($r2AssignedAll + $r2CompAll) / $r1All) * 100, 1) : 0 ?>);
+            const cockpitCompleteR2 = Math.min(100, <?= ($r2AssignedAll + $r2CompAll) > 0 ? round(($r2CompAll / ($r2AssignedAll + $r2CompAll)) * 100, 1) : 0 ?>);
+            const cockpitCompleteR3 = Math.min(100, <?= ($r3AssignedAll + $r3CompAll) > 0 ? round(($r3CompAll / ($r3AssignedAll + $r3CompAll)) * 100, 1) : 0 ?>);
+
             var optionsRadar = {
-                series: [{
-                    name: 'จำนวนประชากร',
-                    data: [
-                        <?= intval($metrics['group_dm'] ?? 0) ?>,
-                        <?= intval($metrics['group_ht'] ?? 0) ?>,
-                        <?= intval($metrics['group_both'] ?? 0) ?>,
-                        <?= intval($metrics['group_suspected'] ?? 0) ?>,
-                        <?= intval($metrics['group_risk'] ?? 0) ?>,
-                        <?= intval($metrics['group_normal'] ?? 0) ?>
-                    ]
-                }],
+                series: [cockpitCoverageR1, cockpitReachR2, cockpitCompleteR2, cockpitCompleteR3],
                 chart: {
-                    height: 280,
-                    type: 'radar',
+                    height: 300,
+                    type: 'radialBar',
                     background: 'transparent',
                     toolbar: {
                         show: false
@@ -2044,26 +2042,34 @@ if ($admin_hoscode) {
                 theme: {
                     mode: localStorage.getItem('theme') || 'light'
                 },
-                labels: ['เสี่ยงเบาหวาน', 'เสี่ยงความดัน', 'เสี่ยงคู่', 'สงสัยป่วยใหม่', 'กลุ่มเสี่ยงรวม', 'กลุ่มปกติ'],
-                stroke: {
-                    width: 2,
-                    colors: ['#0ea5e9']
-                },
-                fill: {
-                    opacity: 0.2,
-                    colors: ['#0ea5e9']
-                },
-                markers: {
-                    size: 4,
-                    colors: ['#fff'],
-                    strokeColors: '#0ea5e9',
-                    strokeWidth: 2
-                },
-                yaxis: {
-                    show: false
+                labels: ['ครอบคลุมรอบ 1', 'ได้รับมอบหมายรอบ 2', 'สำเร็จรอบ 2', 'สำเร็จรอบ 3+'],
+                colors: ['#22c55e', '#0ea5e9', '#3b82f6', '#8b5cf6'],
+                plotOptions: {
+                    radialBar: {
+                        track: { background: '#374151', margin: 6 },
+                        dataLabels: {
+                            name: { fontSize: '12px', color: '#9ca3af' },
+                            value: {
+                                fontSize: '15px',
+                                color: '#9ca3af',
+                                formatter: function(val) { return Number(val).toFixed(1) + '%'; }
+                            },
+                            total: {
+                                show: true,
+                                label: 'ครอบคลุมรอบ 1',
+                                color: '#9ca3af',
+                                formatter: function() { return cockpitCoverageR1.toFixed(1) + '%'; }
+                            }
+                        }
+                    }
                 },
                 legend: {
-                    show: false
+                    show: true,
+                    position: 'bottom',
+                    labels: { colors: '#9ca3af' }
+                },
+                tooltip: {
+                    y: { formatter: function(val) { return Number(val).toFixed(1) + '%'; } }
                 }
             };
             new ApexCharts(document.querySelector("#chart-cockpit-radar"), optionsRadar).render();
