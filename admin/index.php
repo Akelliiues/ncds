@@ -829,57 +829,6 @@ if ($admin_hoscode) {
             </div>
         </div>
 
-        <!-- Multi-Round Re-screening Performance Chart -->
-        <div class="card-dark" style="margin-bottom: 30px;">
-            <h3 style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: rgba(99, 102, 241, 0.15); color: #6366f1;">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                    </span>
-                    <span>🔄 ความก้าวหน้าและร้อยละผลงานการคัดกรองติดตามซ้ำรายรอบ (Multi-Round Re-screening Performance)</span>
-                </div>
-                <div style="font-size: 12px; font-weight: 600; color: var(--text-muted);">
-                    <?= $admin_hoscode ? 'เปรียบเทียบรายหมู่บ้าน' : 'เปรียบเทียบรายหน่วยบริการ (รพ.สต.)' ?>
-                </div>
-            </h3>
-
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px;">
-                <?php
-                $totAll = array_sum(array_column($chartRescreenData, 'total_targets')) ?: 1;
-                $r1All = array_sum(array_column($chartRescreenData, 'r1_completed'));
-                $r2AssignedAll = array_sum(array_column($chartRescreenData, 'r2_assigned'));
-                $r2CompAll = array_sum(array_column($chartRescreenData, 'r2_completed'));
-                $r3AssignedAll = array_sum(array_column($chartRescreenData, 'r3_assigned'));
-                $r3CompAll = array_sum(array_column($chartRescreenData, 'r3_completed'));
-
-                $pctR1 = number_format(($r1All / $totAll) * 100, 1);
-                $denomR2 = ($r2CompAll + $r2AssignedAll) > 0 ? ($r2CompAll + $r2AssignedAll) : ($r1All > 0 ? $r1All : 1);
-                $pctR2 = number_format(($r2CompAll / $denomR2) * 100, 1);
-                $denomR3 = ($r3CompAll + $r3AssignedAll) > 0 ? ($r3CompAll + $r3AssignedAll) : ($r2CompAll > 0 ? $r2CompAll : 1);
-                $pctR3 = number_format(($r3CompAll / $denomR3) * 100, 1);
-                ?>
-                <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.2); padding: 12px 16px; border-radius: 12px;">
-                    <div style="font-size: 12px; color: var(--color-green); font-weight: 600;">✅ รอบที่ 1 (Baseline)</div>
-                    <div style="font-size: 20px; font-weight: bold; color: var(--text-color); margin-top: 4px;"><?= number_format($r1All) ?> <span style="font-size: 13px; color: var(--color-green);">(<?= $pctR1 ?>%)</span></div>
-                    <div style="font-size: 11px; color: var(--text-muted);">คัดกรองเสร็จจากเป้าหมาย <?= number_format($totAll) ?> ราย</div>
-                </div>
-                <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); padding: 12px 16px; border-radius: 12px;">
-                    <div style="font-size: 12px; color: #3b82f6; font-weight: 600;">🔄 รอบที่ 2 (คัดกรองติดตามซ้ำ)</div>
-                    <div style="font-size: 20px; font-weight: bold; color: var(--text-color); margin-top: 4px;"><?= number_format($r2CompAll) ?> <span style="font-size: 13px; color: #3b82f6;">(<?= $pctR2 ?>%)</span></div>
-                    <div style="font-size: 11px; color: var(--text-muted);">คัดกรองสำเร็จจากงานมอบหมาย <?= number_format($r2CompAll + $r2AssignedAll) ?> ราย</div>
-                </div>
-                <div style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2); padding: 12px 16px; border-radius: 12px;">
-                    <div style="font-size: 12px; color: #8b5cf6; font-weight: 600;">🔄 รอบที่ 3+ (ติดตามต่อเนื่อง)</div>
-                    <div style="font-size: 20px; font-weight: bold; color: var(--text-color); margin-top: 4px;"><?= number_format($r3CompAll) ?> <span style="font-size: 13px; color: #8b5cf6;">(<?= $pctR3 ?>%)</span></div>
-                    <div style="font-size: 11px; color: var(--text-muted);">คัดกรองสำเร็จจากงานมอบหมาย <?= number_format($r3CompAll + $r3AssignedAll) ?> ราย</div>
-                </div>
-            </div>
-
-            <div id="chart-rescreen"></div>
-        </div>
-
         <!-- Metrics Grid -->
         <div class="grid-cols-4" style="margin-bottom: 30px;">
             <div class="card-dark" style="cursor: pointer;" onclick="showCardModal('screened')">
@@ -930,6 +879,57 @@ if ($admin_hoscode) {
                     จาก อสม. ผู้ปฏิบัติงานทั้งหมด <?= $metrics['total_vhvs'] ?> คน (คลิกดูบอร์ดคะแนน)
                 </div>
             </div>
+        </div>
+
+        <!-- Multi-Round Re-screening Performance Chart -->
+        <div class="card-dark" style="margin-bottom: 30px;">
+            <h3 style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: rgba(99, 102, 241, 0.15); color: #6366f1;">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </span>
+                    <span>🔄 ความก้าวหน้าและร้อยละผลงานการคัดกรองติดตามซ้ำรายรอบ (Multi-Round Re-screening Performance)</span>
+                </div>
+                <div style="font-size: 12px; font-weight: 600; color: var(--text-muted);">
+                    <?= $admin_hoscode ? 'เปรียบเทียบรายหมู่บ้าน' : 'เปรียบเทียบรายหน่วยบริการ (รพ.สต.)' ?>
+                </div>
+            </h3>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                <?php
+                $totAll = array_sum(array_column($chartRescreenData, 'total_targets')) ?: 1;
+                $r1All = array_sum(array_column($chartRescreenData, 'r1_completed'));
+                $r2AssignedAll = array_sum(array_column($chartRescreenData, 'r2_assigned'));
+                $r2CompAll = array_sum(array_column($chartRescreenData, 'r2_completed'));
+                $r3AssignedAll = array_sum(array_column($chartRescreenData, 'r3_assigned'));
+                $r3CompAll = array_sum(array_column($chartRescreenData, 'r3_completed'));
+
+                $pctR1 = number_format(($r1All / $totAll) * 100, 1);
+                $denomR2 = ($r2CompAll + $r2AssignedAll) > 0 ? ($r2CompAll + $r2AssignedAll) : ($r1All > 0 ? $r1All : 1);
+                $pctR2 = number_format(($r2CompAll / $denomR2) * 100, 1);
+                $denomR3 = ($r3CompAll + $r3AssignedAll) > 0 ? ($r3CompAll + $r3AssignedAll) : ($r2CompAll > 0 ? $r2CompAll : 1);
+                $pctR3 = number_format(($r3CompAll / $denomR3) * 100, 1);
+                ?>
+                <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.2); padding: 12px 16px; border-radius: 12px;">
+                    <div style="font-size: 12px; color: var(--color-green); font-weight: 600;">✅ รอบที่ 1 (Baseline)</div>
+                    <div style="font-size: 20px; font-weight: bold; color: var(--text-color); margin-top: 4px;"><?= number_format($r1All) ?> <span style="font-size: 13px; color: var(--color-green);">(<?= $pctR1 ?>%)</span></div>
+                    <div style="font-size: 11px; color: var(--text-muted);">คัดกรองเสร็จจากเป้าหมาย <?= number_format($totAll) ?> ราย</div>
+                </div>
+                <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); padding: 12px 16px; border-radius: 12px;">
+                    <div style="font-size: 12px; color: #3b82f6; font-weight: 600;">🔄 รอบที่ 2 (คัดกรองติดตามซ้ำ)</div>
+                    <div style="font-size: 20px; font-weight: bold; color: var(--text-color); margin-top: 4px;"><?= number_format($r2CompAll) ?> <span style="font-size: 13px; color: #3b82f6;">(<?= $pctR2 ?>%)</span></div>
+                    <div style="font-size: 11px; color: var(--text-muted);">คัดกรองสำเร็จจากงานมอบหมาย <?= number_format($r2CompAll + $r2AssignedAll) ?> ราย</div>
+                </div>
+                <div style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2); padding: 12px 16px; border-radius: 12px;">
+                    <div style="font-size: 12px; color: #8b5cf6; font-weight: 600;">🔄 รอบที่ 3+ (ติดตามต่อเนื่อง)</div>
+                    <div style="font-size: 20px; font-weight: bold; color: var(--text-color); margin-top: 4px;"><?= number_format($r3CompAll) ?> <span style="font-size: 13px; color: #8b5cf6;">(<?= $pctR3 ?>%)</span></div>
+                    <div style="font-size: 11px; color: var(--text-muted);">คัดกรองสำเร็จจากงานมอบหมาย <?= number_format($r3CompAll + $r3AssignedAll) ?> ราย</div>
+                </div>
+            </div>
+
+            <div id="chart-rescreen"></div>
         </div>
 
         <!-- Analytics Dashboard Section -->
