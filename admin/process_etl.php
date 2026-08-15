@@ -282,13 +282,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
 
         $inserted = 0; $updated = 0; $excluded_dm = 0; $skipped_invalid = 0;
 
-        // ดึงรายชื่อเป้าหมายที่ได้รับการคัดกรองหรือเลื่อนตรวจ (เสร็จสมบูรณ์/ข้ามสะสม) ไปแล้วในปีงบประมาณปัจจุบัน
-        $screenedCids = $pdo->query("SELECT DISTINCT target_cid FROM task_assignments WHERE assignment_status IN ('completed', 'skipped') AND budget_year = 2026")->fetchAll(PDO::FETCH_COLUMN);
-        $screenedCidsMap = array_flip($screenedCids);
-
-        // ดึงรายชื่อเป้าหมายที่ได้รับการมอบหมายงานทั้งหมดในปีงบประมาณปัจจุบัน
-        $assignedCids = $pdo->query("SELECT DISTINCT target_cid FROM task_assignments WHERE budget_year = 2026")->fetchAll(PDO::FETCH_COLUMN);
-        $assignedCidsMap = array_flip($assignedCids);
+        // รายชื่อที่มีประวัติการดำเนินงานทุกปีงบประมาณ ต้องรักษาสถานะเดิมไว้
+        // Protect every person who already has operational history, regardless of
+        // budget year. Importing a newer HDC file must not reclassify past work.
+        $protectedCids = $pdo->query("
+            SELECT target_cid FROM task_assignments WHERE target_cid IS NOT NULL
+            UNION
+            SELECT target_cid FROM screening_results WHERE target_cid IS NOT NULL
+            UNION
+            SELECT cid AS target_cid FROM dpac_enrollments WHERE cid IS NOT NULL
+        ")->fetchAll(PDO::FETCH_COLUMN);
+        $protectedCidsMap = array_flip($protectedCids);
 
         // 1. Resolve mock-to-real CID transitions based on staging_jhcis_person
         $stmtFindMockMatches = $pdo->query("
@@ -310,10 +314,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
         if (!empty($mockMatches)) {
             $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
             $stmtUpdateAssign = $pdo->prepare("UPDATE task_assignments SET target_cid = ? WHERE target_cid = ?");
+            $stmtUpdateScreenCid = $pdo->prepare("UPDATE screening_results SET target_cid = ? WHERE target_cid = ?");
             $stmtUpdateDpac = $pdo->prepare("UPDATE dpac_enrollments SET cid = ? WHERE cid = ?");
             $stmtUpdateTargetCid = $pdo->prepare("UPDATE target_population SET cid = ? WHERE cid = ?");
-            
+            $stmtHasOperationalHistory = $pdo->prepare("
+                SELECT
+                    EXISTS(SELECT 1 FROM task_assignments WHERE target_cid IN (?, ?))
+                    OR EXISTS(SELECT 1 FROM screening_results WHERE target_cid IN (?, ?))
+                    OR EXISTS(SELECT 1 FROM dpac_enrollments WHERE cid IN (?, ?))
+            ");
+
             foreach ($mockMatches as $match) {
+                $stmtHasOperationalHistory->execute([
+                    $match['mock_cid'], $match['real_cid'],
+                    $match['mock_cid'], $match['real_cid'],
+                    $match['mock_cid'], $match['real_cid']
+                ]);
+                if ((int)$stmtHasOperationalHistory->fetchColumn() === 1) {
+                    logETL("Mock CID merge deferred for reviewed merge because operational history exists: " . $match['mock_cid'] . " -> " . $match['real_cid']);
+                    continue;
+                }
+
                 // To prevent duplicate key constraint on target_population if the real CID already exists
                 $checkRealExists = $pdo->prepare("SELECT COUNT(*) FROM target_population WHERE cid = ?");
                 $checkRealExists->execute([$match['real_cid']]);
@@ -331,10 +352,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
                     $stmtMergeMock->execute([$match['mock_cid'], $match['real_cid']]);
                     
                     $stmtUpdateAssign->execute([$match['real_cid'], $match['mock_cid']]);
+                    $stmtUpdateScreenCid->execute([$match['real_cid'], $match['mock_cid']]);
                     $stmtUpdateDpac->execute([$match['real_cid'], $match['mock_cid']]);
                     $pdo->prepare("DELETE FROM target_population WHERE cid = ?")->execute([$match['mock_cid']]);
                 } else {
                     $stmtUpdateAssign->execute([$match['real_cid'], $match['mock_cid']]);
+                    $stmtUpdateScreenCid->execute([$match['real_cid'], $match['mock_cid']]);
                     $stmtUpdateDpac->execute([$match['real_cid'], $match['mock_cid']]);
                     $stmtUpdateTargetCid->execute([$match['real_cid'], $match['mock_cid']]);
                 }
@@ -352,17 +375,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
             VALUES 
               (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
             ON DUPLICATE KEY UPDATE
-              hid = CASE WHEN VALUES(hid) IS NOT NULL AND VALUES(hid) <> '' THEN VALUES(hid) ELSE hid END,
-              pid = VALUES(pid),
-              first_name = VALUES(first_name),
-              last_name = VALUES(last_name),
-              sex = VALUES(sex),
-              birth = VALUES(birth),
-              house_no = CASE WHEN VALUES(house_no) IS NOT NULL AND VALUES(house_no) <> '' THEN VALUES(house_no) ELSE house_no END,
-              moo = VALUES(moo),
-              sub_district_code = VALUES(sub_district_code),
-              vhid_code = VALUES(vhid_code),
-              hoscode = VALUES(hoscode),
+              hid = CASE WHEN (hid IS NULL OR hid = '' OR hid = '000000000000000') AND VALUES(hid) IS NOT NULL AND VALUES(hid) <> '' THEN VALUES(hid) ELSE hid END,
+              pid = CASE WHEN pid IS NULL OR pid = '' THEN VALUES(pid) ELSE pid END,
+              first_name = CASE WHEN first_name IS NULL OR first_name = '' OR first_name LIKE '%*%' THEN VALUES(first_name) ELSE first_name END,
+              last_name = CASE WHEN last_name IS NULL OR last_name = '' OR last_name LIKE '%*%' THEN VALUES(last_name) ELSE last_name END,
+              sex = CASE WHEN sex IS NULL OR sex = '' THEN VALUES(sex) ELSE sex END,
+              birth = CASE WHEN birth IS NULL OR birth = '1970-01-01' THEN VALUES(birth) ELSE birth END,
+              house_no = CASE WHEN (house_no IS NULL OR house_no = '') AND VALUES(house_no) IS NOT NULL AND VALUES(house_no) <> '' THEN VALUES(house_no) ELSE house_no END,
+              moo = CASE WHEN moo IS NULL OR moo = 0 THEN VALUES(moo) ELSE moo END,
+              sub_district_code = CASE WHEN sub_district_code IS NULL OR sub_district_code = '' THEN VALUES(sub_district_code) ELSE sub_district_code END,
+              vhid_code = CASE WHEN vhid_code IS NULL OR vhid_code = '' THEN VALUES(vhid_code) ELSE vhid_code END,
+              hoscode = CASE WHEN hoscode IS NULL OR hoscode = '' THEN VALUES(hoscode) ELSE hoscode END,
               updated_at = NOW()
         ");
 
@@ -501,9 +524,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
                 $realCid = $exists['cid'];
                 
                 // หาก CID เดิมในระบบเป็นรหัสจำลอง แต่ใน staging ได้รับ CID จริง (ตามหลัก MOD11) ให้สลับมาใช้ CID จริงทันที
-                if (isMockHospitalCID($realCid, $exists['hoscode']) && isValidThaiCitizenIDMOD11($cleanCid)) {
+                if (isMockHospitalCID($realCid, $exists['hoscode'])
+                    && isValidThaiCitizenIDMOD11($cleanCid)
+                    && !isset($protectedCidsMap[$realCid])) {
                     $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
                     $pdo->prepare("UPDATE task_assignments SET target_cid = ? WHERE target_cid = ?")->execute([$cleanCid, $realCid]);
+                    $pdo->prepare("UPDATE screening_results SET target_cid = ? WHERE target_cid = ?")->execute([$cleanCid, $realCid]);
                     $pdo->prepare("UPDATE dpac_enrollments SET cid = ? WHERE cid = ?")->execute([$cleanCid, $realCid]);
                     $pdo->prepare("UPDATE target_population SET cid = ? WHERE cid = ?")->execute([$cleanCid, $realCid]);
                     $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
@@ -521,8 +547,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
                 $finalHid = !empty($exists['hid']) && $exists['hid'] !== '000000000000000' ? $exists['hid'] : ($hid ?: null);
                 
                 // คัดกรองแล้ว: ล็อกระดับความเสี่ยงตั้งต้น (health_status_origin) ไม่ให้อัปเดตซ้ำเพื่อความสม่ำเสมอของผลงาน
-                $isAlreadyScreened = isset($screenedCidsMap[$realCid]);
-                $finalHealthStatusOrigin = $isAlreadyScreened ? $exists['health_status_origin'] : $healthStatusOrigin;
+                $hasOperationalHistory = isset($protectedCidsMap[$realCid]);
+                $finalHealthStatusOrigin = $hasOperationalHistory ? $exists['health_status_origin'] : $healthStatusOrigin;
 
                 $updateStmt = $pdo->prepare("UPDATE target_population SET hid=?, house_no=?, moo=?, sub_district_code=?, vhid_code=?, latitude=?, longitude=?, health_status_origin=?, need_screen_dm=?, need_screen_ht=?, updated_at=NOW() WHERE cid=?");
                 $updateStmt->execute([
@@ -551,42 +577,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
             }
         }
 
-        // ทำความสะอาดฐานข้อมูล: ลบประชากรที่นำเข้ามาจาก JHCIS Person ในตอนแรก แต่ไม่มีชื่อ/สิทธิ์อยู่ใน HDC ปีนี้
-        // และไม่มีประวัติผลคัดกรอง หรือการมอบหมายงาน อสม. ค้างอยู่ และไม่ได้เพิ่มด้วยระบบ Manual
-        // จำกัดขอบเขตการลบเฉพาะหน่วยบริการที่อัปเดต เพื่อไม่ให้กระทบหน่วยบริการอื่น
-        if (!empty($stagedHoscodes)) {
-            $hoscodeList = implode(',', array_map(function($h) use ($pdo) { return $pdo->quote($h); }, $stagedHoscodes));
-            $pdo->exec("
-                DELETE t FROM target_population t
-                LEFT JOIN task_assignments ta ON t.cid = ta.target_cid
-                WHERE t.need_screen_dm = 0 
-                  AND t.need_screen_ht = 0 
-                  AND (t.is_manual IS NULL OR t.is_manual = 0)
-                  AND ta.assignment_id IS NULL
-                  AND (
-                      t.cid LIKE '%*%' 
-                      OR t.cid LIKE '0%' 
-                      OR t.first_name LIKE '%*%' 
-                      OR t.cid = CONCAT(LPAD(t.hoscode, 5, '0'), LPAD(t.pid, 8, '0'))
-                  )
-                  AND t.hoscode IN ($hoscodeList)
-            ");
-        } else {
-            $pdo->exec("
-                DELETE t FROM target_population t
-                LEFT JOIN task_assignments ta ON t.cid = ta.target_cid
-                WHERE t.need_screen_dm = 0 
-                  AND t.need_screen_ht = 0 
-                  AND (t.is_manual IS NULL OR t.is_manual = 0)
-                  AND ta.assignment_id IS NULL
-                  AND (
-                      t.cid LIKE '%*%' 
-                      OR t.cid LIKE '0%' 
-                      OR t.first_name LIKE '%*%' 
-                      OR t.cid = CONCAT(LPAD(t.hoscode, 5, '0'), LPAD(t.pid, 8, '0'))
-                  )
-            ");
-        }
+        // Never delete a target merely because it is absent from the latest HDC
+        // snapshot. A later import may be partial, and historical/operational data
+        // must remain restorable and traceable. Cleanup is an explicit reviewed
+        // action outside ETL.
+        logETL("Automatic target deletion skipped: preserve-existing-data policy.");
 
         logETL("HDC loop completed. Inserted: $inserted, Updated: $updated, Excluded DM: $excluded_dm, Skipped Invalid: $skipped_invalid");
 
@@ -665,7 +660,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_merge'])) {
             $stmtGetAssign2   = $pdo->prepare("SELECT * FROM task_assignments WHERE target_cid = ?");
             $stmtDelAssign    = $pdo->prepare("DELETE FROM task_assignments WHERE assignment_id = ?");
             $stmtUpdAssign    = $pdo->prepare("UPDATE task_assignments SET target_cid = ? WHERE assignment_id = ?");
-            $stmtMoveScreen   = $pdo->prepare("UPDATE screening_results SET assignment_id = ? WHERE assignment_id = ?");
+            $stmtMoveScreen   = $pdo->prepare("UPDATE screening_results SET assignment_id = ?, target_cid = ? WHERE assignment_id = ?");
+            $stmtUpdateScreenTarget = $pdo->prepare("UPDATE screening_results SET target_cid = ? WHERE assignment_id = ?");
             $stmtGetDpac      = $pdo->prepare("SELECT * FROM dpac_enrollments WHERE cid = ?");
             $stmtGetDpac2     = $pdo->prepare("SELECT * FROM dpac_enrollments WHERE cid = ?");
             $stmtDelDpac      = $pdo->prepare("DELETE FROM dpac_enrollments WHERE enrollment_id = ?");
@@ -683,18 +679,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_merge'])) {
                     // Merge task_assignments
                     $stmtGetAssign->execute([$masked_cid]); $maskedAssigns = $stmtGetAssign->fetchAll();
                     $stmtGetAssign2->execute([$real_cid]);  $realAssigns   = $stmtGetAssign2->fetchAll();
-                    $realByYear = [];
-                    foreach ($realAssigns as $ra) $realByYear[$ra['budget_year']] = $ra;
+                    $realByRound = [];
+                    foreach ($realAssigns as $ra) {
+                        $key = $ra['budget_year'] . '|' . (int)($ra['round_number'] ?? 1) . '|' . (int)($ra['is_sandbox'] ?? 0);
+                        $realByRound[$key] = $ra;
+                    }
 
                     foreach ($maskedAssigns as $ma) {
-                        $yr = $ma['budget_year'];
-                        if (isset($realByYear[$yr])) {
+                        $key = $ma['budget_year'] . '|' . (int)($ma['round_number'] ?? 1) . '|' . (int)($ma['is_sandbox'] ?? 0);
+                        if (isset($realByRound[$key])) {
                             $cntSc = $pdo->prepare("SELECT COUNT(*) FROM screening_results WHERE assignment_id=?");
                             $cntSc->execute([$ma['assignment_id']]);
-                            if ($cntSc->fetchColumn() > 0) $stmtMoveScreen->execute([$realByYear[$yr]['assignment_id'], $ma['assignment_id']]);
+                            $maskedScreenCount = (int)$cntSc->fetchColumn();
+                            $cntSc->execute([$realByRound[$key]['assignment_id']]);
+                            $realScreenCount = (int)$cntSc->fetchColumn();
+                            if ($maskedScreenCount > 0 && $realScreenCount > 0) {
+                                throw new \RuntimeException("พบผลคัดกรองซ้ำในปีงบประมาณ " . $ma['budget_year'] . " รอบที่ " . (int)($ma['round_number'] ?? 1) . " จึงยกเลิกการรวมคู่นี้");
+                            }
+                            if ($maskedScreenCount > 0) {
+                                $stmtMoveScreen->execute([$realByRound[$key]['assignment_id'], $real_cid, $ma['assignment_id']]);
+                            }
                             $stmtDelAssign->execute([$ma['assignment_id']]);
                         } else {
                             $stmtUpdAssign->execute([$real_cid, $ma['assignment_id']]);
+                            $stmtUpdateScreenTarget->execute([$real_cid, $ma['assignment_id']]);
                         }
                     }
 
@@ -1125,6 +1133,10 @@ if ($step === 3) {
             <p style="color: var(--text-secondary); line-height: 1.8; margin-bottom: 20px;">
                 ระบบจะดึงข้อมูลจาก <code>staging_hdc_dm</code> และ <code>staging_hdc_ht</code> มารวมกัน วิเคราะห์ความเสี่ยง และนำเข้า <code>target_population</code> จากนั้นจะเข้าสู่ขั้นตอนตรวจสอบข้อมูลซ้ำซ้อนอัตโนมัติ
             </p>
+            <div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); color:var(--text-secondary); padding:14px 18px; border-radius:14px; margin-bottom:20px; line-height:1.7;">
+                <strong style="color:var(--color-green);">นโยบายรักษาข้อมูลเดิม:</strong>
+                ETL จะไม่ลบประชากรที่ไม่พบในไฟล์ล่าสุด ไม่ล้างการมอบหมายหรือผลคัดกรอง และจะเติมข้อมูลทะเบียนของคนเดิมเฉพาะช่องที่ยังว่างเท่านั้น
+            </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: 12px; margin-bottom: 28px;">
                 <div style="background: var(--bg-darker); border-radius: 16px; padding: 14px 16px;">
                     <div style="font-size: 12px; color: var(--text-muted); font-weight: 700;">🎯 STEP 1</div>

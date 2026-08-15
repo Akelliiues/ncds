@@ -504,14 +504,12 @@ if (isset($_POST['action_confirm'])) {
             
             // Prepared queries
             if ($importType === 'dm') {
-                $pdo->exec("TRUNCATE TABLE staging_hdc_dm");
                 $stmt = $pdo->prepare("
                     INSERT INTO staging_hdc_dm 
                     (hoscode, hosname, pid, cid, name, lname, sex, birth, hid, addr, check_vhid, nation, discharge, typearea, date_screen, bstest, bslevel, hosp_screen, hosp_input, providername, risk, result) 
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
             } elseif ($importType === 'ht') {
-                $pdo->exec("TRUNCATE TABLE staging_hdc_ht");
                 $stmt = $pdo->prepare("
                     INSERT INTO staging_hdc_ht 
                     (hoscode, hosname, pid, cid, name, lname, sex, birth, hid, addr, check_vhid, nation, typearea, sbp, dbp, risk, result) 
@@ -556,6 +554,15 @@ if (isset($_POST['action_confirm'])) {
             }
             
             $pdo->beginTransaction();
+
+            // Replace only the selected staging snapshot inside the transaction.
+            // If parsing or inserting fails, rollback restores the previous usable
+            // snapshot instead of leaving an empty/partially imported table.
+            if ($importType === 'dm') {
+                $pdo->exec("DELETE FROM staging_hdc_dm");
+            } elseif ($importType === 'ht') {
+                $pdo->exec("DELETE FROM staging_hdc_ht");
+            }
             
             // ระบบ Memory Caching สำหรับประชากรเดิมใน target_population เพื่อเพิ่มความเร็วในการตรวจสอบข้อมูลซ้ำ
             $existingPersonsByCid = [];
