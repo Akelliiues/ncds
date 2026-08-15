@@ -70,10 +70,28 @@ $filter_screen_status = $_GET['screen_status'] ?? 'all';
 $filter_vhv_status = $_GET['vhv_status'] ?? 'all';
 $filter_vhv_progress = $_GET['vhv_progress'] ?? 'all';
 $filter_round = $_GET['round'] ?? '1'; // Default '1' Baseline for annual reports
+if ($filter_round !== 'all' && (!ctype_digit((string)$filter_round) || (int)$filter_round < 1)) {
+    $filter_round = '1';
+}
 
 // Force sub-admin to see only their hoscode
 if ($admin_hoscode !== null) {
     $filter_hoscode = $admin_hoscode;
+}
+
+// Build the round selector from rounds that actually exist. Keep rounds 1-3
+// visible for first-time use while allowing rounds 4, 5 and beyond automatically.
+$maxAvailableRound = 3;
+try {
+    $maxRoundQuery = $pdo->query("
+        SELECT GREATEST(
+            IFNULL((SELECT MAX(round_number) FROM task_assignments), 1),
+            IFNULL((SELECT MAX(round_number) FROM screening_results), 1)
+        )
+    ");
+    $maxAvailableRound = max(3, (int)$maxRoundQuery->fetchColumn());
+} catch (\Throwable $e) {
+    $maxAvailableRound = 3;
 }
 
 function appendDemographicFilters(&$sql, $alias = 'p') {
@@ -934,9 +952,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                         <div class="form-group">
                             <label>รอบการคัดกรอง</label>
                             <select name="round" class="form-select" onchange="this.form.submit()">
-                                <option value="1" <?= $filter_round === '1' ? 'selected' : '' ?>>รอบที่ 1 (ประจำปี/Baseline - ส่งรายงาน HDC)</option>
-                                <option value="2" <?= $filter_round === '2' ? 'selected' : '' ?>>🔄 รอบที่ 2 (คัดกรองติดตามซ้ำ)</option>
-                                <option value="3" <?= $filter_round === '3' ? 'selected' : '' ?>>🔄 รอบที่ 3 (คัดกรองติดตามซ้ำ)</option>
+                                <?php for ($reportRound = 1; $reportRound <= $maxAvailableRound; $reportRound++): ?>
+                                    <option value="<?= $reportRound ?>" <?= $filter_round === (string)$reportRound ? 'selected' : '' ?>>
+                                        <?= $reportRound === 1 ? 'รอบที่ 1 (ประจำปี/Baseline - ส่งรายงาน HDC)' : "🔄 รอบที่ {$reportRound} (คัดกรองติดตามซ้ำ)" ?>
+                                    </option>
+                                <?php endfor; ?>
                                 <option value="all" <?= $filter_round === 'all' ? 'selected' : '' ?>>ทุกรอบคัดกรอง</option>
                             </select>
                         </div>

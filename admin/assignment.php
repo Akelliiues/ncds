@@ -334,10 +334,10 @@ try {
                     <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; background: var(--bg-main); padding: 8px 14px; border-radius: 12px; border: 1px solid var(--border-color);">
                         <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">🎯 รอบการคัดกรอง:</span>
                         <select id="assign-round-select" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--color-primary); font-size: 13px; font-weight: 800;">
-                            <option value="auto" selected>✨ อัตโนมัติ (ต่อรอบ 1 ➔ 2 ➔ 3 อัตโนมัติ)</option>
-                            <option value="1">รอบที่ 1 (ประจำปี / Baseline)</option>
-                            <option value="2">🔄 รอบที่ 2 (คัดกรองติดตามซ้ำ)</option>
-                            <option value="3">🔄 รอบที่ 3 (คัดกรองติดตามซ้ำ)</option>
+                            <option value="auto" selected>✨ อัตโนมัติ (สร้างรอบถัดไปโดยเก็บประวัติเดิม)</option>
+                            <?php for ($roundOption = 1; $roundOption <= 10; $roundOption++): ?>
+                                <option value="<?= $roundOption ?>"><?= $roundOption === 1 ? 'รอบที่ 1 (ประจำปี / Baseline)' : "🔄 รอบที่ {$roundOption} (คัดกรองติดตามซ้ำ)" ?></option>
+                            <?php endfor; ?>
                         </select>
                     </div>
                 </div>

@@ -96,6 +96,10 @@ try {
         $existingPending = $pendingCheck->fetch();
 
         if ($existingPending) {
+            if ($requestedRound > 0 && $requestedRound !== (int)$existingPending['round_number']) {
+                throw new \Exception("{$residentName} มีใบงานรอบที่ {$existingPending['round_number']} รอดำเนินการอยู่แล้ว กรุณาใช้โหมดอัตโนมัติหรือดำเนินการใบงานเดิมให้เสร็จก่อน");
+            }
+
             // Update VHV for existing pending assignment
             if ($existingPending['vhv_id'] !== $vhvId) {
                 $oldVhvId = $existingPending['vhv_id'];
@@ -117,23 +121,24 @@ try {
                 $logStmt->execute([$existingPending['assignment_id'], $note]);
             }
         } else {
-            // No pending assignment exists (target is either new or has completed previous rounds)
-            // Check max completed round to preserve Round 1 Baseline Checkpoint
+            // No pending assignment exists. Read the highest historical round across
+            // every status so completed and skipped records are both preserved.
             $maxRoundStmt = $pdo->prepare("
                 SELECT IFNULL(MAX(round_number), 0) 
                 FROM task_assignments 
-                WHERE target_cid = ? AND budget_year = ? AND assignment_status = 'completed' AND is_sandbox = ?
+                WHERE target_cid = ? AND budget_year = ? AND is_sandbox = ?
             ");
             $maxRoundStmt->execute([$cid, $currentYear, $isSandboxVal]);
-            $maxCompletedRound = (int)$maxRoundStmt->fetchColumn();
+            $maxExistingRound = (int)$maxRoundStmt->fetchColumn();
+            $nextRound = $maxExistingRound + 1;
 
-            if ($maxCompletedRound >= 1 && $requestedRound <= 1) {
-                // Round 1 is locked as Checkpoint! Automatically promote new assignment to next round (Round 2+)
-                $targetRound = $maxCompletedRound + 1;
-            } else if ($requestedRound > 0) {
+            if ($requestedRound > 0) {
+                if ($requestedRound !== $nextRound) {
+                    throw new \Exception("ไม่สามารถสร้างรอบที่ {$requestedRound} สำหรับ {$residentName} ได้ รอบถัดไปที่ถูกต้องคือรอบที่ {$nextRound}");
+                }
                 $targetRound = $requestedRound;
             } else {
-                $targetRound = $maxCompletedRound + 1;
+                $targetRound = $nextRound;
             }
 
             // Insert new assignment for targetRound
@@ -147,7 +152,9 @@ try {
 
     $pdo->commit();
     echo json_encode(['status' => 'success']);
-} catch (PDOException $e) {
-    $pdo->rollBack();
-    echo json_encode(['status' => 'error', 'message' => 'Database error: ' . $e->getMessage()]);
+} catch (\Throwable $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
 }
