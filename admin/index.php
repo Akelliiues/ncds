@@ -717,6 +717,119 @@ if ($admin_hoscode) {
     $chartRescreenStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $valid_hoscodes));
     $chartRescreenData = $chartRescreenStmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
+// Operational Action Center: common metrics for both area admins and super admins.
+$dashboardHoscodes = $admin_hoscode ? $hoscodes : $valid_hoscodes;
+$dashboardPlaceholders = implode(',', array_fill(0, count($dashboardHoscodes), '?'));
+$actionMetrics = [
+    'pending_0_7' => 0,
+    'pending_8_14' => 0,
+    'pending_over_14' => 0,
+    'skipped_count' => 0,
+    'high_risk_without_dpac' => 0,
+    'incomplete_screenings' => 0
+];
+$latestScreeningAt = null;
+$latestTargetUpdateAt = null;
+
+try {
+    $pendingAgeStmt = $pdo->prepare("
+        SELECT
+            SUM(CASE WHEN a.assigned_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) AS pending_0_7,
+            SUM(CASE WHEN a.assigned_at < DATE_SUB(NOW(), INTERVAL 7 DAY)
+                      AND a.assigned_at >= DATE_SUB(NOW(), INTERVAL 14 DAY) THEN 1 ELSE 0 END) AS pending_8_14,
+            SUM(CASE WHEN a.assigned_at < DATE_SUB(NOW(), INTERVAL 14 DAY) THEN 1 ELSE 0 END) AS pending_over_14
+        FROM task_assignments a
+        JOIN target_population p ON a.target_cid = p.cid
+        WHERE a.assignment_status = 'pending'
+          AND a.is_sandbox = ?
+          AND p.hoscode IN ($dashboardPlaceholders)
+          AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+    ");
+    $pendingAgeStmt->execute(array_merge([$isSandboxVal], $dashboardHoscodes));
+    $pendingAge = $pendingAgeStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    $actionMetrics['pending_0_7'] = (int)($pendingAge['pending_0_7'] ?? 0);
+    $actionMetrics['pending_8_14'] = (int)($pendingAge['pending_8_14'] ?? 0);
+    $actionMetrics['pending_over_14'] = (int)($pendingAge['pending_over_14'] ?? 0);
+
+    $skippedActionStmt = $pdo->prepare("
+        SELECT COUNT(*)
+        FROM task_assignments a
+        JOIN target_population p ON a.target_cid = p.cid
+        WHERE a.assignment_status = 'skipped'
+          AND a.is_sandbox = ?
+          AND p.hoscode IN ($dashboardPlaceholders)
+          AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+    ");
+    $skippedActionStmt->execute(array_merge([$isSandboxVal], $dashboardHoscodes));
+    $actionMetrics['skipped_count'] = (int)$skippedActionStmt->fetchColumn();
+
+    $latestResultJoin = "
+        LEFT JOIN screening_results s ON s.screening_id = (
+            SELECT sr.screening_id
+            FROM screening_results sr
+            LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id
+            WHERE (sr.target_cid = p.cid OR ta2.target_cid = p.cid)
+              AND sr.is_sandbox = ?
+            ORDER BY sr.created_at DESC, sr.screening_id DESC
+            LIMIT 1
+        )
+    ";
+
+    $highRiskStmt = $pdo->prepare("
+        SELECT COUNT(DISTINCT p.cid)
+        FROM target_population p
+        $latestResultJoin
+        WHERE p.hoscode IN ($dashboardPlaceholders)
+          AND s.screening_id IS NOT NULL
+          AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126)
+          AND NOT EXISTS (
+              SELECT 1 FROM dpac_enrollments e
+              WHERE e.cid = p.cid AND e.budget_year = 2026
+          )
+    ");
+    $highRiskStmt->execute(array_merge([$isSandboxVal], $dashboardHoscodes));
+    $actionMetrics['high_risk_without_dpac'] = (int)$highRiskStmt->fetchColumn();
+
+    $incompleteStmt = $pdo->prepare("
+        SELECT COUNT(DISTINCT p.cid)
+        FROM target_population p
+        $latestResultJoin
+        WHERE p.hoscode IN ($dashboardPlaceholders)
+          AND s.screening_id IS NOT NULL
+          AND (
+              s.sys_bp1 IS NULL OR s.dia_bp1 IS NULL
+              OR s.weight IS NULL OR s.weight <= 0
+              OR s.height IS NULL OR s.height <= 0
+              OR s.waist IS NULL OR s.waist <= 0
+          )
+    ");
+    $incompleteStmt->execute(array_merge([$isSandboxVal], $dashboardHoscodes));
+    $actionMetrics['incomplete_screenings'] = (int)$incompleteStmt->fetchColumn();
+
+    $freshnessStmt = $pdo->prepare("
+        SELECT MAX(s.created_at)
+        FROM screening_results s
+        LEFT JOIN task_assignments a ON s.assignment_id = a.assignment_id
+        JOIN target_population p ON (s.target_cid = p.cid OR a.target_cid = p.cid)
+        WHERE s.is_sandbox = ? AND p.hoscode IN ($dashboardPlaceholders)
+    ");
+    $freshnessStmt->execute(array_merge([$isSandboxVal], $dashboardHoscodes));
+    $latestScreeningAt = $freshnessStmt->fetchColumn() ?: null;
+
+    $targetFreshnessStmt = $pdo->prepare("SELECT MAX(updated_at) FROM target_population WHERE hoscode IN ($dashboardPlaceholders)");
+    $targetFreshnessStmt->execute($dashboardHoscodes);
+    $latestTargetUpdateAt = $targetFreshnessStmt->fetchColumn() ?: null;
+} catch (\Throwable $e) {
+    // Keep the dashboard available if an older database schema does not yet expose a field.
+}
+
+function formatDashboardTimestamp($value) {
+    if (!$value) return 'ยังไม่มีข้อมูล';
+    $timestamp = strtotime($value);
+    if (!$timestamp) return 'ยังไม่มีข้อมูล';
+    return date('d/m/', $timestamp) . (date('Y', $timestamp) + 543) . ' ' . date('H:i', $timestamp) . ' น.';
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -748,6 +861,61 @@ if ($admin_hoscode) {
             หน่วยบริการผู้รับผิดชอบ: <strong
                 style="color: var(--color-accent);"><?= htmlspecialchars($admin_title) ?></strong>
         </p>
+
+        <!-- Operational Action Center -->
+        <section class="card-dark" style="margin-bottom: 30px; border: 1px solid rgba(245, 158, 11, 0.28); overflow: hidden;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 18px;">
+                <div>
+                    <h3 style="margin: 0 0 6px; color: var(--color-accent); font-size: 18px;">รายการที่ต้องดำเนินการ</h3>
+                    <div style="color: var(--text-secondary); font-size: 13px;">สรุปประเด็นที่ควรตรวจสอบก่อนดูกราฟรายละเอียด</div>
+                </div>
+                <div style="font-size: 12px; line-height: 1.7; color: var(--text-muted); text-align: right;">
+                    <div>ผลคัดกรองล่าสุด: <strong style="color: var(--text-secondary);"><?= htmlspecialchars(formatDashboardTimestamp($latestScreeningAt)) ?></strong></div>
+                    <div>ข้อมูลเป้าหมายล่าสุด: <strong style="color: var(--text-secondary);"><?= htmlspecialchars(formatDashboardTimestamp($latestTargetUpdateAt)) ?></strong></div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr)); gap: 14px;">
+                <a href="vhv_tasks.php" style="text-decoration: none; color: inherit; background: rgba(239, 68, 68, 0.07); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 14px; padding: 16px; display: block;">
+                    <div style="display: flex; justify-content: space-between; gap: 12px; align-items: flex-start;">
+                        <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary);">งานค้างเกิน 14 วัน</div>
+                        <span style="font-size: 12px; color: var(--color-red);">เปิดจัดการ ›</span>
+                    </div>
+                    <div style="font-size: 30px; font-weight: 800; color: var(--color-red); margin: 7px 0;"><?= number_format($actionMetrics['pending_over_14']) ?> <span style="font-size: 13px;">งาน</span></div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; color: var(--text-muted); font-size: 11px;">
+                        <span>0–7 วัน <?= number_format($actionMetrics['pending_0_7']) ?></span>
+                        <span>8–14 วัน <?= number_format($actionMetrics['pending_8_14']) ?></span>
+                    </div>
+                </a>
+
+                <a href="dpac_manager.php" style="text-decoration: none; color: inherit; background: rgba(245, 158, 11, 0.07); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 14px; padding: 16px; display: block;">
+                    <div style="display: flex; justify-content: space-between; gap: 12px; align-items: flex-start;">
+                        <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary);">เสี่ยงสูง ยังไม่เข้า DPAC</div>
+                        <span style="font-size: 12px; color: var(--color-yellow);">เปิด DPAC ›</span>
+                    </div>
+                    <div style="font-size: 30px; font-weight: 800; color: var(--color-yellow); margin: 7px 0;"><?= number_format($actionMetrics['high_risk_without_dpac']) ?> <span style="font-size: 13px;">ราย</span></div>
+                    <div style="color: var(--text-muted); font-size: 11px;">อ้างอิงผลคัดกรองล่าสุดของแต่ละราย</div>
+                </a>
+
+                <a href="vhv_tasks.php" style="text-decoration: none; color: inherit; background: rgba(249, 115, 22, 0.07); border: 1px solid rgba(249, 115, 22, 0.25); border-radius: 14px; padding: 16px; display: block;">
+                    <div style="display: flex; justify-content: space-between; gap: 12px; align-items: flex-start;">
+                        <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary);">เคสข้ามสะสม</div>
+                        <span style="font-size: 12px; color: #f97316;">เปิดรายการ ›</span>
+                    </div>
+                    <div style="font-size: 30px; font-weight: 800; color: #f97316; margin: 7px 0;"><?= number_format($actionMetrics['skipped_count']) ?> <span style="font-size: 13px;">ราย</span></div>
+                    <div style="color: var(--text-muted); font-size: 11px;">ควรตรวจเหตุผลและพิจารณามอบหมายใหม่</div>
+                </a>
+
+                <a href="reports.php?source=screened" style="text-decoration: none; color: inherit; background: rgba(139, 92, 246, 0.07); border: 1px solid rgba(139, 92, 246, 0.25); border-radius: 14px; padding: 16px; display: block;">
+                    <div style="display: flex; justify-content: space-between; gap: 12px; align-items: flex-start;">
+                        <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary);">ผลคัดกรองข้อมูลไม่ครบ</div>
+                        <span style="font-size: 12px; color: #8b5cf6;">เปิดรายงาน ›</span>
+                    </div>
+                    <div style="font-size: 30px; font-weight: 800; color: #8b5cf6; margin: 7px 0;"><?= number_format($actionMetrics['incomplete_screenings']) ?> <span style="font-size: 13px;">ราย</span></div>
+                    <div style="color: var(--text-muted); font-size: 11px;">ตรวจความดัน น้ำหนัก ส่วนสูง และรอบเอว</div>
+                </a>
+            </div>
+        </section>
 
         <!-- Target Group Summary -->
         <div style="margin-bottom: 12px;">
