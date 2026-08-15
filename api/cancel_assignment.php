@@ -91,10 +91,13 @@ try {
             SELECT ta.assignment_id, ta.vhv_id, ta.assignment_status, ta.target_cid, tp.hoscode
             FROM task_assignments ta
             JOIN target_population tp ON ta.target_cid = tp.cid
-            WHERE ta.assignment_id = ? AND ta.is_sandbox = ?
+            WHERE ta.assignment_id = ?
+              AND ta.target_cid = ?
+              AND ta.assignment_status = 'pending'
+              AND ta.is_sandbox = ?
             LIMIT 1
         ");
-        $stmt->execute([$assignmentId, $isSandboxVal]);
+        $stmt->execute([$assignmentId, $cid, $isSandboxVal]);
     } else {
         // Fetch ONLY latest PENDING assignment for this CID
         $stmt = $pdo->prepare("
@@ -163,6 +166,10 @@ try {
     // 4. ลบเฉพาะใบงานรอดำเนินการ (pending) ของ assignment_id นี้เท่านั้น
     $delStmt = $pdo->prepare("DELETE FROM task_assignments WHERE assignment_id = ? AND assignment_status = 'pending'");
     $delStmt->execute([$assignment['assignment_id']]);
+
+    if ($delStmt->rowCount() !== 1) {
+        throw new \RuntimeException('ไม่สามารถยกเลิกใบงานที่ระบุได้ เนื่องจากสถานะใบงานมีการเปลี่ยนแปลง');
+    }
 
     $pdo->commit();
 

@@ -672,13 +672,12 @@ try {
         LEFT JOIN vhv_rewards r ON f.followup_id = r.followup_id
         WHERE f.status = 'completed' AND r.reward_id IS NULL
     ");
-    // Auto-cleanup duplicate task assignments (keeping only the one with the highest assignment_id)
-    $pdo->exec("
-        DELETE a1 FROM task_assignments a1
-        JOIN task_assignments a2 ON a1.target_cid = a2.target_cid 
-          AND a1.budget_year = a2.budget_year 
-          AND a1.assignment_id < a2.assignment_id
-    ");
+    // Do not auto-delete assignments here. A target can legitimately have more than
+    // one assignment in the same budget year when multi-round screening is enabled.
+    // The old cleanup query compared only CID and budget year, so creating round 2
+    // deleted the round 1 assignment and could cascade-delete its screening result.
+    // Duplicate prevention is handled by the per-round unique index
+    // (target_cid, budget_year, round_number, is_sandbox).
 
     // Auto-cleanup orphaned task assignments (where target_cid is not in target_population)
     $pdo->exec("
@@ -1952,5 +1951,3 @@ if (!function_exists('get_admin_title')) {
         return '☠️ ข้าคือชะตาที่มิอาจเลี่ยง!!';
     }
 }
-
-

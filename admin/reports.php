@@ -96,7 +96,7 @@ if ($filter_source === 'screened') {
     // Query VHV screened results
     $sql = "
         SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.sub_district_code, COALESCE(v.hoscode, p.hoscode) as hoscode,
-               s.sys_bp1, s.dia_bp1, s.dtx_value, s.bmi, s.cv_risk_score, s.created_at, IFNULL(s.round_number, a.round_number) as round_number
+               s.sys_bp1, s.dia_bp1, s.dtx_value, s.weight, s.height, s.waist, s.bmi, s.cv_risk_score, s.created_at, IFNULL(s.round_number, a.round_number) as round_number
         FROM screening_results s
         LEFT JOIN task_assignments a ON s.assignment_id = a.assignment_id
         JOIN target_population p ON (s.target_cid = p.cid OR a.target_cid = p.cid)
@@ -158,7 +158,7 @@ if ($filter_source === 'screened') {
     // Query targets with customizable screening status
     $sql = "
         SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.sub_district_code, COALESCE(v.hoscode, p.hoscode) as hoscode,
-               s.sys_bp1, s.dia_bp1, s.dtx_value, s.bmi, s.cv_risk_score, s.created_at,
+               s.sys_bp1, s.dia_bp1, s.dtx_value, s.weight, s.height, s.waist, s.bmi, s.cv_risk_score, s.created_at,
                p.health_status_origin as risk, p.need_screen_dm, p.need_screen_ht,
                CASE WHEN (s.screening_id IS NOT NULL OR a.assignment_id IS NOT NULL) THEN 'screened' ELSE 'unscreened' END as screen_status
         FROM target_population p
@@ -488,7 +488,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
 
     $no = 1;
     if ($filter_source === 'screened') {
-        fputcsv($output, ['ลำดับ', 'เลขบัตรประชาชน', 'ชื่อ-นามสกุล', 'บ้านเลขที่', 'หมู่', 'บ้าน', 'ตำบล', 'รพ.สต.', 'ค่าความดันโลหิต', 'ค่าน้ำตาล (DTX)', 'ดัชนีมวลกาย (BMI)', 'ความเสี่ยง (CV Risk)', 'วันที่คัดกรองล่าสุด']);
+        fputcsv($output, ['ลำดับ', 'เลขบัตรประชาชน', 'ชื่อ-นามสกุล', 'บ้านเลขที่', 'หมู่', 'บ้าน', 'ตำบล', 'รพ.สต.', 'ค่าความดันโลหิต (mmHg)', 'ค่าน้ำตาล DTX (mg/dL)', 'น้ำหนัก (กก.)', 'ส่วนสูง (ซม.)', 'รอบเอว (นิ้ว)', 'ดัชนีมวลกาย (BMI)', 'ความเสี่ยง (CV Risk)', 'วันที่คัดกรองล่าสุด']);
         foreach ($reportData as $row) {
             $logical_tambon_code = $hoscode_villages[$row['hoscode']]['tambon'] ?? $row['sub_district_code'];
             $tambonName = str_replace('ตำบล', '', $tambons[$logical_tambon_code] ?? $logical_tambon_code);
@@ -506,6 +506,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                 $hosName,
                 $row['sys_bp1'] . '/' . $row['dia_bp1'],
                 $row['dtx_value'] ?: '-',
+                $row['weight'] ?: '-',
+                $row['height'] ?: '-',
+                $row['waist'] ?: '-',
                 $row['bmi'] ?: '-',
                 ($row['cv_risk_score'] !== null ? $row['cv_risk_score'] . '%' : '-'),
                 $row['created_at']
@@ -534,7 +537,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
             ]);
         }
     } elseif ($filter_source === 'unscreened') {
-        fputcsv($output, ['ลำดับ', 'เลขบัตรประชาชน', 'ชื่อ-นามสกุล', 'บ้านเลขที่', 'หมู่', 'บ้าน', 'ตำบล', 'รพ.สต.', 'สถานะ', 'ค่าความดันโลหิต', 'ค่าน้ำตาล (DTX)', 'ดัชนีมวลกาย (BMI)', 'ความเสี่ยง (CV Risk)', 'วันที่คัดกรองล่าสุด']);
+        fputcsv($output, ['ลำดับ', 'เลขบัตรประชาชน', 'ชื่อ-นามสกุล', 'บ้านเลขที่', 'หมู่', 'บ้าน', 'ตำบล', 'รพ.สต.', 'สถานะ', 'ค่าความดันโลหิต (mmHg)', 'ค่าน้ำตาล DTX (mg/dL)', 'น้ำหนัก (กก.)', 'ส่วนสูง (ซม.)', 'รอบเอว (นิ้ว)', 'ดัชนีมวลกาย (BMI)', 'ความเสี่ยง (CV Risk)', 'วันที่คัดกรองล่าสุด']);
         foreach ($reportData as $row) {
             $logical_tambon_code = $hoscode_villages[$row['hoscode']]['tambon'] ?? $row['sub_district_code'];
             $tambonName = str_replace('ตำบล', '', $tambons[$logical_tambon_code] ?? $logical_tambon_code);
@@ -554,6 +557,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                 $statusStr,
                 ($row['screen_status'] === 'screened') ? $row['sys_bp1'] . '/' . $row['dia_bp1'] : '-',
                 ($row['screen_status'] === 'screened' && $row['dtx_value']) ? $row['dtx_value'] : '-',
+                ($row['screen_status'] === 'screened' && $row['weight']) ? $row['weight'] : '-',
+                ($row['screen_status'] === 'screened' && $row['height']) ? $row['height'] : '-',
+                ($row['screen_status'] === 'screened' && $row['waist']) ? $row['waist'] : '-',
                 ($row['screen_status'] === 'screened' && $row['bmi']) ? $row['bmi'] : '-',
                 ($row['screen_status'] === 'screened' && $row['cv_risk_score'] !== null) ? $row['cv_risk_score'] . '%' : '-',
                 ($row['screen_status'] === 'screened' && $row['created_at']) ? $row['created_at'] : '-'
@@ -1117,6 +1123,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                                     <th>รพ.สต.</th>
                                     <th>ความดันโลหิต</th>
                                     <th>ค่าน้ำตาล (DTX)</th>
+                                    <th>น้ำหนัก (กก.)</th>
+                                    <th>ส่วนสูง (ซม.)</th>
+                                    <th>รอบเอว (นิ้ว)</th>
                                     <th>ดัชนีมวลกาย (BMI)</th>
                                     <th>ความเสี่ยง (CV Risk)</th>
                                     <th>วันที่ตรวจคัดกรอง</th>
@@ -1148,6 +1157,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                                     <th>สถานะ</th>
                                     <th>ความดันโลหิต</th>
                                     <th>ค่าน้ำตาล (DTX)</th>
+                                    <th>น้ำหนัก (กก.)</th>
+                                    <th>ส่วนสูง (ซม.)</th>
+                                    <th>รอบเอว (นิ้ว)</th>
                                     <th>ดัชนีมวลกาย (BMI)</th>
                                     <th>ความเสี่ยง (CV Risk)</th>
                                     <th>วันที่ตรวจคัดกรอง</th>
@@ -1200,11 +1212,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                             <?php if (empty($reportData)): ?>
                                 <tr>
                                     <?php
-                                    $colspan = 13;
+                                    $colspan = 16;
                                      if ($filter_source === 'baseline')
                                          $colspan = 11;
                                      elseif ($filter_source === 'unscreened')
-                                         $colspan = 14;
+                                         $colspan = 17;
                                     elseif ($filter_source === 'vhv_list')
                                         $colspan = 10;
                                     elseif ($filter_source === 'summary_stats')
@@ -1244,6 +1256,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                                             </td>
                                             <td><?= $row['sys_bp1'] . '/' . $row['dia_bp1'] ?></td>
                                             <td><?= $row['dtx_value'] ?: '-' ?></td>
+                                            <td><?= $row['weight'] ?: '-' ?></td>
+                                            <td><?= $row['height'] ?: '-' ?></td>
+                                            <td><?= $row['waist'] ?: '-' ?></td>
                                             <td><?= $row['bmi'] ?: '-' ?></td>
                                             <td><?= ($row['cv_risk_score'] !== null ? $row['cv_risk_score'] . '%' : '-') ?></td>
                                             <td style="font-size: 11px; color: var(--text-muted);"><?= $row['created_at'] ?></td>
@@ -1334,6 +1349,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                                                     -
                                                 <?php endif; ?>
                                             </td>
+                                            <td><?= htmlspecialchars(($row['screen_status'] === 'screened' && $row['weight']) ? $row['weight'] : '-') ?></td>
+                                            <td><?= htmlspecialchars(($row['screen_status'] === 'screened' && $row['height']) ? $row['height'] : '-') ?></td>
+                                            <td><?= htmlspecialchars(($row['screen_status'] === 'screened' && $row['waist']) ? $row['waist'] : '-') ?></td>
                                             <td><?= htmlspecialchars(($row['screen_status'] === 'screened' && $row['bmi']) ? $row['bmi'] : '-') ?></td>
                                             <td>
                                                 <?php if ($row['screen_status'] === 'screened'): ?>
