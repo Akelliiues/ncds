@@ -764,42 +764,54 @@ try {
     $skippedActionStmt->execute(array_merge([$isSandboxVal], $dashboardHoscodes));
     $actionMetrics['skipped_count'] = (int)$skippedActionStmt->fetchColumn();
 
-    // Resolve every target's latest result once. The previous correlated subquery
-    // scanned screening history again for each target and made the dashboard slow.
-    $actionScreeningStmt = $pdo->prepare("
-        SELECT
-            COUNT(DISTINCT CASE
-                WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126)
-                     AND e.enrollment_id IS NULL
-                THEN p.cid END
-            ) AS high_risk_without_dpac,
-            COUNT(DISTINCT CASE
-                WHEN s.sys_bp1 IS NULL OR s.dia_bp1 IS NULL
-                     OR s.weight IS NULL OR s.weight <= 0
-                     OR s.height IS NULL OR s.height <= 0
-                     OR s.waist IS NULL OR s.waist <= 0
-                THEN p.cid END
-            ) AS incomplete_screenings
-        FROM (
-            SELECT target_cid, MAX(screening_id) AS latest_screening_id
-            FROM screening_results
-            WHERE is_sandbox = ? AND target_cid IS NOT NULL AND target_cid <> ''
-            GROUP BY target_cid
-        ) latest
-        JOIN screening_results s ON s.screening_id = latest.latest_screening_id
-        JOIN target_population p ON p.cid = latest.target_cid
-        LEFT JOIN dpac_enrollments e ON e.cid = p.cid AND e.budget_year = 2026
+    $latestResultJoin = "
+        LEFT JOIN screening_results s ON s.screening_id = (
+            SELECT sr.screening_id
+            FROM screening_results sr
+            LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id
+            WHERE (sr.target_cid = p.cid OR ta2.target_cid = p.cid)
+              AND sr.is_sandbox = ?
+            ORDER BY sr.created_at DESC, sr.screening_id DESC
+            LIMIT 1
+        )
+    ";
+
+    $highRiskStmt = $pdo->prepare("
+        SELECT COUNT(DISTINCT p.cid)
+        FROM target_population p
+        $latestResultJoin
         WHERE p.hoscode IN ($dashboardPlaceholders)
+          AND s.screening_id IS NOT NULL
+          AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126)
+          AND NOT EXISTS (
+              SELECT 1 FROM dpac_enrollments e
+              WHERE e.cid = p.cid AND e.budget_year = 2026
+          )
     ");
-    $actionScreeningStmt->execute(array_merge([$isSandboxVal], $dashboardHoscodes));
-    $actionScreening = $actionScreeningStmt->fetch(PDO::FETCH_ASSOC) ?: [];
-    $actionMetrics['high_risk_without_dpac'] = (int)($actionScreening['high_risk_without_dpac'] ?? 0);
-    $actionMetrics['incomplete_screenings'] = (int)($actionScreening['incomplete_screenings'] ?? 0);
+    $highRiskStmt->execute(array_merge([$isSandboxVal], $dashboardHoscodes));
+    $actionMetrics['high_risk_without_dpac'] = (int)$highRiskStmt->fetchColumn();
+
+    $incompleteStmt = $pdo->prepare("
+        SELECT COUNT(DISTINCT p.cid)
+        FROM target_population p
+        $latestResultJoin
+        WHERE p.hoscode IN ($dashboardPlaceholders)
+          AND s.screening_id IS NOT NULL
+          AND (
+              s.sys_bp1 IS NULL OR s.dia_bp1 IS NULL
+              OR s.weight IS NULL OR s.weight <= 0
+              OR s.height IS NULL OR s.height <= 0
+              OR s.waist IS NULL OR s.waist <= 0
+          )
+    ");
+    $incompleteStmt->execute(array_merge([$isSandboxVal], $dashboardHoscodes));
+    $actionMetrics['incomplete_screenings'] = (int)$incompleteStmt->fetchColumn();
 
     $freshnessStmt = $pdo->prepare("
         SELECT MAX(s.created_at)
         FROM screening_results s
-        JOIN target_population p ON s.target_cid = p.cid
+        LEFT JOIN task_assignments a ON s.assignment_id = a.assignment_id
+        JOIN target_population p ON (s.target_cid = p.cid OR a.target_cid = p.cid)
         WHERE s.is_sandbox = ? AND p.hoscode IN ($dashboardPlaceholders)
     ");
     $freshnessStmt->execute(array_merge([$isSandboxVal], $dashboardHoscodes));
