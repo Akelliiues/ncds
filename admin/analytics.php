@@ -10,6 +10,7 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 require_once __DIR__ . '/../config/db.php';
 
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
+$isSandboxVal = isSandboxMode($admin_hoscode ?: null) ? 1 : 0;
 
 $hc_names = get_health_units();
 
@@ -25,6 +26,32 @@ if ($admin_hoscode) {
     $hoscodes = $valid_hoscodes;
 }
 
+// Shared analytics filters. The unit selector can only narrow the units that
+// the signed-in administrator is already allowed to access.
+$allowedHoscodes = $hoscodes;
+$selectedHoscode = trim((string)($_GET['hoscode'] ?? ''));
+if ($selectedHoscode !== '' && in_array($selectedHoscode, $allowedHoscodes, true)) {
+    $hoscodes = [$selectedHoscode];
+    $inPlaceholders = '?';
+}
+
+$availableBudgetYears = [];
+try {
+    $availableBudgetYears = $pdo->query("
+        SELECT DISTINCT budget_year FROM task_assignments WHERE budget_year IS NOT NULL
+        UNION SELECT DISTINCT budget_year FROM dpac_enrollments WHERE budget_year IS NOT NULL
+        ORDER BY budget_year DESC
+    ")->fetchAll(PDO::FETCH_COLUMN);
+} catch (\Throwable $e) {}
+$defaultBudgetYear = !empty($availableBudgetYears) ? (int)$availableBudgetYears[0] : (int)date('Y');
+$selectedBudgetYear = isset($_GET['budget_year']) && ctype_digit((string)$_GET['budget_year'])
+    ? (int)$_GET['budget_year'] : $defaultBudgetYear;
+$selectedRound = isset($_GET['round']) && ctype_digit((string)$_GET['round']) ? max(0, (int)$_GET['round']) : 0;
+$dateFromInput = (string)($_GET['date_from'] ?? '');
+$dateToInput = (string)($_GET['date_to'] ?? '');
+$dateFrom = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFromInput) ? $dateFromInput : '';
+$dateTo = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateToInput) ? $dateToInput : '';
+
 // 1. Before-After Query for DPAC progress tracking
 $beforeAfterStmt = $pdo->prepare("
     SELECT 
@@ -36,18 +63,18 @@ $beforeAfterStmt = $pdo->prepare("
         fl.round_number AS latest_round
     FROM dpac_enrollments e
     JOIN target_population p ON e.cid = p.cid
-    JOIN dpac_followups f1 ON e.enrollment_id = f1.enrollment_id AND f1.round_number = 1 AND f1.status = 'completed'
-    JOIN dpac_followups fl ON e.enrollment_id = fl.enrollment_id AND fl.status = 'completed'
+    JOIN dpac_followups f1 ON e.enrollment_id = f1.enrollment_id AND f1.round_number = 1 AND f1.status = 'completed' AND f1.is_sandbox = ?
+    JOIN dpac_followups fl ON e.enrollment_id = fl.enrollment_id AND fl.status = 'completed' AND fl.is_sandbox = ?
     JOIN (
         SELECT enrollment_id, MAX(round_number) as max_round
         FROM dpac_followups
-        WHERE status = 'completed'
+        WHERE status = 'completed' AND is_sandbox = ?
         GROUP BY enrollment_id
     ) max_f ON fl.enrollment_id = max_f.enrollment_id AND fl.round_number = max_f.max_round
-    WHERE max_f.max_round > 1 AND p.hoscode IN ($inPlaceholders)
+    WHERE max_f.max_round > 1 AND e.budget_year = ? AND p.hoscode IN ($inPlaceholders)
     ORDER BY fl.completed_at DESC
 ");
-$beforeAfterStmt->execute($hoscodes);
+$beforeAfterStmt->execute(array_merge([$isSandboxVal, $isSandboxVal, $isSandboxVal, $selectedBudgetYear], $hoscodes));
 $beforeAfterData = $beforeAfterStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // NCD Multi-Round Re-screening Before-After Query (Round 1 vs Latest Round)
@@ -58,21 +85,102 @@ $ncdBeforeAfterStmt = $pdo->prepare("
         sl.sys_bp1 AS sbp_latest, sl.dia_bp1 AS dbp_latest, sl.dtx_value AS dtx_latest, sl.bmi AS bmi_latest, sl.created_at AS date_latest,
         al.round_number AS latest_round
     FROM target_population p
-    JOIN task_assignments a1 ON p.cid = a1.target_cid AND a1.round_number = 1 AND a1.assignment_status = 'completed' AND a1.budget_year = 2026
-    JOIN screening_results s1 ON a1.assignment_id = s1.assignment_id
-    JOIN task_assignments al ON p.cid = al.target_cid AND al.round_number > 1 AND al.assignment_status = 'completed' AND al.budget_year = 2026
-    JOIN screening_results sl ON al.assignment_id = sl.assignment_id
+    JOIN task_assignments a1 ON p.cid = a1.target_cid AND a1.round_number = 1 AND a1.assignment_status = 'completed' AND a1.budget_year = ? AND a1.is_sandbox = ?
+    JOIN screening_results s1 ON a1.assignment_id = s1.assignment_id AND s1.is_sandbox = ?
+    JOIN task_assignments al ON p.cid = al.target_cid AND al.round_number > 1 AND al.assignment_status = 'completed' AND al.budget_year = ? AND al.is_sandbox = ?
+    JOIN screening_results sl ON al.assignment_id = sl.assignment_id AND sl.is_sandbox = ?
     JOIN (
         SELECT target_cid, MAX(round_number) as max_round
         FROM task_assignments
-        WHERE assignment_status = 'completed' AND budget_year = 2026
+        WHERE assignment_status = 'completed' AND budget_year = ? AND is_sandbox = ?
         GROUP BY target_cid
     ) max_a ON al.target_cid = max_a.target_cid AND al.round_number = max_a.max_round
-    WHERE p.hoscode IN ($inPlaceholders)
+    WHERE (? = 0 OR al.round_number = ?)
+      AND (? = '' OR DATE(sl.created_at) >= ?)
+      AND (? = '' OR DATE(sl.created_at) <= ?)
+      AND p.hoscode IN ($inPlaceholders)
     ORDER BY sl.created_at DESC
 ");
-$ncdBeforeAfterStmt->execute($hoscodes);
+$ncdBeforeAfterStmt->execute(array_merge([
+    $selectedBudgetYear, $isSandboxVal, $isSandboxVal,
+    $selectedBudgetYear, $isSandboxVal, $isSandboxVal,
+    $selectedBudgetYear, $isSandboxVal,
+    $selectedRound, $selectedRound,
+    $dateFrom, $dateFrom, $dateTo, $dateTo
+], $hoscodes));
 $ncdBeforeAfterData = $ncdBeforeAfterStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Operational funnel and action queues for the selected budget year.
+$funnelData = ['total_targets' => 0, 'r1_completed' => 0, 'r2_assigned' => 0, 'r2_completed' => 0, 'r3_completed' => 0];
+$actionCounts = ['overdue' => 0, 'awaiting_r2' => 0, 'high_risk_unassigned' => 0];
+$overdueActionRows = [];
+$dataQuality = ['missing_body' => 0, 'missing_vitals' => 0, 'missing_geo' => 0, 'round_mismatch' => 0, 'orphan_results' => 0, 'mock_cid' => 0];
+try {
+    $funnelStmt = $pdo->prepare("
+        SELECT COUNT(DISTINCT p.cid) AS total_targets,
+               COUNT(DISTINCT CASE WHEN ta.round_number = 1 AND ta.assignment_status = 'completed' THEN p.cid END) AS r1_completed,
+               COUNT(DISTINCT CASE WHEN ta.round_number = 2 THEN p.cid END) AS r2_assigned,
+               COUNT(DISTINCT CASE WHEN ta.round_number = 2 AND ta.assignment_status = 'completed' THEN p.cid END) AS r2_completed,
+               COUNT(DISTINCT CASE WHEN ta.round_number >= 3 AND ta.assignment_status = 'completed' THEN p.cid END) AS r3_completed
+        FROM target_population p
+        LEFT JOIN task_assignments ta ON ta.target_cid = p.cid AND ta.budget_year = ? AND ta.is_sandbox = ?
+        WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+    ");
+    $funnelStmt->execute(array_merge([$selectedBudgetYear, $isSandboxVal], $hoscodes));
+    $funnelData = array_merge($funnelData, $funnelStmt->fetch(PDO::FETCH_ASSOC) ?: []);
+
+    $overdueStmt = $pdo->prepare("SELECT COUNT(DISTINCT ta.assignment_id) FROM task_assignments ta JOIN target_population p ON p.cid=ta.target_cid WHERE ta.budget_year=? AND ta.is_sandbox=? AND ta.assignment_status='pending' AND ta.round_number>=2 AND ta.assigned_at < DATE_SUB(NOW(), INTERVAL 7 DAY) AND p.hoscode IN ($inPlaceholders)");
+    $overdueStmt->execute(array_merge([$selectedBudgetYear, $isSandboxVal], $hoscodes));
+    $actionCounts['overdue'] = (int)$overdueStmt->fetchColumn();
+    $overdueListStmt = $pdo->prepare("
+        SELECT ta.assignment_id, ta.round_number, ta.assigned_at,
+               p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
+               v.vhv_name, DATEDIFF(NOW(), ta.assigned_at) AS waiting_days
+        FROM task_assignments ta
+        JOIN target_population p ON p.cid=ta.target_cid
+        LEFT JOIN vhv_users v ON v.vhv_id=ta.vhv_id
+        WHERE ta.budget_year=? AND ta.is_sandbox=? AND ta.assignment_status='pending'
+          AND ta.round_number>=2 AND ta.assigned_at < DATE_SUB(NOW(), INTERVAL 7 DAY)
+          AND p.hoscode IN ($inPlaceholders)
+        ORDER BY ta.assigned_at ASC LIMIT 10
+    ");
+    $overdueListStmt->execute(array_merge([$selectedBudgetYear, $isSandboxVal], $hoscodes));
+    $overdueActionRows = $overdueListStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $awaitingStmt = $pdo->prepare("SELECT COUNT(DISTINCT a1.target_cid) FROM task_assignments a1 JOIN target_population p ON p.cid=a1.target_cid WHERE a1.budget_year=? AND a1.is_sandbox=? AND a1.round_number=1 AND a1.assignment_status='completed' AND p.hoscode IN ($inPlaceholders) AND NOT EXISTS (SELECT 1 FROM task_assignments a2 WHERE a2.target_cid=a1.target_cid AND a2.budget_year=a1.budget_year AND a2.is_sandbox=a1.is_sandbox AND a2.round_number>=2)");
+    $awaitingStmt->execute(array_merge([$selectedBudgetYear, $isSandboxVal], $hoscodes));
+    $actionCounts['awaiting_r2'] = (int)$awaitingStmt->fetchColumn();
+
+    $highStmt = $pdo->prepare("SELECT COUNT(DISTINCT COALESCE(sr.target_cid,ta.target_cid)) FROM screening_results sr JOIN task_assignments ta ON ta.assignment_id=sr.assignment_id JOIN target_population p ON p.cid=COALESCE(sr.target_cid,ta.target_cid) WHERE ta.budget_year=? AND ta.is_sandbox=? AND sr.is_sandbox=? AND p.hoscode IN ($inPlaceholders) AND (sr.cv_risk_score>=10 OR sr.sys_bp1>=140 OR sr.dia_bp1>=90 OR sr.dtx_value>=126) AND NOT EXISTS (SELECT 1 FROM task_assignments nx WHERE nx.target_cid=ta.target_cid AND nx.budget_year=ta.budget_year AND nx.is_sandbox=ta.is_sandbox AND nx.round_number>ta.round_number)");
+    $highStmt->execute(array_merge([$selectedBudgetYear, $isSandboxVal, $isSandboxVal], $hoscodes));
+    $actionCounts['high_risk_unassigned'] = (int)$highStmt->fetchColumn();
+
+    $qualityStmt = $pdo->prepare("
+        SELECT
+          COUNT(DISTINCT CASE WHEN sr.weight IS NULL OR sr.height IS NULL OR sr.waist IS NULL THEN sr.screening_id END) AS missing_body,
+          COUNT(DISTINCT CASE WHEN sr.sys_bp1 IS NULL AND sr.dia_bp1 IS NULL AND sr.dtx_value IS NULL THEN sr.screening_id END) AS missing_vitals,
+          COUNT(DISTINCT CASE WHEN sr.screening_lat IS NULL OR sr.screening_lng IS NULL OR sr.screening_lat=0 OR sr.screening_lng=0 THEN sr.screening_id END) AS missing_geo,
+          COUNT(DISTINCT CASE WHEN COALESCE(sr.round_number,1) <> COALESCE(ta.round_number,1) THEN sr.screening_id END) AS round_mismatch
+        FROM screening_results sr
+        JOIN task_assignments ta ON ta.assignment_id=sr.assignment_id
+        JOIN target_population p ON p.cid=ta.target_cid
+        WHERE ta.budget_year=? AND ta.is_sandbox=? AND sr.is_sandbox=?
+          AND (?=0 OR ta.round_number=?)
+          AND (?='' OR DATE(sr.created_at)>=?) AND (?='' OR DATE(sr.created_at)<=?)
+          AND p.hoscode IN ($inPlaceholders)
+    ");
+    $qualityStmt->execute(array_merge([$selectedBudgetYear, $isSandboxVal, $isSandboxVal, $selectedRound, $selectedRound, $dateFrom, $dateFrom, $dateTo, $dateTo], $hoscodes));
+    $dataQuality = array_merge($dataQuality, $qualityStmt->fetch(PDO::FETCH_ASSOC) ?: []);
+
+    $orphanStmt = $pdo->prepare("SELECT COUNT(*) FROM screening_results sr LEFT JOIN task_assignments ta ON ta.assignment_id=sr.assignment_id LEFT JOIN target_population p ON p.cid=sr.target_cid WHERE sr.is_sandbox=? AND ta.assignment_id IS NULL AND p.hoscode IN ($inPlaceholders)");
+    $orphanStmt->execute(array_merge([$isSandboxVal], $hoscodes));
+    $dataQuality['orphan_results'] = (int)$orphanStmt->fetchColumn();
+    $mockStmt = $pdo->prepare("SELECT COUNT(*) FROM target_population p WHERE p.hoscode IN ($inPlaceholders) AND (p.cid LIKE '%*%' OR p.cid LIKE '0%' OR p.cid=CONCAT(LPAD(p.hoscode,5,'0'),LPAD(p.pid,8,'0')))");
+    $mockStmt->execute($hoscodes);
+    $dataQuality['mock_cid'] = (int)$mockStmt->fetchColumn();
+} catch (\Throwable $e) {
+    // Keep the page usable on installations that have not received every optional column yet.
+}
 
 $ncdTotalAnalyzed = count($ncdBeforeAfterData);
 $ncdImprovedBpCount = 0;
@@ -505,12 +613,16 @@ try {
     $predictiveStmt = $pdo->prepare("
         SELECT 
             p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
-            COALESCE(CASE WHEN p.dob IS NOT NULL AND p.dob != '0000-00-00' THEN TIMESTAMPDIFF(YEAR, p.dob, CURRENT_DATE) END, 48) AS age,
+            CASE WHEN p.birth IS NOT NULL AND p.birth != '0000-00-00' THEN TIMESTAMPDIFF(YEAR, p.birth, CURRENT_DATE) END AS age,
             s.sys_bp1, s.dia_bp1, s.dtx_value, s.bmi, s.family_history, s.created_at AS screen_date
         FROM screening_results s
         JOIN task_assignments a ON s.assignment_id = a.assignment_id
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE a.assignment_status = 'completed' 
+        WHERE a.assignment_status = 'completed'
+          AND a.budget_year = ? AND a.is_sandbox = ? AND s.is_sandbox = ?
+          AND (? = 0 OR a.round_number = ?)
+          AND (? = '' OR DATE(s.created_at) >= ?)
+          AND (? = '' OR DATE(s.created_at) <= ?)
           AND p.hoscode IN ($inPlaceholders)
           AND (
               (s.sys_bp1 >= 120 AND s.sys_bp1 < 140) OR 
@@ -521,24 +633,28 @@ try {
           )
         ORDER BY s.created_at DESC
     ");
-    $predictiveStmt->execute($hoscodes);
+    $predictiveStmt->execute(array_merge([$selectedBudgetYear, $isSandboxVal, $isSandboxVal, $selectedRound, $selectedRound, $dateFrom, $dateFrom, $dateTo, $dateTo], $hoscodes));
     $predictiveRaw = $predictiveStmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (\Throwable $ex) {
     try {
         $predictiveStmt = $pdo->prepare("
             SELECT 
-                p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode, 48 AS age,
-                COALESCE(s.sys_bp1, 125) AS sys_bp1, COALESCE(s.dia_bp1, 82) AS dia_bp1, 
-                COALESCE(s.dtx_value, 108) AS dtx_value, s.bmi, s.family_history, s.created_at AS screen_date
+                p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
+                CASE WHEN p.birth IS NOT NULL AND p.birth != '0000-00-00' THEN TIMESTAMPDIFF(YEAR, p.birth, CURRENT_DATE) END AS age,
+                s.sys_bp1, s.dia_bp1, s.dtx_value, s.bmi, s.family_history, s.created_at AS screen_date
             FROM task_assignments a
             JOIN target_population p ON a.target_cid = p.cid
             LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
-            WHERE a.assignment_status = 'completed' 
+            WHERE a.assignment_status = 'completed'
+              AND a.budget_year = ? AND a.is_sandbox = ?
+              AND (? = 0 OR a.round_number = ?)
+              AND (? = '' OR DATE(s.created_at) >= ?)
+              AND (? = '' OR DATE(s.created_at) <= ?)
               AND p.hoscode IN ($inPlaceholders)
             ORDER BY a.assignment_id DESC
             LIMIT 50
         ");
-        $predictiveStmt->execute($hoscodes);
+        $predictiveStmt->execute(array_merge([$selectedBudgetYear, $isSandboxVal, $selectedRound, $selectedRound, $dateFrom, $dateFrom, $dateTo, $dateTo], $hoscodes));
         $predictiveRaw = $predictiveStmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (\Throwable $e2) {}
 }
@@ -585,8 +701,8 @@ foreach ($predictiveRaw as $row) {
         $factors[] = "มีประวัติ NCD ครอบครัว";
     }
 
-    $age = intval($row['age'] ?? 48);
-    if ($age >= 45) {
+    $age = isset($row['age']) ? (int)$row['age'] : null;
+    if ($age !== null && $age >= 45) {
         $score += 10;
         $factors[] = "กลุ่มอายุ 45+";
     }
@@ -676,31 +792,31 @@ $avgYieldRate = $totalScreenedAll > 0 ? round(($totalRiskFoundAll / $totalScreen
 // =========================================================================
 // 8. Age-Gender Pyramid & Screening Gap
 // =========================================================================
-$ageGroups = ['35-44 ปี', '45-54 ปี', '55-64 ปี', '65 ปีขึ้นไป'];
-$maleTotal = [0, 0, 0, 0];
-$maleScreened = [0, 0, 0, 0];
-$femaleTotal = [0, 0, 0, 0];
-$femaleScreened = [0, 0, 0, 0];
+$ageGroups = ['35-44 ปี', '45-54 ปี', '55-64 ปี', '65 ปีขึ้นไป', 'ไม่ทราบอายุ'];
+$maleTotal = array_fill(0, count($ageGroups), 0);
+$maleScreened = array_fill(0, count($ageGroups), 0);
+$femaleTotal = array_fill(0, count($ageGroups), 0);
+$femaleScreened = array_fill(0, count($ageGroups), 0);
 
 try {
     $pyramidStmt = $pdo->prepare("
         SELECT 
             COALESCE(p.sex, '1') as sex,
             CASE 
-                WHEN (p.dob IS NOT NULL AND p.dob != '0000-00-00' AND TIMESTAMPDIFF(YEAR, p.dob, CURRENT_DATE) BETWEEN 35 AND 44) THEN '35-44 ปี'
-                WHEN (p.dob IS NOT NULL AND p.dob != '0000-00-00' AND TIMESTAMPDIFF(YEAR, p.dob, CURRENT_DATE) BETWEEN 45 AND 54) THEN '45-54 ปี'
-                WHEN (p.dob IS NOT NULL AND p.dob != '0000-00-00' AND TIMESTAMPDIFF(YEAR, p.dob, CURRENT_DATE) BETWEEN 55 AND 64) THEN '55-64 ปี'
-                WHEN (p.dob IS NOT NULL AND p.dob != '0000-00-00' AND TIMESTAMPDIFF(YEAR, p.dob, CURRENT_DATE) >= 65) THEN '65 ปีขึ้นไป'
-                ELSE '45-54 ปี'
+                WHEN (p.birth IS NOT NULL AND p.birth != '0000-00-00' AND TIMESTAMPDIFF(YEAR, p.birth, CURRENT_DATE) BETWEEN 35 AND 44) THEN '35-44 ปี'
+                WHEN (p.birth IS NOT NULL AND p.birth != '0000-00-00' AND TIMESTAMPDIFF(YEAR, p.birth, CURRENT_DATE) BETWEEN 45 AND 54) THEN '45-54 ปี'
+                WHEN (p.birth IS NOT NULL AND p.birth != '0000-00-00' AND TIMESTAMPDIFF(YEAR, p.birth, CURRENT_DATE) BETWEEN 55 AND 64) THEN '55-64 ปี'
+                WHEN (p.birth IS NOT NULL AND p.birth != '0000-00-00' AND TIMESTAMPDIFF(YEAR, p.birth, CURRENT_DATE) >= 65) THEN '65 ปีขึ้นไป'
+                ELSE 'ไม่ทราบอายุ'
             END AS age_group,
             COUNT(DISTINCT p.cid) as total_target,
             COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) as screened_count
         FROM target_population p
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = ? AND a.is_sandbox = ?
         WHERE p.hoscode IN ($inPlaceholders)
         GROUP BY sex, age_group
     ");
-    $pyramidStmt->execute($hoscodes);
+    $pyramidStmt->execute(array_merge([$selectedBudgetYear, $isSandboxVal], $hoscodes));
     $pyramidRaw = $pyramidStmt->fetchAll(PDO::FETCH_ASSOC);
 
     foreach ($pyramidRaw as $row) {
@@ -934,18 +1050,144 @@ try {
             </div>
         </div>
 
+        <!-- Shared analytics filters -->
+        <form method="GET" class="card-dark no-print" style="margin-bottom:24px; padding:18px; display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; align-items:end;">
+            <label style="font-size:12px; color:var(--text-secondary);">ปีงบประมาณ
+                <select name="budget_year" class="form-control" style="margin-top:6px; width:100%;">
+                    <?php foreach ($availableBudgetYears ?: [$defaultBudgetYear] as $year): ?>
+                        <option value="<?= (int)$year ?>" <?= (int)$year === $selectedBudgetYear ? 'selected' : '' ?>><?= (int)$year ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <?php if (!$admin_hoscode): ?>
+            <label style="font-size:12px; color:var(--text-secondary);">หน่วยบริการ
+                <select name="hoscode" class="form-control" style="margin-top:6px; width:100%;">
+                    <option value="">ทุกหน่วยบริการ</option>
+                    <?php foreach ($allowedHoscodes as $code): ?>
+                        <option value="<?= htmlspecialchars($code) ?>" <?= $selectedHoscode === $code ? 'selected' : '' ?>><?= htmlspecialchars($hc_names[$code] ?? $code) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <?php endif; ?>
+            <label style="font-size:12px; color:var(--text-secondary);">รอบคัดกรอง
+                <select name="round" class="form-control" style="margin-top:6px; width:100%;">
+                    <option value="0">ทุกรอบ</option>
+                    <?php for ($r = 1; $r <= 10; $r++): ?>
+                        <option value="<?= $r ?>" <?= $selectedRound === $r ? 'selected' : '' ?>>รอบที่ <?= $r ?></option>
+                    <?php endfor; ?>
+                </select>
+            </label>
+            <label style="font-size:12px; color:var(--text-secondary);">ตั้งแต่วันที่
+                <input type="date" name="date_from" value="<?= htmlspecialchars($dateFrom) ?>" class="form-control" style="margin-top:6px; width:100%;">
+            </label>
+            <label style="font-size:12px; color:var(--text-secondary);">ถึงวันที่
+                <input type="date" name="date_to" value="<?= htmlspecialchars($dateTo) ?>" class="form-control" style="margin-top:6px; width:100%;">
+            </label>
+            <div style="display:flex; gap:8px;">
+                <button type="submit" class="btn-control" style="flex:1;">ใช้ตัวกรอง</button>
+                <a href="analytics.php" class="btn-control" style="text-decoration:none; text-align:center;">ล้าง</a>
+            </div>
+            <div style="grid-column:1/-1; font-size:11px; color:var(--text-muted);">
+                ปีงบประมาณและหน่วยบริการใช้กับสรุปงานหลายรอบ งานติดตาม และการเปรียบเทียบ NCD/DPAC ส่วนตัวกรองรอบและวันที่ใช้กับรายละเอียด NCD คะแนนจัดลำดับติดตาม และคุณภาพข้อมูล
+            </div>
+        </form>
+
+        <!-- Multi-round operational funnel -->
+        <div class="card-dark" style="margin-bottom:24px; padding:22px;">
+            <h3 style="margin:0 0 16px; color:var(--color-accent); font-size:17px;">เส้นทางผลงานคัดกรองหลายรอบ ปีงบประมาณ <?= $selectedBudgetYear ?></h3>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;">
+                <?php
+                $funnelCards = [
+                    ['เป้าหมาย', $funnelData['total_targets'], '#64748b'],
+                    ['รอบ 1 สำเร็จ', $funnelData['r1_completed'], '#22c55e'],
+                    ['มอบหมายรอบ 2', $funnelData['r2_assigned'], '#0ea5e9'],
+                    ['รอบ 2 สำเร็จ', $funnelData['r2_completed'], '#3b82f6'],
+                    ['รอบ 3+ สำเร็จ', $funnelData['r3_completed'], '#8b5cf6']
+                ];
+                foreach ($funnelCards as $fc): ?>
+                    <div style="padding:14px; border-radius:12px; background:<?= $fc[2] ?>12; border:1px solid <?= $fc[2] ?>33;">
+                        <div style="font-size:12px; color:var(--text-secondary); font-weight:700;"><?= $fc[0] ?></div>
+                        <div style="font-size:24px; font-weight:900; color:<?= $fc[2] ?>; margin-top:5px;"><?= number_format((int)$fc[1]) ?> <small style="font-size:11px;">ราย</small></div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <!-- Action queue -->
+        <div style="margin-bottom:24px;">
+            <h3 style="font-size:17px; color:var(--color-accent); margin:0 0 12px;">งานที่ควรดำเนินการต่อ</h3>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px;">
+                <a href="assignment.php" class="card-dark" style="text-decoration:none; border-left:4px solid #ef4444;">
+                    <div style="font-size:13px; color:var(--text-secondary);">ผลเสี่ยงสูงที่ยังไม่มีรอบถัดไป</div>
+                    <div class="stat-val" style="color:#ef4444;"><?= number_format($actionCounts['high_risk_unassigned']) ?> <small>ราย</small></div>
+                </a>
+                <a href="assignment.php" class="card-dark" style="text-decoration:none; border-left:4px solid #f59e0b;">
+                    <div style="font-size:13px; color:var(--text-secondary);">งานรอบ 2+ รอดำเนินการเกิน 7 วัน</div>
+                    <div class="stat-val" style="color:#f59e0b;"><?= number_format($actionCounts['overdue']) ?> <small>งาน</small></div>
+                </a>
+                <a href="assignment.php" class="card-dark" style="text-decoration:none; border-left:4px solid #0ea5e9;">
+                    <div style="font-size:13px; color:var(--text-secondary);">รอบ 1 สำเร็จแต่ยังไม่มีรอบติดตาม</div>
+                    <div class="stat-val" style="color:#0ea5e9;"><?= number_format($actionCounts['awaiting_r2']) ?> <small>ราย</small></div>
+                </a>
+            </div>
+            <?php if (!empty($overdueActionRows)): ?>
+            <div class="card-dark" style="margin-top:12px; padding:16px;">
+                <div style="font-size:13px; font-weight:800; color:#f59e0b; margin-bottom:10px;">10 งานที่รอนานที่สุด</div>
+                <div class="table-responsive">
+                    <table class="admin-table">
+                        <thead><tr><th>ชื่อ-นามสกุล</th><th>พื้นที่</th><th>รอบ</th><th>อสม.</th><th style="text-align:right;">รอมาแล้ว</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($overdueActionRows as $job): ?>
+                            <tr>
+                                <td><?= htmlspecialchars(trim($job['first_name'].' '.$job['last_name'])) ?></td>
+                                <td>บ้านเลขที่ <?= htmlspecialchars($job['house_no'] ?: '-') ?> หมู่ <?= (int)$job['moo'] ?></td>
+                                <td>รอบ <?= (int)$job['round_number'] ?></td>
+                                <td><?= htmlspecialchars($job['vhv_name'] ?: '-') ?></td>
+                                <td style="text-align:right; color:#f59e0b; font-weight:800;"><?= (int)$job['waiting_days'] ?> วัน</td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- Data quality -->
+        <div class="card-dark" style="margin-bottom:30px; padding:22px;">
+            <h3 style="font-size:17px; color:var(--color-accent); margin:0 0 6px;">คุณภาพข้อมูลที่ใช้วิเคราะห์</h3>
+            <p style="font-size:12px; color:var(--text-muted); margin:0 0 14px;">จำนวนรายการที่ควรตรวจสอบ ข้อมูลเดิมจะไม่ถูกแก้ไขอัตโนมัติจากหน้านี้</p>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;">
+                <?php
+                $qualityCards = [
+                    ['น้ำหนัก/ส่วนสูง/รอบเอวไม่ครบ', $dataQuality['missing_body']],
+                    ['Vital sign ไม่ครบ', $dataQuality['missing_vitals']],
+                    ['ไม่มีพิกัดบันทึก', $dataQuality['missing_geo']],
+                    ['รอบผลไม่ตรงใบงาน', $dataQuality['round_mismatch']],
+                    ['ผลไม่มีใบงานอ้างอิง', $dataQuality['orphan_results']],
+                    ['CID จำลอง/ต้องตรวจสอบ', $dataQuality['mock_cid']]
+                ];
+                foreach ($qualityCards as $qc): ?>
+                    <div style="padding:12px; background:rgba(100,116,139,.08); border:1px solid var(--border-color); border-radius:10px;">
+                        <div style="font-size:11px; color:var(--text-muted); min-height:32px;"><?= htmlspecialchars($qc[0]) ?></div>
+                        <div style="font-size:21px; font-weight:900; color:<?= (int)$qc[1] > 0 ? '#f59e0b' : '#22c55e' ?>;"><?= number_format((int)$qc[1]) ?></div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
         <!-- Module 1: Predictive Disease Conversion Risk -->
         <div class="card-dark" style="margin-bottom: 30px; padding: 24px; border-top: 4px solid #f59e0b;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
                 <h3 style="color: #f59e0b; margin: 0; font-size: 17px; display: flex; align-items: center; gap: 8px;">
-                    <span>🔮 การทำนายความเสี่ยงการเกิดโรครายใหม่ (Predictive Conversion Risk Model)</span>
+                    <span>🎯 คะแนนจัดลำดับความเร่งด่วนในการติดตาม</span>
                 </h3>
                 <span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: bold;">
-                    เสี่ยงสูงต่อการเกิดโรครายใหม่: <?= number_format($highConversionCount) ?> ราย
+                    ควรติดตามเร่งด่วน: <?= number_format($highConversionCount) ?> ราย
                 </span>
             </div>
             <p style="color: var(--text-secondary); font-size: 13.5px; margin-bottom: 16px; line-height: 1.6;">
-                วิเคราะห์จากกลุ่มเสี่ยงปานกลาง (Pre-hypertension / Pre-diabetes) โดยคำนวณปัจจัยเสี่ยงผสม (ค่า BP/DTX โซนบน, ดัชนีมวลกาย BMI, ประวัติครอบครัว และอายุ) เพื่อให้ รพ.สต. และ อสม. เร่งลงพื้นที่ป้องกันล่วงหน้า 6-12 เดือน
+                คะแนนนี้ใช้จัดลำดับงานจากค่า BP/DTX, BMI, ประวัติครอบครัว และอายุที่มีอยู่ในระบบ ไม่ใช่ความน่าจะเป็นที่จะป่วยและยังไม่ได้ผ่านการตรวจสอบเป็นแบบจำลองทางคลินิก
             </p>
 
             <div class="table-responsive">
@@ -956,7 +1198,7 @@ try {
                             <th>ชื่อ-นามสกุล</th>
                             <th>หน่วยบริการ / หมู่บ้าน</th>
                             <th style="text-align: center;">อายุ</th>
-                            <th style="text-align: center;">โอกาสป่วย (%)</th>
+                            <th style="text-align: center;">คะแนนติดตาม</th>
                             <th>ปัจจัยเสี่ยงหลัก</th>
                         </tr>
                     </thead>
@@ -971,10 +1213,10 @@ try {
                                     <td style="text-align: center; font-weight: bold;"><?= $idx + 1 ?></td>
                                     <td style="font-weight: bold; color: var(--text-primary);"><?= htmlspecialchars($r['name']) ?></td>
                                     <td><?= htmlspecialchars($r['hc']) ?> (<?= htmlspecialchars($r['village']) ?> บ้านเลขที่ <?= htmlspecialchars($r['house_no']) ?>)</td>
-                                    <td style="text-align: center;"><?= $r['age'] ?> ปี</td>
+                                    <td style="text-align: center;"><?= $r['age'] !== null ? $r['age'] . ' ปี' : '-' ?></td>
                                     <td style="text-align: center;">
                                         <span style="background: <?= $r['score'] >= 60 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)' ?>; color: <?= $r['score'] >= 60 ? '#ef4444' : '#f59e0b' ?>; padding: 4px 10px; border-radius: 12px; font-weight: bold;">
-                                            <?= $r['score'] ?>%
+                                            <?= $r['score'] ?> คะแนน
                                         </span>
                                     </td>
                                     <td style="font-size: 12.5px; color: var(--text-secondary);"><?= htmlspecialchars($r['factors']) ?></td>
@@ -1073,13 +1315,13 @@ try {
                         <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                     </svg>
                 </span>
-                <span>แผนภูมิพยากรณ์และวิเคราะห์คาดการณ์แนวโน้มกลุ่มเสี่ยงสะสมล่วงหน้า (Predictive Risk Trend Forecasting)</span>
+                <span>แนวโน้มเชิงเส้นจากข้อมูลกลุ่มเสี่ยงรายเดือน</span>
             </h3>
             <div id="chart-forecast" style="margin-bottom: 20px;"></div>
 
             <div style="background: rgba(14, 165, 233, 0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(14, 165, 233, 0.15); font-size: 13.5px; color: var(--text-secondary); line-height: 1.6;" id="forecast-insights">
-                🔍 <strong>บทวิเคราะห์แนวโน้มการคาดการณ์เชิงสถิติ:</strong>
-                <span id="forecast-insight-text">กำลังประมวลผลข้อมูลและคาดการณ์จากประวัติ...</span>
+                🔍 <strong>คำอธิบาย:</strong>
+                <span id="forecast-insight-text">กำลังคำนวณแนวโน้มจากประวัติที่มีในระบบ ข้อมูลส่วนนี้ไม่ใช่การพยากรณ์การวินิจฉัยโรค</span>
             </div>
         </div>
 
@@ -2010,11 +2252,11 @@ try {
         if (insightElement) {
             const slope = forecastData.slope;
             if (slope > 0.5) {
-                insightElement.innerHTML = `แนวโน้มอัตราการเกิดกลุ่มเสี่ยงและผู้ป่วยรายใหม่มีทิศทาง **เพิ่มขึ้น** (ความชัน: +${slope.toFixed(2)} รายต่อเดือน) แนะนำให้ รพ.สต. และ อสม. จัดกิจกรรมกระตุ้นพฤติกรรมสุขภาพ หรือเพิ่มความเข้มข้นในการคัดกรองและการดำเนินกิจกรรมในคลินิก DPAC เป็นพิเศษเพื่อชะลอการเกิดของกลุ่มผู้ป่วยรายใหม่`;
+                insightElement.textContent = `จำนวนผลคัดกรองที่อยู่ในกลุ่มเสี่ยงมีแนวโน้มเพิ่มขึ้นตามเส้นแนวโน้ม (${slope.toFixed(2)} รายต่อเดือน) ควรตรวจสอบร่วมกับจำนวนผู้ได้รับการคัดกรองในแต่ละเดือนก่อนนำไปวางแผนงาน`;
             } else if (slope < -0.5) {
-                insightElement.innerHTML = `แนวโน้มอัตราการเกิดกลุ่มเสี่ยงรายใหม่มีทิศทาง **ลดลง** อย่างต่อเนื่อง (ความชัน: ${slope.toFixed(2)} รายต่อเดือน) แสดงถึงผลลัพธ์ที่ดีเยี่ยมจากการจัดกิจกรรมควบคุมโรคและการร่วมมือดูแลสุขภาพในพื้นที่ แนะนำให้คงมาตรการเฝ้าระวังเชิงรุกและการติดตามพฤติกรรมนี้ไว้เพื่อความยั่งยืน`;
+                insightElement.textContent = `จำนวนผลคัดกรองที่อยู่ในกลุ่มเสี่ยงมีแนวโน้มลดลงตามเส้นแนวโน้ม (${slope.toFixed(2)} รายต่อเดือน) การลดลงนี้ยังไม่ยืนยันผลของมาตรการใดมาตรการหนึ่ง และควรตรวจสอบจำนวนผู้ได้รับการคัดกรองร่วมด้วย`;
             } else {
-                insightElement.innerHTML = `แนวโน้มอัตราการเกิดกลุ่มเสี่ยงรายใหม่ค่อนข้าง **คงที่และทรงตัว** (ความชัน: ${slope.toFixed(2)} รายต่อเดือน) สถานการณ์ภาพรวมอยู่ในระดับคงตัวและสามารถควบคุมได้ตามมาตรฐาน แนะนำให้รักษารอบการเยี่ยมบ้านและการติดตามผลตามตารางปกติ`;
+                insightElement.textContent = `จำนวนผลคัดกรองที่อยู่ในกลุ่มเสี่ยงมีแนวโน้มค่อนข้างคงที่ (${slope.toFixed(2)} รายต่อเดือน) ควรใช้ร่วมกับจำนวนผู้ได้รับการคัดกรองและความครบถ้วนของข้อมูลในแต่ละเดือน`;
             }
         }
 
@@ -2109,7 +2351,7 @@ try {
         // CSV R2R Export function
         function exportR2RCSV() {
             let csv = "\uFEFF"; // UTF-8 BOM
-            csv += "CID,ชื่อ-นามสกุล,บ้านเลขที่,หมู่ที่,หน่วยบริการ,อายุ,คะแนนความเสี่ยงทำนาย(%),ปัจจัยเสี่ยง\n";
+            csv += "CID,ชื่อ-นามสกุล,บ้านเลขที่,หมู่ที่,หน่วยบริการ,อายุ,คะแนนจัดลำดับติดตาม,ปัจจัยเสี่ยง\n";
             
             const risks = <?= json_encode($topConversionRisks) ?>;
             risks.forEach(r => {
