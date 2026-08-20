@@ -119,22 +119,36 @@ try {
             // หากแอดมินมอบหมายงานนี้ให้ อสม. คนนี้แล้ว ถือว่ามีสิทธิ์ทำงาน (Authorized)
             $isAuthorized = true;
         } else {
-            // หากไม่พบงานมอบหมาย ให้ทำการล็อกและแสดงเหตุผลที่ถูกต้อง
-            $isAuthorized = false;
-            $incidentType = 'NO_ASSIGNMENT';
-            
             // เปรียบเทียบรหัสหมู่บ้านโดยแปลงค่าคำนำหน้าเพื่อป้องกันความคลาดเคลื่อน (3420 -> 3418)
-            $houseVhid = $houseInfo['vhid_code'];
+            $houseVhid = $houseInfo['vhid_code'] ?? '';
             $normalizedHouseVhid = (strpos($houseVhid, '3420') === 0) ? '3418' . substr($houseVhid, 4) : $houseVhid;
             $normalizedVhvVhid = (strpos($vhidCode, '3420') === 0) ? '3418' . substr($vhidCode, 4) : $vhidCode;
             
-            if ($normalizedHouseVhid !== $normalizedVhvVhid) {
-                $isHospitalVhv = (!empty($hoscode) && strpos($hoscode, '10') === 0);
-                $isTargetInHospitalZone = (!empty($houseInfo['hoscode']) && strpos($houseInfo['hoscode'], '10') === 0);
-                
-                if (!($isHospitalVhv && $isTargetInHospitalZone)) {
-                    $incidentType = 'CROSS_DISTRICT_UNAUTHORIZED_SCAN_BLOCKED';
+            $isHospitalVhv = (!empty($hoscode) && strpos($hoscode, '10') === 0);
+            $isTargetInHospitalZone = (!empty($houseInfo['hoscode']) && strpos($houseInfo['hoscode'], '10') === 0);
+            
+            $isSameArea = ($normalizedHouseVhid === $normalizedVhvVhid) || ($isHospitalVhv && $isTargetInHospitalZone) || isSandboxMode($hoscode);
+
+            if ($isSameArea) {
+                // อสม. สแกนบ้านในเขตรับผิดชอบตนเอง -> เปิดใบงานให้ อสม. อัตโนมัติและอนุญาตเข้าทำงาน
+                if ($isCid) {
+                    $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, 2026, 'pending', ?)");
+                    $ins->execute([$hid, $vhvId, $isSandboxVal]);
+                } else {
+                    $checkStmt = $pdo->prepare("SELECT cid FROM target_population WHERE CAST(hid AS UNSIGNED) = CAST(? AS UNSIGNED)");
+                    $checkStmt->execute([$hid]);
+                    $targets = $checkStmt->fetchAll(PDO::FETCH_COLUMN);
+                    if (!empty($targets)) {
+                        $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, 2026, 'pending', ?)");
+                        foreach ($targets as $tc) {
+                            $ins->execute([$tc, $vhvId, $isSandboxVal]);
+                        }
+                    }
                 }
+                $isAuthorized = true;
+            } else {
+                $isAuthorized = false;
+                $incidentType = 'CROSS_DISTRICT_UNAUTHORIZED_SCAN_BLOCKED';
             }
         }
     }

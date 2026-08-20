@@ -222,10 +222,14 @@ try {
     <?php include 'navbar.php'; ?>
 
     <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
-        <h2
-            style="color: var(--color-accent); margin-bottom: 20px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px;">
-            ระบบมอบหมายงานคัดกรอง (Smart Assignment Manager)
-        </h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; flex-wrap: wrap; gap: 12px;">
+            <h2 style="color: var(--color-accent); margin: 0;">
+                ระบบมอบหมายงานคัดกรอง (Smart Assignment Manager)
+            </h2>
+            <a href="vhv_tasks.php" class="btn-primary" style="padding: 10px 20px; border-radius: 20px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: bold; background: var(--color-primary); color: white; box-shadow: var(--neumorph-flat); transition: all 0.2s;">
+                📋 เช็คงาน อสม. (VHV Tasks)
+            </a>
+        </div>
 
         <!-- Step 1: Filters -->
         <div class="filter-card">
@@ -671,9 +675,14 @@ try {
                                 ⏳ งานค้างทั้งหมด: <strong style="color: var(--color-yellow, #f59e0b);">${v.total_task_count}</strong> งาน
                             </p>
                         </div>
-                        <button onclick="assignTasks('${v.vhv_id}')" class="assign-btn">
-                            มอบหมาย
-                        </button>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <a href="vhv_tasks.php?vhv_id=${v.vhv_id}" class="btn-action" style="padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; text-decoration: none; background: var(--bg-card); color: var(--color-primary); border: 1px solid var(--border-color); display: inline-flex; align-items: center; gap: 4px; box-shadow: var(--neumorph-flat);">
+                                🔍 ดูงาน
+                            </a>
+                            <button onclick="assignTasks('${v.vhv_id}')" class="assign-btn">
+                                มอบหมาย
+                            </button>
+                        </div>
                     </div>
                 `;
             });

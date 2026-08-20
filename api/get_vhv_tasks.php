@@ -65,7 +65,7 @@ try {
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
         LEFT JOIN screening_results sr ON a.assignment_id = sr.assignment_id
-        WHERE a.vhv_id = ? AND a.budget_year = 2026 AND a.is_sandbox = ?
+        WHERE a.vhv_id = ? AND a.budget_year = 2026
         
         UNION ALL
         
@@ -93,11 +93,11 @@ try {
         FROM dpac_followups f
         JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
         JOIN target_population p ON e.cid = p.cid
-        WHERE f.vhv_id = ? AND f.is_sandbox = ?
+        WHERE f.vhv_id = ?
         
         ORDER BY CAST(house_no AS UNSIGNED) ASC, house_no ASC, cid ASC, round_number ASC
     ");
-    $tStmt->execute([$vhvId, $isSandboxVal, $vhvId, $isSandboxVal]);
+    $tStmt->execute([$vhvId, $vhvId]);
     $tasks = $tStmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode([

@@ -1059,6 +1059,52 @@ if ($admin_hoscode !== null) {
                     onMooChange();
                 });
         }
+
+        // Sub-admin automatic scoping & vhv_id URL parameter handling
+        const loggedAdminHoscode = "<?= $admin_hoscode ?: '' ?>";
+        window.addEventListener('DOMContentLoaded', () => {
+            if (loggedAdminHoscode) {
+                let targetTambon = "";
+                let targetSubUnit = "";
+
+                for (let t in tambonData) {
+                    if (tambonData[t].hasSubUnits) {
+                        if (tambonData[t].subUnits[loggedAdminHoscode]) {
+                            targetTambon = t;
+                            targetSubUnit = loggedAdminHoscode;
+                            break;
+                        }
+                    } else {
+                        if (tambonData[t].hoscode === loggedAdminHoscode) {
+                            targetTambon = t;
+                            break;
+                        }
+                    }
+                }
+
+                if (targetTambon) {
+                    const tSelect = document.getElementById('tambon');
+                    tSelect.value = targetTambon;
+                    tSelect.style.pointerEvents = 'none';
+                    tSelect.style.backgroundColor = 'var(--bg-darker)';
+                    onTambonChange();
+
+                    if (targetSubUnit) {
+                        const hSelect = document.getElementById('hoscode');
+                        hSelect.value = targetSubUnit;
+                        hSelect.style.pointerEvents = 'none';
+                        hSelect.style.backgroundColor = 'var(--bg-darker)';
+                        onHoscodeChange();
+                    }
+                }
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const paramVhvId = urlParams.get('vhv_id');
+            if (paramVhvId) {
+                selectVhv(paramVhvId);
+            }
+        });
     </script>
 
     <!-- Screening Details Modal -->

@@ -24,26 +24,25 @@ $history = [];
 if (!$isShell) {
     require_once __DIR__ . '/../config/db.php';
     
-    // Auto-assign in Sandbox Mode if no assignment exists yet
-    if (isSandboxMode($hoscode)) {
-        if (!empty($hid)) {
-            $checkStmt = $pdo->prepare("SELECT cid FROM target_population WHERE hid = ?");
-            $checkStmt->execute([$hid]);
-            $targets = $checkStmt->fetchAll(PDO::FETCH_COLUMN);
-            if (!empty($targets)) {
-                $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, 2026, 'pending', 1)");
-                foreach ($targets as $tc) {
-                    $ins->execute([$tc, $vhvId]);
-                }
+    // Auto-assign task if no pending assignment exists yet
+    $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
+    if (!empty($hid)) {
+        $checkStmt = $pdo->prepare("SELECT cid FROM target_population WHERE CAST(hid AS UNSIGNED) = CAST(? AS UNSIGNED)");
+        $checkStmt->execute([$hid]);
+        $targets = $checkStmt->fetchAll(PDO::FETCH_COLUMN);
+        if (!empty($targets)) {
+            $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, 2026, 'pending', ?)");
+            foreach ($targets as $tc) {
+                $ins->execute([$tc, $vhvId, $isSandboxVal]);
             }
-        } elseif (!empty($cid)) {
-            $checkStmt = $pdo->prepare("SELECT cid FROM target_population WHERE cid = ? LIMIT 1");
-            $checkStmt->execute([$cid]);
-            $pop = $checkStmt->fetch();
-            if ($pop) {
-                $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, 2026, 'pending', 1)");
-                $ins->execute([$cid, $vhvId]);
-            }
+        }
+    } elseif (!empty($cid)) {
+        $checkStmt = $pdo->prepare("SELECT cid FROM target_population WHERE cid = ? LIMIT 1");
+        $checkStmt->execute([$cid]);
+        $pop = $checkStmt->fetch();
+        if ($pop) {
+            $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, 2026, 'pending', ?)");
+            $ins->execute([$cid, $vhvId, $isSandboxVal]);
         }
     }
 

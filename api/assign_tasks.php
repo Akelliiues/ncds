@@ -66,18 +66,6 @@ try {
         }
         $residentName = $tRow['first_name'] . ' ' . $tRow['last_name'];
 
-        $targetMoo = intval($tRow['moo'] ?? 0);
-        $vhvMoo = intval($vhvRow['vhv_moo'] ?? 0);
-        $isOutsideArea = ($targetMoo === 0 || (isset($tRow['house_no']) && strpos($tRow['house_no'], 'นอกเขต') !== false));
-
-        $vhidMatches = (!empty($tRow['vhid_code']) && !empty($vhvRow['vhid_code']) && $tRow['vhid_code'] === $vhvRow['vhid_code']);
-        $mooMatches = ($targetMoo === $vhvMoo && $tRow['hoscode'] === $vhvRow['hoscode']);
-        $outsideAreaAllowed = ($isOutsideArea && $tRow['hoscode'] === $vhvRow['hoscode']);
-
-        if (!$vhidMatches && !$mooMatches && !$outsideAreaAllowed) {
-            throw new \Exception("กลุ่มเป้าหมาย {$residentName} (หมู่ {$targetMoo}) อยู่คนละหมู่บ้านกับ อสม. (หมู่ {$vhvMoo}) ไม่สามารถดำเนินการได้");
-        }
-
         if ($admin_hoscode) {
             if (!in_array($tRow['hoscode'], $allowed_hoscodes)) {
                 throw new \Exception("กลุ่มเป้าหมาย {$residentName} อยู่นอกเขตบริการ ไม่สามารถดำเนินการได้");

@@ -92,22 +92,20 @@ try {
             FROM task_assignments ta
             JOIN target_population tp ON ta.target_cid = tp.cid
             WHERE ta.assignment_id = ?
-              AND ta.target_cid = ?
               AND ta.assignment_status = 'pending'
-              AND ta.is_sandbox = ?
             LIMIT 1
         ");
-        $stmt->execute([$assignmentId, $cid, $isSandboxVal]);
+        $stmt->execute([$assignmentId]);
     } else {
         // Fetch ONLY latest PENDING assignment for this CID
         $stmt = $pdo->prepare("
             SELECT ta.assignment_id, ta.vhv_id, ta.assignment_status, ta.target_cid, tp.hoscode
             FROM task_assignments ta
             JOIN target_population tp ON ta.target_cid = tp.cid
-            WHERE ta.target_cid = ? AND ta.budget_year = ? AND ta.assignment_status = 'pending' AND ta.is_sandbox = ?
+            WHERE ta.target_cid = ? AND ta.budget_year = ? AND ta.assignment_status = 'pending'
             ORDER BY ta.round_number DESC LIMIT 1
         ");
-        $stmt->execute([$cid, $currentYear, $isSandboxVal]);
+        $stmt->execute([$cid, $currentYear]);
     }
     $assignment = $stmt->fetch(PDO::FETCH_ASSOC);
 
