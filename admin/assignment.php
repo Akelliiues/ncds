@@ -437,6 +437,32 @@ try {
         </div>
     </div>
 
+    <!-- VHV Tasks View Modal Popup -->
+    <div class="modal-overlay" id="vhv-tasks-modal" onclick="if(event.target === this) closeVhvTasksModal()">
+        <div class="modal-content" style="max-width: 650px; max-height: 85vh; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 14px;">
+                <div>
+                    <h3 style="margin: 0; color: var(--color-primary); font-size: 18px;" id="modal-vhv-name">📋 รายการงาน อสม.</h3>
+                    <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 13px;" id="modal-vhv-sub">ตรวจสอบภาระงานและรายการใบงานที่มอบหมาย</p>
+                </div>
+                <button type="button" onclick="closeVhvTasksModal()" style="background: none; border: none; font-size: 24px; color: var(--text-muted); cursor: pointer; line-height: 1; padding: 0 4px;">&times;</button>
+            </div>
+            
+            <div id="modal-vhv-tasks-body" style="flex: 1; overflow-y: auto; padding-right: 4px;">
+                <!-- Dynamic task content -->
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-color);">
+                <a id="btn-full-vhv-tasks" href="vhv_tasks.php" class="btn-action" style="padding: 8px 16px; border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 13.5px; background: var(--bg-card); color: var(--color-primary); border: 1px solid var(--border-color); display: inline-flex; align-items: center; gap: 6px;">
+                    ⚙️ จัดการงาน อสม. เต็มรูปแบบ
+                </a>
+                <button type="button" onclick="closeVhvTasksModal()" style="background: var(--color-primary); color: white; border: none; padding: 8px 20px; border-radius: 12px; font-weight: bold; cursor: pointer;">
+                    ปิดหน้าต่าง
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Load Tambon Data & Scripts -->
     <script>
         // Data logic from register.php
@@ -676,9 +702,9 @@ try {
                             </p>
                         </div>
                         <div style="display: flex; gap: 8px; align-items: center;">
-                            <a href="vhv_tasks.php?vhv_id=${v.vhv_id}" class="btn-action" style="padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; text-decoration: none; background: var(--bg-card); color: var(--color-primary); border: 1px solid var(--border-color); display: inline-flex; align-items: center; gap: 4px; box-shadow: var(--neumorph-flat);">
+                            <button onclick="openVhvTasksModal('${v.vhv_id}', '${(v.vhv_name || '').replace(/'/g, "\\'")}')" class="btn-action" style="padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; background: var(--bg-card); color: var(--color-primary); border: 1px solid var(--border-color); display: inline-flex; align-items: center; gap: 4px; box-shadow: var(--neumorph-flat); cursor: pointer;">
                                 🔍 ดูงาน
-                            </a>
+                            </button>
                             <button onclick="assignTasks('${v.vhv_id}')" class="assign-btn">
                                 มอบหมาย
                             </button>
@@ -905,6 +931,82 @@ try {
                     }
                 })
                 .catch(err => alert("เกิดข้อผิดพลาดในการเชื่อมต่อ"));
+        // VHV Tasks Modal Popup Logic
+        function openVhvTasksModal(vhvId, vhvName) {
+            document.getElementById('modal-vhv-name').innerText = `📋 รายการงาน อสม. ${vhvName}`;
+            document.getElementById('btn-full-vhv-tasks').href = `vhv_tasks.php?vhv_id=${vhvId}`;
+            const modalBody = document.getElementById('modal-vhv-tasks-body');
+            modalBody.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">⏳ กำลังโหลดรายการใบงาน...</div>';
+            document.getElementById('vhv-tasks-modal').style.display = 'flex';
+
+            fetch(`../api/get_vhv_tasks.php?vhv_id=${vhvId}`)
+                .then(r => r.json())
+                .then(res => {
+                    if (res.status === 'success') {
+                        const tasks = res.tasks || [];
+                        if (tasks.length === 0) {
+                            modalBody.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">ไม่พบใบงานที่มอบหมายให้ อสม. ท่านนี้</div>';
+                            document.getElementById('modal-vhv-sub').innerText = 'ตรวจสอบภาระงานและรายการใบงานที่มอบหมาย (0 ใบงาน)';
+                            return;
+                        }
+
+                        let pendingCount = tasks.filter(t => t.assignment_status === 'pending').length;
+                        let completedCount = tasks.filter(t => t.assignment_status === 'completed').length;
+                        let skippedCount = tasks.filter(t => t.assignment_status === 'skipped').length;
+
+                        document.getElementById('modal-vhv-sub').innerHTML = 
+                            `งานค้าง: <strong style="color:var(--color-yellow, #f59e0b);">${pendingCount}</strong> | ` +
+                            `คัดกรองแล้ว: <strong style="color:var(--color-green, #10b981);">${completedCount}</strong> | ` +
+                            `ข้ามเคส: <strong style="color:var(--color-red, #ef4444);">${skippedCount}</strong> | รวม: <strong>${tasks.length}</strong> ใบ`;
+
+                        let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+                        tasks.forEach(t => {
+                            let badge = '';
+                            if (t.assignment_status === 'completed') {
+                                badge = '<span style="background: rgba(16,185,129,0.12); color: var(--color-green, #10b981); padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; white-space: nowrap;">✅ คัดกรองแล้ว</span>';
+                            } else if (t.assignment_status === 'skipped') {
+                                badge = '<span style="background: rgba(239,68,68,0.12); color: var(--color-red, #ef4444); padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; white-space: nowrap;">❌ ข้ามเคสแล้ว</span>';
+                            } else {
+                                badge = '<span style="background: rgba(245,158,11,0.12); color: var(--color-yellow, #f59e0b); padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; white-space: nowrap;">⏳ รอดำเนินการ</span>';
+                            }
+
+                            const typeBadge = t.task_type === 'dpac'
+                                ? '<span style="background: rgba(99,102,241,0.12); color: #6366f1; padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: bold;">🏃 DPAC</span>'
+                                : '<span style="background: rgba(13,44,84,0.1); color: var(--color-primary); padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: bold;">🩺 คัดกรอง NCD</span>';
+
+                            const roundText = (t.round_number && parseInt(t.round_number) > 1)
+                                ? `<span style="font-size: 12px; color: var(--text-secondary); font-weight: bold; margin-left: 4px;">(รอบที่ ${t.round_number})</span>`
+                                : '';
+
+                            html += `
+                                <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; box-shadow: var(--neumorph-flat);">
+                                    <div style="min-width: 0;">
+                                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                            ${typeBadge}
+                                            <strong style="font-size: 15px; color: var(--text-primary);">${t.first_name} ${t.last_name}</strong>
+                                            ${roundText}
+                                        </div>
+                                        <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 4px;">
+                                            บ้านเลขที่ ${t.house_no || '-'} ม.${t.moo || '-'} • อายุ ${t.age || '-'} ปี
+                                        </div>
+                                    </div>
+                                    <div style="flex-shrink: 0;">${badge}</div>
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                        modalBody.innerHTML = html;
+                    } else {
+                        modalBody.innerHTML = `<div style="text-align: center; color: var(--color-red); padding: 40px;">เกิดข้อผิดพลาด: ${res.message || 'ไม่สามารถโหลดข้อมูลได้'}</div>`;
+                    }
+                })
+                .catch(() => {
+                    modalBody.innerHTML = '<div style="text-align: center; color: var(--color-red); padding: 40px;">เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย</div>';
+                });
+        }
+
+        function closeVhvTasksModal() {
+            document.getElementById('vhv-tasks-modal').style.display = 'none';
         }
 
         // Sub-admin automatic scoping
