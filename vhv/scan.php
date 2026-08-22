@@ -26,6 +26,7 @@ $presetHid = $_GET['hid'] ?? '';
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="manifest" href="manifest.json">
     <script src="../assets/js/app.js"></script>
+    <script src="../assets/js/html5-qrcode.min.js"></script>
     <style>
         /* QR reader container */
         #reader {
@@ -240,12 +241,12 @@ $presetHid = $_GET['hid'] ?? '';
         <!-- QR reader (hidden until camera opens) -->
         <div id="reader" style="display:none;"></div>
 
-        <!-- Hidden file input for Photo/Gallery QR Scan -->
-        <input type="file" id="qr-file-input" accept="image/*" style="display:none;" onchange="scanQrFromFile(this)">
+        <!-- Hidden file input for Photo/Gallery QR Scan with direct camera capture -->
+        <input type="file" id="qr-file-input" accept="image/*" capture="environment" style="display:none;" onchange="scanQrFromFile(this)">
 
         <!-- Photo QR Scan Action Button for Mobile -->
         <button type="button" onclick="document.getElementById('qr-file-input').click()" class="btn-giant btn-giant-secondary" style="margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14.5px; border-radius: var(--border-radius); padding: 12px; width: 100%;">
-            <span>📷 ถ่ายภาพ / เลือกรูป QR Code จากเครื่อง</span>
+            <span>📷 เปิดกล้องถ่ายภาพ / เลือกรูป QR Code</span>
         </button>
 
         <!-- Manual input -->
@@ -341,12 +342,18 @@ function startCamera() {
 
     // Guard: library must be loaded
     if (typeof Html5Qrcode === 'undefined') {
-        setStatus('error',
-            '<span class="status-icon">📵</span>',
-            'โหลดระบบสแกนไม่สำเร็จ',
-            'ไม่สามารถโหลดไลบรารีสแกน QR ได้ อาจเกิดจากสัญญาณอินเทอร์เน็ต',
-            '<button class="btn-retry" onclick="location.reload()">🔄 โหลดหน้าใหม่</button>'
-        );
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js';
+        script.onload = () => { initScanner(); };
+        script.onerror = () => {
+            setStatus('error',
+                '<span class="status-icon">📵</span>',
+                'โหลดระบบสแกนไม่สำเร็จ',
+                'ไม่สามารถโหลดไลบรารีสแกน QR ได้ หรือสามารถกดปุ่ม <strong>"📷 เปิดกล้องถ่ายภาพ QR"</strong> ด้านล่างแทนได้ครับ',
+                '<button class="btn-retry" onclick="location.reload()">🔄 โหลดหน้าใหม่</button>'
+            );
+        };
+        document.head.appendChild(script);
         return;
     }
 
@@ -362,8 +369,28 @@ function startCamera() {
 }
 
 function initScanner() {
+    // Check if insecure context on mobile (HTTP on non-localhost IP)
+    const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    if (!window.isSecureContext && !isLocalhost) {
+        hideReader();
+        setStatus('warning',
+            '<span class="status-icon">🔒</span>',
+            'เบราว์เซอร์ต้องการ HTTPS เพื่อเปิดกล้องสด',
+            'เนื่องจากเข้าใช้งานผ่าน HTTP (ไม่ใช่ HTTPS) ระบบความปลอดภัยของมือถือจึงระงับการสตรีมวิดีโอสด<br><br>' +
+            '💡 <strong>วิธีใช้งาน:</strong> สามารถกดปุ่ม <strong>"📷 เปิดกล้องถ่ายภาพ QR"</strong> ด้านล่างเพื่อถ่ายภาพสแกนได้ทันที 100%',
+            '<button class="btn-retry" onclick="document.getElementById(\'qr-file-input\').click()" style="background: var(--color-green, #10B981); margin-top: 8px;">📷 กดถ่ายภาพ QR Code ตอนนี้</button>'
+        );
+        return;
+    }
+
     showReader();
-    scanner = new Html5Qrcode('reader');
+    try {
+        scanner = new Html5Qrcode('reader');
+    } catch(e) {
+        hideReader();
+        handleCameraError(e);
+        return;
+    }
 
     const config = {
         fps: 15,
@@ -373,8 +400,7 @@ function initScanner() {
             return { width: Math.max(size, 200), height: Math.max(size, 200) };
         },
         aspectRatio: 1.0,
-        showTorchButtonIfSupported: true,
-        formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ]
+        showTorchButtonIfSupported: true
     };
 
     scanner.start(
@@ -386,8 +412,35 @@ function initScanner() {
         hideStatus();   // camera open — hide status box
         startGpsTracking();
     }).catch(err => {
-        hideReader();
-        handleCameraError(err);
+        // Fallback attempt: try facingMode: 'user' or getCameras()
+        if (typeof Html5Qrcode !== 'undefined' && Html5Qrcode.getCameras) {
+            Html5Qrcode.getCameras().then(cameras => {
+                if (cameras && cameras.length > 0) {
+                    const backCam = cameras.find(c => (c.label || '').toLowerCase().includes('back') || (c.label || '').toLowerCase().includes('rear')) || cameras[0];
+                    scanner.start(
+                        backCam.id,
+                        config,
+                        onScanSuccess,
+                        () => {}
+                    ).then(() => {
+                        hideStatus();
+                        startGpsTracking();
+                    }).catch(e2 => {
+                        hideReader();
+                        handleCameraError(e2);
+                    });
+                } else {
+                    hideReader();
+                    handleCameraError(err);
+                }
+            }).catch(() => {
+                hideReader();
+                handleCameraError(err);
+            });
+        } else {
+            hideReader();
+            handleCameraError(err);
+        }
     });
 }
 
@@ -401,59 +454,35 @@ function handleCameraError(err) {
             'ถูกปฏิเสธการใช้กล้อง',
             '📱 <strong>Android Chrome:</strong> แตะไอคอน 🔒 ด้านบน → กล้อง → อนุญาต<br>' +
             '🍎 <strong>iPhone Safari:</strong> การตั้งค่า → Safari → กล้อง → อนุญาต<br><br>' +
-            'หรือสามารถกดปุ่มถ่ายรูป/เลือกรูป QR ด้านล่างแทนได้ครับ',
-            '<button class="btn-retry" onclick="startCamera()">🔄 ลองอีกครั้ง</button>'
+            'หรือสามารถกดปุ่ม <strong>"📷 เปิดกล้องถ่ายภาพ QR"</strong> ด้านล่างแทนได้ครับ',
+            '<button class="btn-retry" onclick="document.getElementById(\'qr-file-input\').click()" style="background: var(--color-green, #10B981); margin-bottom: 8px;">📷 กดถ่ายภาพ QR ตอนนี้</button><br>' +
+            '<button class="btn-retry" onclick="startCamera()" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 16px; font-size: 13px;">🔄 ลองเปิดกล้องใหม่</button>'
         );
 
     } else if (e.includes('notfound') || e.includes('devicenotfound')) {
         setStatus('error',
             '<span class="status-icon">📷</span>',
-            'ไม่พบกล้องในอุปกรณ์',
-            'อุปกรณ์อาจไม่มีกล้อง หรือกล้องถูกใช้งานโดยแอปอื่น หรือสามารถกดปุ่มถ่ายรูป QR ด้านล่างแทนได้ครับ',
-            '<button class="btn-retry" onclick="startCamera()">🔄 ลองอีกครั้ง</button>'
+            'ไม่พบกล้องวิดีโอสดในอุปกรณ์',
+            'ท่านสามารถกดปุ่ม <strong>"📷 เปิดกล้องถ่ายภาพ QR"</strong> ด้านล่างเพื่อถ่ายรูปสแกนได้ทันทีครับ',
+            '<button class="btn-retry" onclick="document.getElementById(\'qr-file-input\').click()" style="background: var(--color-green, #10B981);">📷 กดถ่ายภาพ QR ตอนนี้</button>'
         );
 
     } else if (e.includes('notreadable') || e.includes('trackstart')) {
         setStatus('error',
             '<span class="status-icon">📵</span>',
             'กล้องกำลังถูกใช้งานอยู่',
-            'LINE, Facebook หรือแอปอื่นอาจเปิดกล้องอยู่ กรุณาปิดแอปเหล่านั้นแล้วลองใหม่',
-            '<button class="btn-retry" onclick="startCamera()">🔄 ลองอีกครั้ง</button>'
+            'LINE, Facebook หรือแอปอื่นอาจเปิดกล้องค้างอยู่ หรือกดปุ่มถ่ายภาพ QR ด้านล่างแทนได้ครับ',
+            '<button class="btn-retry" onclick="document.getElementById(\'qr-file-input\').click()" style="background: var(--color-green, #10B981); margin-bottom: 8px;">📷 ถ่ายภาพ QR แทน</button><br>' +
+            '<button class="btn-retry" onclick="startCamera()" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 16px; font-size: 13px;">🔄 ลองเปิดกล้องใหม่</button>'
         );
-
-    } else if (e.includes('overconstrained') || e.includes('constraint')) {
-        // Back camera failed → try front camera
-        setStatus('warning',
-            '<span class="status-icon">🤳</span>',
-            'กำลังลองสลับเป็นกล้องหน้า…',
-            'กล้องหลังไม่พร้อมใช้งาน กำลังลองกล้องหน้าแทน'
-        );
-        showReader();
-        scanner = new Html5Qrcode('reader');
-        scanner.start(
-            { facingMode: 'user' },
-            { fps: 10, qrbox: { width: 220, height: 220 } },
-            onScanSuccess,
-            () => {}
-        ).then(() => {
-            hideStatus();
-            startGpsTracking();
-        }).catch(() => {
-            hideReader();
-            setStatus('error',
-                '<span class="status-icon">📷</span>',
-                'เปิดกล้องทั้งสองด้านไม่สำเร็จ',
-                'กรุณาใช้วิธีกรอกรหัสบ้าน หรืออัปโหลดรูปภาพ QR ด้านล่างแทน',
-                '<button class="btn-retry" onclick="startCamera()">🔄 ลองอีกครั้ง</button>'
-            );
-        });
 
     } else {
-        setStatus('error',
+        setStatus('warning',
             '<span class="status-icon">📷</span>',
-            'ไม่สามารถเข้าถึงกล้องได้โดยตรง',
-            'กรุณาอนุญาตสิทธิ์กล้องในเบราว์เซอร์ หรือใช้วิธี <strong>กดปุ่มถ่ายรูป QR Code</strong> หรือกรอกรหัสบ้านด้านล่าง',
-            '<button class="btn-retry" onclick="startCamera()">🔄 ลองเปิดกล้องใหม่</button>'
+            'เปิดกล้องสตรีมสดไม่สำเร็จ',
+            'กรุณาอนุญาตสิทธิ์กล้องในเบราว์เซอร์ หรือใช้วิธี <strong>กดปุ่มถ่ายภาพ QR Code</strong> หรือกรอกรหัสบ้านด้านล่าง',
+            '<button class="btn-retry" onclick="document.getElementById(\'qr-file-input\').click()" style="background: var(--color-green, #10B981); margin-bottom: 8px;">📷 กดถ่ายภาพ QR ตอนนี้</button><br>' +
+            '<button class="btn-retry" onclick="startCamera()" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 16px; font-size: 13px;">🔄 ลองเปิดกล้องใหม่</button>'
         );
     }
 }
@@ -729,38 +758,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // โหลดพิกัด GPS แบบเบื้องหลังพร้อมหน่วงเวลา 1.5 วินาที เพื่อเลี่ยงการแย่งสิทธิ์กับกล้องตอนโหลดหน้าแรก
     setTimeout(startGpsTracking, 1500);
 
-    // Load html5-qrcode library dynamically (versioned URL for stability)
-    const LIB_URL = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
-
-    // Timeout: if lib doesn't load in 8s, show error
-    const libTimeout = setTimeout(() => {
-        if (!libLoaded) {
+    if (typeof Html5Qrcode !== 'undefined') {
+        libLoaded = true;
+        startCamera();
+    } else {
+        // Fallback CDN if local script failed
+        const LIB_URL = 'https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js';
+        const script = document.createElement('script');
+        script.src = LIB_URL;
+        script.onload = () => {
+            libLoaded = true;
+            startCamera();
+        };
+        script.onerror = () => {
             setStatus('error',
                 '<span class="status-icon">📵</span>',
-                'โหลดระบบสแกนช้าเกินไป',
-                'การเชื่อมต่ออาจช้า กรุณาโหลดหน้าใหม่ หรือกรอกรหัสบ้านด้านล่างแทน',
-                '<button class="btn-retry" onclick="location.reload()">🔄 โหลดหน้าใหม่</button>'
+                'โหลดระบบสแกน QR ไม่สำเร็จ',
+                'ไม่สามารถโหลดไลบรารีสแกนได้ กรุณาใช้ปุ่ม <strong>"📷 เปิดกล้องถ่ายภาพ QR"</strong> หรือกรอกรหัสด้วยตนเองด้านล่าง',
+                '<button class="btn-retry" onclick="document.getElementById(\'qr-file-input\').click()" style="background: var(--color-green, #10B981);">📷 กดถ่ายภาพ QR ตอนนี้</button>'
             );
-        }
-    }, 8000);
-
-    const script = document.createElement('script');
-    script.src   = LIB_URL;
-    script.onload = () => {
-        libLoaded = true;
-        clearTimeout(libTimeout);
-        startCamera();
-    };
-    script.onerror = () => {
-        clearTimeout(libTimeout);
-        setStatus('error',
-            '<span class="status-icon">📵</span>',
-            'โหลดระบบสแกน QR ไม่สำเร็จ',
-            'ไม่สามารถโหลดจาก CDN ได้ กรุณาตรวจสอบการเชื่อมต่อ แล้วโหลดหน้าใหม่ หรือกรอกรหัสด้วยตนเองด้านล่าง',
-            '<button class="btn-retry" onclick="location.reload()">🔄 โหลดหน้าใหม่</button>'
-        );
-    };
-    document.head.appendChild(script);
+        };
+        document.head.appendChild(script);
+    }
 
     <?php if (!empty($presetHid)): ?>
     document.getElementById('manual-hid').value = '<?= htmlspecialchars($presetHid) ?>';
