@@ -240,6 +240,14 @@ $presetHid = $_GET['hid'] ?? '';
         <!-- QR reader (hidden until camera opens) -->
         <div id="reader" style="display:none;"></div>
 
+        <!-- Hidden file input for Photo/Gallery QR Scan -->
+        <input type="file" id="qr-file-input" accept="image/*" style="display:none;" onchange="scanQrFromFile(this)">
+
+        <!-- Photo QR Scan Action Button for Mobile -->
+        <button type="button" onclick="document.getElementById('qr-file-input').click()" class="btn-giant btn-giant-secondary" style="margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14.5px; border-radius: var(--border-radius); padding: 12px; width: 100%;">
+            <span>📷 ถ่ายภาพ / เลือกรูป QR Code จากเครื่อง</span>
+        </button>
+
         <!-- Manual input -->
         <div class="card-dark" style="margin-top:16px;text-align:center;">
             <p style="color:var(--text-secondary);font-size:14px;margin:0 0 10px;">
@@ -254,8 +262,8 @@ $presetHid = $_GET['hid'] ?? '';
                        value="<?= htmlspecialchars($presetHid) ?>"
                        inputmode="numeric">
                 <button onclick="checkManualHid()"
-                        class="numpad-btn btn-action"
-                        style="height:50px;width:90px;margin-top:0;font-size:15px;border-radius:var(--border-radius);">
+                       class="numpad-btn btn-action"
+                       style="height:50px;width:90px;margin-top:0;font-size:15px;border-radius:var(--border-radius);">
                     ตรวจสอบ
                 </button>
             </div>
@@ -336,29 +344,8 @@ function startCamera() {
         setStatus('error',
             '<span class="status-icon">📵</span>',
             'โหลดระบบสแกนไม่สำเร็จ',
-            'ไม่สามารถโหลดไลบรารีสแกน QR ได้ อาจเกิดจากอินเทอร์เน็ตขัดข้อง',
+            'ไม่สามารถโหลดไลบรารีสแกน QR ได้ อาจเกิดจากสัญญาณอินเทอร์เน็ต',
             '<button class="btn-retry" onclick="location.reload()">🔄 โหลดหน้าใหม่</button>'
-        );
-        return;
-    }
-
-    // Guard: HTTPS required for camera
-    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-        setStatus('error',
-            '<span class="status-icon">🔐</span>',
-            'ต้องใช้การเชื่อมต่อแบบ HTTPS',
-            'กล้องใช้งานได้เฉพาะบนเว็บไซต์ที่ใช้ HTTPS เท่านั้น กรุณาติดต่อผู้ดูแลระบบ'
-        );
-        return;
-    }
-
-    // Guard: mediaDevices API must exist
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setStatus('error',
-            '<span class="status-icon">📷</span>',
-            'เบราว์เซอร์ไม่รองรับการใช้กล้อง',
-            'กรุณาเปิดด้วย Chrome หรือ Safari เวอร์ชันล่าสุด',
-            '<button class="btn-retry" onclick="location.reload()">🔄 ลองอีกครั้ง</button>'
         );
         return;
     }
@@ -379,8 +366,12 @@ function initScanner() {
     scanner = new Html5Qrcode('reader');
 
     const config = {
-        fps: 10,
-        qrbox: { width: 240, height: 240 },
+        fps: 15,
+        qrbox: function(viewfinderWidth, viewfinderHeight) {
+            let minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            let size = Math.floor(minEdge * 0.75);
+            return { width: Math.max(size, 200), height: Math.max(size, 200) };
+        },
         aspectRatio: 1.0,
         showTorchButtonIfSupported: true,
         formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ]
@@ -410,7 +401,7 @@ function handleCameraError(err) {
             'ถูกปฏิเสธการใช้กล้อง',
             '📱 <strong>Android Chrome:</strong> แตะไอคอน 🔒 ด้านบน → กล้อง → อนุญาต<br>' +
             '🍎 <strong>iPhone Safari:</strong> การตั้งค่า → Safari → กล้อง → อนุญาต<br><br>' +
-            'แล้วกดปุ่มลองอีกครั้ง',
+            'หรือสามารถกดปุ่มถ่ายรูป/เลือกรูป QR ด้านล่างแทนได้ครับ',
             '<button class="btn-retry" onclick="startCamera()">🔄 ลองอีกครั้ง</button>'
         );
 
@@ -418,7 +409,7 @@ function handleCameraError(err) {
         setStatus('error',
             '<span class="status-icon">📷</span>',
             'ไม่พบกล้องในอุปกรณ์',
-            'อุปกรณ์อาจไม่มีกล้อง หรือกล้องถูกใช้งานโดยแอปอื่น กรุณาปิดแอปอื่นที่ใช้กล้องแล้วลองใหม่',
+            'อุปกรณ์อาจไม่มีกล้อง หรือกล้องถูกใช้งานโดยแอปอื่น หรือสามารถกดปุ่มถ่ายรูป QR ด้านล่างแทนได้ครับ',
             '<button class="btn-retry" onclick="startCamera()">🔄 ลองอีกครั้ง</button>'
         );
 
@@ -452,29 +443,72 @@ function handleCameraError(err) {
             setStatus('error',
                 '<span class="status-icon">📷</span>',
                 'เปิดกล้องทั้งสองด้านไม่สำเร็จ',
-                'กรุณาใช้วิธีกรอกรหัสบ้านด้านล่างแทน',
+                'กรุณาใช้วิธีกรอกรหัสบ้าน หรืออัปโหลดรูปภาพ QR ด้านล่างแทน',
                 '<button class="btn-retry" onclick="startCamera()">🔄 ลองอีกครั้ง</button>'
             );
         });
 
     } else {
         setStatus('error',
-            '<span class="status-icon">⚠️</span>',
-            'เปิดกล้องไม่สำเร็จ',
-            'กรุณาลองใหม่ หรือกรอกรหัสบ้านด้านล่างแทน<br><small style="color:var(--text-muted);">' + err + '</small>',
-            '<button class="btn-retry" onclick="startCamera()">🔄 ลองอีกครั้ง</button>'
+            '<span class="status-icon">📷</span>',
+            'ไม่สามารถเข้าถึงกล้องได้โดยตรง',
+            'กรุณาอนุญาตสิทธิ์กล้องในเบราว์เซอร์ หรือใช้วิธี <strong>กดปุ่มถ่ายรูป QR Code</strong> หรือกรอกรหัสบ้านด้านล่าง',
+            '<button class="btn-retry" onclick="startCamera()">🔄 ลองเปิดกล้องใหม่</button>'
         );
     }
 }
 
+// ---------- Scan from File / Photo Upload ----------
+function scanQrFromFile(input) {
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+
+    if (scanner) {
+        scanner.stop().catch(() => {}).finally(() => { scanner = null; });
+    }
+    hideReader();
+    setStatus('loading',
+        '<div class="spinner"></div>',
+        'กำลังประมวลผลรูปภาพ QR…',
+        'กรุณารอสักครู่'
+    );
+
+    const tempScanner = new Html5Qrcode('reader');
+    tempScanner.scanFile(file, true)
+        .then(decodedText => {
+            onScanSuccess(decodedText);
+        })
+        .catch(err => {
+            setStatus('error',
+                '<span class="status-icon">⚠️</span>',
+                'ไม่พบ QR Code ในรูปภาพ',
+                'กรุณาถ่ายภาพให้เห็น QR Code ชัดเจนและสว่างเพียงพอ หรือกรอกรหัสบ้านด้วยตนเอง',
+                '<button class="btn-retry" onclick="resetScanner()">🔄 ลองใหม่อีกครั้ง</button>'
+            );
+        });
+}
+
 // ---------- Scan success ----------
 function onScanSuccess(decodedText) {
-    // Parse HID from plain text or URL
-    let hid = decodedText.trim();
-    if (hid.includes('hid=')) {
+    // Parse HID/CID from plain text, JSON, or URL
+    let hid = (decodedText || '').trim();
+    
+    // 1. Check if URL with query parameters
+    if (hid.includes('?')) {
         try {
-            const qs = hid.split('?')[1] || hid.split('hid=')[1];
-            hid = new URLSearchParams(qs.startsWith('hid=') ? qs : 'hid=' + qs).get('hid') || hid;
+            const urlObj = new URL(hid, window.location.origin);
+            if (urlObj.searchParams.get('cid')) hid = urlObj.searchParams.get('cid');
+            else if (urlObj.searchParams.get('hid')) hid = urlObj.searchParams.get('hid');
+        } catch(e) {
+            const qs = hid.split('?')[1];
+            const params = new URLSearchParams(qs);
+            if (params.get('cid')) hid = params.get('cid');
+            else if (params.get('hid')) hid = params.get('hid');
+        }
+    } else if (hid.startsWith('{')) {
+        try {
+            const json = JSON.parse(hid);
+            hid = json.cid || json.hid || hid;
         } catch(e) {}
     }
 
@@ -499,14 +533,14 @@ function onScanSuccess(decodedText) {
 // ---------- Manual input ----------
 function checkManualHid() {
     const hid = document.getElementById('manual-hid').value.trim();
-    if (hid.length < 5) {
-        alert('กรุณากรอกรหัสบ้าน HID ที่ถูกต้อง');
+    if (hid.length < 1) {
+        alert('กรุณากรอกรหัสบ้าน หรือเลขบัตรประชาชน');
         return;
     }
     if (scanner) scanner.stop().catch(() => {});
     setStatus('loading',
         '<div class="spinner"></div>',
-        'กำลังตรวจสอบรหัสบ้าน…',
+        'กำลังตรวจสอบรหัส…',
         'กรุณารอสักครู่'
     );
     validateHouseAssignment(hid);
@@ -534,14 +568,15 @@ async function validateHouseAssignment(hid) {
                 navigator.geolocation.getCurrentPosition(
                     p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
                     reject,
-                    { timeout: 2000, maximumAge: 30000, enableHighAccuracy: false } // ปิด High Accuracy ใน fallback ด่วนเพื่อให้ได้พิกัดเร็วขึ้นจากเสาสัญญาณ/WiFi
+                    { timeout: 2000, maximumAge: 30000, enableHighAccuracy: false }
                 );
             });
             gpsLat = location.lat;
             gpsLng = location.lng;
-            document.getElementById('gps-warning').style.display = 'none';
+            const gpsWarn = document.getElementById('gps-warning');
+            if (gpsWarn) gpsWarn.style.display = 'none';
         } catch (e) {
-            // ดึงพิกัดไม่ได้ ให้ข้ามเพื่อไม่ทำให้แอปค้าง
+            // ข้ามเมื่อดึงพิกัดไม่ได้
         }
     }
 
@@ -553,7 +588,7 @@ async function validateHouseAssignment(hid) {
     .then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
     .then(data => {
         if (data.status === 'success') { 
-            goToForm(hid); 
+            goToForm(data.hid || data.cid || hid); 
         } else { 
             showLock(hid, data.message, data.lock_title, data.sub_message, data.error_code); 
         }

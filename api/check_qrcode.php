@@ -10,12 +10,36 @@ require_once __DIR__ . '/../config/demo_data.php';
 
 if (DemoDataProvider::isDemoMode()) {
     $hid = trim($_POST['hid'] ?? '');
+    
+    // 1. ถอดรหัสหากเป็น URL หรือมี Query String
+    if (strpos($hid, '?') !== false || strpos($hid, 'http://') === 0 || strpos($hid, 'https://') === 0) {
+        $parsed = parse_url($hid);
+        if (!empty($parsed['query'])) {
+            parse_str($parsed['query'], $q);
+            if (!empty($q['cid'])) $hid = $q['cid'];
+            elseif (!empty($q['hid'])) $hid = $q['hid'];
+        }
+    }
+    
+    // 2. ถอดรหัสหากเป็น JSON string
+    if (strpos($hid, '{') === 0) {
+        $json = json_decode($hid, true);
+        if (is_array($json)) {
+            $hid = $json['cid'] ?? $json['hid'] ?? $hid;
+        }
+    }
+    
+    // 3. ตัดคำนำหน้าภาษาไทย e.g. "บ้าน 12/1", "บ้านเลขที่ 88"
+    $cleanHid = trim(preg_replace('/^(บ้านเลขที่|บ้าน|ม\.)\s*/u', '', $hid));
+    
     $targets = DemoDataProvider::getMockTargets();
     
     // Find matching target in 10 mock targets
     $matched = null;
     foreach ($targets as $t) {
-        if ($t['cid'] === $hid || $t['house_no'] === $hid || (isset($t['assignment_id']) && $t['assignment_id'] === $hid)) {
+        if ($t['cid'] === $hid || $t['cid'] === $cleanHid || 
+            $t['house_no'] === $hid || $t['house_no'] === $cleanHid || 
+            (isset($t['assignment_id']) && ($t['assignment_id'] === $hid || $t['assignment_id'] === $cleanHid))) {
             $matched = $t;
             break;
         }
@@ -23,16 +47,16 @@ if (DemoDataProvider::isDemoMode()) {
     
     // Special test code aliases
     if (!$matched) {
-        if (strpos($hid, 'DEMO_MOO1') !== false || $hid === 'DEMO_HOUSE_12_1' || $hid === 'DEMO_HID_1') {
-            $matched = $targets[0];
-        } elseif (strpos($hid, 'DEMO_MOO2') !== false || $hid === 'DEMO_HOUSE_88_2' || $hid === 'DEMO_HOUSE_101_2') {
-            $matched = $targets[2];
-        } elseif (strpos($hid, 'DEMO_MOO3') !== false || $hid === 'DEMO_HOUSE_15_3' || $hid === 'DEMO_HOUSE_22_3') {
-            $matched = $targets[4];
-        } elseif (strpos($hid, 'DEMO_MOO4') !== false || $hid === 'DEMO_HOUSE_54_4' || $hid === 'DEMO_HOUSE_76_4') {
-            $matched = $targets[6];
-        } elseif (strpos($hid, 'DEMO_MOO5') !== false || $hid === 'DEMO_HOUSE_9_5' || $hid === 'DEMO_HOUSE_33_5' || $hid === 'DEMO_HOUSE_LOCKED_999') {
-            $matched = $targets[8];
+        if (strpos($hid, 'DEMO_MOO1') !== false || $hid === 'DEMO_HOUSE_12_1' || $hid === 'DEMO_HID_1' || $cleanHid === '12/1' || $cleanHid === '45/2') {
+            $matched = ($cleanHid === '45/2') ? $targets[1] : $targets[0];
+        } elseif (strpos($hid, 'DEMO_MOO2') !== false || $hid === 'DEMO_HOUSE_88_2' || $hid === 'DEMO_HOUSE_101_2' || $cleanHid === '88' || $cleanHid === '101') {
+            $matched = ($cleanHid === '101' || $hid === 'DEMO_HOUSE_101_2') ? $targets[3] : $targets[2];
+        } elseif (strpos($hid, 'DEMO_MOO3') !== false || $hid === 'DEMO_HOUSE_15_3' || $hid === 'DEMO_HOUSE_22_3' || $cleanHid === '15/3' || $cleanHid === '22') {
+            $matched = ($cleanHid === '22' || $hid === 'DEMO_HOUSE_22_3') ? $targets[5] : $targets[4];
+        } elseif (strpos($hid, 'DEMO_MOO4') !== false || $hid === 'DEMO_HOUSE_54_4' || $hid === 'DEMO_HOUSE_76_4' || $cleanHid === '54' || $cleanHid === '76/1') {
+            $matched = ($cleanHid === '76/1' || $hid === 'DEMO_HOUSE_76_4') ? $targets[7] : $targets[6];
+        } elseif (strpos($hid, 'DEMO_MOO5') !== false || $hid === 'DEMO_HOUSE_9_5' || $hid === 'DEMO_HOUSE_33_5' || $hid === 'DEMO_HOUSE_LOCKED_999' || $cleanHid === '9/1' || $cleanHid === '33') {
+            $matched = ($cleanHid === '33' || $hid === 'DEMO_HOUSE_33_5') ? $targets[9] : $targets[8];
         }
     }
 

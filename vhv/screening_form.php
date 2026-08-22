@@ -30,7 +30,19 @@ if (DemoDataProvider::isDemoMode()) {
         $filtered = array_values(array_filter($allTargets, function($r) use ($cid) { return $r['cid'] === $cid; }));
         $residents = !empty($filtered) ? $filtered : [$allTargets[0]];
     } elseif (!empty($hid)) {
-        $filtered = array_values(array_filter($allTargets, function($r) use ($hid) { return $r['house_no'] === $hid || $r['cid'] === $hid; }));
+        $cleanHid = trim(preg_replace('/^(บ้านเลขที่|บ้าน|ม\.)\s*/u', '', $hid));
+        if ($hid === 'DEMO_HOUSE_12_1' || $hid === 'DEMO_HID_1') $cleanHid = '12/1';
+        elseif ($hid === 'DEMO_HOUSE_88_2') $cleanHid = '88';
+        elseif ($hid === 'DEMO_HOUSE_101_2') $cleanHid = '101';
+        elseif ($hid === 'DEMO_HOUSE_15_3') $cleanHid = '15/3';
+        elseif ($hid === 'DEMO_HOUSE_54_4') $cleanHid = '54';
+        elseif ($hid === 'DEMO_HOUSE_9_5') $cleanHid = '9/1';
+        
+        $filtered = array_values(array_filter($allTargets, function($r) use ($hid, $cleanHid) { 
+            return $r['house_no'] === $hid || $r['house_no'] === $cleanHid || 
+                   $r['cid'] === $hid || $r['cid'] === $cleanHid || 
+                   (isset($r['assignment_id']) && ($r['assignment_id'] === $hid || $r['assignment_id'] === $cleanHid)); 
+        }));
         $residents = !empty($filtered) ? $filtered : [$allTargets[0]];
     } else {
         $residents = DemoDataProvider::getDemoVhvTasks()['pending'];
