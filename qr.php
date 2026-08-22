@@ -1,6 +1,7 @@
 <?php
 // qr.php - PDPA Security & External Scanner Interceptor
 require_once __DIR__ . '/config/session.php';
+require_once __DIR__ . '/config/demo_data.php';
 require_once __DIR__ . '/config/demo_banner.php';
 
 $code = $_GET['code'] ?? $_GET['hid'] ?? $_GET['cid'] ?? '';

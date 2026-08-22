@@ -1,5 +1,7 @@
 <?php
 // config/demo_banner.php - แถบแจ้งเตือนลอยสำหรับโหมด Demo Sandbox ปรากฏทุกหน้ารายการเมนู
+require_once __DIR__ . '/demo_data.php';
+
 if (isset($_SESSION['is_demo_mode']) && $_SESSION['is_demo_mode'] === true):
     $roleName = 'อสม. (หมอคนที่ 1)';
     if (($_SESSION['demo_role'] ?? '') === 'staff') {

@@ -1,6 +1,7 @@
 <?php
 // vhv/scan.php
 require_once __DIR__ . '/../config/session.php';
+require_once __DIR__ . '/../config/demo_data.php';
 require_once __DIR__ . '/../config/demo_banner.php';
 
 if (!isset($_SESSION['vhv_id'])) {
