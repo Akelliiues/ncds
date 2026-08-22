@@ -1142,17 +1142,33 @@ if (DemoDataProvider::isDemoMode()) {
         <!-- Top Analytics Row -->
         <div class="grid-cols-4"
             style="margin-bottom: 30px; gap: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));">
-            <!-- Overall Progress (Radial) -->
+            <!-- Overall Progress (Multi-Round Support) -->
             <div class="card-dark">
-                <h3
-                    style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; font-size: 15px; display: flex; align-items: center; gap: 8px;">
-                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: rgba(14, 165, 233, 0.15); color: #0ea5e9;">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                    </span>
-                    <span>Overall Progress</span>
-                </h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+                    <h3
+                        style="color: var(--color-accent); margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+                        <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: rgba(14, 165, 233, 0.15); color: #0ea5e9;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                        </span>
+                        <span id="overall-progress-title">Overall Progress</span>
+                    </h3>
+                    <div style="display: inline-flex; gap: 4px; background: var(--bg-darker); padding: 3px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <button type="button" class="btn-progress-round active" onclick="switchOverallRound('all')" id="btn-ovr-all" style="padding: 4px 9px; font-size: 11.5px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; background: #0ea5e9; color: #ffffff; transition: all 0.2s;">
+                            ทุกรอบ
+                        </button>
+                        <button type="button" class="btn-progress-round" onclick="switchOverallRound('r1')" id="btn-ovr-r1" style="padding: 4px 9px; font-size: 11.5px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">
+                            รอบ 1
+                        </button>
+                        <button type="button" class="btn-progress-round" onclick="switchOverallRound('r2')" id="btn-ovr-r2" style="padding: 4px 9px; font-size: 11.5px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">
+                            รอบ 2
+                        </button>
+                        <button type="button" class="btn-progress-round" onclick="switchOverallRound('r3')" id="btn-ovr-r3" style="padding: 4px 9px; font-size: 11.5px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">
+                            รอบ 3+
+                        </button>
+                    </div>
+                </div>
                 <div id="chart-overall-progress" style="display: flex; justify-content: center;"></div>
             </div>
 
@@ -1980,40 +1996,112 @@ if (DemoDataProvider::isDemoMode()) {
                 document.querySelector("#chart-rescreen").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 100px; font-size: 14px;">ยังไม่มีข้อมูลการคัดกรองติดตามซ้ำ</div>';
             }
 
-            // Overall Progress Chart (Horizontal Bar Leaderboard)
-            const totalTargetsCount = <?= intval($metrics['total_targets']) ?>;
-            const totalScreenedCount = <?= intval($metrics['screened_count']) ?>;
-            const progressPercent = totalTargetsCount > 0 ? Math.round((totalScreenedCount / totalTargetsCount) * 100) : 0;
+            // Overall Progress Chart (Multi-Round Support)
+            let chartOverallProgressInstance = null;
 
-            const progressData = [];
+            function getProgressDataset(roundKey) {
+                const progressData = [];
+                let totalTargetsSum = 0;
+                let totalScreenedSum = 0;
 
-            // Calculate per village or per hoscode
-            coverageRaw.forEach(d => {
-                const targets = parseInt(d.total_targets);
-                const screened = parseInt(d.screened);
-                const pct = targets > 0 ? Math.round((screened / targets) * 100) : 0;
-                progressData.push({
-                    x: isRegularAdmin ? (d.village_name || "หมู่ " + d.moo) : (hcNamesChart[d.hoscode] || d.hoscode),
-                    y: pct,
-                    fillColor: '#22c55e'
+                const dataSource = (rescreenRaw && rescreenRaw.length > 0) ? rescreenRaw : coverageRaw;
+
+                dataSource.forEach(d => {
+                    const targets = parseInt(d.total_targets) || 0;
+                    let screened = 0;
+                    let barColor = '#22c55e';
+
+                    if (roundKey === 'r1') {
+                        screened = parseInt(d.r1_completed) || 0;
+                        barColor = '#22c55e';
+                    } else if (roundKey === 'r2') {
+                        screened = parseInt(d.r2_completed) || 0;
+                        barColor = '#3b82f6';
+                    } else if (roundKey === 'r3') {
+                        screened = parseInt(d.r3_completed) || 0;
+                        barColor = '#8b5cf6';
+                    } else {
+                        // All rounds combined
+                        const covMatch = (coverageRaw || []).find(c => isRegularAdmin ? (c.moo === d.moo) : (c.hoscode === d.hoscode));
+                        if (covMatch) {
+                            screened = parseInt(covMatch.screened) || 0;
+                        } else {
+                            screened = (parseInt(d.r1_completed) || 0) + (parseInt(d.r2_completed) || 0) + (parseInt(d.r3_completed) || 0);
+                        }
+                        barColor = '#22c55e';
+                    }
+
+                    totalTargetsSum += targets;
+                    totalScreenedSum += screened;
+
+                    const pct = targets > 0 ? Math.round((screened / targets) * 100) : 0;
+                    const label = isRegularAdmin ? (d.village_name || "หมู่ " + d.moo) : (hcNamesChart[d.hoscode] || d.hoscode);
+
+                    progressData.push({
+                        x: label,
+                        y: pct,
+                        screened: screened,
+                        targets: targets,
+                        fillColor: barColor
+                    });
                 });
-            });
 
-            // Sort by percentage descending
-            progressData.sort((a, b) => b.y - a.y);
+                // Sort by percentage descending
+                progressData.sort((a, b) => b.y - a.y);
 
-            // Push overall first (always at the top)
-            progressData.unshift({
-                x: isRegularAdmin ? 'ภาพรวมหน่วยบริการ' : 'ภาพรวมทั้งอำเภอ',
-                y: progressPercent,
-                fillColor: '#0ea5e9' // Distinct color for overall
-            });
+                // Overall total percentage for this round
+                const overallPct = totalTargetsSum > 0 ? Math.round((totalScreenedSum / totalTargetsSum) * 100) : 0;
+                const overallColor = roundKey === 'r1' ? '#16a34a' : (roundKey === 'r2' ? '#2563eb' : (roundKey === 'r3' ? '#7c3aed' : '#0ea5e9'));
 
-            if (coverageRaw && coverageRaw.length > 0) {
+                // Push overall first (always at the top)
+                progressData.unshift({
+                    x: isRegularAdmin ? 'ภาพรวมหน่วยบริการ' : 'ภาพรวมทั้งอำเภอ',
+                    y: overallPct,
+                    screened: totalScreenedSum,
+                    targets: totalTargetsSum,
+                    fillColor: overallColor
+                });
+
+                return progressData;
+            }
+
+            window.switchOverallRound = function(roundKey) {
+                document.querySelectorAll('.btn-progress-round').forEach(b => {
+                    b.style.background = 'transparent';
+                    b.style.color = 'var(--text-secondary)';
+                });
+                const activeBtn = document.getElementById('btn-ovr-' + roundKey);
+                if (activeBtn) {
+                    const activeBg = (roundKey === 'r1' ? '#22c55e' : (roundKey === 'r2' ? '#3b82f6' : (roundKey === 'r3' ? '#8b5cf6' : '#0ea5e9')));
+                    activeBtn.style.background = activeBg;
+                    activeBtn.style.color = '#ffffff';
+                }
+
+                const roundTitles = {
+                    'all': 'Overall Progress (ภาพรวมทุกรอบ)',
+                    'r1': 'ความคืบหน้า รอบที่ 1 (Baseline)',
+                    'r2': 'ความคืบหน้า ติดตามรอบที่ 2',
+                    'r3': 'ความคืบหน้า ติดตามรอบที่ 3+'
+                };
+                const titleEl = document.getElementById('overall-progress-title');
+                if (titleEl && roundTitles[roundKey]) {
+                    titleEl.innerText = roundTitles[roundKey];
+                }
+
+                const newData = getProgressDataset(roundKey);
+                if (chartOverallProgressInstance) {
+                    chartOverallProgressInstance.updateSeries([{
+                        name: 'ความคืบหน้า (%)',
+                        data: newData
+                    }]);
+                }
+            };
+
+            if ((coverageRaw && coverageRaw.length > 0) || (rescreenRaw && rescreenRaw.length > 0)) {
                 var optionsProgress = {
                     series: [{
                         name: 'ความคืบหน้า (%)',
-                        data: progressData
+                        data: getProgressDataset('all')
                     }],
                     chart: {
                         height: 350,
@@ -2066,10 +2154,20 @@ if (DemoDataProvider::isDemoMode()) {
                         }
                     },
                     tooltip: {
-                        theme: localStorage.getItem('theme') || 'light'
+                        theme: localStorage.getItem('theme') || 'light',
+                        y: {
+                            formatter: function(val, opts) {
+                                const dp = opts.w.config.series[0].data[opts.dataPointIndex];
+                                if (dp && dp.screened !== undefined && dp.targets !== undefined) {
+                                    return val + "% (" + Number(dp.screened).toLocaleString() + " / " + Number(dp.targets).toLocaleString() + " ราย)";
+                                }
+                                return val + "%";
+                            }
+                        }
                     }
                 };
-                new ApexCharts(document.querySelector("#chart-overall-progress"), optionsProgress).render();
+                chartOverallProgressInstance = new ApexCharts(document.querySelector("#chart-overall-progress"), optionsProgress);
+                chartOverallProgressInstance.render();
             } else {
                 document.querySelector("#chart-overall-progress").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 100px; font-size: 14px;">ยังไม่มีข้อมูลความคืบหน้า</div>';
             }

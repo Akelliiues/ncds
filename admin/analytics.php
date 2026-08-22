@@ -1013,6 +1013,17 @@ try {
         GROUP BY sex, age_group
     ");
     $pyramidStmt->execute(array_merge([$selectedBudgetYear, $isSandboxVal], $hoscodes));
+    $pyramidRaw = $pyramidStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    foreach ($pyramidRaw as $row) {
+        $gIdx = array_search($row['age_group'], $ageGroups);
+        if ($gIdx !== false) {
+            $isMale = (in_array((string)$row['sex'], ['1', 'M', 'ชาย', 'male'], true));
+            if ($isMale) {
+                $maleTotal[$gIdx] += intval($row['total_target']);
+                $maleScreened[$gIdx] += intval($row['screened_count']);
+            } else {
+                $femaleTotal[$gIdx] += intval($row['total_target']);
                 $femaleScreened[$gIdx] += intval($row['screened_count']);
             }
         }

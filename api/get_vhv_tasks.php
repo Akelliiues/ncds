@@ -51,6 +51,7 @@ if (DemoDataProvider::isDemoMode()) {
             'prev_dtx_value' => 110,
             'prev_round_number' => 1
         ];
+    }
     echo json_encode([
         'status' => 'success',
         'vhv_name' => 'อสม. จำลอง (โหมดทดสอบ)',
