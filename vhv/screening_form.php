@@ -901,9 +901,10 @@ if (DemoDataProvider::isDemoMode()) {
 
         document.addEventListener("DOMContentLoaded", function() {
             const isShell = <?= $isShell ? 'true' : 'false' ?>;
+            const isDemo = <?= $isDemo ? 'true' : 'false' ?>;
             
-            // Offline/Shell initialization
-            if (isShell || !navigator.onLine) {
+            // Offline/Shell initialization (Skip completely in Demo mode)
+            if (!isDemo && (isShell || !navigator.onLine)) {
                 // Get URL search parameters
                 const urlParams = new URLSearchParams(window.location.search);
                 const hidVal = urlParams.get('hid');
