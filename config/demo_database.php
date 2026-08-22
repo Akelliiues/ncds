@@ -1,6 +1,6 @@
 <?php
 // config/demo_database.php
-// ระบบฐานข้อมูลจำลองครอบคลุมทุกเมนูและฟังก์ชันทั้งหน้าบ้านและหลังบ้าน 100% (Complete Mockup DB Generator)
+// ระบบฐานข้อมูลจำลองครอบคลุมทุกเมนูและฟังก์ชันทั้งหน้าบ้านและหลังบ้าน 100% (Complete Mockup DB Generator with Round 1 & Round 2 Data)
 
 class DemoMockPDOStatement {
     private $stmt;
@@ -135,23 +135,36 @@ function initDemoMockupDatabase($pdo) {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             foreach ($mockTargets as $t) { $stmtT->execute($t); }
 
-            // Seed Mock Task Assignments
+            // Seed Mock Task Assignments (Rounds 1, 2, and 3)
             $mockAssignments = [
-                ['9999900000001', 'DEMO_1001', 2026, 'pending', 1, 1],
-                ['9999900000002', 'DEMO_1001', 2026, 'pending', 1, 1],
-                ['9999900000003', 'DEMO_1002', 2026, 'pending', 1, 1],
+                ['9999900000001', 'DEMO_1001', 2026, 'completed', 1, 1],
+                ['9999900000002', 'DEMO_1001', 2026, 'completed', 1, 1],
+                ['9999900000003', 'DEMO_1002', 2026, 'completed', 1, 1],
                 ['9999900000004', 'DEMO_1002', 2026, 'completed', 1, 1],
                 ['9999900000005', 'DEMO_1003', 2026, 'completed', 1, 1],
                 ['9999900000009', 'DEMO_1001', 2026, 'pending', 1, 1],
-                ['9999900000010', 'DEMO_1002', 2026, 'completed', 1, 1]
+                ['9999900000010', 'DEMO_1002', 2026, 'completed', 1, 1],
+                // Round 2 assignments
+                ['9999900000001', 'DEMO_1001', 2026, 'completed', 2, 1],
+                ['9999900000002', 'DEMO_1001', 2026, 'completed', 2, 1],
+                ['9999900000003', 'DEMO_1002', 2026, 'pending', 2, 1],
+                ['9999900000004', 'DEMO_1002', 2026, 'pending', 2, 1],
+                // Round 3 assignment
+                ['9999900000001', 'DEMO_1001', 2026, 'pending', 3, 1]
             ];
             $stmtA = $pdo->prepare("INSERT INTO `demo_mock_task_assignments` (target_cid, vhv_id, budget_year, assignment_status, round_number, is_sandbox) VALUES (?, ?, ?, ?, ?, ?)");
             foreach ($mockAssignments as $a) { $stmtA->execute($a); }
 
-            // Seed Mock Screening Results
-            $stmtS = $pdo->prepare("INSERT INTO `demo_mock_screening_results` (assignment_id, target_cid, vhv_id, sys_bp1, dia_bp1, dtx_value, dtx_type, weight, height, waist, bmi, cv_risk_score, is_sandbox) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmtS->execute([4, '9999900000004', 'DEMO_1002', 118, 76, 95, 'fpg', 58.5, 160.0, 74.0, 22.8, 1, 1]);
-            $stmtS->execute([5, '9999900000005', 'DEMO_1003', 162, 98, 210, 'fpg', 72.0, 165.0, 88.0, 26.4, 3, 1]);
+            // Seed Mock Screening Results (R1 & R2)
+            $stmtS = $pdo->prepare("INSERT INTO `demo_mock_screening_results` (assignment_id, target_cid, vhv_id, round_number, sys_bp1, dia_bp1, dtx_value, dtx_type, weight, height, waist, bmi, cv_risk_score, is_sandbox) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmtS->execute([1, '9999900000001', 'DEMO_1001', 1, 130, 84, 110, 'fpg', 65.0, 168.0, 80.0, 23.0, 1, 1]);
+            $stmtS->execute([2, '9999900000002', 'DEMO_1001', 1, 145, 92, 135, 'fpg', 70.0, 158.0, 85.0, 28.0, 2, 1]);
+            $stmtS->execute([3, '9999900000003', 'DEMO_1002', 1, 122, 78, 105, 'fpg', 62.0, 162.0, 76.0, 23.6, 1, 1]);
+            $stmtS->execute([4, '9999900000004', 'DEMO_1002', 1, 118, 76, 95, 'fpg', 58.5, 160.0, 74.0, 22.8, 1, 1]);
+            $stmtS->execute([5, '9999900000005', 'DEMO_1003', 1, 162, 98, 210, 'fpg', 72.0, 165.0, 88.0, 26.4, 3, 1]);
+            // Round 2 screening results
+            $stmtS->execute([8, '9999900000001', 'DEMO_1001', 2, 124, 80, 102, 'fpg', 64.0, 168.0, 78.0, 22.7, 1, 1]);
+            $stmtS->execute([9, '9999900000002', 'DEMO_1001', 2, 138, 88, 120, 'fpg', 68.5, 158.0, 83.0, 27.4, 2, 1]);
 
             // Seed Mock DPAC Enrollments & Followups
             $stmtE = $pdo->prepare("INSERT INTO `demo_mock_dpac_enrollments` (enrollment_id, cid, budget_year, risk_type, assigned_vhv_id, status) VALUES (?, ?, ?, ?, ?, ?)");
@@ -159,6 +172,7 @@ function initDemoMockupDatabase($pdo) {
 
             $stmtF = $pdo->prepare("INSERT INTO `demo_mock_dpac_followups` (followup_id, enrollment_id, vhv_id, round_number, status, weight, height, waist, bp_sys, bp_dia, fbs, health_risk_level, advice_given) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmtF->execute([1, 1, 'DEMO_1002', 1, 'pending', 65.0, 165.0, 82.0, 138, 86, 145, 'yellow', 'ลดเค็ม ลดหวาน ออกกำลังกาย']);
+            $stmtF->execute([2, 1, 'DEMO_1002', 2, 'completed', 63.5, 165.0, 80.0, 126, 82, 120, 'green', 'คุมอาหารได้ดี ออกกำลังกายสม่ำเสมอ']);
 
             // Seed Mock VHVs
             $mockVhvs = [
