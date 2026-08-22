@@ -116,36 +116,6 @@ if ($admin_hoscode !== null) {
     }
     $subsList = $filteredSubsList;
 }
-
-$preset_vhv = null;
-if (!empty($_GET['vhv_id'])) {
-    try {
-        $stmt = $pdo->prepare("SELECT vhv_id, vhv_name, hoscode, vhid_code, vhv_moo FROM vhv_users WHERE vhv_id = ? LIMIT 1");
-        $stmt->execute([$_GET['vhv_id']]);
-        $vRow = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($vRow) {
-            $preset_vhv = [
-                'vhv_id' => $vRow['vhv_id'],
-                'vhv_name' => $vRow['vhv_name'],
-                'hoscode' => $vRow['hoscode'],
-                'sub_district_code' => '',
-                'moo' => intval($vRow['vhv_moo'] ?? 0)
-            ];
-            if (!empty($vRow['vhid_code'])) {
-                $vStmt = $pdo->prepare("SELECT sub_district_code, moo FROM villages WHERE vhid_code = ? LIMIT 1");
-                $vStmt->execute([$vRow['vhid_code']]);
-                $villRow = $vStmt->fetch(PDO::FETCH_ASSOC);
-                if ($villRow) {
-                    $preset_vhv['sub_district_code'] = $villRow['sub_district_code'];
-                    $preset_vhv['moo'] = intval($villRow['moo']);
-                } elseif (strlen($vRow['vhid_code']) >= 8) {
-                    $preset_vhv['sub_district_code'] = substr($vRow['vhid_code'], 0, 6);
-                    $preset_vhv['moo'] = intval(substr($vRow['vhid_code'], 6, 2));
-                }
-            }
-        }
-    } catch (\Exception $e) {}
-}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -544,7 +514,6 @@ if (!empty($_GET['vhv_id'])) {
 
     <script>
         const tambonData = <?= json_encode($jsData, JSON_UNESCAPED_UNICODE) ?>;
-        const presetVhv = <?= json_encode($preset_vhv, JSON_UNESCAPED_UNICODE) ?>;
 
         function formatThaiDate(dateStr) {
             if (!dateStr || dateStr === 'ไม่ระบุ') return 'ไม่ระบุ';
@@ -659,7 +628,7 @@ if (!empty($_GET['vhv_id'])) {
                     let html = '';
                     vhvs.forEach(v => {
                         html += `
-                            <div class="item-row ${selectedVhvId === v.vhv_id ? 'active' : ''}" id="vhv-row-${v.vhv_id}" onclick="selectVhv('${v.vhv_id}')">
+                            <div class="item-row" id="vhv-row-${v.vhv_id}" onclick="selectVhv('${v.vhv_id}')">
                                 <div class="item-info">
                                     <h4>${v.vhv_name}</h4>
                                     <p>⏳ งานค้าง: <strong>${v.total_task_count}</strong> ใบ | 📍 ทั้งหมด: <strong>${v.overall_total_count}</strong> ใบ</p>
@@ -668,9 +637,6 @@ if (!empty($_GET['vhv_id'])) {
                         `;
                     });
                     vList.innerHTML = html;
-                    if (selectedVhvId) {
-                        document.getElementById(`vhv-row-${selectedVhvId}`)?.classList.add('active');
-                    }
                 })
                 .catch(() => {
                     vList.innerHTML = '<div style="text-align: center; color: var(--color-red); padding: 40px;">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>';
@@ -1094,33 +1060,10 @@ if (!empty($_GET['vhv_id'])) {
                 });
         }
 
-        // Sub-admin automatic scoping & preset vhv_id URL parameter handling
+        // Sub-admin automatic scoping & vhv_id URL parameter handling
         const loggedAdminHoscode = "<?= $admin_hoscode ?: '' ?>";
         window.addEventListener('DOMContentLoaded', () => {
-            if (presetVhv && presetVhv.vhv_id) {
-                if (presetVhv.sub_district_code) {
-                    const tSelect = document.getElementById('tambon');
-                    if (tSelect) {
-                        tSelect.value = presetVhv.sub_district_code;
-                        onTambonChange();
-                    }
-                }
-                if (presetVhv.hoscode) {
-                    const hSelect = document.getElementById('hoscode');
-                    if (hSelect && hSelect.offsetParent !== null) {
-                        hSelect.value = presetVhv.hoscode;
-                        onHoscodeChange();
-                    }
-                }
-                if (presetVhv.moo) {
-                    const mSelect = document.getElementById('moo');
-                    if (mSelect) {
-                        mSelect.value = presetVhv.moo;
-                        onMooChange();
-                    }
-                }
-                selectVhv(presetVhv.vhv_id);
-            } else if (loggedAdminHoscode) {
+            if (loggedAdminHoscode) {
                 let targetTambon = "";
                 let targetSubUnit = "";
 
@@ -1154,6 +1097,12 @@ if (!empty($_GET['vhv_id'])) {
                         onHoscodeChange();
                     }
                 }
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const paramVhvId = urlParams.get('vhv_id');
+            if (paramVhvId) {
+                selectVhv(paramVhvId);
             }
         });
     </script>

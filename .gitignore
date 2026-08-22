@@ -20,3 +20,21 @@ Thumbs.db
 
 # Local database configuration
 config/db_config.php
+
+# Local MySQL v2 development data & dumps
+runtime/
+*.sql
+*.ndjson
+
+# Build & Scratch
+.codex_build/
+scratch/
+admin/scratch/
+upscale-localhost/
+temp_*.php
+cleanup_debug.php
+inspect_*.php
+scratch_*.php
+scratch_*.py
+scratch_out.txt
+
