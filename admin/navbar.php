@@ -1,5 +1,6 @@
 <?php
 // admin/navbar.php
+require_once __DIR__ . '/../config/demo_banner.php';
 $current_page = basename($_SERVER['PHP_SELF']);
 // Determine if super admin
 $is_super_admin = (!isset($admin_hoscode) || empty($admin_hoscode)) && (isset($_SESSION['admin_username']) && $_SESSION['admin_username'] !== 'adminsso');
