@@ -116,13 +116,13 @@ $isDemo = DemoDataProvider::isDemoMode();
             <span style="font-size: 18px; flex-shrink: 0;">🚫</span>
             <div>
                 <strong>ไม่อนุญาตให้เปิดผ่านแอปภายนอก:</strong><br>
-                การสแกนผ่านกล้องโทรศัพท์ทั่วไป, LINE หรือเบราว์เซอร์อื่น ไม่สามารถเข้าถึงข้อมูลสุขภาพได้
+                การสแกนผ่านกล้องโทรศัพท์ทั่วไป, หรือโปแกรมสแกนอื่น ไม่สามารถเข้าถึงข้อมูลสุขภาพได้
             </div>
         </div>
         <div class="pdpa-rule-item">
             <span style="font-size: 18px; flex-shrink: 0;">🩺</span>
             <div>
-                <strong>ต้องสแกนด้วยแอป อสม. ตาลสุม เท่านั้น:</strong><br>
+                <strong>ต้องสแกนด้วย NCDs Portal เท่านั้น:</strong><br>
                 การคัดกรองสุขภาพประจำบ้าน ต้องดำเนินการโดย อสม. ที่ได้รับมอบหมาย ผ่านตัวสแกนภายในแอปพลิเคชันเพื่อตรวจสอบพิกัด GPS
             </div>
         </div>
@@ -147,7 +147,7 @@ $isDemo = DemoDataProvider::isDemoMode();
         </a>
     <?php else: ?>
         <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; font-weight: 600;">
-            หากท่านเป็น <strong>อสม. ผู้รับผิดชอบ</strong> กรุณาเข้าสู่ระบบเพื่อดำเนินการ:
+            หากท่านเป็น <strong>อสม. ผู้รับผิดชอบ</strong> กรุณาเข้าสู่ระบบ:
         </p>
         <a href="index.php<?= !empty($code) ? '?target_hid=' . urlencode($code) : '' ?>" class="btn-giant btn-giant-primary" style="display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; border-radius: 16px; padding: 14px; font-size: 16px; margin-bottom: 10px;">
             <span>🔐 เข้าสู่ระบบ อสม. ตาลสุม</span>

@@ -75,8 +75,8 @@ if (DemoDataProvider::isDemoMode()) {
             'status' => 'error',
             'error_code' => 'UNASSIGNED_TASK',
             'moo' => $matched['moo'] ?? '4',
-            'lock_title' => 'ยังไม่ได้รับมอบหมายงาน (หมู่ ' . ($matched['moo'] ?? '4') . ')',
-            'message' => 'รหัสบ้านเลขที่ ' . htmlspecialchars($matched['house_no'] ?? '99/4') . ' ม.' . ($matched['moo'] ?? '4') . ' (คุณ' . htmlspecialchars($matched['first_name'] . ' ' . $matched['last_name']) . ') ยังไม่มีการมอบหมายงานในระบบ อสม.',
+            'lock_title' => 'สิทธิ์การเข้าถึง: ยังไม่ได้รับมอบหมายงาน (หมู่ ' . ($matched['moo'] ?? '4') . ')',
+            'message' => 'รหัสบ้านเลขที่ ' . htmlspecialchars($matched['house_no'] ?? '99/4') . ' ม.' . ($matched['moo'] ?? '4') . ' (คุณ' . htmlspecialchars($matched['first_name'] . ' ' . $matched['last_name']) . ') ท่านไม่ได้รับมอบหมายงานคัดกรองบุคคล/บ้านหลังนี้ในปีงบประมาณปัจจุบัน',
             'sub_message' => 'กรุณาประสานเจ้าหน้าที่ รพ.สต. เพื่อทำการมอบหมายงานก่อนเริ่มคัดกรอง',
             'is_demo' => true
         ], JSON_UNESCAPED_UNICODE);
@@ -89,8 +89,8 @@ if (DemoDataProvider::isDemoMode()) {
             'status' => 'error',
             'error_code' => 'OUT_OF_TERRITORY',
             'moo' => $matched['moo'] ?? '5',
-            'lock_title' => 'สแกนข้ามเขตรับผิดชอบ (หมู่ ' . ($matched['moo'] ?? '5') . ')',
-            'message' => 'รหัสบ้านเลขที่ ' . htmlspecialchars($matched['house_no'] ?? '23/2') . ' ม.' . ($matched['moo'] ?? '5') . ' (คุณ' . htmlspecialchars($matched['first_name'] . ' ' . $matched['last_name']) . ') อยู่นอกเขตพื้นที่รับผิดชอบของท่าน',
+            'lock_title' => 'ความปลอดภัย (PDPA): บล็อกการเข้าถึงข้ามเขต (หมู่ ' . ($matched['moo'] ?? '5') . ')',
+            'message' => 'รหัสบ้านเลขที่ ' . htmlspecialchars($matched['house_no'] ?? '23/2') . ' ม.' . ($matched['moo'] ?? '5') . ' (คุณ' . htmlspecialchars($matched['first_name'] . ' ' . $matched['last_name']) . ') บล็อกการแสดงข้อมูลเนื่องจากสแกนบ้านนอกเขตรับผิดชอบของท่าน',
             'sub_message' => 'ระบบได้บันทึกการพยายามเข้าถึงข้ามเขต และปฏิบัติตามมาตรการคุ้มครองข้อมูลส่วนบุคคล (PDPA)',
             'is_demo' => true
         ], JSON_UNESCAPED_UNICODE);

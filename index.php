@@ -281,14 +281,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     outline: none;
                 " onmouseover="this.style.background='rgba(245, 158, 11, 0.14)'" onmouseout="this.style.background='rgba(245, 158, 11, 0.07)'">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg>
-                    <span>ทดลองใช้งานระบบ (Demo Mode)</span>
+                    <span>ทดลองใช้งานระบบ (Virtual Mode)</span>
                     <span id="demo-chevron" style="font-size: 10px; transition: transform 0.2s ease;">▼</span>
                 </button>
 
                 <!-- Expandable Role Selection -->
                 <div id="demo-options-container" style="display: none; margin-top: 14px;">
                     <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">
-                        เลือกบทบาทเพื่อทดลองใช้งาน (ไม่กระทบข้อมูลจริง):
+                        เลือกบทบาทเพื่อจำลองใช้งานด้วยข้อมูลสมมติ (Mockup Data):
                     </div>
                     <div style="display: flex; gap: 10px; justify-content: center;">
                         <a href="index.php?demo_role=vhv" style="
@@ -319,7 +319,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             ">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M16 11h6"/></svg>
                             </div>
-                            <span>อสม. (หมอคนที่ 1)</span>
+                            <span>อสม.</span>
                         </a>
                         <a href="index.php?demo_role=staff" style="
                             flex: 1;
