@@ -79,8 +79,7 @@ if (DemoDataProvider::isDemoMode()) {
             SUM(CASE WHEN p.health_status_origin = 'NORMAL' AND (p.need_screen_dm = 0 AND p.need_screen_ht = 0) THEN 1 ELSE 0 END) as group_normal,
             SUM(CASE WHEN p.health_status_origin = 'SUSPECT' THEN 1 ELSE 0 END) as group_suspected
         FROM target_population p
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed'
-        WHERE p.hoscode IN ($inPlaceholders) AND a.assignment_id IS NULL
+        WHERE p.hoscode IN ($inPlaceholders)
     ");
     $groupStmt->execute($hoscodes);
     $groupCounts = $groupStmt->fetch(PDO::FETCH_ASSOC);
@@ -97,10 +96,8 @@ if (DemoDataProvider::isDemoMode()) {
             END as health_status_origin,
             COUNT(*) as count 
         FROM target_population p
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed'
         WHERE p.hoscode IN ($inPlaceholders) 
           AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1 OR p.health_status_origin = 'SUSPECT')
-          AND a.assignment_id IS NULL
         GROUP BY 
             CASE 
                 WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 1 THEN 'BOTH'
@@ -181,9 +178,7 @@ if (DemoDataProvider::isDemoMode()) {
             END as health_status_origin,
             COUNT(*) as count 
         FROM target_population p
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed'
         WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1 OR p.health_status_origin = 'SUSPECT') 
-          AND a.assignment_id IS NULL
         GROUP BY 
             p.hoscode, 
             p.moo,
@@ -446,6 +441,9 @@ if (DemoDataProvider::isDemoMode()) {
         $row['village_name'] = get_village_display_name_by_hoscode($row['hoscode'], $row['moo']);
     }
     unset($row);
+    $metrics['r1_completed'] = array_sum(array_column($chartRescreenData, 'r1_completed'));
+    $metrics['r2_completed'] = array_sum(array_column($chartRescreenData, 'r2_completed'));
+    $metrics['r3_completed'] = array_sum(array_column($chartRescreenData, 'r3_completed'));
 } else {
     $valid_hoscodes = get_query_hoscodes();
     $inPlaceholdersSa = implode(',', array_fill(0, count($valid_hoscodes), '?'));
@@ -474,8 +472,7 @@ if (DemoDataProvider::isDemoMode()) {
             SUM(CASE WHEN p.health_status_origin = 'NORMAL' AND (p.need_screen_dm = 0 AND p.need_screen_ht = 0) THEN 1 ELSE 0 END) as group_normal,
             SUM(CASE WHEN p.health_status_origin = 'SUSPECT' THEN 1 ELSE 0 END) as group_suspected
         FROM target_population p
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed'
-        WHERE p.hoscode IN ($inPlaceholdersSa) AND a.assignment_id IS NULL
+        WHERE p.hoscode IN ($inPlaceholdersSa)
     ");
     $groupStmtSa->execute($valid_hoscodes);
     $groupCounts = $groupStmtSa->fetch(PDO::FETCH_ASSOC);
@@ -498,10 +495,8 @@ if (DemoDataProvider::isDemoMode()) {
             END as health_status_origin,
             COUNT(*) as count 
         FROM target_population p
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed'
         WHERE p.hoscode IN ($inPlaceholdersSa) 
           AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1 OR p.health_status_origin = 'SUSPECT')
-          AND a.assignment_id IS NULL
         GROUP BY 
             CASE 
                 WHEN p.need_screen_dm = 1 AND p.need_screen_ht = 1 THEN 'BOTH'
@@ -528,9 +523,7 @@ if (DemoDataProvider::isDemoMode()) {
             END as health_status_origin,
             COUNT(*) as count 
         FROM target_population p
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed'
         WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1 OR p.health_status_origin = 'SUSPECT') 
-          AND a.assignment_id IS NULL
         GROUP BY 
             p.hoscode,
             CASE 
@@ -768,6 +761,9 @@ if (DemoDataProvider::isDemoMode()) {
     ");
     $chartRescreenStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $valid_hoscodes));
     $chartRescreenData = $chartRescreenStmt->fetchAll(PDO::FETCH_ASSOC);
+    $metrics['r1_completed'] = array_sum(array_column($chartRescreenData, 'r1_completed'));
+    $metrics['r2_completed'] = array_sum(array_column($chartRescreenData, 'r2_completed'));
+    $metrics['r3_completed'] = array_sum(array_column($chartRescreenData, 'r3_completed'));
 }
 ?>
 <!DOCTYPE html>
@@ -882,24 +878,42 @@ if (DemoDataProvider::isDemoMode()) {
         </div>
 
         <!-- Metrics Grid -->
-        <div class="grid-cols-4" style="margin-bottom: 30px;">
-            <div class="card-dark" style="cursor: pointer;" onclick="showCardModal('screened')">
-                <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">คัดกรองเสร็จสิ้น</span>
-                <div class="stat-val" style="color: var(--color-green);">
-                    <?= number_format($metrics['screened_count']) ?> <span
+        <div class="grid-cols-4" style="margin-bottom: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 16px;">
+            <!-- Card 1: ผลงานคัดกรองรอบที่ 1 -->
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-green);" onclick="showCardModal('screened')">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">✅ คัดกรองรอบที่ 1 (Baseline)</span>
+                    <span style="font-size: 11px; background: rgba(34, 197, 94, 0.15); color: var(--color-green); padding: 2px 8px; border-radius: 9999px; font-weight: bold;">รอบหลัก HDC</span>
+                </div>
+                <div class="stat-val" style="color: var(--color-green); margin-top: 6px;">
+                    <?= number_format($metrics['r1_completed'] ?? $metrics['screened_count']) ?> <span
                         style="font-size: 16px; color: var(--text-secondary);">ราย</span>
                 </div>
                 <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);">
-                    คิดเป็น
-                    <?= $metrics['total_targets'] > 0 ? round(($metrics['screened_count'] / $metrics['total_targets']) * 100, 1) : 0 ?>%
-                    ของเป้าหมาย (คลิกดูรายละเอียด)
+                    คิดเป็น <strong><?= $metrics['total_targets'] > 0 ? round((($metrics['r1_completed'] ?? $metrics['screened_count']) / $metrics['total_targets']) * 100, 1) : 0 ?>%</strong> ของเป้าหมาย <?= number_format($metrics['total_targets']) ?> ราย
                 </div>
             </div>
 
+            <!-- Card 2: ผลงานคัดกรองติดตามซ้ำรอบที่ 2 -->
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #3b82f6;" onclick="window.location.href='reports.php?source=screened&round=2'">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">🔄 คัดกรองรอบที่ 2 (ติดตามซ้ำ)</span>
+                    <span style="font-size: 11px; background: rgba(59, 130, 246, 0.15); color: #3b82f6; padding: 2px 8px; border-radius: 9999px; font-weight: bold;">ติดตามซ้ำ</span>
+                </div>
+                <div class="stat-val" style="color: #3b82f6; margin-top: 6px;">
+                    <?= number_format($metrics['r2_completed'] ?? 0) ?> <span
+                        style="font-size: 16px; color: var(--text-secondary);">ราย</span>
+                </div>
+                <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);">
+                    ติดตามซ้ำแล้ว <strong><?= ($metrics['r1_completed'] ?? 1) > 0 ? round((($metrics['r2_completed'] ?? 0) / max($metrics['r1_completed'] ?? 1, 1)) * 100, 1) : 0 ?>%</strong> จากรอบแรก (คลิกดูรายงาน)
+                </div>
+            </div>
+
+            <!-- Card 3: รอดำเนินการ -->
             <div class="card-dark" style="cursor: pointer;" onclick="showCardModal('pending')">
-                <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">รอดำเนินการ
+                <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">⏳ รอดำเนินการ
                     (Pending)</span>
-                <div class="stat-val" style="color: var(--color-primary);">
+                <div class="stat-val" style="color: var(--color-primary); margin-top: 6px;">
                     <?= number_format($metrics['pending_count']) ?> <span
                         style="font-size: 16px; color: var(--text-secondary);">ราย</span>
                 </div>
@@ -908,27 +922,16 @@ if (DemoDataProvider::isDemoMode()) {
                 </div>
             </div>
 
-            <div class="card-dark" style="cursor: pointer;" onclick="showCardModal('skipped')">
-                <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">เลื่อน/ข้ามสะสม
-                    (Skipped)</span>
-                <div class="stat-val" style="color: var(--color-yellow);">
-                    <?= number_format($metrics['skipped_count']) ?> <span
-                        style="font-size: 16px; color: var(--text-secondary);">ราย</span>
-                </div>
-                <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);">
-                    พักไว้เพื่อสแกนตรวจสอบซ้ำภายหลัง (คลิกดูรายละเอียด)
-                </div>
-            </div>
-
+            <!-- Card 4: แต้มรางวัลสะสม อสม. -->
             <div class="card-dark" style="cursor: pointer;" onclick="showCardModal('rewards')">
-                <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">แต้มรางวัลสะสม
+                <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">🏆 แต้มรางวัลสะสม
                     อสม.</span>
-                <div class="stat-val" style="color: var(--color-primary);">
+                <div class="stat-val" style="color: #eab308; margin-top: 6px;">
                     <?= ((float)($metrics['total_points'] ?? 0) == (int)($metrics['total_points'] ?? 0) ? number_format($metrics['total_points'] ?? 0) : number_format($metrics['total_points'] ?? 0, 2)) ?> <span
                         style="font-size: 16px; color: var(--text-secondary);">แต้ม</span>
                 </div>
                 <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);">
-                    จาก อสม. ผู้ปฏิบัติงานทั้งหมด <?= $metrics['total_vhvs'] ?> คน (คลิกดูบอร์ดคะแนน)
+                    จาก อสม. ผู้ปฏิบัติงานทั้งหมด <?= $metrics['total_vhvs'] ?> คน (คลิกดูบอร์ด)
                 </div>
             </div>
         </div>
