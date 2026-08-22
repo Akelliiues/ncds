@@ -1617,7 +1617,7 @@ if (DemoDataProvider::isDemoMode()) {
                 return;
             }
 
-            // Verify GPS coordinates (Skip verification ONLY if in Sandbox Mode)
+            // Verify GPS coordinates (Skip verification in Sandbox / Demo Mode)
             if (!isSandboxMode) {
                 const latVal = parseFloat(document.getElementById('screening_lat').value) || 0;
                 const lngVal = parseFloat(document.getElementById('screening_lng').value) || 0;
@@ -1625,36 +1625,46 @@ if (DemoDataProvider::isDemoMode()) {
                     alert("⚠️ ไม่พบพิกัดตำแหน่งมือถือของท่าน\n\nกรุณาเปิดระบบ GPS ในโทรศัพท์มือถือ หรือกดปุ่ม 'อนุญาต' (Allow) สิทธิ์ระบุพิกัดที่มุมจอ จากนั้นรอสักครู่จนกว่าจะขึ้นพิกัดตัวเลขตรงแถบ 📍 ด้านบน แล้วกดบันทึกส่งงานใหม่อีกครั้งครับ");
                     return;
                 }
+            } else {
+                // Ensure demo coordinates are set
+                if (!document.getElementById('screening_lat').value) {
+                    document.getElementById('screening_lat').value = '15.430000';
+                    document.getElementById('screening_lng').value = '104.980000';
+                }
             }
 
-            // Validation logic
-            const w = parseFloat(document.getElementById('weight').value) || 0;
-            const h = parseFloat(document.getElementById('height').value) || 0;
+            // Validation logic (Auto-fill default mock values if empty in Demo mode)
+            let w = parseFloat(document.getElementById('weight').value) || 0;
+            let h = parseFloat(document.getElementById('height').value) || 0;
             if (w <= 0 || h <= 0) {
-                alert("กรุณากรอกข้อมูล น้ำหนัก และ ส่วนสูง ให้ครบถ้วน");
-                return;
+                if (isSandboxMode) {
+                    document.getElementById('weight').value = '60.0';
+                    document.getElementById('height').value = '165.0';
+                    document.getElementById('waist').value = '30.0';
+                    calculateBmi();
+                } else {
+                    alert("กรุณากรอกข้อมูล น้ำหนัก และ ส่วนสูง ให้ครบถ้วน");
+                    return;
+                }
             }
 
             if (selectedResident.needHt) {
-                const sys1 = parseInt(document.getElementById('sys_bp1').value) || 0;
-                const dia1 = parseInt(document.getElementById('dia_bp1').value) || 0;
+                let sys1 = parseInt(document.getElementById('sys_bp1').value) || 0;
+                let dia1 = parseInt(document.getElementById('dia_bp1').value) || 0;
                 if (sys1 <= 0 || dia1 <= 0) {
-                    alert("กรุณากรอกค่าความดันโลหิต (ตัวบนและตัวล่าง) ให้ครบถ้วน");
-                    return;
+                    if (isSandboxMode) {
+                        document.getElementById('sys_bp1').value = '118';
+                        document.getElementById('dia_bp1').value = '76';
+                        document.getElementById('sys_bp2').value = '116';
+                        document.getElementById('dia_bp2').value = '74';
+                    } else {
+                        alert("กรุณากรอกค่าความดันโลหิต (ตัวบนและตัวล่าง) ให้ครบถ้วน");
+                        return;
+                    }
                 }
             }
 
-            /* ซ่อนส่วนค่าน้ำตาลไว้ชั่วคราวตามที่ผู้ใช้ร้องขอ จึงข้ามการตรวจสอบนี้
-            if (selectedResident.needDm) {
-                const dtx = parseInt(document.getElementById('dtx_value').value) || 0;
-                if (dtx <= 0) {
-                    alert("กรุณากรอกระดับน้ำตาลในเลือด (DTX)");
-                    return;
-                }
-            }
-            */
-
-            if (!checkCriticalValues()) {
+            if (!isSandboxMode && !checkCriticalValues()) {
                 return;
             }
 
@@ -1935,11 +1945,32 @@ if (DemoDataProvider::isDemoMode()) {
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            // เมื่อเปิดเข้ามารายบุคคล ให้เลือกผู้รับการคัดกรองให้อัตโนมัติทันที
+            <?php if (DemoDataProvider::isDemoMode() && !empty($residents)): ?>
+            const defaultResident = <?= json_encode($residents[0], JSON_UNESCAPED_UNICODE) ?>;
+            selectResident(
+                defaultResident.assignment_id,
+                `${defaultResident.first_name} ${defaultResident.last_name}`,
+                defaultResident.sex,
+                defaultResident.birth,
+                defaultResident.need_screen_dm == 1,
+                defaultResident.need_screen_ht == 1,
+                defaultResident.health_status_origin || 'NORMAL',
+                parseFloat(defaultResident.latitude || 15.4300),
+                parseFloat(defaultResident.longitude || 104.9800),
+                defaultResident.last_sbp || null,
+                defaultResident.last_dbp || null,
+                defaultResident.last_dtx || null,
+                defaultResident.last_dtx_type || 'fpg',
+                document.querySelector('.resident-card') || document.body
+            );
+            fillDemoVitals('normal');
+            nextStep('step-vital');
+            <?php else: ?>
             const cards = document.querySelectorAll('.resident-card');
             if (cards.length === 1) {
                 cards[0].click();
             }
+            <?php endif; ?>
         });
     </script>
 
