@@ -424,29 +424,6 @@ if (DemoDataProvider::isDemoMode()) {
                         <div id="selected-resident-name" style="font-size: 20px; font-weight: 800; color: var(--color-accent); margin-top: 4px;"><?= $isDemo ? $activeName : '' ?></div>
                     </div>
 
-                    <?php if (DemoDataProvider::isDemoMode()): ?>
-                    <!-- Demo Quick Fill Box -->
-                    <div class="card-dark" style="padding: 14px; margin-bottom: 20px; border: 1.5px dashed #3b82f6; background: rgba(59, 130, 246, 0.06); text-align: center; border-radius: var(--border-radius);">
-                        <span style="color: #3b82f6; font-size: 14px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 6px;">
-                            🧪 ตัวช่วยทดสอบคัดกรอง (Demo Quick Fill)
-                        </span>
-                        <p style="color: var(--text-secondary); font-size: 12px; margin: 0 0 10px 0;">
-                            แตะเลือกชุดตัวอย่างเพื่อเติมผลตรวจและทดสอบระบบประเมินผลได้ทันที
-                        </p>
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
-                            <button type="button" onclick="fillDemoVitals('normal')" style="padding: 8px 4px; font-size: 12px; font-weight: bold; background: rgba(34, 197, 94, 0.15); color: var(--color-green); border: 1px solid var(--color-green); border-radius: 8px; cursor: pointer;">
-                                🟢 ปกติ<br><small style="font-size:10.5px;">(118/76, 95)</small>
-                            </button>
-                            <button type="button" onclick="fillDemoVitals('risk')" style="padding: 8px 4px; font-size: 12px; font-weight: bold; background: rgba(234, 179, 8, 0.15); color: #eab308; border: 1px solid #eab308; border-radius: 8px; cursor: pointer;">
-                                🟡 เสี่ยง<br><small style="font-size:10.5px;">(136/86, 115)</small>
-                            </button>
-                            <button type="button" onclick="fillDemoVitals('high')" style="padding: 8px 4px; font-size: 12px; font-weight: bold; background: rgba(239, 68, 68, 0.15); color: var(--color-red); border: 1px solid var(--color-red); border-radius: 8px; cursor: pointer;">
-                                🔴 เสี่ยงสูง<br><small style="font-size:10.5px;">(158/96, 165)</small>
-                            </button>
-                        </div>
-                    </div>
-                    <?php endif; ?>
-
                     <?php if (isSandboxMode($hoscode) && isset($_GET['debug']) && $_GET['debug'] === 'true'): ?>
                     <!-- GPS Mock Testing Tool -->
                     <div class="card-dark neumorph-flat" style="padding: 16px; margin-bottom: 20px; border: 1.5px dashed var(--color-primary); border-radius: var(--border-radius);">
