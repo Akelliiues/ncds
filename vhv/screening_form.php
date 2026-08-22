@@ -376,7 +376,7 @@ if (DemoDataProvider::isDemoMode()) {
                     <div id="residents-container">
                     <?php if (!$isShell): ?>
                         <?php foreach ($residents as $r): ?>
-                            <div class="resident-card" onclick="selectResident(<?= $r['assignment_id'] ?>, '<?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?>', '<?= $r['sex'] ?>', '<?= $r['birth'] ?>', <?= $r['need_screen_dm'] ? 'true' : 'false' ?>, <?= $r['need_screen_ht'] ? 'true' : 'false' ?>, '<?= htmlspecialchars($r['health_status_origin'] ?? 'NORMAL') ?>', <?= (float)($r['latitude'] ?? 0) ?>, <?= (float)($r['longitude'] ?? 0) ?>, <?= $r['last_sbp'] !== null ? (int)$r['last_sbp'] : 'null' ?>, <?= $r['last_dbp'] !== null ? (int)$r['last_dbp'] : 'null' ?>, <?= $r['last_dtx'] !== null ? (int)$r['last_dtx'] : 'null' ?>, '<?= htmlspecialchars($r['last_dtx_type'] ?? 'fpg') ?>', this)">
+                            <div class="resident-card" onclick="selectResident('<?= $r['assignment_id'] ?>', '<?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name'], ENT_QUOTES) ?>', '<?= $r['sex'] ?>', '<?= $r['birth'] ?>', <?= $r['need_screen_dm'] ? 'true' : 'false' ?>, <?= $r['need_screen_ht'] ? 'true' : 'false' ?>, '<?= htmlspecialchars($r['health_status_origin'] ?? 'NORMAL', ENT_QUOTES) ?>', <?= (float)($r['latitude'] ?? 0) ?>, <?= (float)($r['longitude'] ?? 0) ?>, <?= $r['last_sbp'] !== null ? (int)$r['last_sbp'] : 'null' ?>, <?= $r['last_dbp'] !== null ? (int)$r['last_dbp'] : 'null' ?>, <?= $r['last_dtx'] !== null ? (int)$r['last_dtx'] : 'null' ?>, '<?= htmlspecialchars($r['last_dtx_type'] ?? 'fpg', ENT_QUOTES) ?>', this)">
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                     <div>
                                         <strong style="font-size: 18px; color: var(--text-primary);"><?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?></strong>
@@ -1864,6 +1864,14 @@ if (DemoDataProvider::isDemoMode()) {
             document.getElementById('counseling-summary-modal').style.display = 'none';
             window.location.href = 'index.php';
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // เมื่อเปิดเข้ามารายบุคคล ให้เลือกผู้รับการคัดกรองให้อัตโนมัติทันที
+            const cards = document.querySelectorAll('.resident-card');
+            if (cards.length === 1) {
+                cards[0].click();
+            }
+        });
     </script>
 
     <!-- Full-Screen Counseling Summary Modal -->
