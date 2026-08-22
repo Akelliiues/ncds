@@ -23,8 +23,19 @@ if (DemoDataProvider::isDemoMode()) {
     $mockExec = DemoDataProvider::getMockExecutiveMetrics();
     $mockAnalytics = DemoDataProvider::getMockAnalyticsData();
 
-    $beforeAfterData = $mockAnalytics['beforeAfterData'];
-    $ncdBeforeAfterData = $mockAnalytics['ncdMultiRoundData'];
+    $availableBudgetYears = [2026, 2025];
+    $defaultBudgetYear = 2026;
+    $selectedBudgetYear = 2026;
+    $selectedRound = 0;
+    $dateFrom = '';
+    $dateTo = '';
+    $allowedHoscodes = ['99999'];
+    $selectedHoscode = '';
+    $hoscodes = ['99999'];
+    $inPlaceholders = '?';
+
+    $beforeAfterData = $mockAnalytics['beforeAfterData'] ?? [];
+    $ncdBeforeAfterData = $mockAnalytics['ncdMultiRoundData'] ?? [];
     $funnelData = ['total_targets' => 250, 'r1_completed' => 185, 'r2_assigned' => 70, 'r2_completed' => 64, 'r3_completed' => 7];
     $actionCounts = ['overdue' => 2, 'awaiting_r2' => 115, 'high_risk_unassigned' => 4];
     $overdueActionRows = [
@@ -43,116 +54,125 @@ if (DemoDataProvider::isDemoMode()) {
         ]
     ];
     $dataQuality = ['missing_body' => 0, 'missing_vitals' => 0, 'missing_geo' => 0, 'round_mismatch' => 0, 'orphan_results' => 0, 'mock_cid' => 0];
-    $availableBudgetYears = [2026, 2025];
-    $selectedBudgetYear = 2026;
-    $selectedRound = 0;
-    $dateFrom = '';
-    $dateTo = '';
 
-    $ncdTotalAnalyzed = 64;
-    $ncdImprovedBpCount = 38;
-    $ncdImprovedDtxCount = 35;
-
-    $totalAnalyzed = 3;
-    $improvedBpCount = 3;
-    $improvedFbsCount = 3;
-    $totalHtCases = 3;
-    $totalDmCases = 3;
-    $avgSbpBefore = 160.7;
-    $avgSbpAfter = 136.7;
-    $avgDbpBefore = 97.3;
-    $avgDbpAfter = 86.0;
-    $avgFbsBefore = 193.3;
-    $avgFbsAfter = 142.7;
-    $pctBpImprovement = 100.0;
-    $pctFbsImprovement = 100.0;
-
-    $beforeHigh = 3; $beforeModerate = 0; $beforeNormal = 0;
-    $afterHigh = 0; $afterModerate = 3; $afterNormal = 0;
-    $highToHigh = 0; $highToModerate = 3; $highToNormal = 0;
-    $moderateToHigh = 0; $moderateToModerate = 0; $moderateToNormal = 0;
-    $normalToHigh = 0; $normalToModerate = 0; $normalToNormal = 0;
-
-    $villageImprovementData = [
-        ['hoscode' => '99999', 'moo' => 1, 'total_enrolled' => 12, 'completed_followups' => 10, 'improved_count' => 8],
-        ['hoscode' => '99999', 'moo' => 2, 'total_enrolled' => 15, 'completed_followups' => 13, 'improved_count' => 10],
-        ['hoscode' => '99999', 'moo' => 3, 'total_enrolled' => 10, 'completed_followups' => 8, 'improved_count' => 6],
-        ['hoscode' => '99999', 'moo' => 4, 'total_enrolled' => 14, 'completed_followups' => 11, 'improved_count' => 8],
-        ['hoscode' => '99999', 'moo' => 5, 'total_enrolled' => 8, 'completed_followups' => 6, 'improved_count' => 4]
+    $prevalenceList = [
+        ['name' => 'บ้านตาลสุม (จำลอง)', 'total_screened' => 50, 'risk_count' => 12, 'rate' => 24.0],
+        ['name' => 'บ้านดอนใหญ่ (จำลอง)', 'total_screened' => 60, 'risk_count' => 15, 'rate' => 25.0],
+        ['name' => 'บ้านโคกสว่าง (จำลอง)', 'total_screened' => 45, 'risk_count' => 10, 'rate' => 22.2]
     ];
+    $highestPrevalence = $prevalenceList;
+    $improvementList = [
+        ['name' => 'บ้านตาลสุม (จำลอง)', 'completed' => 42, 'improved' => 30, 'rate' => 71.4],
+        ['name' => 'บ้านดอนใหญ่ (จำลอง)', 'completed' => 45, 'improved' => 32, 'rate' => 71.1],
+        ['name' => 'บ้านโคกสว่าง (จำลอง)', 'completed' => 32, 'improved' => 22, 'rate' => 68.8]
+    ];
+    $bestImprovement = $improvementList;
+    $concerningAreas = array_reverse($improvementList);
 
     $historyRecords = [
-        ['cid' => '9999900000001', 'latitude' => 15.4290, 'longitude' => 104.9810, 'risk_level' => 'MODERATE', 'created_at' => date('Y-m-d H:i:s', strtotime('-10 days'))],
-        ['cid' => '9999900000002', 'latitude' => 15.4310, 'longitude' => 104.9830, 'risk_level' => 'HIGH', 'created_at' => date('Y-m-d H:i:s', strtotime('-8 days'))],
-        ['cid' => '9999900000003', 'latitude' => 15.4270, 'longitude' => 104.9850, 'risk_level' => 'HIGH', 'created_at' => date('Y-m-d H:i:s', strtotime('-5 days'))],
-        ['cid' => '9999900000004', 'latitude' => 15.4330, 'longitude' => 104.9800, 'risk_level' => 'NORMAL', 'created_at' => date('Y-m-d H:i:s', strtotime('-3 days'))],
-        ['cid' => '9999900000005', 'latitude' => 15.4250, 'longitude' => 104.9880, 'risk_level' => 'HIGH', 'created_at' => date('Y-m-d H:i:s', strtotime('-1 days'))]
+        ['cid' => '9999900000001', 'latitude' => 15.4312, 'longitude' => 104.9823, 'risk_level' => 'MODERATE', 'created_at' => date('Y-m-d H:i:s', strtotime('-10 days'))],
+        ['cid' => '9999900000002', 'latitude' => 15.4354, 'longitude' => 104.9856, 'risk_level' => 'HIGH', 'created_at' => date('Y-m-d H:i:s', strtotime('-8 days'))],
+        ['cid' => '9999900000003', 'latitude' => 15.4289, 'longitude' => 104.9790, 'risk_level' => 'HIGH', 'created_at' => date('Y-m-d H:i:s', strtotime('-5 days'))],
+        ['cid' => '9999900000004', 'latitude' => 15.4380, 'longitude' => 104.9912, 'risk_level' => 'NORMAL', 'created_at' => date('Y-m-d H:i:s', strtotime('-2 days'))]
     ];
-
     $mapTargets = [
-        ['cid' => '9999900000001', 'first_name' => 'สมชาย', 'last_name' => 'ใจดี (จำลอง)', 'house_no' => '12/1', 'moo' => 1, 'hoscode' => '99999', 'latitude' => 15.4290, 'longitude' => 104.9810],
-        ['cid' => '9999900000002', 'first_name' => 'สมศรี', 'last_name' => 'สุขสรรค์ (จำลอง)', 'house_no' => '45/2', 'moo' => 1, 'hoscode' => '99999', 'latitude' => 15.4310, 'longitude' => 104.9830],
-        ['cid' => '9999900000003', 'first_name' => 'บุญมี', 'last_name' => 'มีโชค (จำลอง)', 'house_no' => '88', 'moo' => 2, 'hoscode' => '99999', 'latitude' => 15.4270, 'longitude' => 104.9850],
-        ['cid' => '9999900000004', 'first_name' => 'ทองสุข', 'last_name' => 'สดใส (จำลอง)', 'house_no' => '101', 'moo' => 2, 'hoscode' => '99999', 'latitude' => 15.4330, 'longitude' => 104.9800],
-        ['cid' => '9999900000005', 'first_name' => 'วิชัย', 'last_name' => 'มั่นคง (จำลอง)', 'house_no' => '15/3', 'moo' => 3, 'hoscode' => '99999', 'latitude' => 15.4250, 'longitude' => 104.9880]
+        ['cid' => '9999900000001', 'first_name' => 'สมชาย', 'last_name' => 'ใจดี (จำลอง)', 'house_no' => '12/1', 'moo' => '1', 'hoscode' => '99999', 'latitude' => 15.4312, 'longitude' => 104.9823],
+        ['cid' => '9999900000002', 'first_name' => 'สมศรี', 'last_name' => 'สุขสรรค์ (จำลอง)', 'house_no' => '45/2', 'moo' => '1', 'hoscode' => '99999', 'latitude' => 15.4354, 'longitude' => 104.9856],
+        ['cid' => '9999900000003', 'first_name' => 'บุญมี', 'last_name' => 'มีโชค (จำลอง)', 'house_no' => '88', 'moo' => '2', 'hoscode' => '99999', 'latitude' => 15.4289, 'longitude' => 104.9790],
+        ['cid' => '9999900000004', 'first_name' => 'ทองสุข', 'last_name' => 'สดใส (จำลอง)', 'house_no' => '101', 'moo' => '2', 'hoscode' => '99999', 'latitude' => 15.4380, 'longitude' => 104.9912]
     ];
-
-    $mapCenterLat = 15.4290;
-    $mapCenterLng = 104.9830;
-    $mapInitialZoom = 14;
-
-    $highestPrevalence = [
-        ['name' => 'หมู่ 3 บ้านโคกสว่าง (จำลอง)', 'total_screened' => 32, 'risk_count' => 18, 'rate' => 56.3],
-        ['name' => 'หมู่ 1 บ้านตาลสุม (จำลอง)', 'total_screened' => 42, 'risk_count' => 21, 'rate' => 50.0],
-        ['name' => 'หมู่ 2 บ้านดอนใหญ่ (จำลอง)', 'total_screened' => 45, 'risk_count' => 22, 'rate' => 48.9]
-    ];
-    $bestImprovement = [
-        ['name' => 'หมู่ 1 บ้านตาลสุม (จำลอง)', 'completed' => 10, 'improved' => 8, 'rate' => 80.0],
-        ['name' => 'หมู่ 2 บ้านดอนใหญ่ (จำลอง)', 'completed' => 13, 'improved' => 10, 'rate' => 76.9],
-        ['name' => 'หมู่ 3 บ้านโคกสว่าง (จำลอง)', 'completed' => 8, 'improved' => 6, 'rate' => 75.0]
-    ];
-    $concerningAreas = [
-        ['name' => 'หมู่ 5 บ้านโนนงาม (จำลอง)', 'completed' => 6, 'improved' => 4, 'rate' => 66.7],
-        ['name' => 'หมู่ 4 บ้านนาเจริญ (จำลอง)', 'completed' => 11, 'improved' => 8, 'rate' => 72.7],
-        ['name' => 'หมู่ 3 บ้านโคกสว่าง (จำลอง)', 'completed' => 8, 'improved' => 6, 'rate' => 75.0]
-    ];
+    $mapCenterLat = 15.4325;
+    $mapCenterLng = 104.9845;
+    $mapInitialZoom = 13;
 
     $monthlyTrend = [
-        ['month_year' => '2025-10', 'high_risk' => 12, 'moderate_risk' => 25],
-        ['month_year' => '2025-11', 'high_risk' => 14, 'moderate_risk' => 28],
-        ['month_year' => '2025-12', 'high_risk' => 10, 'moderate_risk' => 30],
-        ['month_year' => '2026-01', 'high_risk' => 9, 'moderate_risk' => 26],
-        ['month_year' => '2026-02', 'high_risk' => 7, 'moderate_risk' => 22]
+        ['month_year' => '2025-10', 'high_risk' => 8, 'moderate_risk' => 14],
+        ['month_year' => '2025-11', 'high_risk' => 12, 'moderate_risk' => 18],
+        ['month_year' => '2025-12', 'high_risk' => 15, 'moderate_risk' => 20],
+        ['month_year' => '2026-01', 'high_risk' => 10, 'moderate_risk' => 16],
+        ['month_year' => '2026-02', 'high_risk' => 6, 'moderate_risk' => 12]
     ];
 
-    $topConversionRisks = [
-        ['cid' => '9999900000005', 'name' => 'วิชัย มั่นคง (จำลอง)', 'house_no' => '15/3', 'moo' => 3, 'village' => 'บ้านโคกสว่าง (จำลอง)', 'hc' => 'รพ.สต. ตาลสุม (จำลอง)', 'age' => 68, 'score' => 85, 'factors' => 'ความดันเริ่มสูง (162/98), น้ำตาลเจาะเสี่ยงสูง (210 mg/dL), กลุ่มอายุ 45+'],
-        ['cid' => '9999900000002', 'name' => 'สมศรี สุขสรรค์ (จำลอง)', 'house_no' => '45/2', 'moo' => 1, 'village' => 'บ้านตาลสุม (จำลอง)', 'hc' => 'รพ.สต. ตาลสุม (จำลอง)', 'age' => 58, 'score' => 75, 'factors' => 'ความดันเริ่มสูง (158/96), น้ำตาลเจาะเสี่ยงสูง (175 mg/dL), BMI น้ำหนักเกิน (26.2)'],
-        ['cid' => '9999900000003', 'name' => 'บุญมี มีโชค (จำลอง)', 'house_no' => '88', 'moo' => 2, 'village' => 'บ้านดอนใหญ่ (จำลอง)', 'hc' => 'รพ.สต. ตาลสุม (จำลอง)', 'age' => 64, 'score' => 70, 'factors' => 'ความดันเริ่มสูง (162/98), น้ำตาลเจาะเสี่ยงสูง (195 mg/dL)']
+    $surveyStats = [
+        'count' => 45,
+        'peou_mean' => 4.65,
+        'peou_sd' => 0.48,
+        'sq_mean' => 4.72,
+        'sq_sd' => 0.45,
+        'iq_mean' => 4.80,
+        'iq_sd' => 0.40,
+        'pu_mean' => 4.68,
+        'pu_sd' => 0.49,
+        'bi_mean' => 4.85,
+        'bi_sd' => 0.36,
+        'total_mean' => 4.74,
+        'total_sd' => 0.43
     ];
-    $highConversionCount = 3;
+    $tagsCount = [
+        'ใช้งานง่าย' => 38,
+        'สะดวก รวดเร็ว' => 35,
+        'ไม่ต้องพกกระดาษ' => 32,
+        'ระบบแจ้งเตือนชัดเจน' => 28,
+        'ข้อมูลถูกต้อง' => 25
+    ];
+
+    $highConversionCount = 2;
+    $topConversionRisks = [
+        [
+            'cid' => '9999900000005',
+            'name' => 'วิชัย มั่นคง (จำลอง)',
+            'house_no' => '15/3',
+            'moo' => '3',
+            'village' => 'บ้านโคกสว่าง (จำลอง)',
+            'hc' => 'รพ.สต. ตาลสุม (จำลอง)',
+            'age' => 68,
+            'score' => 85,
+            'factors' => 'ความดันเริ่มสูง (162/98), น้ำตาลเจาะเสี่ยงสูง (210 mg/dL), BMI น้ำหนักเกิน (26.4), กลุ่มอายุ 45+'
+        ],
+        [
+            'cid' => '9999900000002',
+            'name' => 'สมศรี สุขสรรค์ (จำลอง)',
+            'house_no' => '45/2',
+            'moo' => '1',
+            'village' => 'บ้านตาลสุม (จำลอง)',
+            'hc' => 'รพ.สต. ตาลสุม (จำลอง)',
+            'age' => 58,
+            'score' => 75,
+            'factors' => 'ความดันเริ่มสูง (158/96), น้ำตาลเจาะเสี่ยงสูง (175 mg/dL), มีประวัติ NCD ครอบครัว'
+        ]
+    ];
 
     $vhvImpactData = [
-        ['vhv_name' => 'อสม. สายสมร มีสุข (จำลอง)', 'village' => '2', 'total_screened' => 45, 'risk_found' => 22, 'total_dpac_enrolled' => 15, 'dpac_improved_count' => 10],
-        ['vhv_name' => 'อสม. สมชาย ใจดี (จำลอง)', 'village' => '1', 'total_screened' => 42, 'risk_found' => 21, 'total_dpac_enrolled' => 12, 'dpac_improved_count' => 8],
-        ['vhv_name' => 'อสม. บุญทัน เจริญดี (จำลอง)', 'village' => '3', 'total_screened' => 32, 'risk_found' => 18, 'total_dpac_enrolled' => 10, 'dpac_improved_count' => 6]
+        ['assigned_vhv' => 'DEMO_1001', 'vhv_name' => 'อสม. สมชาย ใจดี (จำลอง)', 'hoscode' => '99999', 'village' => '1', 'total_screened' => 42, 'risk_found' => 8, 'total_dpac_enrolled' => 12, 'dpac_improved_count' => 9],
+        ['assigned_vhv' => 'DEMO_1002', 'vhv_name' => 'อสม. สายสมร มีสุข (จำลอง)', 'hoscode' => '99999', 'village' => '2', 'total_screened' => 45, 'risk_found' => 10, 'total_dpac_enrolled' => 15, 'dpac_improved_count' => 11],
+        ['assigned_vhv' => 'DEMO_1003', 'vhv_name' => 'อสม. บุญทัน เจริญดี (จำลอง)', 'hoscode' => '99999', 'village' => '3', 'total_screened' => 32, 'risk_found' => 6, 'total_dpac_enrolled' => 8, 'dpac_improved_count' => 6]
     ];
-    $avgYieldRate = 48.5;
+    $avgYieldRate = 20.2;
 
     $ageGroups = ['35-44 ปี', '45-54 ปี', '55-64 ปี', '65 ปีขึ้นไป', 'ไม่ทราบอายุ'];
-    $maleTotal = [25, 35, 40, 20, 0];
-    $maleScreened = [18, 26, 32, 16, 0];
-    $femaleTotal = [30, 40, 42, 18, 0];
-    $femaleScreened = [24, 31, 34, 14, 0];
+    $maleTotal = [25, 40, 35, 20, 0];
+    $maleScreened = [18, 30, 26, 16, 0];
+    $femaleTotal = [30, 45, 40, 15, 0];
+    $femaleScreened = [24, 36, 30, 12, 0];
 
-    $retentionData = ['total_enrolled' => 64, 'round1_count' => 64, 'round2_count' => 58, 'round3_count' => 35, 'round4_count' => 18];
+    $retentionData = ['total_enrolled' => 35, 'round1_count' => 35, 'round2_count' => 28, 'round3_count' => 14, 'round4_count' => 6];
     $dropoutList = [
-        ['cid' => '9999900000010', 'first_name' => 'พวงเพ็ญ', 'last_name' => 'เจริญผล (จำลอง)', 'house_no' => '33', 'moo' => 5, 'hoscode' => '99999', 'risk_type' => 'DM', 'enroll_date' => '2025-10-15', 'max_round' => 1, 'last_date' => '2025-11-15', 'days_since_last' => 45, 'assigned_vhv' => 'อสม. วนิดา (เขต ม.5)']
+        [
+            'enrollment_id' => 'DEMO_ENROLL_99',
+            'risk_type' => 'BOTH',
+            'enroll_date' => date('Y-m-d', strtotime('-90 days')),
+            'cid' => '9999900000006',
+            'first_name' => 'อำนวย',
+            'last_name' => 'รวยรื่น (จำลอง)',
+            'house_no' => '22',
+            'moo' => '3',
+            'hoscode' => '99999',
+            'max_round' => 1,
+            'last_date' => date('Y-m-d', strtotime('-45 days')),
+            'days_since_last' => 45,
+            'assigned_vhv' => 'อสม. บุญทัน เจริญดี (จำลอง)'
+        ]
     ];
-
-    $surveyStats = ['peou_mean' => 4.65, 'peou_sd' => 0.42, 'sq_mean' => 4.58, 'sq_sd' => 0.45, 'iq_mean' => 4.70, 'iq_sd' => 0.38, 'pu_mean' => 4.72, 'pu_sd' => 0.35, 'bi_mean' => 4.80, 'bi_sd' => 0.30, 'total_mean' => 4.69, 'total_sd' => 0.38];
-    $tagsCount = ['ใช้งานง่าย สะดวก' => 48, 'ช่วยติดตามคนไข้ได้ดี' => 42, 'เห็นผลเปรียบเทียบชัดเจน' => 36, 'ระบบเสถียร รวดเร็ว' => 30];
-    $totalSurveys = 50;
 } else {
     if ($admin_hoscode) {
         $hoscodes = get_query_hoscodes($admin_hoscode);
@@ -927,72 +947,6 @@ foreach ($vhvImpactData as $vi) {
 }
 $avgYieldRate = $totalScreenedAll > 0 ? round(($totalRiskFoundAll / $totalScreenedAll) * 100, 1) : 0;
 
-        'score' => $score,
-        'factors' => !empty($factors) ? implode(', ', $factors) : 'มีประวัติเฝ้าระวังพฤติกรรมสุขภาพ'
-    ];
-}
-
-usort($conversionRiskList, function($a, $b) {
-    return $b['score'] <=> $a['score'];
-});
-$topConversionRisks = array_slice($conversionRiskList, 0, 10);
-
-// =========================================================================
-// 7. VHV Quality & Impact Analytics
-// =========================================================================
-$vhvImpactData = [];
-try {
-    $vhvImpactStmt = $pdo->prepare("
-        SELECT 
-            a.assigned_vhv,
-            COALESCE(v.vhv_name, u.full_name, a.assigned_vhv) AS vhv_name,
-            COALESCE(v.hoscode, u.hoscode, p.hoscode) AS hoscode,
-            COALESCE(v.vhv_moo, u.village, p.moo) AS village,
-            COUNT(DISTINCT a.assignment_id) as total_screened,
-            SUM(CASE WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN 1 ELSE 0 END) as risk_found,
-            COUNT(DISTINCT e.enrollment_id) as total_dpac_enrolled,
-            SUM(CASE 
-                WHEN max_f.max_round > 1 AND (
-                    (f1.health_risk_level = 'เสี่ยงสูง' AND fl.health_risk_level IN ('เสี่ยง', 'ปกติ')) OR
-                    (f1.health_risk_level = 'เสี่ยง' AND fl.health_risk_level = 'ปกติ') OR
-                    (f1.bp_sys > fl.bp_sys AND f1.bp_sys >= 140) OR
-                    (f1.fbs > fl.fbs AND f1.fbs >= 126)
-                ) THEN 1 ELSE 0
-            END) as dpac_improved_count
-        FROM task_assignments a
-        JOIN target_population p ON a.target_cid = p.cid
-        LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
-        LEFT JOIN vhvs v ON (a.assigned_vhv = v.vhv_name OR a.assigned_vhv = v.vhv_id)
-        LEFT JOIN users u ON (a.assigned_vhv = u.full_name OR a.assigned_vhv = u.username)
-        LEFT JOIN dpac_enrollments e ON a.target_cid = e.cid
-        LEFT JOIN dpac_followups f1 ON e.enrollment_id = f1.enrollment_id AND f1.round_number = 1 AND f1.status = 'completed'
-        LEFT JOIN dpac_followups fl ON e.enrollment_id = fl.enrollment_id AND fl.status = 'completed'
-        LEFT JOIN (
-            SELECT enrollment_id, MAX(round_number) as max_round
-            FROM dpac_followups
-            WHERE status = 'completed'
-            GROUP BY enrollment_id
-        ) max_f ON fl.enrollment_id = max_f.enrollment_id AND fl.round_number = max_f.max_round
-        WHERE a.assignment_status = 'completed' 
-          AND a.assigned_vhv IS NOT NULL 
-          AND a.assigned_vhv != ''
-          AND p.hoscode IN ($inPlaceholders)
-        GROUP BY a.assigned_vhv
-        ORDER BY dpac_improved_count DESC, risk_found DESC, total_screened DESC
-        LIMIT 5
-    ");
-    $vhvImpactStmt->execute($hoscodes);
-    $vhvImpactData = $vhvImpactStmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (\Throwable $e) {}
-
-$totalScreenedAll = 0;
-$totalRiskFoundAll = 0;
-foreach ($vhvImpactData as $vi) {
-    $totalScreenedAll += intval($vi['total_screened']);
-    $totalRiskFoundAll += intval($vi['risk_found']);
-}
-$avgYieldRate = $totalScreenedAll > 0 ? round(($totalRiskFoundAll / $totalScreenedAll) * 100, 1) : 0;
-
 // =========================================================================
 // 8. Age-Gender Pyramid & Screening Gap
 // =========================================================================
@@ -1001,6 +955,7 @@ $maleTotal = array_fill(0, count($ageGroups), 0);
 $maleScreened = array_fill(0, count($ageGroups), 0);
 $femaleTotal = array_fill(0, count($ageGroups), 0);
 $femaleScreened = array_fill(0, count($ageGroups), 0);
+
 
 try {
     $pyramidStmt = $pdo->prepare("
@@ -1021,17 +976,6 @@ try {
         GROUP BY sex, age_group
     ");
     $pyramidStmt->execute(array_merge([$selectedBudgetYear, $isSandboxVal], $hoscodes));
-    $pyramidRaw = $pyramidStmt->fetchAll(PDO::FETCH_ASSOC);
-
-    foreach ($pyramidRaw as $row) {
-        $gIdx = array_search($row['age_group'], $ageGroups);
-        if ($gIdx !== false) {
-            $isMale = (in_array((string)$row['sex'], ['1', 'M', 'ชาย', 'male'], true));
-            if ($isMale) {
-                $maleTotal[$gIdx] += intval($row['total_target']);
-                $maleScreened[$gIdx] += intval($row['screened_count']);
-            } else {
-                $femaleTotal[$gIdx] += intval($row['total_target']);
                 $femaleScreened[$gIdx] += intval($row['screened_count']);
             }
         }
@@ -1091,7 +1035,7 @@ try {
     $dropoutStmt->execute($hoscodes);
     $dropoutList = $dropoutStmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (\Throwable $e) {}
-} // End else (production mode)
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">

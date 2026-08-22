@@ -1048,13 +1048,19 @@ class DemoDataProvider {
                     'dbp_r1' => 98,
                     'dtx_r1' => 195,
                     'bmi_r1' => 27.5,
+                    'date_r1' => '2025-11-10',
                     'sbp_r2' => 138,
                     'dbp_r2' => 86,
                     'dtx_r2' => 145,
                     'bmi_r2' => 25.8,
-                    'trend_label' => 'improved',
-                    'r1_date' => '2025-11-10',
-                    'r2_date' => '2026-02-15'
+                    'r2_date' => '2026-02-15',
+                    'sbp_latest' => 138,
+                    'dbp_latest' => 86,
+                    'dtx_latest' => 145,
+                    'bmi_latest' => 25.8,
+                    'date_latest' => '2026-02-15',
+                    'latest_round' => 2,
+                    'trend_label' => 'improved'
                 ],
                 [
                     'cid' => '9999900000004',
@@ -1067,13 +1073,19 @@ class DemoDataProvider {
                     'dbp_r1' => 76,
                     'dtx_r1' => 95,
                     'bmi_r1' => 21.2,
+                    'date_r1' => '2025-11-12',
                     'sbp_r2' => 116,
                     'dbp_r2' => 74,
                     'dtx_r2' => 92,
                     'bmi_r2' => 21.0,
-                    'trend_label' => 'stable',
-                    'r1_date' => '2025-11-12',
-                    'r2_date' => '2026-02-18'
+                    'r2_date' => '2026-02-18',
+                    'sbp_latest' => 116,
+                    'dbp_latest' => 74,
+                    'dtx_latest' => 92,
+                    'bmi_latest' => 21.0,
+                    'date_latest' => '2026-02-18',
+                    'latest_round' => 2,
+                    'trend_label' => 'stable'
                 ],
                 [
                     'cid' => '9999900000001',
@@ -1086,13 +1098,19 @@ class DemoDataProvider {
                     'dbp_r1' => 86,
                     'dtx_r1' => 116,
                     'bmi_r1' => 24.2,
+                    'date_r1' => '2025-11-05',
                     'sbp_r2' => 126,
                     'dbp_r2' => 80,
                     'dtx_r2' => 104,
                     'bmi_r2' => 23.5,
-                    'trend_label' => 'improved',
-                    'r1_date' => '2025-11-05',
-                    'r2_date' => '2026-02-10'
+                    'r2_date' => '2026-02-10',
+                    'sbp_latest' => 126,
+                    'dbp_latest' => 80,
+                    'dtx_latest' => 104,
+                    'bmi_latest' => 23.5,
+                    'date_latest' => '2026-02-10',
+                    'latest_round' => 2,
+                    'trend_label' => 'improved'
                 ]
             ],
             'roundComparisonSummary' => [
