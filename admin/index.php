@@ -949,7 +949,7 @@ if (DemoDataProvider::isDemoMode()) {
             </div>
 
             <!-- Card 2: ผลงานคัดกรองติดตามซ้ำรอบที่ 2 -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #3b82f6;" onclick="window.location.href='reports.php?source=screened&round=2'">
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #3b82f6;" onclick="showCardModal('rescreen_r2')">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                     <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">🔄 คัดกรองรอบที่ 2 (ติดตามซ้ำ)</span>
                     <span style="font-size: 11px; background: rgba(59, 130, 246, 0.15); color: #3b82f6; padding: 2px 8px; border-radius: 9999px; font-weight: bold;">ติดตามซ้ำ</span>
@@ -959,7 +959,7 @@ if (DemoDataProvider::isDemoMode()) {
                         style="font-size: 16px; color: var(--text-secondary);">ราย</span>
                 </div>
                 <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);">
-                    ติดตามซ้ำแล้ว <strong><?= ($metrics['r1_completed'] ?? 1) > 0 ? round((($metrics['r2_completed'] ?? 0) / max($metrics['r1_completed'] ?? 1, 1)) * 100, 1) : 0 ?>%</strong> จากรอบแรก (คลิกดูรายงาน)
+                    ติดตามซ้ำแล้ว <strong><?= ($metrics['r1_completed'] ?? 1) > 0 ? round((($metrics['r2_completed'] ?? 0) / max($metrics['r1_completed'] ?? 1, 1)) * 100, 1) : 0 ?>%</strong> จากรอบแรก (คลิกดูรายละเอียด)
                 </div>
             </div>
 
@@ -3021,6 +3021,40 @@ if (DemoDataProvider::isDemoMode()) {
                         rewardsDetail.forEach(function(row) {
                             html += '<tr><td style="font-weight: bold; color: var(--text-primary);">' + row.vhv_name + '</td><td style="text-align: right; font-weight: bold; color: var(--color-green);">' + Number(row.total_points).toLocaleString() + ' แต้ม</td></tr>';
                         });
+                    }
+                    html += '</tbody></table></div>';
+                } else if (type === 'rescreen_r2') {
+                    title = '🔄 สถิติผลงานการคัดกรองติดตามซ้ำ (รอบที่ 2)';
+                    var totalR2 = <?= intval($metrics['r2_completed'] ?? 0) ?>;
+                    var totalR1 = <?= intval($metrics['r1_completed'] ?? 1) ?>;
+                    var pctR2 = totalR1 > 0 ? ((totalR2 / totalR1) * 100).toFixed(1) : 0;
+
+                    html = '<div style="margin-bottom: 16px; padding: 14px; background: rgba(59, 130, 246, 0.08); border-radius: 8px; border-left: 4px solid #3b82f6;">';
+                    html += '<div style="display: flex; justify-content: space-between; align-items: center;">';
+                    html += '<div><span style="color: var(--text-secondary); font-size: 13px;">คัดกรองติดตามซ้ำรอบ 2 ทั้งหมด</span><div style="font-size: 22px; font-weight: bold; color: #3b82f6; margin-top: 4px;">' + totalR2.toLocaleString() + ' ราย</div></div>';
+                    html += '<div style="text-align: right;"><span style="color: var(--text-secondary); font-size: 13px;">สัดส่วนเทียบรอบแรก</span><div style="font-size: 22px; font-weight: bold; color: #3b82f6; margin-top: 4px;">' + pctR2 + '%</div></div>';
+                    html += '</div></div>';
+
+                    html += '<h4 style="margin-top: 20px; color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">สถิติจำแนกรายพื้นที่</h4>';
+                    html += '<div style="border-radius: 12px; overflow: hidden; border: 1px solid rgba(0,0,0,0.05);">';
+                    html += '<table class="admin-table"><thead><tr><th>พื้นที่</th><th style="text-align: right;">รอบ 1</th><th style="text-align: right;">รอบ 2 (ติดตามซ้ำ)</th><th style="text-align: right;">ร้อยละ</th></tr></thead><tbody>';
+
+                    if (!rescreenRaw || rescreenRaw.length === 0) {
+                        html += '<tr><td colspan="4" style="text-align: center;">ไม่มีข้อมูล</td></tr>';
+                    } else {
+                        var sumR1 = 0;
+                        var sumR2 = 0;
+                        rescreenRaw.forEach(function(row) {
+                            var r1 = Number(row.r1_completed) || 0;
+                            var r2 = Number(row.r2_completed) || 0;
+                            sumR1 += r1;
+                            sumR2 += r2;
+                            var areaName = isRegularAdmin ? (row.village_name || ('หมู่ที่ ' + row.moo)) : (hcNamesChart[row.hoscode] || row.hoscode);
+                            var pct = r1 > 0 ? ((r2 / r1) * 100).toFixed(1) : '0.0';
+                            html += '<tr><td>' + areaName + '</td><td style="text-align: right;">' + r1.toLocaleString() + '</td><td style="text-align: right; font-weight: bold; color: #3b82f6;">' + r2.toLocaleString() + ' ราย</td><td style="text-align: right; font-weight: bold; color: #3b82f6;">' + pct + '%</td></tr>';
+                        });
+                        var totalPct = sumR1 > 0 ? ((sumR2 / sumR1) * 100).toFixed(1) : '0.0';
+                        html += '<tr style="background-color: var(--bg-darker); font-weight: bold;"><td>รวมทั้งหมด</td><td style="text-align: right;">' + sumR1.toLocaleString() + '</td><td style="text-align: right; color: #3b82f6;">' + sumR2.toLocaleString() + ' ราย</td><td style="text-align: right; color: #3b82f6;">' + totalPct + '%</td></tr>';
                     }
                     html += '</tbody></table></div>';
                 }
