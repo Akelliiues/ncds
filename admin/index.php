@@ -307,17 +307,21 @@ if (DemoDataProvider::isDemoMode()) {
 
     // --- NEW CHARTS DATA (ADMIN) ---
     $chartCoverageStmt = $pdo->prepare("
-        SELECT p.hoscode, p.moo,
-               COUNT(DISTINCT p.cid) as total_targets,
-               COUNT(DISTINCT CASE WHEN a.assignment_id IS NOT NULL OR s.screening_id IS NOT NULL THEN p.cid END) as screened
+        SELECT 
+            COALESCE(v.hoscode, p.hoscode) as hoscode, 
+            p.moo,
+            COUNT(DISTINCT p.cid) as total_targets,
+            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL OR a.assignment_id IS NOT NULL THEN p.cid END) as screened
         FROM target_population p
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed' AND a.is_sandbox = ?
-        LEFT JOIN screening_results s ON (p.cid = s.target_cid OR a.assignment_id = s.assignment_id) AND s.is_sandbox = ?
-        WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-        GROUP BY p.hoscode, p.moo
-        ORDER BY p.hoscode, p.moo
+        LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
+        LEFT JOIN screening_results s ON (s.target_cid = p.cid)
+        LEFT JOIN task_assignments a ON (s.assignment_id = a.assignment_id OR (a.target_cid = p.cid AND a.assignment_status = 'completed'))
+        WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+          AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholders)
+        GROUP BY COALESCE(v.hoscode, p.hoscode), p.moo
+        ORDER BY COALESCE(v.hoscode, p.hoscode), p.moo
     ");
-    $chartCoverageStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $hoscodes));
+    $chartCoverageStmt->execute($hoscodes);
     $chartCoverageData = $chartCoverageStmt->fetchAll(PDO::FETCH_ASSOC);
     foreach ($chartCoverageData as &$row) {
         $row['village_name'] = get_village_display_name_by_hoscode($row['hoscode'], $row['moo']);
@@ -665,17 +669,20 @@ if (DemoDataProvider::isDemoMode()) {
 
     // --- NEW CHARTS DATA (SUPER ADMIN) ---
     $chartCoverageStmt = $pdo->prepare("
-        SELECT p.hoscode, 
-               COUNT(DISTINCT p.cid) as total_targets,
-               COUNT(DISTINCT CASE WHEN a.assignment_id IS NOT NULL OR s.screening_id IS NOT NULL THEN p.cid END) as screened
+        SELECT 
+            COALESCE(v.hoscode, p.hoscode) as hoscode, 
+            COUNT(DISTINCT p.cid) as total_targets,
+            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL OR a.assignment_id IS NOT NULL THEN p.cid END) as screened
         FROM target_population p
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed' AND COALESCE(a.is_sandbox, 0) = ?
-        LEFT JOIN screening_results s ON (p.cid = s.target_cid OR a.assignment_id = s.assignment_id) AND COALESCE(s.is_sandbox, 0) = ?
-        WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-        GROUP BY p.hoscode
-        ORDER BY p.hoscode
+        LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
+        LEFT JOIN screening_results s ON (s.target_cid = p.cid)
+        LEFT JOIN task_assignments a ON (s.assignment_id = a.assignment_id OR (a.target_cid = p.cid AND a.assignment_status = 'completed'))
+        WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+          AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholdersSa)
+        GROUP BY COALESCE(v.hoscode, p.hoscode)
+        ORDER BY COALESCE(v.hoscode, p.hoscode)
     ");
-    $chartCoverageStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $valid_hoscodes));
+    $chartCoverageStmt->execute($valid_hoscodes);
     $chartCoverageData = $chartCoverageStmt->fetchAll(PDO::FETCH_ASSOC);
 
     $chartRiskStmt = $pdo->prepare("
