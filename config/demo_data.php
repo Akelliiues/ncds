@@ -222,6 +222,7 @@ class DemoDataProvider {
         $weight = floatval($postData['weight'] ?? 0);
         $height = floatval($postData['height'] ?? 0);
         $waist  = floatval($postData['waist'] ?? 0);
+        $roundNumber = intval($postData['round_number'] ?? 1);
 
         $sbp = max($sbp1, $sbp2);
         $dbp = max($dbp1, $dbp2);
@@ -239,61 +240,138 @@ class DemoDataProvider {
 
         $riskLevel = 'normal';
         $riskColor = '#10B981';
-        $riskTitle = '🟢 ปกติ (สุขภาพดี)';
-        $statusDesc = 'ค่าความดันโลหิตและระดับน้ำตาลในเลือดอยู่ในเกณฑ์ปกติ สุขภาพแข็งแรงดีเยี่ยม';
+        $riskTitle = '🟢 สุขภาพปกติ';
+        $statusDesc = 'ค่าความดันและน้ำตาลอยู่ในเกณฑ์มาตรฐาน สุขภาพดีเยี่ยม';
 
         if ($isCriticalBp || $isCriticalDtx) {
             $riskLevel = 'critical';
             $riskColor = '#EF4444';
-            $riskTitle = '🔴 วิกฤต (ต้องพบแพทย์ทันที)';
-            $statusDesc = 'พบค่าสัญญาณชีพสูงวิกฤต เสี่ยงต่อภาวะ Hypertensive Crisis หรือ Severe Hyperglycemia ต้องนำส่ง รพ.สต./โรงพยาบาล ด่วน!';
+            $riskTitle = '🔴 วิกฤต (พบแพทย์ด่วน)';
+            $statusDesc = 'พบค่าสัญญาณชีพสูงวิกฤต ต้องนำส่ง รพ.สต./โรงพยาบาล ทันที';
         } elseif ($isHighBp || $isHighDtx) {
             $riskLevel = 'high_risk';
-            $riskColor = '#F97316';
-            $riskTitle = '🟠 กลุ่มเสี่ยงสูง / สงสัยป่วย';
-            $statusDesc = 'พบค่าความดันหรือระดับน้ำตาลสูงกว่าเกณฑ์ปกติ ควรได้รับการตรวจยืนยันโรคโดยแพทย์ที่ รพ.สต.';
+            $riskColor = '#EF4444';
+            $riskTitle = '🔴 กลุ่มเสี่ยงสูง (สงสัยป่วย)';
+            $statusDesc = 'ความดันหรือน้ำตาลสูงเกินเกณฑ์ แนะนำตรวจยืนยันที่ รพ.สต.';
         } elseif ($isRiskBp || $isRiskDtx || $bmi >= 23) {
             $riskLevel = 'risk';
             $riskColor = '#F59E0B';
-            $riskTitle = '🟡 กลุ่มเสี่ยง (ต้องปรับพฤติกรรม)';
-            $statusDesc = 'พบค่าความดัน/น้ำตาลเริ่มสูง หรือมีภาวะท้วม/อ้วน ควรปรับเปลี่ยนพฤติกรรม 3อ 2ส เพื่อป้องกันโรคเรื้อรัง';
+            $riskTitle = '🟡 กลุ่มเสี่ยง (ต้องปรับ 3อ. 2ส.)';
+            $statusDesc = 'เริ่มมีความเสี่ยง ควรปรับอาหาร ลดเค็ม ลดหวาน และออกกำลังกาย';
         }
 
+        // Comparison with previous baseline/round
+        $lastSbp = intval($postData['last_sbp'] ?? 135);
+        $lastDbp = intval($postData['last_dbp'] ?? 85);
+        $lastDtx = intval($postData['last_dtx'] ?? 118);
+        $hasHistory = ($lastSbp > 0 || $lastDtx > 0 || $roundNumber >= 2);
+
+        $trendStatus = 'stable';
+        $trendTitle = '⚖️ สุขภาพทรงตัว';
+        $trendColor = '#38BDF8';
+        $trendDetails = [];
+
+        if ($hasHistory) {
+            $improvedPoints = 0;
+            $worsenedPoints = 0;
+
+            if ($lastSbp > 0) {
+                if ($sbp < $lastSbp - 3) {
+                    $improvedPoints++;
+                    $diff = $lastSbp - $sbp;
+                    $trendDetails[] = "ความดันตัวบนลดลง $diff mmHg (เดิม $lastSbp → ใหม่ $sbp)";
+                } elseif ($sbp > $lastSbp + 5) {
+                    $worsenedPoints++;
+                    $diff = $sbp - $lastSbp;
+                    $trendDetails[] = "ความดันตัวบนเพิ่มขึ้น $diff mmHg (เดิม $lastSbp → ใหม่ $sbp)";
+                } else {
+                    $trendDetails[] = "ความดันใกล้เคียงเดิม ($sbp mmHg)";
+                }
+            }
+
+            if ($lastDtx > 0 && $dtx > 0) {
+                if ($dtx < $lastDtx - 5) {
+                    $improvedPoints++;
+                    $diff = $lastDtx - $dtx;
+                    $trendDetails[] = "น้ำตาลในเลือดลดลง $diff mg/dL (เดิม $lastDtx → ใหม่ $dtx)";
+                } elseif ($dtx > $lastDtx + 10) {
+                    $worsenedPoints++;
+                    $diff = $dtx - $lastDtx;
+                    $trendDetails[] = "น้ำตาลในเลือดเพิ่มขึ้น $diff mg/dL (เดิม $lastDtx → ใหม่ $dtx)";
+                } else {
+                    $trendDetails[] = "ระดับน้ำตาลใกล้เคียงเดิม ($dtx mg/dL)";
+                }
+            }
+
+            if ($improvedPoints > $worsenedPoints) {
+                $trendStatus = 'improved';
+                $trendTitle = '📈 สุขภาพดีขึ้นกว่ารอบก่อน';
+                $trendColor = '#10B981';
+            } elseif ($worsenedPoints > $improvedPoints) {
+                $trendStatus = 'worsened';
+                $trendTitle = '⚠️ เฝ้าระวัง (ค่าตรวจสูงขึ้น)';
+                $trendColor = '#F59E0B';
+            } else {
+                $trendStatus = 'stable';
+                $trendTitle = '⚖️ สุขภาพทรงตัวจากรอบก่อน';
+                $trendColor = '#38BDF8';
+            }
+        } else {
+            $trendStatus = 'first_round';
+            $trendTitle = '✨ คัดกรองรอบที่ 1 (จุดเซฟเริ่มต้น)';
+            $trendColor = '#6366F1';
+            $trendDetails[] = 'บันทึกเป็นฐานข้อมูลประเมินสุขภาพประจำปีเรียบร้อย';
+        }
+
+        // Action / Advice (Concise & Bold)
         $adviceList = [];
         if ($sbp >= 130 || $dbp >= 85) {
             $adviceList[] = [
                 'icon' => '🧂',
-                'title' => 'ลดเค็ม โซเดียม',
-                'desc' => 'หลีกเลี่ยงซีอิ๊ว น้ำปลา ผงชูรส และอาหารแปรรูป งดซดน้ำแกงจืด/น้ำก๋วยเตี๋ยว'
+                'title' => 'ลดเค็ม เลี่ยงปลาร้า/แจ่วบอง',
+                'desc' => 'งดซดน้ำแกง เลี่ยงของเค็มจัด ช่วยลดความดันโลหิต'
             ];
         }
         if ($dtx >= 100 || $bmi >= 23) {
             $adviceList[] = [
                 'icon' => '🍬',
-                'title' => 'ลดหวาน ขนม ของหวาน',
-                'desc' => 'งดน้ำหวาน น้ำอัดลม ชาไข่มุก ลดปริมาณข้าวแป้งทานแต่พอดี เน้นผักใบเขียว'
+                'title' => 'ลดหวาน งดน้ำอัดลม/ชาหวาน',
+                'desc' => 'ลดแป้งและของหวาน ช่วยคุมระดับน้ำตาล'
             ];
         }
-        if ($bmi >= 23) {
+        if ($bmi >= 23 || $riskLevel === 'risk') {
             $adviceList[] = [
                 'icon' => '🚶‍♂️',
-                'title' => 'เพิ่มการขยับกาย ออกกำลังกาย',
-                'desc' => 'เดินสะสมก้าวอย่างน้อยวันละ 30 นาที 5 วันต่อสัปดาห์ เพื่อช่วยลดน้ำหนักและดัชนีมวลกาย'
+                'title' => 'ขยับกาย เดินวันละ 30 นาที',
+                'desc' => 'เดินสะสมก้าวต่อเนื่อง ช่วยเผาผลาญไขมันและคุมน้ำหนัก'
             ];
         }
-        $adviceList[] = [
-            'icon' => '🍎',
-            'title' => 'ยึดหลัก 3อ 2ส',
-            'desc' => 'อาหารดี อารมณ์ดี ออกกำลังกายดี ไม่สูบบุหรี่ ไม่ดื่มสุรา'
-        ];
+        if ($riskLevel === 'high_risk' || $riskLevel === 'critical') {
+            $adviceList[] = [
+                'icon' => '🩺',
+                'title' => 'ส่งต่อพบแพทย์ รพ.สต.',
+                'desc' => 'นัดติดตามตรวจยืนยันสภาวะโรคเพื่อรับการรักษาที่เหมาะสม'
+            ];
+        }
+        if (empty($adviceList)) {
+            $adviceList[] = [
+                'icon' => '🌟',
+                'title' => 'รักษาวินัย 3อ. 2ส. ยอดเยี่ยม',
+                'desc' => 'ปฏิบัติตัวดีเยี่ยม รักษาสุขภาพแข็งแรงต่อเนื่อง'
+            ];
+        }
+
+        // Reward points (2x for Round 2)
+        $rewardPoints = ($roundNumber >= 2) ? 2 : 1;
 
         return [
             'status' => 'success',
             'message' => 'บันทึกข้อมูลคัดกรองโหมดทดลองเรียบร้อยแล้ว (ข้อมูลจำลอง 100%)',
-            'reward_points' => 1,
+            'reward_points' => $rewardPoints,
             'is_demo' => true,
             'summary_metadata' => [
-                'resident_name' => $postData['_residentName'] ?? 'ผู้รับการคัดกรอง (ข้อมูลจำลอง)',
+                'resident_name' => $postData['_residentName'] ?? 'สมชาย ใจดี (จำลอง)',
+                'round_number' => $roundNumber,
                 'sbp' => $sbp,
                 'dbp' => $dbp,
                 'dtx' => $dtx,
@@ -304,7 +382,13 @@ class DemoDataProvider {
                 'risk_color' => $riskColor,
                 'risk_title' => $riskTitle,
                 'status_desc' => $statusDesc,
+                'has_history' => $hasHistory,
+                'trend_status' => $trendStatus,
+                'trend_title' => $trendTitle,
+                'trend_color' => $trendColor,
+                'trend_details' => $trendDetails,
                 'advice_list' => $adviceList,
+                'reward_points' => $rewardPoints,
                 'next_appointment' => date('d/m/Y', strtotime('+3 months'))
             ]
         ];

@@ -195,6 +195,9 @@ try {
             $approvalStatus = 'approved';
         }
 
+        // Award points (2x for Round 2)
+        $pointsEarned = ($roundNumber >= 2) ? 2 : 1;
+
         // Check if reward already exists for this assignment to prevent duplicate points
         $chkStmt = $pdo->prepare("SELECT reward_id FROM vhv_rewards WHERE assignment_id = ?");
         $chkStmt->execute([$assignmentId]);
@@ -203,23 +206,24 @@ try {
         if ($existingReward) {
             $rewardStmt = $pdo->prepare("
                 UPDATE vhv_rewards 
-                SET vhv_id = ?, screening_id = ?, points_earned = 1, approval_status = ?, approved_at = ?, is_sandbox = ?
+                SET vhv_id = ?, screening_id = ?, points_earned = ?, approval_status = ?, approved_at = ?, is_sandbox = ?
                 WHERE reward_id = ?
             ");
             $rewardStmt->execute([
-                $vhvId, $screeningId, $approvalStatus,
+                $vhvId, $screeningId, $pointsEarned, $approvalStatus,
                 $approvalStatus === 'approved' ? date('Y-m-d H:i:s') : null,
                 $isSandboxVal, $existingReward['reward_id']
             ]);
         } else {
             $rewardStmt = $pdo->prepare("
                 INSERT INTO vhv_rewards (vhv_id, screening_id, assignment_id, points_earned, approval_status, approved_at, is_sandbox)
-                VALUES (?, ?, ?, 1, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             ");
             $rewardStmt->execute([
                 $vhvId,
                 $screeningId,
                 $assignmentId,
+                $pointsEarned,
                 $approvalStatus,
                 $approvalStatus === 'approved' ? date('Y-m-d H:i:s') : null,
                 $isSandboxVal
