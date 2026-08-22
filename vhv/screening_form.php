@@ -418,6 +418,29 @@ if (DemoDataProvider::isDemoMode()) {
                         <div id="selected-resident-name" style="font-size: 20px; font-weight: 800; color: var(--color-accent); margin-top: 4px;"></div>
                     </div>
 
+                    <?php if (DemoDataProvider::isDemoMode()): ?>
+                    <!-- Demo Quick Fill Box -->
+                    <div class="card-dark" style="padding: 14px; margin-bottom: 20px; border: 1.5px dashed #3b82f6; background: rgba(59, 130, 246, 0.06); text-align: center; border-radius: var(--border-radius);">
+                        <span style="color: #3b82f6; font-size: 14px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 6px;">
+                            🧪 ตัวช่วยทดสอบคัดกรอง (Demo Quick Fill)
+                        </span>
+                        <p style="color: var(--text-secondary); font-size: 12px; margin: 0 0 10px 0;">
+                            แตะเลือกชุดตัวอย่างเพื่อเติมผลตรวจและทดสอบระบบประเมินผลได้ทันที
+                        </p>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
+                            <button type="button" onclick="fillDemoVitals('normal')" style="padding: 8px 4px; font-size: 12px; font-weight: bold; background: rgba(34, 197, 94, 0.15); color: var(--color-green); border: 1px solid var(--color-green); border-radius: 8px; cursor: pointer;">
+                                🟢 ปกติ<br><small style="font-size:10.5px;">(118/76, 95)</small>
+                            </button>
+                            <button type="button" onclick="fillDemoVitals('risk')" style="padding: 8px 4px; font-size: 12px; font-weight: bold; background: rgba(234, 179, 8, 0.15); color: #eab308; border: 1px solid #eab308; border-radius: 8px; cursor: pointer;">
+                                🟡 เสี่ยง<br><small style="font-size:10.5px;">(136/86, 115)</small>
+                            </button>
+                            <button type="button" onclick="fillDemoVitals('high')" style="padding: 8px 4px; font-size: 12px; font-weight: bold; background: rgba(239, 68, 68, 0.15); color: var(--color-red); border: 1px solid var(--color-red); border-radius: 8px; cursor: pointer;">
+                                🔴 เสี่ยงสูง<br><small style="font-size:10.5px;">(158/96, 165)</small>
+                            </button>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
                     <?php if (isSandboxMode($hoscode) && isset($_GET['debug']) && $_GET['debug'] === 'true'): ?>
                     <!-- GPS Mock Testing Tool -->
                     <div class="card-dark neumorph-flat" style="padding: 16px; margin-bottom: 20px; border: 1.5px dashed var(--color-primary); border-radius: var(--border-radius);">
@@ -848,13 +871,27 @@ if (DemoDataProvider::isDemoMode()) {
     </div>
 
     <script>
-        const isSandboxMode = <?= isSandboxMode($hoscode) ? 'true' : 'false' ?>;
+        const isSandboxMode = <?= (isSandboxMode($hoscode) || DemoDataProvider::isDemoMode()) ? 'true' : 'false' ?>;
         let selectedResident = null;
         let activeNumPad = null;
         let currentPickerInputId = null;
-        let gpsLocation = { lat: 0, lng: 0 };
-        let homeLat = 0;
-        let homeLng = 0;
+        let gpsLocation = { lat: 15.4300, lng: 104.9800 };
+        let homeLat = 15.4300;
+        let homeLng = 104.9800;
+
+        function getCurrentLocation() {
+            return new Promise((resolve) => {
+                if (!navigator.geolocation) {
+                    resolve({ lat: 15.4300, lng: 104.9800 });
+                    return;
+                }
+                navigator.geolocation.getCurrentPosition(
+                    p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+                    err => resolve({ lat: 15.4300, lng: 104.9800 }),
+                    { timeout: 3000, maximumAge: 15000, enableHighAccuracy: false }
+                );
+            });
+        }
 
         function updateLocalTask(assignmentId, newStatus, skippedReason = '') {
             const pending = JSON.parse(localStorage.getItem('vhv_pending_tasks') || '[]');
@@ -1093,57 +1130,89 @@ if (DemoDataProvider::isDemoMode()) {
         }
 
         function mockGps(mode) {
-            if (!isSandboxMode) return;
-            const btnHome = document.getElementById('btn-gps-home');
-            const btnDrift = document.getElementById('btn-gps-drift');
-            const infoDiv = document.getElementById('gps-status-info');
-            
-            if (!btnHome || !btnDrift || !infoDiv) return;
-            
-            btnHome.classList.remove('neumorph-inset');
-            btnHome.classList.add('neumorph-flat');
-            btnHome.style.background = 'var(--bg-card)';
-            btnHome.style.color = 'var(--text-primary)';
-            
-            btnDrift.classList.remove('neumorph-inset');
-            btnDrift.classList.add('neumorph-flat');
-            btnDrift.style.background = 'var(--bg-card)';
-            btnDrift.style.color = 'var(--text-primary)';
-            
             let currentLat = homeLat;
             let currentLng = homeLng;
-            
-            if (currentLat === 0 || currentLng === 0) {
-                // Fallback to central Tal Sum coords if no coordinates registered
+            if (!currentLat || !currentLng || currentLat === 0) {
                 currentLat = 15.4300;
                 currentLng = 104.9800;
             }
             
             if (mode === 'home') {
-                btnHome.classList.add('neumorph-inset');
-                btnHome.classList.remove('neumorph-flat');
-                btnHome.style.background = 'var(--bg-darker)';
-                btnHome.style.color = 'var(--color-green)';
-                
                 gpsLocation.lat = currentLat;
                 gpsLocation.lng = currentLng;
-                
-                infoDiv.innerHTML = `📍 จำลองพิกัด: อยู่ที่บ้านเป้าหมาย (${currentLat.toFixed(6)}, ${currentLng.toFixed(6)})`;
             } else {
-                btnDrift.classList.add('neumorph-inset');
-                btnDrift.classList.remove('neumorph-flat');
-                btnDrift.style.background = 'var(--bg-darker)';
-                btnDrift.style.color = 'var(--color-red)';
-                
-                // Shift coords by ~130 meters (0.0011 lat drift)
                 gpsLocation.lat = currentLat + 0.0011;
                 gpsLocation.lng = currentLng + 0.0005;
-                
-                infoDiv.innerHTML = `🛰️ จำลองพิกัด: พิกัดคลาดเคลื่อนไป 130 เมตร (${gpsLocation.lat.toFixed(6)}, ${gpsLocation.lng.toFixed(6)})`;
             }
             
-            document.getElementById('screening_lat').value = gpsLocation.lat;
-            document.getElementById('screening_lng').value = gpsLocation.lng;
+            const latEl = document.getElementById('screening_lat');
+            const lngEl = document.getElementById('screening_lng');
+            if (latEl) latEl.value = gpsLocation.lat;
+            if (lngEl) lngEl.value = gpsLocation.lng;
+
+            const btnHome = document.getElementById('btn-gps-home');
+            const btnDrift = document.getElementById('btn-gps-drift');
+            const infoDiv = document.getElementById('gps-status-info');
+            
+            if (btnHome && btnDrift && infoDiv) {
+                if (mode === 'home') {
+                    btnHome.classList.add('neumorph-inset');
+                    btnHome.classList.remove('neumorph-flat');
+                    btnDrift.classList.remove('neumorph-inset');
+                    btnDrift.classList.add('neumorph-flat');
+                    btnHome.style.background = 'var(--bg-darker)';
+                    btnHome.style.color = 'var(--color-green)';
+                    btnDrift.style.background = 'var(--bg-card)';
+                    btnDrift.style.color = 'var(--text-primary)';
+                    infoDiv.innerHTML = `📍 จำลองพิกัด: อยู่ที่บ้านเป้าหมาย (${currentLat.toFixed(6)}, ${currentLng.toFixed(6)})`;
+                } else {
+                    btnDrift.classList.add('neumorph-inset');
+                    btnDrift.classList.remove('neumorph-flat');
+                    btnHome.classList.remove('neumorph-inset');
+                    btnHome.classList.add('neumorph-flat');
+                    btnDrift.style.background = 'var(--bg-darker)';
+                    btnDrift.style.color = 'var(--color-red)';
+                    btnHome.style.background = 'var(--bg-card)';
+                    btnHome.style.color = 'var(--text-primary)';
+                    infoDiv.innerHTML = `🛰️ จำลองพิกัด: พิกัดคลาดเคลื่อนไป 130 เมตร (${gpsLocation.lat.toFixed(6)}, ${gpsLocation.lng.toFixed(6)})`;
+                }
+            }
+        }
+
+        function fillDemoVitals(preset) {
+            if (preset === 'normal') {
+                document.getElementById('weight').value = '60.0';
+                document.getElementById('height').value = '165.0';
+                document.getElementById('waist').value = '30.0';
+                document.getElementById('sys_bp1').value = '118';
+                document.getElementById('dia_bp1').value = '76';
+                document.getElementById('sys_bp2').value = '116';
+                document.getElementById('dia_bp2').value = '74';
+                const dtx = document.getElementById('dtx_value');
+                if (dtx) dtx.value = '95';
+            } else if (preset === 'risk') {
+                document.getElementById('weight').value = '68.0';
+                document.getElementById('height').value = '162.0';
+                document.getElementById('waist').value = '33.0';
+                document.getElementById('sys_bp1').value = '136';
+                document.getElementById('dia_bp1').value = '86';
+                document.getElementById('sys_bp2').value = '132';
+                document.getElementById('dia_bp2').value = '84';
+                const dtx = document.getElementById('dtx_value');
+                if (dtx) dtx.value = '115';
+            } else {
+                document.getElementById('weight').value = '75.0';
+                document.getElementById('height').value = '160.0';
+                document.getElementById('waist').value = '36.0';
+                document.getElementById('sys_bp1').value = '158';
+                document.getElementById('dia_bp1').value = '96';
+                document.getElementById('sys_bp2').value = '154';
+                document.getElementById('dia_bp2').value = '94';
+                const dtx = document.getElementById('dtx_value');
+                if (dtx) dtx.value = '165';
+            }
+            calculateBmi();
+            calculateCvRisk();
         }
 
         function selectResident(assignId, name, sex, birth, needDm, needHt, origin, latVal, lngVal, lastSbp, lastDbp, lastDtx, lastDtxType, card) {
