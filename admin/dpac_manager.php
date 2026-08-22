@@ -9,38 +9,82 @@ require_once __DIR__ . '/../config/db.php';
 
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 
+require_once __DIR__ . '/../config/demo_data.php';
+
 // Fetch dynamic sub-districts and units (same as assignment.php)
 $jsData = [];
 $subsList = [];
-try {
-    $subsList = $pdo->query("SELECT * FROM sub_districts ORDER BY sub_district_code ASC")->fetchAll();
-    foreach ($subsList as $sub) {
-        $subCode = $sub['sub_district_code'];
-        $subName = $sub['sub_district_name'];
 
-        $stmt = $pdo->prepare("SELECT COUNT(DISTINCT hoscode) FROM villages WHERE sub_district_code = ? AND hoscode IS NOT NULL AND hoscode != ''");
-        $stmt->execute([$subCode]);
-        $distinctHoscodes = $stmt->fetchColumn();
+if (DemoDataProvider::isDemoMode()) {
+    $subsList = [
+        ['sub_district_code' => '341801', 'sub_district_name' => 'ตาลสุม (จำลอง)']
+    ];
+    $jsData = [
+        '341801' => [
+            'name' => 'ตำบลตาลสุม (จำลอง)',
+            'hasSubUnits' => false,
+            'hoscode' => '99999',
+            'villages' => [
+                ['moo' => 1, 'name' => 'บ้านตาลสุม (จำลอง)'],
+                ['moo' => 2, 'name' => 'บ้านดอนใหญ่ (จำลอง)'],
+                ['moo' => 3, 'name' => 'บ้านโคกสว่าง (จำลอง)'],
+                ['moo' => 4, 'name' => 'บ้านนาเจริญ (จำลอง)'],
+                ['moo' => 5, 'name' => 'บ้านโนนงาม (จำลอง)']
+            ]
+        ]
+    ];
+} else {
+    try {
+        $subsList = $pdo->query("SELECT * FROM sub_districts ORDER BY sub_district_code ASC")->fetchAll();
+        foreach ($subsList as $sub) {
+            $subCode = $sub['sub_district_code'];
+            $subName = $sub['sub_district_name'];
 
-        $hasSubUnits = ($distinctHoscodes > 1);
-
-        if ($hasSubUnits) {
-            $jsData[$subCode] = [
-                'name' => $subName,
-                'hasSubUnits' => true,
-                'subUnits' => []
-            ];
-
-            $stmt = $pdo->prepare("SELECT DISTINCT v.hoscode, h.hosname FROM villages v JOIN health_units h ON v.hoscode = h.hoscode WHERE v.sub_district_code = ?");
+            $stmt = $pdo->prepare("SELECT COUNT(DISTINCT hoscode) FROM villages WHERE sub_district_code = ? AND hoscode IS NOT NULL AND hoscode != ''");
             $stmt->execute([$subCode]);
-            $subUnits = $stmt->fetchAll();
+            $distinctHoscodes = $stmt->fetchColumn();
 
-            foreach ($subUnits as $su) {
-                $hc = $su['hoscode'];
-                $hcName = $su['hosname'];
+            $hasSubUnits = ($distinctHoscodes > 1);
 
-                $vStmt = $pdo->prepare("SELECT moo, village_name FROM villages WHERE sub_district_code = ? AND hoscode = ? ORDER BY moo ASC");
-                $vStmt->execute([$subCode, $hc]);
+            if ($hasSubUnits) {
+                $jsData[$subCode] = [
+                    'name' => $subName,
+                    'hasSubUnits' => true,
+                    'subUnits' => []
+                ];
+
+                $stmt = $pdo->prepare("SELECT DISTINCT v.hoscode, h.hosname FROM villages v JOIN health_units h ON v.hoscode = h.hoscode WHERE v.sub_district_code = ?");
+                $stmt->execute([$subCode]);
+                $subUnits = $stmt->fetchAll();
+
+                foreach ($subUnits as $su) {
+                    $hc = $su['hoscode'];
+                    $hcName = $su['hosname'];
+
+                    $vStmt = $pdo->prepare("SELECT moo, village_name FROM villages WHERE sub_district_code = ? AND hoscode = ? ORDER BY moo ASC");
+                    $vStmt->execute([$subCode, $hc]);
+                    $vills = $vStmt->fetchAll();
+
+                    $villList = [];
+                    foreach ($vills as $v) {
+                        $villList[] = [
+                            'moo' => intval($v['moo']),
+                            'name' => $v['village_name']
+                        ];
+                    }
+
+                    $jsData[$subCode]['subUnits'][$hc] = [
+                        'name' => $hcName,
+                        'villages' => $villList
+                    ];
+                }
+            } else {
+                $stmt = $pdo->prepare("SELECT DISTINCT hoscode FROM villages WHERE sub_district_code = ? LIMIT 1");
+                $stmt->execute([$subCode]);
+                $hc = $stmt->fetchColumn();
+
+                $vStmt = $pdo->prepare("SELECT moo, village_name FROM villages WHERE sub_district_code = ? ORDER BY moo ASC");
+                $vStmt->execute([$subCode]);
                 $vills = $vStmt->fetchAll();
 
                 $villList = [];
@@ -51,38 +95,17 @@ try {
                     ];
                 }
 
-                $jsData[$subCode]['subUnits'][$hc] = [
-                    'name' => $hcName,
+                $jsData[$subCode] = [
+                    'name' => $subName,
+                    'hasSubUnits' => false,
+                    'hoscode' => $hc ?: '',
                     'villages' => $villList
                 ];
             }
-        } else {
-            $stmt = $pdo->prepare("SELECT DISTINCT hoscode FROM villages WHERE sub_district_code = ? LIMIT 1");
-            $stmt->execute([$subCode]);
-            $hc = $stmt->fetchColumn();
-
-            $vStmt = $pdo->prepare("SELECT moo, village_name FROM villages WHERE sub_district_code = ? ORDER BY moo ASC");
-            $vStmt->execute([$subCode]);
-            $vills = $vStmt->fetchAll();
-
-            $villList = [];
-            foreach ($vills as $v) {
-                $villList[] = [
-                    'moo' => intval($v['moo']),
-                    'name' => $v['village_name']
-                ];
-            }
-
-            $jsData[$subCode] = [
-                'name' => $subName,
-                'hasSubUnits' => false,
-                'hoscode' => $hc ?: '',
-                'villages' => $villList
-            ];
         }
+    } catch (\Exception $e) {
+        // Fail silently
     }
-} catch (\Exception $e) {
-    // Fail silently
 }
 
 // Filter for sub-district admins
@@ -657,6 +680,22 @@ if ($admin_hoscode !== null) {
                     });
             }
         }
+
+        const isDemoMode = <?= DemoDataProvider::isDemoMode() ? 'true' : 'false' ?>;
+        window.addEventListener('DOMContentLoaded', () => {
+            if (isDemoMode) {
+                const tSelect = document.getElementById('tambon');
+                if (tSelect && tSelect.options.length > 1) {
+                    tSelect.selectedIndex = 1;
+                    onTambonChange();
+                    const mSelect = document.getElementById('moo');
+                    if (mSelect && mSelect.options.length > 1) {
+                        mSelect.selectedIndex = 1;
+                        fetchData();
+                    }
+                }
+            }
+        });
     </script>
 </body>
 
