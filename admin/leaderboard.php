@@ -86,21 +86,27 @@ $sql = "
     ORDER BY total_points DESC, u.vhv_name ASC
 ";
 
+require_once __DIR__ . '/../config/demo_data.php';
+
 $error = '';
-try {
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([
-        'is_sandbox1' => $isSandboxVal,
-        'is_sandbox2' => $isSandboxVal,
-        'is_sandbox3' => $isSandboxVal,
-        'is_sandbox4' => $isSandboxVal,
-        'is_sandbox5' => $isSandboxVal,
-        'is_sandbox6' => $isSandboxVal
-    ]);
-    $vhv_list = $stmt->fetchAll();
-} catch (\PDOException $e) {
-    $vhv_list = [];
-    $error = "เกิดข้อผิดพลาดในการโหลดข้อมูล: " . $e->getMessage();
+if (DemoDataProvider::isDemoMode()) {
+    $vhv_list = DemoDataProvider::getDemoLeaderboard();
+} else {
+    try {
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+            'is_sandbox1' => $isSandboxVal,
+            'is_sandbox2' => $isSandboxVal,
+            'is_sandbox3' => $isSandboxVal,
+            'is_sandbox4' => $isSandboxVal,
+            'is_sandbox5' => $isSandboxVal,
+            'is_sandbox6' => $isSandboxVal
+        ]);
+        $vhv_list = $stmt->fetchAll();
+    } catch (\PDOException $e) {
+        $vhv_list = [];
+        $error = "เกิดข้อผิดพลาดในการโหลดข้อมูล: " . $e->getMessage();
+    }
 }
 
 // Calculate summary stats

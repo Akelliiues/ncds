@@ -63,59 +63,66 @@ function getPositiveTitle($rank)
     return '';
 }
 
-$isSandboxVal = isSandboxMode() ? 1 : 0;
+require_once __DIR__ . '/../config/demo_data.php';
 
-// Query Top 50 VHVs with points breakdown and subqueries for badges calculation
-$leaderboardStmt = $pdo->prepare("
-    SELECT 
-        u.vhv_id, 
-        u.vhv_name, 
-        u.vhv_moo, 
-        u.is_hl_coach,
-        v.village_name,
-        (
-            SELECT COALESCE(SUM(CASE WHEN (r.followup_id IS NULL AND r.assignment_id IS NULL) OR (r.followup_id IS NULL AND ta.assignment_id IS NOT NULL) OR (r.followup_id IS NOT NULL AND f.followup_id IS NOT NULL) THEN r.points_earned ELSE 0 END), 0)
-            FROM vhv_rewards r
-            LEFT JOIN task_assignments ta ON r.assignment_id = ta.assignment_id
-            LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id
-            WHERE r.vhv_id = u.vhv_id AND r.approval_status IN ('approved', 'waiting') AND r.is_sandbox = :is_sandbox1
-        ) as total_points,
-        (
-            SELECT COUNT(*) 
-            FROM task_assignments ta 
-            JOIN target_population p ON ta.target_cid = p.cid 
-            WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = 2026 AND ta.is_sandbox = :is_sandbox2
-              AND (
-                  (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-                  OR 
-                  (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
-              )
-        ) as total_assigned,
-        (
-            SELECT COUNT(*) 
-            FROM task_assignments ta 
-            JOIN target_population p ON ta.target_cid = p.cid 
-            WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = 2026 AND ta.assignment_status = 'completed' AND ta.is_sandbox = :is_sandbox3
-              AND (
-                  (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-                  OR 
-                  (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
-              )
-        ) as completed,
-        (SELECT COUNT(*) FROM vhv_rewards WHERE vhv_id = u.vhv_id AND approval_status = 'waiting' AND is_sandbox = :is_sandbox4) as waiting_rewards
-    FROM vhv_users u
-    LEFT JOIN villages v ON u.vhid_code = v.vhid_code
-    WHERE u.approved = 1
-    ORDER BY total_points DESC, u.vhv_name ASC
-");
-$leaderboardStmt->execute([
-    'is_sandbox1' => $isSandboxVal,
-    'is_sandbox2' => $isSandboxVal,
-    'is_sandbox3' => $isSandboxVal,
-    'is_sandbox4' => $isSandboxVal
-]);
-$allLeaders = $leaderboardStmt->fetchAll();
-$totalVhvs = count($allLeaders);
+if (DemoDataProvider::isDemoMode()) {
+    $allLeaders = DemoDataProvider::getDemoLeaderboard();
+    $totalVhvs = count($allLeaders);
+} else {
+    $isSandboxVal = isSandboxMode() ? 1 : 0;
+
+    // Query Top 50 VHVs with points breakdown and subqueries for badges calculation
+    $leaderboardStmt = $pdo->prepare("
+        SELECT 
+            u.vhv_id, 
+            u.vhv_name, 
+            u.vhv_moo, 
+            u.is_hl_coach,
+            v.village_name,
+            (
+                SELECT COALESCE(SUM(CASE WHEN (r.followup_id IS NULL AND r.assignment_id IS NULL) OR (r.followup_id IS NULL AND ta.assignment_id IS NOT NULL) OR (r.followup_id IS NOT NULL AND f.followup_id IS NOT NULL) THEN r.points_earned ELSE 0 END), 0)
+                FROM vhv_rewards r
+                LEFT JOIN task_assignments ta ON r.assignment_id = ta.assignment_id
+                LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id
+                WHERE r.vhv_id = u.vhv_id AND r.approval_status IN ('approved', 'waiting') AND r.is_sandbox = :is_sandbox1
+            ) as total_points,
+            (
+                SELECT COUNT(*) 
+                FROM task_assignments ta 
+                JOIN target_population p ON ta.target_cid = p.cid 
+                WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = 2026 AND ta.is_sandbox = :is_sandbox2
+                  AND (
+                      (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+                      OR 
+                      (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+                  )
+            ) as total_assigned,
+            (
+                SELECT COUNT(*) 
+                FROM task_assignments ta 
+                JOIN target_population p ON ta.target_cid = p.cid 
+                WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = 2026 AND ta.assignment_status = 'completed' AND ta.is_sandbox = :is_sandbox3
+                  AND (
+                      (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+                      OR 
+                      (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+                  )
+            ) as completed,
+            (SELECT COUNT(*) FROM vhv_rewards WHERE vhv_id = u.vhv_id AND approval_status = 'waiting' AND is_sandbox = :is_sandbox4) as waiting_rewards
+        FROM vhv_users u
+        LEFT JOIN villages v ON u.vhid_code = v.vhid_code
+        WHERE u.approved = 1
+        ORDER BY total_points DESC, u.vhv_name ASC
+    ");
+    $leaderboardStmt->execute([
+        'is_sandbox1' => $isSandboxVal,
+        'is_sandbox2' => $isSandboxVal,
+        'is_sandbox3' => $isSandboxVal,
+        'is_sandbox4' => $isSandboxVal
+    ]);
+    $allLeaders = $leaderboardStmt->fetchAll();
+    $totalVhvs = count($allLeaders);
+}
 
 // Find current VHV rank and score
 $currentVhvRank = 0;
