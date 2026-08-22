@@ -9,13 +9,38 @@ header('Content-Type: application/json');
 require_once __DIR__ . '/../config/demo_data.php';
 
 if (DemoDataProvider::isDemoMode()) {
+    $hid = trim($_POST['hid'] ?? '');
+    
+    // เคสทดสอบที่ 2.2: สแกน QR ที่ไม่ได้รับมอบหมาย / อยู่นอกเขตรับผิดชอบ (ติดล็อค PDPA)
+    if ($hid === 'DEMO_HOUSE_LOCKED_999' || $hid === '9999999999999' || stripos($hid, 'LOCKED') !== false || stripos($hid, 'UNASSIGNED') !== false) {
+        echo json_encode([
+            'status' => 'error',
+            'error_code' => 'UNASSIGNED_HOUSE',
+            'message' => 'รหัส ' . htmlspecialchars($hid) . ' อยู่นอกเขตรับผิดชอบ หรือยังไม่มีการมอบหมายงานในระบบ',
+            'is_demo' => true
+        ], JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+    
+    // เคสทดสอบที่ 2.1: สแกน QR ที่ได้รับมอบหมายถูกต้อง (ผ่านเข้าสู่การคัดกรอง)
     $demoTasks = DemoDataProvider::getDemoVhvTasks();
+    $targetResident = null;
+    foreach ($demoTasks['pending'] as $t) {
+        if ($t['cid'] === $hid || $t['house_no'] === $hid || $t['assignment_id'] === $hid || $hid === 'DEMO_HOUSE_12_1' || $hid === 'DEMO_HID_1') {
+            $targetResident = $t;
+            break;
+        }
+    }
+    if (!$targetResident) {
+        $targetResident = $demoTasks['pending'][0];
+    }
+    
     echo json_encode([
         'status' => 'success',
-        'hid' => $_POST['hid'] ?? 'DEMO_HID_1',
-        'house_no' => '12/1',
-        'moo' => '1',
-        'residents' => $demoTasks['pending'],
+        'hid' => $targetResident['cid'],
+        'house_no' => $targetResident['house_no'],
+        'moo' => $targetResident['moo'],
+        'residents' => [$targetResident],
         'is_demo' => true
     ], JSON_UNESCAPED_UNICODE);
     exit();

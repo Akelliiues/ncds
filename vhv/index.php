@@ -367,6 +367,30 @@ if (DemoDataProvider::isDemoMode()) {
 
 
 
+        <?php if (DemoDataProvider::isDemoMode()): ?>
+        <!-- Demo Sandbox Guide Card -->
+        <div class="card-dark" style="margin-bottom: 20px; border: 2px dashed #3b82f6; background: rgba(59, 130, 246, 0.05); padding: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <span style="font-weight: 800; color: #3b82f6; font-size: 14.5px; display: flex; align-items: center; gap: 6px;">
+                    🧪 ตัวอย่างจำลองการทำงาน อสม. (Demo Sandbox)
+                </span>
+                <span style="font-size: 11px; background: #3b82f6; color: white; padding: 2px 8px; border-radius: 9999px; font-weight: bold;">โหมดทดสอบ</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 10px; margin-top: 8px;">
+                <div style="padding: 10px; border-radius: 8px; background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.3);">
+                    <strong style="color: var(--color-green); font-size: 13px; display: block; margin-bottom: 4px;">แบบที่ 1: เข้าคัดกรองทันที</strong>
+                    <p style="font-size: 11.5px; color: var(--text-muted); margin: 0 0 8px 0;">แตะที่การ์ดรายชื่อเป้าหมายด้านล่างเพื่อเข้าตรวจคัดกรองได้โดยตรง</p>
+                    <span style="font-size: 11px; color: var(--color-green); font-weight: bold;">👉 แตะรายการงานค้างด้านล่าง</span>
+                </div>
+                <div style="padding: 10px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.3);">
+                    <strong style="color: #3b82f6; font-size: 13px; display: block; margin-bottom: 4px;">แบบที่ 2: สแกน QR จำลอง</strong>
+                    <p style="font-size: 11.5px; color: var(--text-muted); margin: 0 0 8px 0;">ทดสอบทั้งเคสที่สแกนผ่านปกติ และเคสที่ล็อค PDPA</p>
+                    <a href="scan.php" style="font-size: 11px; color: #3b82f6; font-weight: bold; text-decoration: none;">📷 ไปที่หน้าสแกน QR →</a>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- Task Tabs -->
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('pending-list', this)">
@@ -560,7 +584,7 @@ if (DemoDataProvider::isDemoMode()) {
     </div>
 
     <script>
-        const isSandboxMode = <?= isSandboxMode($hoscode) ? 'true' : 'false' ?>;
+        const isSandboxMode = <?= (isSandboxMode($hoscode) || DemoDataProvider::isDemoMode()) ? 'true' : 'false' ?>;
         let currentTestHid = '';
         let currentTestCid = '';
         function openTestModal(houseNo, hid, cid) {

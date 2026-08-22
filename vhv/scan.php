@@ -117,6 +117,61 @@ $presetHid = $_GET['hid'] ?? '';
         </div>
     </div>
 
+    <?php if (DemoDataProvider::isDemoMode()): ?>
+    <!-- Demo Sandbox QR Simulation Card -->
+    <div class="card-dark" style="margin-bottom: 20px; border: 2px dashed #3b82f6; background: rgba(59, 130, 246, 0.05);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+            <span style="font-weight: 800; color: #3b82f6; font-size: 14.5px; display: flex; align-items: center; gap: 6px;">
+                🧪 แผงจำลองการสแกน QR Code (Demo)
+            </span>
+            <span style="font-size: 11px; background: #3b82f6; color: white; padding: 2px 8px; border-radius: 9999px; font-weight: bold;">โหมดทดสอบ</span>
+        </div>
+        <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
+            ทดสอบการทำงานของระบบสแกน QR ประจำบ้านได้ 2 สถานการณ์:
+        </p>
+        
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <!-- Scenario 1: Valid assigned house QR -->
+            <div style="padding: 10px; border-radius: 8px; background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.3);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <strong style="color: var(--color-green); font-size: 13px;">1. เคสได้รับมอบหมาย (สแกนผ่าน)</strong>
+                    <span style="font-size: 11px; color: var(--color-green); font-weight: bold;">บ้าน 12/1 (นายสมชาย)</span>
+                </div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px;">
+                    เคสในเขตรับผิดชอบที่ได้รับมอบหมายงาน เข้าสู่การคัดกรองได้ปกติ
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <button type="button" onclick="simulateScan('DEMO_HOUSE_12_1')" class="btn-action" style="flex: 1; padding: 8px 10px; font-size: 12.5px; font-weight: bold; background: var(--color-green); color: white; border: none; border-radius: 6px; cursor: pointer;">
+                        ⚡ จำลองสแกนผ่าน
+                    </button>
+                    <button type="button" onclick="showQrModal('DEMO_HOUSE_12_1', 'บ้าน 12/1 (นายสมชาย - ได้รับมอบหมาย)')" style="padding: 8px 10px; font-size: 12.5px; font-weight: bold; background: rgba(255,255,255,0.1); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;">
+                        📷 ส่อง QR
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scenario 2: Invalid / Unassigned house QR -->
+            <div style="padding: 10px; border-radius: 8px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <strong style="color: var(--color-red); font-size: 13px;">2. เคสนอกเขต (ล็อค PDPA)</strong>
+                    <span style="font-size: 11px; color: var(--color-red); font-weight: bold;">บ้าน 999/99 (นอกเขต)</span>
+                </div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px;">
+                    เคสนอกเขตรับผิดชอบ หรือยังไม่ได้รับมอบหมาย ระบบจะล็อคข้อมูลทันที
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <button type="button" onclick="simulateScan('DEMO_HOUSE_LOCKED_999')" class="btn-action" style="flex: 1; padding: 8px 10px; font-size: 12.5px; font-weight: bold; background: var(--color-red); color: white; border: none; border-radius: 6px; cursor: pointer;">
+                        ⚡ จำลองสแกนติดล็อค
+                    </button>
+                    <button type="button" onclick="showQrModal('DEMO_HOUSE_LOCKED_999', 'บ้าน 999/99 (นอกเขต - ไม่ได้รับมอบหมาย)')" style="padding: 8px 10px; font-size: 12.5px; font-weight: bold; background: rgba(255,255,255,0.1); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;">
+                        📷 ส่อง QR
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <!-- PDPA Lock overlay -->
     <div id="pdpa-lock-screen" style="display:none;" class="card-dark">
         <div style="text-align:center;padding:20px 0;">
@@ -533,6 +588,35 @@ function getCurrentLocation() {
     });
 }
 
+function simulateScan(mockHid) {
+    if (scanner) {
+        scanner.stop().catch(() => {}).finally(() => {
+            scanner = null;
+        });
+    }
+    hideReader();
+    setStatus('loading',
+        '<div class="spinner"></div>',
+        'กำลังจำลองการสแกนรหัส: ' + mockHid + '…',
+        'กรุณารอสักครู่'
+    );
+    setTimeout(() => {
+        validateHouseAssignment(mockHid);
+    }, 400);
+}
+
+function showQrModal(mockHid, title) {
+    const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(mockHid);
+    document.getElementById('demo-qr-title').textContent = title;
+    document.getElementById('demo-qr-img').src = qrUrl;
+    document.getElementById('demo-qr-code-txt').textContent = mockHid;
+    document.getElementById('demo-qr-modal').style.display = 'flex';
+}
+
+function closeQrModal() {
+    document.getElementById('demo-qr-modal').style.display = 'none';
+}
+
 // ---------- Bootstrap ----------
 document.addEventListener('DOMContentLoaded', () => {
     // โหลดพิกัด GPS แบบเบื้องหลังพร้อมหน่วงเวลา 1.5 วินาที เพื่อเลี่ยงการแย่งสิทธิ์กับกล้องตอนโหลดหน้าแรก
@@ -576,5 +660,24 @@ document.addEventListener('DOMContentLoaded', () => {
     <?php endif; ?>
 });
 </script>
+
+<!-- Demo QR Modal -->
+<div id="demo-qr-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center; padding:20px;">
+    <div class="card-dark" style="max-width:320px; width:100%; text-align:center; padding:24px; position:relative; border-radius:16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+        <button onclick="closeQrModal()" style="position:absolute; top:12px; right:12px; background:none; border:none; color:var(--text-secondary); font-size:20px; cursor:pointer;">✕</button>
+        <h4 id="demo-qr-title" style="margin:0 0 12px; color:var(--color-primary); font-size:15px;">QR Code จำลอง</h4>
+        <div style="background:white; padding:12px; border-radius:12px; display:inline-block; margin-bottom:12px; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+            <img id="demo-qr-img" src="" alt="Demo QR Code" style="width:190px; height:190px; display:block;">
+        </div>
+        <p style="font-size:12px; color:var(--text-muted); margin:0 0 14px; line-height:1.4;">
+            รหัส: <code id="demo-qr-code-txt" style="color:var(--color-accent); font-weight:bold;"></code><br>
+            (สามารถใช้โทรศัพท์อีกเครื่องส่อง หรือกดปุ่มจำลองได้ทันที)
+        </p>
+        <button onclick="simulateScan(document.getElementById('demo-qr-code-txt').textContent); closeQrModal();" class="btn-action" style="width:100%; padding:10px; font-weight:bold; font-size:13px; background:var(--color-primary); color:white; border:none; border-radius:8px; cursor:pointer;">
+            ⚡ จำลองสแกนรหัสนี้ทันที
+        </button>
+    </div>
+</div>
+
 </body>
 </html>
