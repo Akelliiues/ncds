@@ -1,6 +1,6 @@
 <?php
 // config/demo_database.php
-// ระบบฐานข้อมูลจำลองสมบูรณ์แบบ 100% สำหรับโหมด Demo Sandbox (100% Mockup DB Isolation)
+// ระบบฐานข้อมูลจำลองครอบคลุมทุกเมนู 100% สำหรับโหมด Demo Sandbox (100% Complete Mockup DB Isolation)
 
 class DemoMockPDOStatement {
     private $stmt;
@@ -41,12 +41,24 @@ class DemoMockPDOStatement {
 class DemoMockPDO extends PDO {
     public function replaceTables($sql) {
         $tables = [
-            'target_population' => 'demo_mock_target_population',
-            'task_assignments'  => 'demo_mock_task_assignments',
-            'screening_results' => 'demo_mock_screening_results',
-            'dpac_enrollments'  => 'demo_mock_dpac_enrollments',
-            'dpac_followups'    => 'demo_mock_dpac_followups',
-            'vhv_users'         => 'demo_mock_vhv_users'
+            'target_population'        => 'demo_mock_target_population',
+            'task_assignments'         => 'demo_mock_task_assignments',
+            'screening_results'        => 'demo_mock_screening_results',
+            'dpac_enrollments'         => 'demo_mock_dpac_enrollments',
+            'dpac_followups'           => 'demo_mock_dpac_followups',
+            'vhv_users'                => 'demo_mock_vhv_users',
+            'vhv_rewards'              => 'demo_mock_vhv_rewards',
+            'vhv_surveys'              => 'demo_mock_vhv_surveys',
+            'vhv_survey_participants'  => 'demo_mock_vhv_survey_participants',
+            'admin_users'              => 'demo_mock_admin_users',
+            'health_units'             => 'demo_mock_health_units',
+            'sub_districts'            => 'demo_mock_sub_districts',
+            'villages'                 => 'demo_mock_villages',
+            'assignment_history_log'   => 'demo_mock_assignment_history_log',
+            'line_house_mappings'      => 'demo_mock_line_house_mappings',
+            'staging_hdc_ht'           => 'demo_mock_staging_hdc_ht',
+            'staging_hdc_dm'           => 'demo_mock_staging_hdc_dm',
+            'staging_jhcis_person'     => 'demo_mock_staging_jhcis_person'
         ];
         foreach ($tables as $real => $mock) {
             $sql = preg_replace('/\b' . preg_quote($real, '/') . '\b/i', $mock, $sql);
@@ -73,23 +85,30 @@ class DemoMockPDO extends PDO {
 
 function initDemoMockupDatabase($pdo) {
     try {
-        // 1. สร้างตาราง demo_mock_target_population
-        $pdo->exec("CREATE TABLE IF NOT EXISTS `demo_mock_target_population` LIKE `target_population`;");
-        
-        // 2. สร้างตาราง demo_mock_task_assignments
-        $pdo->exec("CREATE TABLE IF NOT EXISTS `demo_mock_task_assignments` LIKE `task_assignments`;");
+        $tablesToDuplicate = [
+            'target_population',
+            'task_assignments',
+            'screening_results',
+            'dpac_enrollments',
+            'dpac_followups',
+            'vhv_users',
+            'vhv_rewards',
+            'vhv_surveys',
+            'vhv_survey_participants',
+            'admin_users',
+            'health_units',
+            'sub_districts',
+            'villages',
+            'assignment_history_log',
+            'line_house_mappings',
+            'staging_hdc_ht',
+            'staging_hdc_dm',
+            'staging_jhcis_person'
+        ];
 
-        // 3. สร้างตาราง demo_mock_screening_results
-        $pdo->exec("CREATE TABLE IF NOT EXISTS `demo_mock_screening_results` LIKE `screening_results`;");
-
-        // 4. สร้างตาราง demo_mock_dpac_enrollments
-        $pdo->exec("CREATE TABLE IF NOT EXISTS `demo_mock_dpac_enrollments` LIKE `dpac_enrollments`;");
-
-        // 5. สร้างตาราง demo_mock_dpac_followups
-        $pdo->exec("CREATE TABLE IF NOT EXISTS `demo_mock_dpac_followups` LIKE `dpac_followups`;");
-
-        // 6. สร้างตาราง demo_mock_vhv_users
-        $pdo->exec("CREATE TABLE IF NOT EXISTS `demo_mock_vhv_users` LIKE `vhv_users`;");
+        foreach ($tablesToDuplicate as $tbl) {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `demo_mock_$tbl` LIKE `$tbl`;");
+        }
 
         // ตรวจสอบว่ามีข้อมูลในตารางจำลองแล้วหรือยัง หากยังไม่มีให้ลงข้อมูลสมมติ 100%
         $count = $pdo->query("SELECT COUNT(*) FROM `demo_mock_target_population`")->fetchColumn();
@@ -145,6 +164,20 @@ function initDemoMockupDatabase($pdo) {
             foreach ($mockVhvs as $v) {
                 $stmtV->execute($v);
             }
+
+            // Seed Mock Health Units
+            $stmtH = $pdo->prepare("INSERT INTO `demo_mock_health_units` (hoscode, hosname) VALUES (?, ?)");
+            $stmtH->execute(['99999', 'รพ.สต. ตาลสุม (จำลอง)']);
+
+            // Seed Mock Sub-Districts
+            $stmtS = $pdo->prepare("INSERT INTO `demo_mock_sub_districts` (sub_district_code, sub_district_name) VALUES (?, ?)");
+            $stmtS->execute(['341001', 'ตำบลตาลสุม (จำลอง)']);
+
+            // Seed Mock Villages
+            $stmtVil = $pdo->prepare("INSERT INTO `demo_mock_villages` (vhid_code, sub_district_code, moo, village_name, hoscode) VALUES (?, ?, ?, ?, ?)");
+            $stmtVil->execute(['34100101', '341001', 1, 'หมู่ 1 บ้านตาลสุม (จำลอง)', '99999']);
+            $stmtVil->execute(['34100102', '341001', 2, 'หมู่ 2 บ้านดอนใหญ่ (จำลอง)', '99999']);
+            $stmtVil->execute(['34100103', '341001', 3, 'หมู่ 3 บ้านโคกสว่าง (จำลอง)', '99999']);
         }
     } catch (\Throwable $e) {
         // Failover gracefully
