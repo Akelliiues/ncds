@@ -432,51 +432,29 @@ if (DemoDataProvider::isDemoMode()) {
                 </div>
             <?php else: ?>
                 <?php foreach ($pendingTasks as $pt): ?>
-                    <?php if (DemoDataProvider::isDemoMode()): ?>
-                        <a href="screening_form.php?cid=<?= urlencode($pt['cid']) ?>" class="task-card" style="text-decoration: none; color: inherit; display: flex; cursor: pointer; border: 1.5px solid rgba(59, 130, 246, 0.3);">
-                            <div class="task-info">
-                                <h4>บ้านเลขที่ <?= htmlspecialchars($pt['house_no']) ?></h4>
-                                <p>ผู้รับคัดกรอง: <strong style="color: var(--color-accent);"><?= htmlspecialchars($pt['first_name'] . ' ' . $pt['last_name']) ?></strong></p>
-                                <p style="font-size: 12px; margin-top: 4px; color: var(--text-muted);">
-                                    สิทธิ์การคัดกรอง: 
-                                    <?php if ($pt['need_screen_dm']): ?>
-                                        <span style="color: var(--color-accent);">DM</span>
-                                    <?php endif; ?>
-                                    <?php if ($pt['need_screen_ht']): ?>
-                                        <span style="color: var(--color-primary); margin-left: 5px;">HT</span>
-                                    <?php endif; ?>
-                                    <span style="color: var(--color-green); font-weight: 800; margin-left: 8px;">👉 แตะเพื่อเริ่มคัดกรอง</span>
-                                </p>
-                            </div>
-                            <div style="display: flex; align-items: center;">
-                                <span style="background: var(--color-accent); color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold;">▶</span>
-                            </div>
-                        </a>
-                    <?php else: ?>
-                        <div class="task-card" data-assignment-id="<?= $pt['assignment_id'] ?>" data-hid="<?= htmlspecialchars($pt['hid'] ?? '') ?>" data-cid="<?= htmlspecialchars($pt['cid']) ?>" onclick="openTestModal('<?= htmlspecialchars($pt['house_no']) ?>', '<?= htmlspecialchars($pt['hid'] ?? '') ?>', '<?= htmlspecialchars($pt['cid']) ?>')">
-                            <div class="task-info">
-                                <h4>บ้านเลขที่ <?= htmlspecialchars($pt['house_no']) ?></h4>
-                                <p>ผู้รับคัดกรอง: <?= htmlspecialchars($pt['first_name'] . ' ' . $pt['last_name']) ?></p>
-                                <p style="font-size: 12px; margin-top: 4px; color: var(--text-muted);">
-                                    สิทธิ์การคัดกรอง: 
-                                    <?php if ($pt['need_screen_dm']): ?>
-                                        <span style="color: var(--color-accent);">DM</span>
-                                    <?php endif; ?>
-                                    <?php if ($pt['need_screen_ht']): ?>
-                                        <span style="color: var(--color-primary); margin-left: 5px;">HT</span>
-                                    <?php endif; ?>
-                                    <?php if (intval($pt['round_number'] ?? 1) > 1): ?>
-                                        <span style="background-color: rgba(99, 102, 241, 0.15); color: #6366f1; border: 1px solid rgba(99, 102, 241, 0.3); padding: 2px 6px; border-radius: 10px; font-size: 11px; font-weight: bold; margin-left: 6px;">
-                                            🔄 คัดกรองซ้ำ ครั้งที่ <?= $pt['round_number'] ?>
-                                        </span>
-                                    <?php endif; ?>
-                                </p>
-                            </div>
-                            <div>
-                                <svg width="24" height="24" fill="none" stroke="var(--border-color)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"></path></svg>
-                            </div>
+                    <div class="task-card" data-assignment-id="<?= $pt['assignment_id'] ?>" data-hid="<?= htmlspecialchars($pt['hid'] ?? '') ?>" data-cid="<?= htmlspecialchars($pt['cid']) ?>" onclick="openTestModal('<?= htmlspecialchars($pt['house_no']) ?>', '<?= htmlspecialchars($pt['hid'] ?? '') ?>', '<?= htmlspecialchars($pt['cid']) ?>')">
+                        <div class="task-info">
+                            <h4>บ้านเลขที่ <?= htmlspecialchars($pt['house_no']) ?></h4>
+                            <p>ผู้รับคัดกรอง: <?= htmlspecialchars($pt['first_name'] . ' ' . $pt['last_name']) ?></p>
+                            <p style="font-size: 12px; margin-top: 4px; color: var(--text-muted);">
+                                สิทธิ์การคัดกรอง: 
+                                <?php if ($pt['need_screen_dm']): ?>
+                                    <span style="color: var(--color-accent);">DM</span>
+                                <?php endif; ?>
+                                <?php if ($pt['need_screen_ht']): ?>
+                                    <span style="color: var(--color-primary); margin-left: 5px;">HT</span>
+                                <?php endif; ?>
+                                <?php if (intval($pt['round_number'] ?? 1) > 1): ?>
+                                    <span style="background-color: rgba(99, 102, 241, 0.15); color: #6366f1; border: 1px solid rgba(99, 102, 241, 0.3); padding: 2px 6px; border-radius: 10px; font-size: 11px; font-weight: bold; margin-left: 6px;">
+                                        🔄 คัดกรองซ้ำ ครั้งที่ <?= $pt['round_number'] ?>
+                                    </span>
+                                <?php endif; ?>
+                            </p>
                         </div>
-                    <?php endif; ?>
+                        <div>
+                            <svg width="24" height="24" fill="none" stroke="var(--border-color)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"></path></svg>
+                        </div>
+                    </div>
                 <?php endforeach; ?>
             <?php endif; ?>
         </div>

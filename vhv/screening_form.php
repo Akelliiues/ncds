@@ -25,10 +25,7 @@ $history = [];
 
 require_once __DIR__ . '/../config/demo_data.php';
 
-$isDemo = DemoDataProvider::isDemoMode();
-$curResident = null;
-
-if ($isDemo) {
+if (DemoDataProvider::isDemoMode()) {
     $allDemo = DemoDataProvider::getDemoVhvTasks()['pending'];
     if (!empty($cid)) {
         $filtered = array_values(array_filter($allDemo, function($r) use ($cid) { return $r['cid'] === $cid; }));
@@ -36,7 +33,6 @@ if ($isDemo) {
     } else {
         $residents = $allDemo;
     }
-    $curResident = !empty($residents) ? $residents[0] : null;
 } elseif (!$isShell) {
     require_once __DIR__ . '/../config/db.php';
     
@@ -360,7 +356,13 @@ if ($isDemo) {
             <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 14px;">รหัสบ้าน HID: <?= htmlspecialchars($hid) ?></p>
         </div>
 
-        <?php if (empty($residents) && !$isShell): ?>
+        <?php 
+        $isDemo = DemoDataProvider::isDemoMode();
+        $activeResident = (!empty($residents)) ? $residents[0] : null;
+        $activeName = $activeResident ? htmlspecialchars($activeResident['first_name'] . ' ' . $activeResident['last_name']) : 'สมชาย ใจดี (จำลอง)';
+        $activeAssignId = $activeResident ? $activeResident['assignment_id'] : 'DEMO_ASSIGN_1';
+        ?>
+        <?php if (empty($residents) && !$isShell && !$isDemo): ?>
             <div class="card-dark" style="text-align: center; padding: 40px 20px;">
                 <span style="font-size: 48px; display: block; margin-bottom: 16px;">✅</span>
                 <h3 style="color: var(--color-green); font-size: 22px; margin-bottom: 8px;">คัดกรองเรียบร้อยแล้ว</h3>
@@ -369,7 +371,7 @@ if ($isDemo) {
             </div>
         <?php else: ?>
             <form id="screening-form" action="" method="POST">
-                <input type="hidden" name="assignment_id" id="assignment_id" value="<?= ($isDemo && $curResident) ? htmlspecialchars($curResident['assignment_id']) : '' ?>">
+                <input type="hidden" name="assignment_id" id="assignment_id" value="<?= $isDemo ? $activeAssignId : '' ?>">
                 <input type="hidden" name="screening_lat" id="screening_lat" value="<?= $isDemo ? '15.430000' : '' ?>">
                 <input type="hidden" name="screening_lng" id="screening_lng" value="<?= $isDemo ? '104.980000' : '' ?>">
 
@@ -380,7 +382,7 @@ if ($isDemo) {
                     <div id="residents-container">
                     <?php if (!$isShell): ?>
                         <?php foreach ($residents as $r): ?>
-                            <div class="resident-card" onclick="selectResident('<?= $r['assignment_id'] ?>', '<?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name'], ENT_QUOTES) ?>', '<?= $r['sex'] ?>', '<?= $r['birth'] ?>', <?= $r['need_screen_dm'] ? 'true' : 'false' ?>, <?= $r['need_screen_ht'] ? 'true' : 'false' ?>, '<?= htmlspecialchars($r['health_status_origin'] ?? 'NORMAL', ENT_QUOTES) ?>', <?= (float)($r['latitude'] ?? 0) ?>, <?= (float)($r['longitude'] ?? 0) ?>, <?= $r['last_sbp'] !== null ? (int)$r['last_sbp'] : 'null' ?>, <?= $r['last_dbp'] !== null ? (int)$r['last_dbp'] : 'null' ?>, <?= $r['last_dtx'] !== null ? (int)$r['last_dtx'] : 'null' ?>, '<?= htmlspecialchars($r['last_dtx_type'] ?? 'fpg', ENT_QUOTES) ?>', this)">
+                            <div class="resident-card <?= ($isDemo && $r['assignment_id'] === $activeAssignId) ? 'selected' : '' ?>" onclick="selectResident('<?= $r['assignment_id'] ?>', '<?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name'], ENT_QUOTES) ?>', '<?= $r['sex'] ?>', '<?= $r['birth'] ?>', <?= $r['need_screen_dm'] ? 'true' : 'false' ?>, <?= $r['need_screen_ht'] ? 'true' : 'false' ?>, '<?= htmlspecialchars($r['health_status_origin'] ?? 'NORMAL', ENT_QUOTES) ?>', <?= (float)($r['latitude'] ?? 0) ?>, <?= (float)($r['longitude'] ?? 0) ?>, <?= $r['last_sbp'] !== null ? (int)$r['last_sbp'] : 'null' ?>, <?= $r['last_dbp'] !== null ? (int)$r['last_dbp'] : 'null' ?>, <?= $r['last_dtx'] !== null ? (int)$r['last_dtx'] : 'null' ?>, '<?= htmlspecialchars($r['last_dtx_type'] ?? 'fpg', ENT_QUOTES) ?>', this)">
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                     <div>
                                         <strong style="font-size: 18px; color: var(--text-primary);"><?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?></strong>
@@ -399,14 +401,14 @@ if ($isDemo) {
                                             <?= $r['need_screen_ht'] ? '<span style="color:var(--color-primary)">ความดัน</span>' : '<s>ความดัน (ตรวจแล้ว/ป่วยแล้ว)</s>' ?>
                                         </p>
                                     </div>
-                                    <span style="font-size: 24px; color: var(--border-color);" class="select-indicator">⚪</span>
+                                    <span style="font-size: 24px; color: var(--border-color);" class="select-indicator"><?= ($isDemo && $r['assignment_id'] === $activeAssignId) ? '🟡' : '⚪' ?></span>
                                 </div>
                             </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
                     </div>
                     
-                    <button type="button" onclick="nextStep('step-vital')" class="btn-giant btn-giant-primary" id="btn-next-resident" style="margin-top: 20px; display: none;">
+                    <button type="button" onclick="nextStep('step-vital')" class="btn-giant btn-giant-primary" id="btn-next-resident" style="margin-top: 20px; display: <?= $isDemo ? 'block' : 'none' ?>;">
                         ถัดไป (คัดกรองร่างกาย) →
                     </button>
                     
@@ -419,9 +421,7 @@ if ($isDemo) {
                 <div id="step-vital" class="step-section <?= $isDemo ? 'active' : '' ?>">
                     <div class="card-dark" style="padding: 16px; margin-bottom: 20px;">
                         <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">ชื่อผู้รับการคัดกรอง:</span>
-                        <div id="selected-resident-name" style="font-size: 20px; font-weight: 800; color: var(--color-accent); margin-top: 4px;">
-                            <?= ($isDemo && $curResident) ? htmlspecialchars($curResident['first_name'] . ' ' . $curResident['last_name'] . ' (บ้านเลขที่ ' . $curResident['house_no'] . ')') : '' ?>
-                        </div>
+                        <div id="selected-resident-name" style="font-size: 20px; font-weight: 800; color: var(--color-accent); margin-top: 4px;"><?= $isDemo ? $activeName : '' ?></div>
                     </div>
 
                     <?php if (DemoDataProvider::isDemoMode()): ?>
@@ -477,17 +477,17 @@ if ($isDemo) {
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                         <div>
                             <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 6px;">น้ำหนัก (กก.)</label>
-                            <input type="text" name="weight" id="weight" class="input-large" readonly onclick="openScrollPicker('weight', 'น้ำหนัก (กก.)', 30, 150, 60.0)" value="<?= $isDemo ? '60.0' : '' ?>" placeholder="0.0">
+                            <input type="text" name="weight" id="weight" class="input-large" value="<?= $isDemo ? '60.0' : '' ?>" readonly onclick="openScrollPicker('weight', 'น้ำหนัก (กก.)', 30, 150, 60.0)" placeholder="0.0">
                         </div>
                         <div>
                             <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 6px;">ส่วนสูง (ซม.)</label>
-                            <input type="text" name="height" id="height" class="input-large" readonly onclick="openScrollPicker('height', 'ส่วนสูง (ซม.)', 100, 220, 160.0)" value="<?= $isDemo ? '165.0' : '' ?>" placeholder="0.0">
+                            <input type="text" name="height" id="height" class="input-large" value="<?= $isDemo ? '165.0' : '' ?>" readonly onclick="openScrollPicker('height', 'ส่วนสูง (ซม.)', 100, 220, 160.0)" placeholder="0.0">
                         </div>
                     </div>
 
                     <div style="margin-bottom: 20px;">
                         <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 6px;">รอบเอว (นิ้ว)</label>
-                        <input type="text" name="waist" id="waist" class="input-large" readonly onclick="openScrollPicker('waist', 'รอบเอว (นิ้ว)', 20, 60, 30.0)" value="<?= $isDemo ? '30.0' : '' ?>" placeholder="0.0">
+                        <input type="text" name="waist" id="waist" class="input-large" value="<?= $isDemo ? '30.0' : '' ?>" readonly onclick="openScrollPicker('waist', 'รอบเอว (นิ้ว)', 20, 60, 30.0)" placeholder="0.0">
                     </div>
 
                     <!-- BMI Auto-Display -->
@@ -496,7 +496,9 @@ if ($isDemo) {
                             <span style="color: var(--text-secondary); font-size: 14px; font-weight: 600;">ค่าดัชนีมวลกาย (BMI)</span>
                             <div id="bmi-display" style="font-size: 26px; font-weight: 800; color: var(--color-primary); margin-top: 4px;"><?= $isDemo ? '22.04' : '0.00' ?></div>
                         </div>
-                        <div id="bmi-status" class="badge" style="font-size: 14px; padding: 6px 12px; color: var(--text-secondary);"><?= $isDemo ? 'สมส่วน (ปกติ)' : 'รอป้อนข้อมูล' ?></div>
+                        <div id="bmi-status" class="badge" style="font-size: 14px; padding: 6px 12px; <?= $isDemo ? 'background-color: rgba(16, 185, 129, 0.2); color: var(--color-green);' : 'color: var(--text-secondary);' ?>">
+                            <?= $isDemo ? 'ปกติ' : 'รอป้อนข้อมูล' ?>
+                        </div>
                     </div>
 
                     <!-- Blood Pressure section -->
@@ -506,21 +508,21 @@ if ($isDemo) {
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                             <div>
                                 <label style="font-size: 13px; color: var(--text-secondary);">ครั้งที่ 1 ตัวบน (SYS)</label>
-                                <input type="text" name="sys_bp1" id="sys_bp1" class="input-large" readonly onclick="openNumPad('sys_bp1', 'ความดันตัวบน SYS1')" value="<?= $isDemo ? '118' : '' ?>" placeholder="0">
+                                <input type="text" name="sys_bp1" id="sys_bp1" class="input-large" value="<?= $isDemo ? '118' : '' ?>" readonly onclick="openNumPad('sys_bp1', 'ความดันตัวบน SYS1')" placeholder="0">
                             </div>
                             <div>
                                 <label style="font-size: 13px; color: var(--text-secondary);">ครั้งที่ 1 ตัวล่าง (DIA)</label>
-                                <input type="text" name="dia_bp1" id="dia_bp1" class="input-large" readonly onclick="openNumPad('dia_bp1', 'ความดันตัวล่าง DIA1')" value="<?= $isDemo ? '76' : '' ?>" placeholder="0">
+                                <input type="text" name="dia_bp1" id="dia_bp1" class="input-large" value="<?= $isDemo ? '76' : '' ?>" readonly onclick="openNumPad('dia_bp1', 'ความดันตัวล่าง DIA1')" placeholder="0">
                             </div>
                         </div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                             <div>
                                 <label style="font-size: 13px; color: var(--text-secondary);">ครั้งที่ 2 ตัวบน (SYS)</label>
-                                <input type="text" name="sys_bp2" id="sys_bp2" class="input-large" readonly onclick="openNumPad('sys_bp2', 'ความดันตัวบน SYS2')" value="<?= $isDemo ? '116' : '' ?>" placeholder="0">
+                                <input type="text" name="sys_bp2" id="sys_bp2" class="input-large" value="<?= $isDemo ? '116' : '' ?>" readonly onclick="openNumPad('sys_bp2', 'ความดันตัวบน SYS2')" placeholder="0">
                             </div>
                             <div>
                                 <label style="font-size: 13px; color: var(--text-secondary);">ครั้งที่ 2 ตัวล่าง (DIA)</label>
-                                <input type="text" name="dia_bp2" id="dia_bp2" class="input-large" readonly onclick="openNumPad('dia_bp2', 'ความดันตัวล่าง DIA2')" value="<?= $isDemo ? '74' : '' ?>" placeholder="0">
+                                <input type="text" name="dia_bp2" id="dia_bp2" class="input-large" value="<?= $isDemo ? '74' : '' ?>" readonly onclick="openNumPad('dia_bp2', 'ความดันตัวล่าง DIA2')" placeholder="0">
                             </div>
                         </div>
                     </div>
@@ -543,7 +545,7 @@ if ($isDemo) {
                             </div>
                         </div>
                         <div>
-                            <input type="text" name="dtx_value" id="dtx_value" class="input-large" readonly onclick="openNumPad('dtx_value', 'ระดับน้ำตาล DTX')" value="<?= $isDemo ? '95' : '' ?>" placeholder="0">
+                            <input type="text" name="dtx_value" id="dtx_value" class="input-large" value="<?= $isDemo ? '95' : '' ?>" readonly onclick="openNumPad('dtx_value', 'ระดับน้ำตาล DTX')" placeholder="0">
                         </div>
                     </div>
 
@@ -875,22 +877,8 @@ if ($isDemo) {
     </div>
 
     <script>
-        const isSandboxMode = <?= (isSandboxMode($hoscode) || $isDemo) ? 'true' : 'false' ?>;
-        let selectedResident = <?= ($isDemo && $curResident) ? json_encode([
-            'assignmentId' => $curResident['assignment_id'],
-            'name' => $curResident['first_name'] . ' ' . $curResident['last_name'],
-            'sex' => $curResident['sex'],
-            'age' => $curResident['age'] ?? 58,
-            'needDm' => true,
-            'needHt' => true,
-            'origin' => 'BOTH',
-            'homeLat' => 15.4300,
-            'homeLng' => 104.9800,
-            'lastSbp' => $curResident['last_sbp'] ?? 118,
-            'lastDbp' => $curResident['last_dbp'] ?? 76,
-            'lastDtx' => $curResident['last_dtx'] ?? 95,
-            'lastDtxType' => $curResident['last_dtx_type'] ?? 'fpg'
-        ], JSON_UNESCAPED_UNICODE) : 'null' ?>;
+        const isSandboxMode = <?= (isSandboxMode($hoscode) || DemoDataProvider::isDemoMode()) ? 'true' : 'false' ?>;
+        let selectedResident = null;
         let activeNumPad = null;
         let currentPickerInputId = null;
         let gpsLocation = { lat: 15.4300, lng: 104.9800 };
@@ -1550,7 +1538,7 @@ if ($isDemo) {
 
             // Smoking
             let isSmoker = false;
-            const smokingVal = document.querySelector('input[name="smoking_risk"]:checked').value;
+            const smokingVal = document.querySelector('input[name="smoking_risk"]:checked')?.value || 'green';
             if (smokingVal === 'red') {
                 isSmoker = true;
             }
@@ -1807,11 +1795,14 @@ if ($isDemo) {
             return true;
         }
 
-        document.getElementById('btn-confirm-critical-save').onclick = function() {
-            isCriticalAcknowledged = true;
-            closeCriticalModal();
-            submitScreening();
-        };
+        const btnConfirmCrit = document.getElementById('btn-confirm-critical-save');
+        if (btnConfirmCrit) {
+            btnConfirmCrit.onclick = function() {
+                isCriticalAcknowledged = true;
+                closeCriticalModal();
+                submitScreening();
+            };
+        }
 
         // Skip case controls
         function openSkipModal() {
@@ -1967,26 +1958,28 @@ if ($isDemo) {
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            <?php if (DemoDataProvider::isDemoMode() && !empty($residents)): ?>
-            const defaultResident = <?= json_encode($residents[0], JSON_UNESCAPED_UNICODE) ?>;
-            selectResident(
-                defaultResident.assignment_id,
-                `${defaultResident.first_name} ${defaultResident.last_name}`,
-                defaultResident.sex,
-                defaultResident.birth,
-                defaultResident.need_screen_dm == 1,
-                defaultResident.need_screen_ht == 1,
-                defaultResident.health_status_origin || 'NORMAL',
-                parseFloat(defaultResident.latitude || 15.4300),
-                parseFloat(defaultResident.longitude || 104.9800),
-                defaultResident.last_sbp || null,
-                defaultResident.last_dbp || null,
-                defaultResident.last_dtx || null,
-                defaultResident.last_dtx_type || 'fpg',
-                document.querySelector('.resident-card') || document.body
-            );
-            fillDemoVitals('normal');
-            nextStep('step-vital');
+            <?php if ($isDemo && !empty($residents)): ?>
+            const r = <?= json_encode($residents[0], JSON_UNESCAPED_UNICODE) ?>;
+            const birthDate = new Date(r.birth);
+            const age = new Date().getFullYear() - birthDate.getFullYear();
+            
+            selectedResident = {
+                assignmentId: r.assignment_id,
+                name: `${r.first_name} ${r.last_name}`,
+                sex: r.sex,
+                age: age,
+                needDm: true,
+                needHt: true,
+                origin: r.health_status_origin || 'BOTH',
+                homeLat: parseFloat(r.latitude || 15.4300),
+                homeLng: parseFloat(r.longitude || 104.9800),
+                lastSbp: r.last_sbp ? parseInt(r.last_sbp) : 135,
+                lastDbp: r.last_dbp ? parseInt(r.last_dbp) : 85,
+                lastDtx: r.last_dtx ? parseInt(r.last_dtx) : 118,
+                lastDtxType: r.last_dtx_type || 'fpg'
+            };
+            calculateBmi();
+            calculateCvRisk();
             <?php else: ?>
             const cards = document.querySelectorAll('.resident-card');
             if (cards.length === 1) {
