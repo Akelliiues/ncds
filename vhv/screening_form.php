@@ -672,53 +672,53 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                     <span class="form-label-big" style="font-size: 18px; margin-top: 10px;">📏 ข้อมูลร่างกาย</span>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                         <div>
-                            <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 6px;">น้ำหนัก (กก.)</label>
-                            <input type="number" step="0.1" inputmode="decimal" name="weight" id="weight" class="input-large" value="<?= $isDemo ? '60.0' : '' ?>" oninput="calculateBmi()" onclick="openScrollPicker('weight', 'น้ำหนัก (กก.)', 30, 150, 60.0)" placeholder="0.0">
+                            <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 6px;">น้ำหนัก (กก.) <span style="color: var(--color-red);">*</span></label>
+                            <input type="number" step="0.1" inputmode="decimal" name="weight" id="weight" class="input-large" value="" oninput="calculateBmi()" onclick="openScrollPicker('weight', 'น้ำหนัก (กก.)', 30, 150, 60.0)" placeholder="0.0">
                         </div>
                         <div>
-                            <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 6px;">ส่วนสูง (ซม.)</label>
-                            <input type="number" step="0.1" inputmode="decimal" name="height" id="height" class="input-large" value="<?= $isDemo ? '165.0' : '' ?>" oninput="calculateBmi()" onclick="openScrollPicker('height', 'ส่วนสูง (ซม.)', 100, 220, 160.0)" placeholder="0.0">
+                            <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 6px;">ส่วนสูง (ซม.) <span style="color: var(--color-red);">*</span></label>
+                            <input type="number" step="0.1" inputmode="decimal" name="height" id="height" class="input-large" value="" oninput="calculateBmi()" onclick="openScrollPicker('height', 'ส่วนสูง (ซม.)', 100, 220, 160.0)" placeholder="0.0">
                         </div>
                     </div>
 
                     <div style="margin-bottom: 20px;">
-                        <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 6px;">รอบเอว (นิ้ว)</label>
-                        <input type="number" step="0.1" inputmode="decimal" name="waist" id="waist" class="input-large" value="<?= $isDemo ? '30.0' : '' ?>" oninput="calculateCvRisk()" onclick="openScrollPicker('waist', 'รอบเอว (นิ้ว)', 20, 60, 30.0)" placeholder="0.0">
+                        <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 6px;">รอบเอว (นิ้ว) <span style="color: var(--color-red);">*</span></label>
+                        <input type="number" step="0.1" inputmode="decimal" name="waist" id="waist" class="input-large" value="" oninput="calculateCvRisk()" onclick="openScrollPicker('waist', 'รอบเอว (นิ้ว)', 20, 60, 30.0)" placeholder="0.0">
                     </div>
 
                     <!-- BMI Auto-Display -->
                     <div class="neumorph-inset" style="padding: 20px; border-radius: var(--border-radius); margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <span style="color: var(--text-secondary); font-size: 14px; font-weight: 600;">ค่าดัชนีมวลกาย (BMI)</span>
-                            <div id="bmi-display" style="font-size: 26px; font-weight: 800; color: var(--color-primary); margin-top: 4px;"><?= $isDemo ? '22.04' : '0.00' ?></div>
+                            <div id="bmi-display" style="font-size: 26px; font-weight: 800; color: var(--color-primary); margin-top: 4px;">0.00</div>
                         </div>
-                        <div id="bmi-status" class="badge" style="font-size: 14px; padding: 6px 12px; <?= $isDemo ? 'background-color: rgba(16, 185, 129, 0.2); color: var(--color-green);' : 'color: var(--text-secondary);' ?>">
-                            <?= $isDemo ? 'ปกติ' : 'รอป้อนข้อมูล' ?>
+                        <div id="bmi-status" class="badge" style="font-size: 14px; padding: 6px 12px; color: var(--text-secondary);">
+                            รอป้อนข้อมูล
                         </div>
                     </div>
 
                     <!-- Blood Pressure section -->
                     <div id="section-bp" style="margin-bottom: 24px;">
-                        <span style="color: var(--text-primary); font-size: 18px; font-weight: 800; display: block; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">🩺 วัดความดันโลหิต</span>
+                        <span style="color: var(--text-primary); font-size: 18px; font-weight: 800; display: block; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">🩺 วัดความดันโลหิต <span style="color: var(--color-red); font-size: 14px;">*</span></span>
                         <div id="last-bp-info" class="card-dark neumorph-inset" style="padding: 10px 14px; font-size: 13.5px; color: var(--color-primary); font-weight: 700; margin-bottom: 14px; display: none; border-radius: var(--border-radius);"></div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                             <div>
-                                <label style="font-size: 13px; color: var(--text-secondary);">ครั้งที่ 1 ตัวบน (SYS)</label>
-                                <input type="number" inputmode="numeric" name="sys_bp1" id="sys_bp1" class="input-large" value="<?= $isDemo ? '118' : '' ?>" oninput="calculateCvRisk()" onclick="openNumPad('sys_bp1', 'ความดันตัวบน SYS1')" placeholder="0">
+                                <label style="font-size: 13px; color: var(--text-secondary);">ครั้งที่ 1 ตัวบน (SYS) <span style="color: var(--color-red);">*</span></label>
+                                <input type="number" inputmode="numeric" name="sys_bp1" id="sys_bp1" class="input-large" value="" oninput="calculateCvRisk()" onclick="openNumPad('sys_bp1', 'ความดันตัวบน SYS1')" placeholder="0">
                             </div>
                             <div>
-                                <label style="font-size: 13px; color: var(--text-secondary);">ครั้งที่ 1 ตัวล่าง (DIA)</label>
-                                <input type="number" inputmode="numeric" name="dia_bp1" id="dia_bp1" class="input-large" value="<?= $isDemo ? '76' : '' ?>" oninput="calculateCvRisk()" onclick="openNumPad('dia_bp1', 'ความดันตัวล่าง DIA1')" placeholder="0">
+                                <label style="font-size: 13px; color: var(--text-secondary);">ครั้งที่ 1 ตัวล่าง (DIA) <span style="color: var(--color-red);">*</span></label>
+                                <input type="number" inputmode="numeric" name="dia_bp1" id="dia_bp1" class="input-large" value="" oninput="calculateCvRisk()" onclick="openNumPad('dia_bp1', 'ความดันตัวล่าง DIA1')" placeholder="0">
                             </div>
                         </div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                             <div>
-                                <label style="font-size: 13px; color: var(--text-secondary);">ครั้งที่ 2 ตัวบน (SYS)</label>
-                                <input type="number" inputmode="numeric" name="sys_bp2" id="sys_bp2" class="input-large" value="<?= $isDemo ? '116' : '' ?>" oninput="calculateCvRisk()" onclick="openNumPad('sys_bp2', 'ความดันตัวบน SYS2')" placeholder="0">
+                                <label style="font-size: 13px; color: var(--text-secondary);">ครั้งที่ 2 ตัวบน (SYS) (ถ้ามี)</label>
+                                <input type="number" inputmode="numeric" name="sys_bp2" id="sys_bp2" class="input-large" value="" oninput="calculateCvRisk()" onclick="openNumPad('sys_bp2', 'ความดันตัวบน SYS2')" placeholder="0">
                             </div>
                             <div>
-                                <label style="font-size: 13px; color: var(--text-secondary);">ครั้งที่ 2 ตัวล่าง (DIA)</label>
-                                <input type="number" inputmode="numeric" name="dia_bp2" id="dia_bp2" class="input-large" value="<?= $isDemo ? '74' : '' ?>" oninput="calculateCvRisk()" onclick="openNumPad('dia_bp2', 'ความดันตัวล่าง DIA2')" placeholder="0">
+                                <label style="font-size: 13px; color: var(--text-secondary);">ครั้งที่ 2 ตัวล่าง (DIA) (ถ้ามี)</label>
+                                <input type="number" inputmode="numeric" name="dia_bp2" id="dia_bp2" class="input-large" value="" oninput="calculateCvRisk()" onclick="openNumPad('dia_bp2', 'ความดันตัวล่าง DIA2')" placeholder="0">
                             </div>
                         </div>
                     </div>
@@ -741,7 +741,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                             </div>
                         </div>
                         <div>
-                            <input type="number" inputmode="numeric" name="dtx_value" id="dtx_value" class="input-large" value="<?= $isDemo ? '95' : '' ?>" oninput="calculateCvRisk()" onclick="openNumPad('dtx_value', 'ระดับน้ำตาล DTX')" placeholder="0">
+                            <input type="number" inputmode="numeric" name="dtx_value" id="dtx_value" class="input-large" value="" oninput="calculateCvRisk()" onclick="openNumPad('dtx_value', 'ระดับน้ำตาล DTX')" placeholder="0">
                         </div>
                     </div>
 
@@ -2085,11 +2085,78 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
 
         function submitScreening() {
             if (!selectedResident) {
-                alert("กรุณาเลือกผู้รับการคัดกรอง");
+                alert("⚠️ กรุณาเลือกบุคคลที่ต้องการคัดกรองก่อน");
+                nextStep('step-resident');
                 return;
             }
 
-            // Verify GPS coordinates (Skip verification in Sandbox / Demo Mode)
+            // 1. ตรวจสอบข้อมูลร่างกาย: น้ำหนัก และ ส่วนสูง (บังคับห้ามเว้นว่าง)
+            const w = parseFloat(document.getElementById('weight').value) || 0;
+            const h = parseFloat(document.getElementById('height').value) || 0;
+            if (w <= 0 || h <= 0) {
+                alert("⚠️ กรุณากรอกข้อมูล 'น้ำหนัก (กก.)' และ 'ส่วนสูง (ซม.)' ให้ครบถ้วน");
+                const targetInput = document.getElementById(w <= 0 ? 'weight' : 'height');
+                if (targetInput) {
+                    targetInput.focus();
+                    targetInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return;
+            }
+
+            // 2. ตรวจสอบข้อมูลรอบเอว (บังคับห้ามเว้นว่าง)
+            const waist = parseFloat(document.getElementById('waist').value) || 0;
+            if (waist <= 0) {
+                alert("⚠️ กรุณากรอกข้อมูล 'รอบเอว (นิ้ว)' ให้ครบถ้วน");
+                const waistInput = document.getElementById('waist');
+                if (waistInput) {
+                    waistInput.focus();
+                    waistInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return;
+            }
+
+            // 3. ตรวจสอบค่าความดันโลหิต (บังคับตัวบน SYS และตัวล่าง DIA ครั้งที่ 1)
+            const sys1 = parseInt(document.getElementById('sys_bp1').value) || 0;
+            const dia1 = parseInt(document.getElementById('dia_bp1').value) || 0;
+            if (sys1 <= 0 || dia1 <= 0) {
+                alert("⚠️ กรุณากรอก 'ค่าความดันโลหิต ครั้งที่ 1 (ตัวบน และ ตัวล่าง)' ให้ครบถ้วน");
+                const bpInput = document.getElementById(sys1 <= 0 ? 'sys_bp1' : 'dia_bp1');
+                if (bpInput) {
+                    bpInput.focus();
+                    bpInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return;
+            }
+
+            // 4. ตรวจสอบค่าน้ำตาลในเลือด DTX (ถ้ามีสิทธิ์คัดกรองเบาหวาน หรือเปิดตรวจ DTX)
+            const dtxSection = document.getElementById('section-dtx');
+            const isDtxVisible = dtxSection && dtxSection.style.display !== 'none';
+            if (selectedResident.needDm || isDtxVisible) {
+                const dtxVal = parseInt(document.getElementById('dtx_value').value) || 0;
+                if (dtxVal <= 0) {
+                    alert("⚠️ กรุณากรอก 'ระดับน้ำตาลในเลือด (DTX)' ของผู้รับการคัดกรอง");
+                    const dtxInput = document.getElementById('dtx_value');
+                    if (dtxInput) {
+                        dtxInput.focus();
+                        dtxInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    return;
+                }
+            }
+
+            // 5. ตรวจสอบคำแนะนำโดย อสม. (ต้องเลือกอย่างน้อย 1 รายการ)
+            const adviceText = (document.getElementById('advice_given')?.value || '').trim();
+            const selectedAdviceCards = document.querySelectorAll('.advice-image-card.selected');
+            if (!adviceText && selectedAdviceCards.length === 0) {
+                alert("⚠️ กรุณาคลิกเลือก 'คำแนะนำโดย อสม. (3อ. 2ส.)' จากการ์ดรูปภาพด้านล่างอย่างน้อย 1 รายการ ก่อนกดบันทึกส่งงานครับ");
+                const advSec = document.getElementById('advice_given');
+                if (advSec) {
+                    advSec.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return;
+            }
+
+            // 6. ตรวจสอบพิกัด GPS (เฉพาะโหมดบันทึกจริง)
             if (!isSandboxMode) {
                 const latVal = parseFloat(document.getElementById('screening_lat').value) || 0;
                 const lngVal = parseFloat(document.getElementById('screening_lng').value) || 0;
@@ -2098,41 +2165,9 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                     return;
                 }
             } else {
-                // Ensure demo coordinates are set
                 if (!document.getElementById('screening_lat').value) {
                     document.getElementById('screening_lat').value = '15.430000';
                     document.getElementById('screening_lng').value = '104.980000';
-                }
-            }
-
-            // Validation logic (Auto-fill default mock values if empty in Demo mode)
-            let w = parseFloat(document.getElementById('weight').value) || 0;
-            let h = parseFloat(document.getElementById('height').value) || 0;
-            if (w <= 0 || h <= 0) {
-                if (isSandboxMode) {
-                    document.getElementById('weight').value = '60.0';
-                    document.getElementById('height').value = '165.0';
-                    document.getElementById('waist').value = '30.0';
-                    calculateBmi();
-                } else {
-                    alert("กรุณากรอกข้อมูล น้ำหนัก และ ส่วนสูง ให้ครบถ้วน");
-                    return;
-                }
-            }
-
-            if (selectedResident.needHt) {
-                let sys1 = parseInt(document.getElementById('sys_bp1').value) || 0;
-                let dia1 = parseInt(document.getElementById('dia_bp1').value) || 0;
-                if (sys1 <= 0 || dia1 <= 0) {
-                    if (isSandboxMode) {
-                        document.getElementById('sys_bp1').value = '118';
-                        document.getElementById('dia_bp1').value = '76';
-                        document.getElementById('sys_bp2').value = '116';
-                        document.getElementById('dia_bp2').value = '74';
-                    } else {
-                        alert("กรุณากรอกค่าความดันโลหิต (ตัวบนและตัวล่าง) ให้ครบถ้วน");
-                        return;
-                    }
                 }
             }
 
