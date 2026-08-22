@@ -2476,32 +2476,76 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 </div>
             `;
 
-            // Trend & Comparison Section
+            // Trend & Comparison Section with Dynamic Large Background Arrow Watermark
+            const trendBgIcon = document.getElementById('summary-trend-bg-icon');
             const trendBadge = document.getElementById('summary-trend-badge');
             const trendDetailsContainer = document.getElementById('summary-trend-details');
             
-            trendBadge.innerText = meta.trend_title || '📈 สุขภาพดีขึ้นกว่ารอบก่อน';
-            trendBadge.style.background = (meta.trend_color || '#10B981') + '18';
-            trendBadge.style.color = meta.trend_color || '#10B981';
-            trendBadge.style.border = `1px solid ${meta.trend_color || '#10B981'}`;
-
             let detailList = [];
             if (meta.trend_status === 'improved') {
-                detailList = ['ความดันโลหิตและสุขภาพโดยรวมปรับตัวดีขึ้น', 'การดูแลสุขภาพตนเองได้ผลลัพธ์เป็นที่น่าพอใจ'];
+                trendBadge.innerText = '📈 สุขภาพดีขึ้น (ค่าลดลง)';
+                trendBadge.style.background = 'rgba(16, 185, 129, 0.14)';
+                trendBadge.style.color = '#10B981';
+                trendBadge.style.border = '1px solid rgba(16, 185, 129, 0.4)';
+                if (trendBgIcon) {
+                    trendBgIcon.innerHTML = '↘'; // แนวโน้มลดลง / สุขภาพดีขึ้น
+                    trendBgIcon.style.color = '#10B981';
+                    trendBgIcon.style.opacity = '0.18';
+                }
+                detailList = [
+                    { icon: '✓', color: '#10B981', text: 'ความดันโลหิตและสุขภาพโดยรวมปรับตัวดีขึ้น' },
+                    { icon: '✓', color: '#10B981', text: 'การดูแลสุขภาพตนเองได้ผลลัพธ์เป็นที่น่าพอใจ' }
+                ];
             } else if (meta.trend_status === 'worsened') {
-                detailList = ['ค่าตรวจมีแนวโน้มสูงขึ้นกว่าครั้งก่อน', 'แนะนำเพิ่มการปรับเปลี่ยนพฤติกรรม 3อ. 2ส. อย่างใกล้ชิด'];
+                trendBadge.innerText = '⚠️ เฝ้าระวัง (ค่าตรวจสูงขึ้น)';
+                trendBadge.style.background = 'rgba(245, 158, 11, 0.16)';
+                trendBadge.style.color = '#D97706';
+                trendBadge.style.border = '1px solid rgba(245, 158, 11, 0.5)';
+                if (trendBgIcon) {
+                    trendBgIcon.innerHTML = '↗'; // แนวโน้มสูงขึ้น / เฝ้าระวัง
+                    trendBgIcon.style.color = '#EA580C';
+                    trendBgIcon.style.opacity = '0.20';
+                }
+                detailList = [
+                    { icon: '⚠️', color: '#EA580C', text: 'ค่าตรวจมีแนวโน้มสูงขึ้นกว่าครั้งก่อน' },
+                    { icon: '💡', color: '#3B82F6', text: 'แนะนำเพิ่มการปรับเปลี่ยนพฤติกรรม 3อ. 2ส. อย่างใกล้ชิด' }
+                ];
             } else if (meta.trend_status === 'first_round') {
-                detailList = ['บันทึกเป็นฐานข้อมูลประเมินสุขภาพประจำปีเรียบร้อย'];
+                trendBadge.innerText = '✨ บันทึกรอบแรก';
+                trendBadge.style.background = 'rgba(59, 130, 246, 0.12)';
+                trendBadge.style.color = '#2563EB';
+                trendBadge.style.border = '1px solid rgba(59, 130, 246, 0.35)';
+                if (trendBgIcon) {
+                    trendBgIcon.innerHTML = '🎯';
+                    trendBgIcon.style.color = '#3B82F6';
+                    trendBgIcon.style.opacity = '0.12';
+                }
+                detailList = [
+                    { icon: '✓', color: '#3B82F6', text: 'บันทึกเป็นฐานข้อมูลประเมินสุขภาพประจำปีเรียบร้อย' },
+                    { icon: '✓', color: '#3B82F6', text: 'ใช้เปรียบเทียบผลกับครั้งถัดไป' }
+                ];
             } else {
-                detailList = ['ระดับความดันและค่าน้ำตาลทรงตัวใกล้เคียงเดิม'];
+                trendBadge.innerText = '⚖️ สุขภาพทรงตัว';
+                trendBadge.style.background = 'rgba(100, 116, 139, 0.12)';
+                trendBadge.style.color = '#64748B';
+                trendBadge.style.border = '1px solid rgba(100, 116, 139, 0.35)';
+                if (trendBgIcon) {
+                    trendBgIcon.innerHTML = '➔';
+                    trendBgIcon.style.color = '#64748B';
+                    trendBgIcon.style.opacity = '0.12';
+                }
+                detailList = [
+                    { icon: '✓', color: '#10B981', text: 'ระดับความดันและค่าน้ำตาลทรงตัวใกล้เคียงเดิม' },
+                    { icon: '✓', color: '#10B981', text: 'รักษาวินัยการดูแลสุขภาพอย่างสม่ำเสมอ' }
+                ];
             }
 
             let detailHtml = '';
             detailList.forEach(d => {
                 detailHtml += `
-                    <div style="font-size: 12.5px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
-                        <span style="color: var(--color-green, #10B981); font-weight: bold;">✓</span> 
-                        <span>${d}</span>
+                    <div style="font-size: 12.5px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; line-height: 1.4;">
+                        <span style="color: ${d.color}; font-weight: 900; font-size: 13.5px;">${d.icon}</span> 
+                        <span>${d.text}</span>
                     </div>
                 `;
             });
@@ -2645,14 +2689,44 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 </div>
             </div>
 
-            <!-- Comparison with Previous Round -->
-            <div style="background: var(--bg-darker); border-radius: 16px; padding: 12px 14px; margin-bottom: 16px; box-shadow: var(--neumorph-inset); border: 1px solid var(--border-color, transparent);">
-                <div style="font-size: 12px; font-weight: 800; color: var(--text-secondary); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                    <span style="display: flex; align-items: center; gap: 5px;"><span>🔄</span> <span>ผลเปรียบเทียบจากรอบก่อน</span></span>
-                    <span id="summary-trend-badge" style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 8px;">📈 ดีขึ้น</span>
+            <!-- Comparison with Previous Round (Dynamic Watermark Arrow) -->
+            <div id="summary-trend-card" style="
+                background: var(--bg-darker); 
+                border-radius: 16px; 
+                padding: 12px 14px; 
+                margin-bottom: 16px; 
+                box-shadow: var(--neumorph-inset); 
+                border: 1px solid var(--border-color, transparent);
+                position: relative;
+                overflow: hidden;
+            ">
+                <!-- Large Watermark Arrow / Icon Background -->
+                <div id="summary-trend-bg-icon" style="
+                    position: absolute;
+                    right: 8px;
+                    bottom: -8px;
+                    font-size: 78px;
+                    font-weight: 900;
+                    line-height: 1;
+                    pointer-events: none;
+                    user-select: none;
+                    opacity: 0.15;
+                    color: var(--color-green, #10B981);
+                    transition: all 0.3s ease;
+                    z-index: 0;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                ">
+                    ↘
                 </div>
-                <div id="summary-trend-details" style="display: flex; flex-direction: column; gap: 5px;">
-                    <!-- Trend Comparison Details -->
+
+                <div style="position: relative; z-index: 1;">
+                    <div style="font-size: 12px; font-weight: 800; color: var(--text-secondary); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="display: flex; align-items: center; gap: 5px;"><span>🔄</span> <span>ผลเปรียบเทียบจากรอบก่อน</span></span>
+                        <span id="summary-trend-badge" style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 8px;">📈 ดีขึ้น</span>
+                    </div>
+                    <div id="summary-trend-details" style="display: flex; flex-direction: column; gap: 5px;">
+                        <!-- Trend Comparison Details -->
+                    </div>
                 </div>
             </div>
 
