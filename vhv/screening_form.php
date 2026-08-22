@@ -583,9 +583,9 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                     <div class="card-dark" style="padding: 14px; margin-bottom: 20px; border: 1.5px dashed #3B82F6; background: rgba(59, 130, 246, 0.04); border-radius: var(--border-radius);">
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
                             <span style="color: #3B82F6; font-size: 13.5px; font-weight: 800; display: flex; align-items: center; gap: 6px;">
-                                🧪 แผงหยอดข้อมูลจำลองเพื่อเปรียบเทียบผล (Demo Preset)
+                                🧪 ข้อมูลจำลองเพื่อเปรียบเทียบผล
                             </span>
-                            <span style="font-size: 10px; background: #3B82F6; color: white; padding: 2px 6px; border-radius: 9999px; font-weight: bold;">1-Click Fill</span>
+                            <span style="font-size: 10px; background: #3B82F6; color: white; padding: 2px 6px; border-radius: 9999px; font-weight: bold;">1-Click</span>
                         </div>
                         <p style="color: var(--text-secondary); font-size: 12px; margin: 0 0 10px 0; line-height: 1.4;">
                             เลือกชุดค่าตรวจเพื่อทดสอบการประเมินความเสี่ยงและเปรียบเทียบผล:

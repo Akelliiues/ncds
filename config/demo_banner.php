@@ -36,10 +36,10 @@ if (isset($_SESSION['is_demo_mode']) && $_SESSION['is_demo_mode'] === true):
 ">
     <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
         <span style="background: linear-gradient(135deg, #F59E0B, #D97706); color: #0F172A; font-size: 11px; font-weight: 900; padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 6px rgba(245,158,11,0.4);">
-            🧪 DEMO SANDBOX
+            Virtual Mode
         </span>
         <span style="font-size: 13px; font-weight: 600; color: #F8FAFC;">
-            ท่านกำลังอยู่ใน <strong>โหมดจำลองบทบาท: <?= htmlspecialchars($roleName) ?></strong> <span style="color: #94A3B8; font-size: 12px; font-weight: 400;">(ใช้ข้อมูลสมมติ 100% ปลอดภัย ไม่กระทบฐานข้อมูลจริง)</span>
+            <strong>โหมดจำลองบทบาท: <?= htmlspecialchars($roleName) ?></strong> <span style="color: #94A3B8; font-size: 12px; font-weight: 400;">(ใช้ข้อมูลจำลอง Mockup Data)</span>
         </span>
     </div>
     <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
