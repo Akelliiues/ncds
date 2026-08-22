@@ -598,6 +598,53 @@ try {
 
 
 
+// Auto-create JHCIS sync tables and columns
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `jhcis_sync_configs` (
+        `config_id` INT AUTO_INCREMENT PRIMARY KEY,
+        `hoscode` VARCHAR(10) NOT NULL UNIQUE,
+        `jhcis_host` VARCHAR(100) DEFAULT 'localhost',
+        `jhcis_port` INT DEFAULT 3333,
+        `jhcis_dbname` VARCHAR(50) DEFAULT 'jhcisdb',
+        `jhcis_user` VARCHAR(50) DEFAULT 'root',
+        `jhcis_pass` VARCHAR(100) DEFAULT '',
+        `date_mode` ENUM('screening_date', 'sync_date') DEFAULT 'screening_date',
+        `overwrite_mode` ENUM('skip_existing', 'update_newer') DEFAULT 'skip_existing',
+        `auto_sync_approved` TINYINT(1) DEFAULT 0,
+        `last_connected_at` DATETIME NULL,
+        `last_synced_at` DATETIME NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `jhcis_sync_logs` (
+        `log_id` INT AUTO_INCREMENT PRIMARY KEY,
+        `hoscode` VARCHAR(10) NOT NULL,
+        `sync_type` VARCHAR(50) DEFAULT 'manual',
+        `date_range` VARCHAR(100) NULL,
+        `total_records` INT DEFAULT 0,
+        `success_records` INT DEFAULT 0,
+        `skipped_records` INT DEFAULT 0,
+        `failed_records` INT DEFAULT 0,
+        `duration_seconds` DECIMAL(6,2) DEFAULT 0.00,
+        `error_message` TEXT NULL,
+        `synced_by` VARCHAR(100) DEFAULT 'Admin',
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+    $checkSyncCol = $pdo->query("SHOW COLUMNS FROM `screening_results` LIKE 'is_synced_jhcis'");
+    if ($checkSyncCol->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `screening_results` ADD COLUMN `is_synced_jhcis` TINYINT(1) NOT NULL DEFAULT 0");
+    }
+
+    $checkSyncDateCol = $pdo->query("SHOW COLUMNS FROM `screening_results` LIKE 'jhcis_synced_at'");
+    if ($checkSyncDateCol->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `screening_results` ADD COLUMN `jhcis_synced_at` DATETIME NULL");
+    }
+} catch (\PDOException $e) {
+    // Fail silently
+}
+
 // Auto-migration: Add advice_given column to screening_results if it doesn't exist
 try {
     $check = $pdo->query("SHOW COLUMNS FROM `screening_results` LIKE 'advice_given'");
@@ -1977,15 +2024,76 @@ try {
             if (empty($checkSrCid)) {
                 $pdo->exec("ALTER TABLE `screening_results` ADD COLUMN `target_cid` VARCHAR(13) NULL AFTER `assignment_id`");
             }
-            $pdo->exec("UPDATE screening_results sr JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id SET sr.target_cid = ta.target_cid WHERE sr.target_cid IS NULL OR sr.target_cid = ''");
         } catch (\PDOException $e) {}
 
+        // 6. DMYST-inspired clinical and sleep migrations
         try {
-            $pdo->exec("ALTER TABLE `screening_results` MODIFY COLUMN `assignment_id` INT(11) NULL");
-        } catch (\PDOException $e) {}
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `system_messages` (
+                `message_id` INT AUTO_INCREMENT PRIMARY KEY,
+                `sender_username` VARCHAR(50) NOT NULL,
+                `sender_name` VARCHAR(100) NOT NULL,
+                `sender_role` VARCHAR(20) NOT NULL DEFAULT 'admin',
+                `target_type` VARCHAR(20) NOT NULL DEFAULT 'all',
+                `target_hcode` VARCHAR(10) NULL,
+                `target_sub_district` VARCHAR(6) NULL,
+                `title` VARCHAR(255) NOT NULL,
+                `message_body` TEXT NOT NULL,
+                `priority` ENUM('normal', 'urgent', 'emergency') DEFAULT 'normal',
+                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
 
-        try {
-            $pdo->exec("ALTER TABLE `screening_results` DROP FOREIGN KEY `fk_screen_assignment`");
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `system_message_reads` (
+                `read_id` INT AUTO_INCREMENT PRIMARY KEY,
+                `message_id` INT NOT NULL,
+                `reader_id` VARCHAR(50) NOT NULL,
+                `read_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY `uniq_msg_reader` (`message_id`, `reader_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+            // screening_results columns
+            $srCols = [
+                'sleep_quality' => "VARCHAR(20) NOT NULL DEFAULT 'good'",
+                'care_level' => "VARCHAR(20) NOT NULL DEFAULT 'good'",
+                'next_visit_date' => "DATE NULL",
+                'guidance_summary' => "TEXT NULL",
+                'health_progress' => "VARCHAR(20) NULL"
+            ];
+            foreach ($srCols as $col => $type) {
+                $chk = $pdo->query("SHOW COLUMNS FROM `screening_results` LIKE '$col'")->fetchAll();
+                if (empty($chk)) {
+                    $pdo->exec("ALTER TABLE `screening_results` ADD COLUMN `$col` $type");
+                }
+            }
+
+            // dpac_followups columns
+            $dpCols = [
+                'sleep_quality' => "VARCHAR(20) NOT NULL DEFAULT 'good'",
+                'care_level' => "VARCHAR(20) NOT NULL DEFAULT 'good'",
+                'next_visit_date' => "DATE NULL",
+                'guidance_summary' => "TEXT NULL",
+                'health_progress' => "VARCHAR(20) NULL"
+            ];
+            foreach ($dpCols as $col => $type) {
+                $chk = $pdo->query("SHOW COLUMNS FROM `dpac_followups` LIKE '$col'")->fetchAll();
+                if (empty($chk)) {
+                    $pdo->exec("ALTER TABLE `dpac_followups` ADD COLUMN `$col` $type");
+                }
+            }
+
+            // Seed a welcome broadcast message if system_messages is empty
+            $msgCount = $pdo->query("SELECT COUNT(*) FROM `system_messages`")->fetchColumn();
+            if ($msgCount == 0) {
+                $stmtMsg = $pdo->prepare("INSERT INTO `system_messages` (sender_username, sender_name, sender_role, target_type, title, message_body, priority) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $stmtMsg->execute([
+                    'admin',
+                    'ผู้ดูแลระบบหลัก สสอ.ตาลสุม',
+                    'super_admin',
+                    'all',
+                    'ยินดีต้อนรับสู่ NCD Portal ตาลสุม 2026 (ระบบคัดกรองและดูแลสุขภาพชุมชนเชิงรุก)',
+                    'ขอขอบคุณ อสม. และเจ้าหน้าที่ทุกท่านที่ร่วมขับเคลื่อนการคัดกรองและปรับเปลี่ยนพฤติกรรมสุขภาพ (3อ. 2ส. 1น.) เพื่อสุขภาพที่ดีของพี่น้องชาวตาลสุมทุกคน',
+                    'normal'
+                ]);
+            }
         } catch (\PDOException $e) {}
     }
 } catch (\Exception $e) {

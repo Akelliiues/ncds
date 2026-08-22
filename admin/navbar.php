@@ -25,8 +25,8 @@ $is_super_admin = (!isset($admin_hoscode) || empty($admin_hoscode)) && (isset($_
 $is_core_active = in_array($current_page, ['index.php', 'profile.php', 'leaderboard.php']);
 $is_targets_active = in_array($current_page, ['target_manager.php', 'dpac_manager.php']);
 $is_work_active = in_array($current_page, ['assignment.php', 'vhv_approval.php', 'print_qr.php', 'vhv_tasks.php']);
-$is_reports_active = in_array($current_page, ['analytics.php', 'reports.php', 'security_log.php']);
-$is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php', 'db_manager.php', 'user_manager.php', 'unit_house_manager.php', 'update.php']);
+$is_reports_active = in_array($current_page, ['analytics.php', 'reports.php', 'security_log.php', 'surveillance_reports.php']);
+$is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php', 'db_manager.php', 'user_manager.php', 'unit_house_manager.php', 'update.php', 'messages.php', 'jhcis_sync.php']);
 ?>
 <script>
     // Immediately apply theme before rendering
@@ -44,7 +44,7 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
     .admin-nav-links {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
         flex-wrap: wrap;
     }
 
@@ -57,30 +57,34 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
         background-color: var(--bg-card);
         border: 1px solid var(--border-color);
         color: var(--text-secondary);
-        padding: 9px 16px;
+        padding: 8px 14px;
         border-radius: 12px;
         font-weight: 800;
         font-size: 13.5px;
         cursor: pointer;
-        display: flex;
+        display: inline-flex;
         align-items: center;
         gap: 8px;
         box-shadow: var(--neumorph-flat);
-        transition: all var(--transition-speed);
+        transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
         box-sizing: border-box;
+        height: 38px;
+        line-height: 1;
+        transform: none !important;
     }
 
     .nav-dropbtn:hover {
         color: var(--color-accent) !important;
         border-color: var(--color-accent);
-        transform: translateY(-1px);
+        transform: none !important;
     }
 
     .nav-dropbtn.active {
         background-color: var(--color-primary);
         color: #ffffff !important;
         border-color: var(--color-primary);
-        box-shadow: none;
+        box-shadow: var(--neumorph-flat);
+        transform: none !important;
     }
 
     .nav-dropbtn .chevron {
@@ -156,6 +160,7 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
         text-align: left !important;
         box-sizing: border-box !important;
         transition: all 0.15s ease !important;
+        transform: none !important;
     }
 
     /* Enforce uniform icon sizing and center alignment to make sure the text labels align perfectly */
@@ -182,6 +187,7 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
     .nav-dropdown-content a.active {
         background-color: var(--color-primary) !important;
         color: #ffffff !important;
+        transform: none !important;
     }
 
     /* Standalone logout button circle */
@@ -194,16 +200,36 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
         height: 38px;
         border-radius: 50%;
         background-color: var(--bg-card);
+        border: 1px solid var(--border-color);
         box-shadow: var(--neumorph-flat);
         color: var(--color-red) !important;
-        transition: all var(--transition-speed);
-        margin-left: 5px;
+        transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+        margin-left: 4px;
+        transform: none !important;
+        flex-shrink: 0;
+        box-sizing: border-box;
     }
 
     .btn-logout-circle:hover {
         color: #ffffff !important;
         background-color: var(--color-red) !important;
-        transform: translateY(-2px);
+        border-color: var(--color-red) !important;
+        transform: none !important;
+    }
+
+    .btn-theme-toggle {
+        width: 38px !important;
+        height: 38px !important;
+        flex-shrink: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transform: none !important;
+        box-sizing: border-box;
+    }
+
+    .btn-theme-toggle:hover {
+        transform: none !important;
     }
 
     /* Global Back to top floating button for Admin pages */
@@ -281,7 +307,7 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
 <div class="admin-navbar no-print">
     <a href="index.php" class="admin-logo" style="display: flex; align-items: center; gap: 10px;">
         <img src="../assets/icon.png" alt="Logo" style="height: 35px; width: 35px;">
-        <span>NCDs Prevention Portal</span>
+        <span>NCDs Portal</span>
         <?php if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true): ?>
             <span style="background-color: rgba(245, 158, 11, 0.15); color: #d97706; border: 1.5px solid rgba(217, 119, 6, 0.4); padding: 4px 10px; border-radius: 50px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; box-shadow: inset 1px 1px 3px rgba(0,0,0,0.05); margin-left: 5px;">
                 👁️ โหมดผู้มาเยือน
@@ -418,6 +444,12 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
                     </svg>
                     วิเคราะห์เชิงลึก (Analytics)
                 </a>
+                <a href="surveillance_reports.php" class="<?= $current_page == 'surveillance_reports.php' ? 'active' : '' ?>">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    รายงานเฝ้าระวัง 6 มิติ
+                </a>
                 <a href="reports.php" class="<?= $current_page == 'reports.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -447,6 +479,12 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
                 </svg>
             </button>
             <div class="nav-dropdown-content">
+                <a href="messages.php" class="<?= $current_page == 'messages.php' ? 'active' : '' ?>">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                    </svg>
+                    ศูนย์ข้อความ & ประกาศ
+                </a>
                 <?php if ($is_super_admin): ?>
                     <a href="import_hdc.php" class="<?= $current_page == 'import_hdc.php' ? 'active' : '' ?>">
                         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -461,6 +499,12 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
                         ประมวลผล ETL
                     </a>
                 <?php endif; ?>
+                <a href="jhcis_sync.php" class="<?= $current_page == 'jhcis_sync.php' ? 'active' : '' ?>">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5M8 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    ซิงค์ฐานข้อมูล JHCIS
+                </a>
                 <a href="db_manager.php" class="<?= $current_page == 'db_manager.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path>
@@ -519,8 +563,16 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
             </select>
         </div>
 
+        <!-- Notification Bell Button -->
+        <a href="messages.php" class="btn-theme-toggle no-print <?= $current_page == 'messages.php' ? 'active' : '' ?>" style="position: relative; text-decoration: none; color: <?= $current_page == 'messages.php' ? '#ffffff' : 'var(--text-primary)' ?>; background: <?= $current_page == 'messages.php' ? 'var(--color-primary)' : 'none' ?>; display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; margin-right: 6px; box-sizing: border-box;" title="การแจ้งเตือน & ข้อความประกาศ">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <span id="admin-unread-badge" style="display:none; position:absolute; top:2px; right:2px; background:#EF4444; color:white; font-size:10px; font-weight:800; border-radius:50%; width:18px; height:18px; line-height:18px; text-align:center;">0</span>
+        </a>
+
         <!-- Theme Toggle Button -->
-        <button id="theme-toggle-btn" class="btn-theme-toggle" onclick="toggleTheme()" style="background: none; border: none; cursor: pointer; color: var(--text-primary); display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; transition: background 0.3s; margin-right: 10px;" title="สลับโหมด มืด/สว่าง">
+        <button id="theme-toggle-btn" class="btn-theme-toggle" onclick="toggleTheme()" style="background: none; border: none; cursor: pointer; color: var(--text-primary); display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; transition: background 0.3s; margin-right: 10px; box-sizing: border-box;" title="สลับโหมด มืด/สว่าง">
             <!-- Sun Icon -->
             <svg id="theme-toggle-sun" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display: none;">
                 <circle cx="12" cy="12" r="5"></circle>
@@ -596,6 +648,20 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
     window.addEventListener('DOMContentLoaded', () => {
         const theme = localStorage.getItem('theme') || 'light';
         updateThemeIcons(theme);
+
+        // Fetch unread messages count for admin
+        fetch('../api/messages.php?action=get_messages')
+            .then(r => r.json())
+            .then(d => {
+                if (d.status === 'success' && d.unread_count > 0) {
+                    const b = document.getElementById('admin-unread-badge');
+                    if (b) {
+                        b.innerText = d.unread_count > 99 ? '99+' : d.unread_count;
+                        b.style.display = 'block';
+                    }
+                }
+            })
+            .catch(() => {});
     });
 </script>
 <?php include_once __DIR__ . '/../config/dev_modal.php'; ?>

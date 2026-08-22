@@ -134,6 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>แบบฟอร์มติดตาม DPAC - อสม.</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <script src="../assets/js/app.js"></script>
+    <script src="../assets/js/clinical_guidance.js"></script>
     <style>
         /* Row grid 2-column layout */
         .row-grid {
@@ -572,6 +573,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
 
+                    <!-- 😴 พฤติกรรมการนอนหลับ (1น.) -->
+                    <div style="margin-top: 20px;">
+                        <label class="form-label" style="font-weight: 700; color: var(--color-accent);">😴 พฤติกรรมการนอนหลับ (1น.)</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 6px;">
+                            <label style="cursor: pointer; display: block; text-align: center; background: var(--bg-darker); border: 1.5px solid var(--border-color); border-radius: 14px; padding: 10px 4px; box-shadow: var(--neumorph-flat);">
+                                <input type="radio" name="sleep_quality" value="good" checked style="margin-bottom: 4px;">
+                                <div style="font-size: 20px;">😴</div>
+                                <div style="font-size: 12px; font-weight: 800; color: var(--text-primary);">หลับสนิทดี</div>
+                            </label>
+                            <label style="cursor: pointer; display: block; text-align: center; background: var(--bg-darker); border: 1.5px solid var(--border-color); border-radius: 14px; padding: 10px 4px; box-shadow: var(--neumorph-flat);">
+                                <input type="radio" name="sleep_quality" value="restless" style="margin-bottom: 4px;">
+                                <div style="font-size: 20px;">🥱</div>
+                                <div style="font-size: 12px; font-weight: 800; color: var(--text-primary);">หลับๆ ตื่นๆ</div>
+                            </label>
+                            <label style="cursor: pointer; display: block; text-align: center; background: var(--bg-darker); border: 1.5px solid var(--border-color); border-radius: 14px; padding: 10px 4px; box-shadow: var(--neumorph-flat);">
+                                <input type="radio" name="sleep_quality" value="poor" style="margin-bottom: 4px;">
+                                <div style="font-size: 20px;">😫</div>
+                                <div style="font-size: 12px; font-weight: 800; color: var(--text-primary);">หลับยาก</div>
+                            </label>
+                        </div>
+                    </div>
+
                     <div style="margin-top: 25px;">
                         <label class="form-label">ผลการประเมิน Health Risk ประจำรอบนี้</label>
                         <input type="hidden" name="health_risk_level" id="health_risk_level" value="">
@@ -912,14 +935,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const residentName = document.getElementById('dpac-name') ? document.getElementById('dpac-name').innerText : 'ผู้รับการติดตาม DPAC';
             formData.append('_residentName', residentName);
 
+            const weight = document.getElementById('weight').value;
+            const height = document.getElementById('height').value;
+            const waist = document.getElementById('waistCmHidden') ? document.getElementById('waistCmHidden').value : document.getElementById('waist').value;
+            const fbs = document.getElementById('fbs') ? document.getElementById('fbs').value : null;
+            const bp_sys = document.getElementById('bp_sys') ? document.getElementById('bp_sys').value : null;
+            const bp_dia = document.getElementById('bp_dia') ? document.getElementById('bp_dia').value : null;
+            const sleepVal = document.querySelector('input[name="sleep_quality"]:checked')?.value || 'good';
+
+            const guidanceResult = (typeof ClinicalGuidance !== 'undefined') ? ClinicalGuidance.analyze({
+                bp_sys: bp_sys,
+                bp_dia: bp_dia,
+                fbs: fbs,
+                weight: weight,
+                height: height,
+                waist: waist,
+                sleep_quality: sleepVal,
+                previous_data: null
+            }) : null;
+
+            if (guidanceResult) {
+                formData.append('care_level', guidanceResult.care_level);
+                formData.append('next_visit_date', guidanceResult.next_visit_date);
+                formData.append('health_progress', guidanceResult.health_progress);
+                formData.append('guidance_summary', guidanceResult.what_to_say);
+            }
+
             if (!navigator.onLine) {
                 // Serialize form data for offline sync queue
-                const weight = document.getElementById('weight').value;
-                const height = document.getElementById('height').value;
-                const waist = document.getElementById('waistCmHidden').value;
-                const fbs = document.getElementById('fbs') ? document.getElementById('fbs').value : null;
-                const bp_sys = document.getElementById('bp_sys') ? document.getElementById('bp_sys').value : null;
-                const bp_dia = document.getElementById('bp_dia') ? document.getElementById('bp_dia').value : null;
                 const healthRisk = document.getElementById('health_risk_level').value;
                 const advice = document.getElementById('advice_given').value;
 
@@ -937,6 +980,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'bp_dia': bp_dia,
                     'health_risk_level': healthRisk,
                     'advice_given': advice,
+                    'sleep_quality': sleepVal,
+                    'care_level': guidanceResult ? guidanceResult.care_level : 'good',
+                    'next_visit_date': guidanceResult ? guidanceResult.next_visit_date : null,
                     '_timestamp': Date.now(),
                     '_type': 'dpac',
                     '_residentName': residentName
@@ -962,6 +1008,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
+                    if (guidanceResult) {
+                        data.guidanceResult = guidanceResult;
+                    }
                     showCounselingSummaryModal(data);
                 } else {
                     alert('เกิดข้อผิดพลาดในการบันทึก: ' + (data.message || 'โปรดลองใหม่อีกครั้ง'));
@@ -1295,7 +1344,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
             adviceContainer.innerHTML = adviceHtml;
 
-            document.getElementById('summary-next-date').innerText = meta.next_appointment || '-';
+            document.getElementById('summary-next-date').innerText = meta.next_appointment || (data.guidanceResult ? data.guidanceResult.next_visit_thai : '-');
+
+            const guidanceContainer = document.getElementById('summary-guidance-container');
+            if (guidanceContainer) {
+                if (data.guidanceResult && typeof ClinicalGuidance !== 'undefined') {
+                    guidanceContainer.innerHTML = ClinicalGuidance.renderGuidanceCard(data.guidanceResult);
+                    guidanceContainer.style.display = 'block';
+                } else {
+                    guidanceContainer.style.display = 'none';
+                }
+            }
 
             document.getElementById('counseling-summary-modal').style.display = 'block';
         }
@@ -1325,6 +1384,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h2 style="font-size: 20px; font-weight: 800; color: #38BDF8; margin: 0 0 4px 0;">สรุปผลการคัดกรอง & สุขศึกษา (DPAC)</h2>
                 <p id="summary-resident-name" style="font-size: 15px; color: #94A3B8; margin: 0; font-weight: 600;">คุณ...</p>
             </div>
+
+            <!-- Clinical Guidance & Decision Support Container -->
+            <div id="summary-guidance-container" style="margin-bottom: 14px;"></div>
 
             <!-- Section 1: สิ่งที่เกิดขึ้น -->
             <div style="background: #1E293B; border-radius: 12px; padding: 14px; margin-bottom: 14px; border: 1px solid #334155;">

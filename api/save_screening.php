@@ -155,18 +155,25 @@ try {
         $delStmt->execute([$assignmentId]);
 
         $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
+        $sleepQuality = in_array($_POST['sleep_quality'] ?? '', ['good', 'restless', 'poor']) ? $_POST['sleep_quality'] : 'good';
+        $careLevel = in_array($_POST['care_level'] ?? '', ['good', 'fair', 'poor', 'critical']) ? $_POST['care_level'] : 'good';
+        $nextVisitDate = !empty($_POST['next_visit_date']) ? $_POST['next_visit_date'] : null;
+        $guidanceSummary = trim($_POST['guidance_summary'] ?? '');
+        $healthProgress = in_array($_POST['health_progress'] ?? '', ['improved', 'stable', 'worsened', 'baseline']) ? $_POST['health_progress'] : null;
 
-        // 1. Insert into screening_results with round_number and target_cid
+        // 1. Insert into screening_results with round_number, target_cid, and clinical guidance fields
         $screenStmt = $pdo->prepare("
             INSERT INTO screening_results 
-            (assignment_id, target_cid, round_number, sys_bp1, dia_bp1, sys_bp2, dia_bp2, dtx_value, dtx_type, weight, height, waist, bmi, diet_risk, exercise_risk, stress_risk, smoking_risk, alcohol_risk, cv_risk_score, screening_lat, screening_lng, advice_given, is_sandbox)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (assignment_id, target_cid, round_number, sys_bp1, dia_bp1, sys_bp2, dia_bp2, dtx_value, dtx_type, weight, height, waist, bmi, diet_risk, exercise_risk, stress_risk, smoking_risk, alcohol_risk, cv_risk_score, screening_lat, screening_lng, advice_given, sleep_quality, care_level, next_visit_date, guidance_summary, health_progress, is_sandbox)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $screenStmt->execute([
             $assignmentId, $targetCid, $roundNumber, $sys1, $dia1, $sys2, $dia2, $dtx, $dtxType,
             $weight, $height, $waist, round($bmi, 2),
             $diet, $exercise, $stress, $smoking, $alcohol, $cvRiskScore,
-            $lat, $lng, $adviceGiven, $isSandboxVal
+            $lat, $lng, $adviceGiven,
+            $sleepQuality, $careLevel, $nextVisitDate, $guidanceSummary, $healthProgress,
+            $isSandboxVal
         ]);
         $screeningId = $pdo->lastInsertId();
 

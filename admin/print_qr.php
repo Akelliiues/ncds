@@ -363,7 +363,7 @@ function maskName($firstName, $lastName)
                         <div class="qr-card">
                             <!-- System Name & District Header -->
                             <div class="qr-card-header">
-                                <span>🌞 NCDs Prevention</span>
+                                <span>🌞 NCDs Portal</span>
                                 <span style="color: #475569;">อำเภอตาลสุม</span>
                             </div>
 

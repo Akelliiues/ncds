@@ -146,7 +146,7 @@ if ($admin_hoscode !== null) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เช็คงาน อสม. - NCDs Prevention</title>
+    <title>เช็คงาน อสม. - NCDs Portal</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
         body {

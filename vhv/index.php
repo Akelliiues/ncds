@@ -55,7 +55,11 @@ if (DemoDataProvider::isDemoMode()) {
                COALESCE(
                    (SELECT sr.dtx_type FROM screening_results sr LEFT JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE (sr.target_cid = p.cid OR ta.target_cid = p.cid) ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1),
                    'fpg'
-               ) AS last_dtx_type
+               ) AS last_dtx_type,
+               (SELECT sr.care_level FROM screening_results sr LEFT JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE (sr.target_cid = p.cid OR ta.target_cid = p.cid) ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1) AS last_care_level,
+               (SELECT sr.next_visit_date FROM screening_results sr LEFT JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE (sr.target_cid = p.cid OR ta.target_cid = p.cid) ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1) AS last_next_visit_date,
+               (SELECT sr.health_progress FROM screening_results sr LEFT JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE (sr.target_cid = p.cid OR ta.target_cid = p.cid) ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1) AS last_health_progress,
+               (SELECT sr.sleep_quality FROM screening_results sr LEFT JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE (sr.target_cid = p.cid OR ta.target_cid = p.cid) ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1) AS last_sleep_quality
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
         WHERE a.vhv_id = ? AND a.budget_year = ? AND a.assignment_status = 'pending' AND COALESCE(a.is_sandbox, 0) = ?
@@ -81,6 +85,7 @@ if (DemoDataProvider::isDemoMode()) {
                sr.weight, sr.height, sr.waist, sr.bmi, sr.diet_risk, sr.exercise_risk,
                sr.stress_risk, sr.smoking_risk, sr.alcohol_risk, sr.cv_risk_score,
                sr.skipped_reason, sr.advice_given,
+               sr.sleep_quality, sr.care_level, sr.next_visit_date, sr.guidance_summary, sr.health_progress,
                ht.sbp as base_sbp, ht.dbp as base_dbp, dm.bslevel as base_bslevel
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
@@ -106,7 +111,7 @@ if (DemoDataProvider::isDemoMode()) {
 
     // Fetch DPAC followups
     $dpacStmt = $pdo->prepare("
-        SELECT f.followup_id, f.round_number, f.status, f.skip_count, e.risk_type,
+        SELECT f.followup_id, f.round_number, f.status, f.skip_count, f.sleep_quality, f.care_level, f.next_visit_date, f.health_progress, e.risk_type,
                p.cid, p.hid, p.first_name, p.last_name, p.house_no, p.moo
         FROM dpac_followups f
         JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
@@ -120,6 +125,7 @@ if (DemoDataProvider::isDemoMode()) {
     // Fetch completed DPAC followups
     $completedDpacStmt = $pdo->prepare("
         SELECT f.followup_id, f.round_number, f.status, f.completed_at, f.weight, f.height, f.waist, f.bp_sys, f.bp_dia, f.fbs, f.health_risk_level, f.advice_given,
+               f.sleep_quality, f.care_level, f.next_visit_date, f.guidance_summary, f.health_progress,
                e.risk_type, p.cid, p.hid, p.first_name, p.last_name, p.house_no, p.moo
         FROM dpac_followups f
         JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
@@ -178,6 +184,7 @@ if (DemoDataProvider::isDemoMode()) {
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="manifest" href="manifest.json">
     <script src="../assets/js/app.js"></script>
+    <script src="../assets/js/clinical_guidance.js"></script>
     <style>
         .tabs {
             display: flex;
@@ -321,14 +328,20 @@ if (DemoDataProvider::isDemoMode()) {
             <?php endif; ?>
 
             <a href="../about.php" onclick="openDevModal(event)" title="เกี่ยวกับระบบและผู้พัฒนา" style="flex-shrink: 0;">
-                <img src="../assets/icon.png" alt="NCDs Prevention Logo" style="width: 60px; height: 60px; border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
+                <img src="../assets/icon.png" alt="NCDs Portal Logo" style="width: 60px; height: 60px; border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
             </a>
             <div style="flex-grow: 1; min-width: 200px;">
                 <h3 style="color: var(--color-accent); margin: 0; font-size: 14px; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; text-size-adjust: none; -webkit-text-size-adjust: none;">
                     <span style="white-space: nowrap;">อสม. ประจำบ้าน<?= DISTRICT_NAME ?></span>
-                    <a href="manual.php" style="color: var(--color-accent); text-decoration: none; font-size: 13px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; background: rgba(30, 64, 175, 0.08); padding: 4px 10px; border-radius: 50px; white-space: nowrap; text-size-adjust: none; -webkit-text-size-adjust: none;">
-                        📖 คู่มือการใช้งาน
-                    </a>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <button type="button" id="btn-notification-bell" onclick="openMessagesModal()" style="position: relative; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 50%; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-primary); font-size: 16px; padding: 0;" title="การแจ้งเตือนและข่าวสาร">
+                            🔔
+                            <span id="unread-msg-badge" style="display:none; position:absolute; top:-4px; right:-4px; background:#EF4444; color:white; font-size:10px; font-weight:800; border-radius:50%; width:18px; height:18px; line-height:18px; text-align:center;">0</span>
+                        </button>
+                        <a href="manual.php" style="color: var(--color-accent); text-decoration: none; font-size: 13px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; background: rgba(30, 64, 175, 0.08); padding: 4px 10px; border-radius: 50px; white-space: nowrap; text-size-adjust: none; -webkit-text-size-adjust: none;">
+                            📖 คู่มือ
+                        </a>
+                    </div>
                 </h3>
                 <h2 style="color: var(--text-primary); margin: 4px 0; font-size: 20px; font-weight: 800; word-break: break-word;"><?= htmlspecialchars($vhvName) ?></h2>
                 <p style="color: var(--text-secondary); margin: 0; font-size: 13px; text-size-adjust: none; -webkit-text-size-adjust: none; line-height: 1.4;">
@@ -445,6 +458,56 @@ if (DemoDataProvider::isDemoMode()) {
                         <div class="task-info">
                             <h4>บ้านเลขที่ <?= htmlspecialchars($pt['house_no']) ?></h4>
                             <p>ผู้รับคัดกรอง: <?= htmlspecialchars($pt['first_name'] . ' ' . $pt['last_name']) ?></p>
+                            
+                            <!-- Badges: Care Level, Next Visit, Progress, Sleep -->
+                            <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">
+                                <?php if (!empty($pt['last_care_level'])): ?>
+                                    <?php 
+                                        $cl = $pt['last_care_level'];
+                                        $clBadge = 'background:rgba(16,185,129,0.15); color:#10B981; border:1px solid rgba(16,185,129,0.3);';
+                                        $clText = '🟢 ดูแลปกติ';
+                                        if ($cl === 'fair') { $clBadge = 'background:rgba(245,158,11,0.15); color:#D97706; border:1px solid rgba(245,158,11,0.3);'; $clText = '🟡 ดูแลพิเศษ'; }
+                                        elseif ($cl === 'poor') { $clBadge = 'background:rgba(249,115,22,0.15); color:#EA580C; border:1px solid rgba(249,115,22,0.3);'; $clText = '🟠 ดูแลมากพิเศษ'; }
+                                        elseif ($cl === 'critical') { $clBadge = 'background:rgba(239,68,68,0.15); color:#DC2626; border:1px solid rgba(239,68,68,0.3);'; $clText = '🔴 เร่งด่วน'; }
+                                    ?>
+                                    <span style="font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 8px; <?= $clBadge ?>">
+                                        <?= $clText ?>
+                                    </span>
+                                <?php endif; ?>
+
+                                <?php if (!empty($pt['last_health_progress'])): ?>
+                                    <?php
+                                        $hp = $pt['last_health_progress'];
+                                        if ($hp === 'improved') echo '<span style="font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 8px; background:rgba(16,185,129,0.15); color:#10B981; border:1px solid rgba(16,185,129,0.3);">🟢 ดีขึ้น</span>';
+                                        elseif ($hp === 'worsened') echo '<span style="font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 8px; background:rgba(239,68,68,0.15); color:#DC2626; border:1px solid rgba(239,68,68,0.3);">🔴 ต้องระวัง</span>';
+                                        elseif ($hp === 'stable') echo '<span style="font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 8px; background:rgba(245,158,11,0.15); color:#D97706; border:1px solid rgba(245,158,11,0.3);">🟡 ทรงตัว</span>';
+                                    ?>
+                                <?php endif; ?>
+
+                                <?php if (!empty($pt['last_sleep_quality'])): ?>
+                                    <?php 
+                                        $sq = $pt['last_sleep_quality'];
+                                        if ($sq === 'poor') echo '<span style="font-size: 10.5px; padding: 2px 5px; border-radius: 8px; background:rgba(239,68,68,0.1); color:#DC2626;" title="นอนไม่ค่อยหลับ">😫 หลับยาก</span>';
+                                        elseif ($sq === 'restless') echo '<span style="font-size: 10.5px; padding: 2px 5px; border-radius: 8px; background:rgba(245,158,11,0.1); color:#D97706;" title="หลับๆ ตื่นๆ">🥱 หลับไม่สนิท</span>';
+                                    ?>
+                                <?php endif; ?>
+
+                                <?php if (!empty($pt['last_next_visit_date'])): ?>
+                                    <?php
+                                        $nvd = strtotime($pt['last_next_visit_date']);
+                                        $today = strtotime(date('Y-m-d'));
+                                        $diffDays = round(($nvd - $today) / 86400);
+                                        if ($diffDays < 0) {
+                                            echo '<span style="font-size: 10.5px; font-weight: 800; padding: 2px 6px; border-radius: 8px; background:#FEE2E2; color:#DC2626; border:1px solid #FCA5A5;">⚠️ เกินนัด ' . abs($diffDays) . ' วัน</span>';
+                                        } elseif ($diffDays == 0) {
+                                            echo '<span style="font-size: 10.5px; font-weight: 800; padding: 2px 6px; border-radius: 8px; background:#FEF3C7; color:#D97706; border:1px solid #FCD34D;">📅 ครบกำหนดวันนี้</span>';
+                                        } else {
+                                            echo '<span style="font-size: 10.5px; font-weight: 600; padding: 2px 6px; border-radius: 8px; background:#F1F5F9; color:#64748B;">📅 อีก ' . $diffDays . ' วัน</span>';
+                                        }
+                                    ?>
+                                <?php endif; ?>
+                            </div>
+
                             <p style="font-size: 12px; margin-top: 4px; color: var(--text-muted);">
                                 สิทธิ์การคัดกรอง: 
                                 <?php if ($pt['need_screen_dm']): ?>
@@ -1417,6 +1480,142 @@ if (DemoDataProvider::isDemoMode()) {
         }
     </script>
     <?php endif; ?>
+
+    <!-- System Messages & Broadcast Notification Modal -->
+    <div id="messages-modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; padding: 16px;">
+        <div class="card-dark" style="width: 100%; max-width: 480px; max-height: 85vh; display: flex; flex-direction: column; background: var(--bg-card); border-radius: 20px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color); overflow: hidden; padding: 0;">
+            <!-- Header -->
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border-color); background: var(--bg-darker);">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 20px;">🔔</span>
+                    <h3 style="margin: 0; font-size: 17px; font-weight: 800; color: var(--text-primary);">การแจ้งเตือน & ข่าวสาร</h3>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button type="button" onclick="markAllMessagesRead()" style="background: none; border: none; font-size: 12px; font-weight: 700; color: var(--color-primary); cursor: pointer; text-decoration: underline;">
+                        อ่านทั้งหมด
+                    </button>
+                    <button type="button" onclick="closeMessagesModal()" style="background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; line-height: 1;">
+                        ✕
+                    </button>
+                </div>
+            </div>
+
+            <!-- Messages List -->
+            <div id="messages-list-container" style="flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+                <div style="text-align: center; color: var(--text-muted); padding: 30px 0;">กำลังโหลดข้อความ...</div>
+            </div>
+
+            <!-- Footer -->
+            <div style="padding: 12px 16px; border-top: 1px solid var(--border-color); text-align: center; background: var(--bg-darker);">
+                <button type="button" onclick="closeMessagesModal()" class="btn-giant btn-giant-primary" style="margin: 0; padding: 10px; font-size: 14px; border-radius: 12px; width: 100%;">
+                    ปิดหน้าต่าง
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Messaging Client for VHV
+        function fetchMessages() {
+            fetch('../api/messages.php?action=get_messages')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const badge = document.getElementById('unread-msg-badge');
+                        if (badge) {
+                            if (data.unread_count > 0) {
+                                badge.innerText = data.unread_count > 99 ? '99+' : data.unread_count;
+                                badge.style.display = 'block';
+                            } else {
+                                badge.style.display = 'none';
+                            }
+                        }
+                        window._cachedMessages = data.messages || [];
+                        renderMessagesList(data.messages || []);
+                    }
+                })
+                .catch(() => {});
+        }
+
+        function renderMessagesList(messages) {
+            const container = document.getElementById('messages-list-container');
+            if (!container) return;
+
+            if (messages.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: var(--text-muted); padding: 40px 10px;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">📭</div>
+                        <div style="font-size: 14px; font-weight: 700;">ไม่มีข้อความแจ้งเตือนใหม่</div>
+                        <div style="font-size: 12px;">เมื่อมีประกาศจาก สสอ. หรือ รพ.สต. จะแสดงที่นี่</div>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            messages.forEach(msg => {
+                const isUnread = !msg.is_read;
+                const isUrgent = msg.priority === 'urgent' || msg.priority === 'emergency';
+                
+                let borderStyle = isUnread ? 'border-left: 4px solid var(--color-primary);' : 'border-left: 4px solid var(--border-color);';
+                if (isUrgent && isUnread) borderStyle = 'border-left: 4px solid #EF4444;';
+
+                let priorityBadge = '';
+                if (msg.priority === 'emergency') {
+                    priorityBadge = '<span style="background:#FEE2E2; color:#DC2626; font-size:10px; font-weight:800; padding:2px 6px; border-radius:6px;">🚨 ด่วนที่สุด</span>';
+                } else if (msg.priority === 'urgent') {
+                    priorityBadge = '<span style="background:#FEF3C7; color:#D97706; font-size:10px; font-weight:800; padding:2px 6px; border-radius:6px;">⚠️ ด่วน</span>';
+                }
+
+                html += `
+                    <div onclick="markMessageRead(${msg.message_id})" style="background: ${isUnread ? 'var(--bg-darker)' : 'var(--bg-card)'}; border-radius: 12px; padding: 12px; box-shadow: var(--neumorph-flat); ${borderStyle} cursor: pointer; transition: all 0.2s;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                ${isUnread ? '<span style="width: 8px; height: 8px; border-radius: 50%; background: #3B82F6; display: inline-block;"></span>' : ''}
+                                <strong style="font-size: 14px; color: var(--text-primary);">${msg.title}</strong>
+                            </div>
+                            <div>${priorityBadge}</div>
+                        </div>
+                        <p style="font-size: 13px; color: var(--text-secondary); margin: 0 0 6px 0; line-height: 1.4; white-space: pre-line;">${msg.message_body}</p>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+                            <span>👤 ${msg.sender_name || 'ผู้ดูแลระบบ'}</span>
+                            <span>🕒 ${msg.created_at ? msg.created_at.substring(0, 16) : ''}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function openMessagesModal() {
+            document.getElementById('messages-modal').style.display = 'flex';
+            fetchMessages();
+        }
+
+        function closeMessagesModal() {
+            document.getElementById('messages-modal').style.display = 'none';
+        }
+
+        function markMessageRead(msgId) {
+            fetch('../api/messages.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ action: 'mark_read', message_id: msgId })
+            }).then(() => fetchMessages());
+        }
+
+        function markAllMessagesRead() {
+            fetch('../api/messages.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ action: 'mark_all_read' })
+            }).then(() => fetchMessages());
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchMessages();
+        });
+    </script>
 
     <?php include_once __DIR__ . '/../config/dev_modal.php'; ?>
 </body>

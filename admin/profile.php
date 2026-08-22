@@ -89,7 +89,7 @@ $admin_title = $admin_hoscode ? ($admin['admin_name'] ?? 'แอดมินส�
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ข้อมูลส่วนตัว & เปลี่ยนรหัสผ่าน - NCDs Prevention Portal</title>
+    <title>ข้อมูลส่วนตัว & เปลี่ยนรหัสผ่าน - NCDs Portal</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
         .profile-container {

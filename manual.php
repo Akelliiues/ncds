@@ -50,7 +50,7 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>คู่มือการใช้งานระบบคัดกรอง NCDs Prevention Portal - อำเภอ<?= htmlspecialchars($district) ?></title>
+    <title>คู่มือการใช้งานระบบคัดกรอง NCDs Portal - อำเภอ<?= htmlspecialchars($district) ?></title>
 
     <link rel="stylesheet" href="assets/css/style.css">
 
@@ -1666,9 +1666,9 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
         <div class="manual-header">
 
-            <img src="assets/icon.png" alt="NCDs Prevention Logo">
+            <img src="assets/icon.png" alt="NCDs Portal Logo">
 
-            <h1>📖 คู่มือการใช้งานระบบ NCD Prevention Portal</h1>
+            <h1>📖 คู่มือการใช้งานระบบ NCDs Portal</h1>
 
             <p>ระบบจัดการคัดกรองโรคเรื้อรังเชิงรุก อำเภอ<?= htmlspecialchars($district) ?> จังหวัด<?= htmlspecialchars($province) ?></p>
 

@@ -708,6 +708,25 @@ class DemoDataProvider {
         // Reward points (2x for Round 2)
         $rewardPoints = ($roundNumber >= 2) ? 2 : 1;
 
+        if (!isset($_SESSION['demo_screenings'])) $_SESSION['demo_screenings'] = [];
+        $cid = $postData['cid'] ?? 'unknown';
+        $_SESSION['demo_screenings'][$cid] = [
+            'assignment_id' => $postData['assignment_id'] ?? null,
+            'cid' => $cid,
+            'sys_bp1' => $sbp1,
+            'dia_bp1' => $dbp1,
+            'dtx_value' => $dtx,
+            'weight' => $weight,
+            'height' => $height,
+            'waist' => $waist,
+            'sleep_quality' => $postData['sleep_quality'] ?? 'good',
+            'care_level' => $postData['care_level'] ?? 'good',
+            'next_visit_date' => $postData['next_visit_date'] ?? null,
+            'guidance_summary' => $postData['guidance_summary'] ?? '',
+            'health_progress' => $postData['health_progress'] ?? 'baseline',
+            'saved_at' => date('Y-m-d H:i:s')
+        ];
+
         return [
             'status' => 'success',
             'message' => 'บันทึกข้อมูลคัดกรองโหมดทดลองเรียบร้อยแล้ว (ข้อมูลจำลอง 100%)',
@@ -1188,4 +1207,25 @@ class DemoDataProvider {
         $_SESSION['demo_assignments'][$cid] = $vhvId;
         return true;
     }
+
+    public static function processDemoDpac($postData) {
+        if (!isset($_SESSION['demo_dpacs'])) $_SESSION['demo_dpacs'] = [];
+        $cid = $postData['cid'] ?? 'unknown';
+        $_SESSION['demo_dpacs'][$cid] = [
+            'assignment_id' => $postData['assignment_id'] ?? null,
+            'cid' => $cid,
+            'sleep_quality' => $postData['sleep_quality'] ?? 'good',
+            'care_level' => $postData['care_level'] ?? 'good',
+            'next_visit_date' => $postData['next_visit_date'] ?? null,
+            'guidance_summary' => $postData['guidance_summary'] ?? '',
+            'health_progress' => $postData['health_progress'] ?? 'baseline',
+            'saved_at' => date('Y-m-d H:i:s')
+        ];
+        return [
+            'status' => 'success',
+            'message' => 'บันทึกข้อมูลติดตาม DPAC ในโหมดจำลอง (Demo Mode) สำเร็จ 100%',
+            'is_demo' => true
+        ];
+    }
 }
+

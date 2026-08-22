@@ -408,7 +408,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_clean'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>จัดการข้อมูลซ้ำซ้อน - NCDs Prevention Portal</title>
+    <title>จัดการข้อมูลซ้ำซ้อน - NCDs Portal</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
         .dup-table {

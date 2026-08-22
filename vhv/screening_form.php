@@ -221,6 +221,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
     <title>ฟอร์มคัดกรองโรคเรื้อรัง - อสม. ตาลสุม</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <script src="../assets/js/app.js"></script>
+    <script src="../assets/js/clinical_guidance.js"></script>
     <style>
         .resident-card {
             background-color: var(--bg-card);
@@ -897,6 +898,37 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                                     <span class="behavior-card-icon">🍺</span>
                                     <div class="behavior-card-title">ดื่มประจำ</div>
                                     <div class="behavior-card-desc">ดื่มบ่อย/ติดสุรา</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 6. พฤติกรรมการนอนหลับ (Sleep Quality - 3 Grid) -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="color: var(--text-secondary); font-size: 14.5px; font-weight: 700; display: block; margin-bottom: 8px;">😴 พฤติกรรมการนอนหลับ (1น.)</label>
+                        <div class="behavior-grid-3">
+                            <label class="behavior-card-item behavior-green">
+                                <input type="radio" name="sleep_quality" value="good" checked>
+                                <div class="behavior-card-box">
+                                    <span class="behavior-card-icon">😴</span>
+                                    <div class="behavior-card-title">หลับสนิทดี</div>
+                                    <div class="behavior-card-desc">พักผ่อนเพียงพอ</div>
+                                </div>
+                            </label>
+                            <label class="behavior-card-item behavior-yellow">
+                                <input type="radio" name="sleep_quality" value="restless">
+                                <div class="behavior-card-box">
+                                    <span class="behavior-card-icon">🥱</span>
+                                    <div class="behavior-card-title">หลับๆ ตื่นๆ</div>
+                                    <div class="behavior-card-desc">ตื่นบ่อย/ไม่สนิท</div>
+                                </div>
+                            </label>
+                            <label class="behavior-card-item behavior-red">
+                                <input type="radio" name="sleep_quality" value="poor">
+                                <div class="behavior-card-box">
+                                    <span class="behavior-card-icon">😫</span>
+                                    <div class="behavior-card-title">นอนไม่ค่อยหลับ</div>
+                                    <div class="behavior-card-desc">หลับยาก/นอนน้อย</div>
                                 </div>
                             </label>
                         </div>
@@ -2115,6 +2147,43 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             formData.append('action', 'save_screening');
             formData.append('cv_risk_score', parseFloat(document.getElementById('cv-risk-display').innerText));
 
+            // Run ClinicalGuidance analysis for 4 care levels, sleep quality, and health progress
+            const sbp1 = parseInt(document.getElementById('sys_bp1').value) || 0;
+            const dbp1 = parseInt(document.getElementById('dia_bp1').value) || 0;
+            const dtx = parseInt(document.getElementById('dtx_value').value) || null;
+            const wt = parseFloat(document.getElementById('weight').value) || null;
+            const ht = parseFloat(document.getElementById('height').value) || null;
+            const wst = parseFloat(document.getElementById('waist').value) || null;
+            const sleepVal = document.querySelector('input[name="sleep_quality"]:checked')?.value || 'good';
+
+            let prevData = null;
+            if (typeof selectedResident !== 'undefined' && selectedResident && selectedResident.lastSbp) {
+                prevData = {
+                    bp_sys: selectedResident.lastSbp,
+                    bp_dia: selectedResident.lastDbp,
+                    fbs: selectedResident.lastDtx,
+                    weight: null
+                };
+            }
+
+            const guidanceResult = (typeof ClinicalGuidance !== 'undefined') ? ClinicalGuidance.analyze({
+                bp_sys: sbp1,
+                bp_dia: dbp1,
+                fbs: dtx,
+                weight: wt,
+                height: ht,
+                waist: wst,
+                sleep_quality: sleepVal,
+                previous_data: prevData
+            }) : null;
+
+            if (guidanceResult) {
+                formData.append('care_level', guidanceResult.care_level);
+                formData.append('next_visit_date', guidanceResult.next_visit_date);
+                formData.append('health_progress', guidanceResult.health_progress);
+                formData.append('guidance_summary', guidanceResult.what_to_say);
+            }
+
             // Check if offline
             if (!navigator.onLine) {
                 const serialized = {};
@@ -2124,13 +2193,15 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 serialized.cv_risk_score = parseFloat(document.getElementById('cv-risk-display').innerText);
                 serialized._timestamp = Date.now();
                 serialized._type = 'screening';
-                serialized._residentName = selectedResident.name;
+                serialized._residentName = selectedResident ? selectedResident.name : '';
                 
                 const queue = JSON.parse(localStorage.getItem('offline_submissions') || '[]');
                 queue.push(serialized);
                 localStorage.setItem('offline_submissions', JSON.stringify(queue));
                 
-                updateLocalTask(selectedResident.assignmentId, 'completed');
+                if (selectedResident && selectedResident.assignmentId) {
+                    updateLocalTask(selectedResident.assignmentId, 'completed');
+                }
                 
                 showToast("บันทึกข้อมูลคัดกรองในเครื่องเรียบร้อยแล้ว (โหมดออฟไลน์)", "warning");
                 setTimeout(() => {
@@ -2147,6 +2218,9 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
+                    if (guidanceResult) {
+                        data.guidanceResult = guidanceResult;
+                    }
                     showCounselingSummaryModal(data);
                 } else {
                     alert("เกิดข้อผิดพลาดในการบันทึก: " + data.message);
@@ -2589,7 +2663,18 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             });
             adviceContainer.innerHTML = adviceHtml;
 
-            document.getElementById('summary-next-date').innerText = meta.next_appointment || '-';
+            document.getElementById('summary-next-date').innerText = meta.next_appointment || (data.guidanceResult ? data.guidanceResult.next_visit_thai : '-');
+
+            // Render Clinical Guidance Card
+            const guidanceContainer = document.getElementById('summary-guidance-container');
+            if (guidanceContainer) {
+                if (data.guidanceResult && typeof ClinicalGuidance !== 'undefined') {
+                    guidanceContainer.innerHTML = ClinicalGuidance.renderGuidanceCard(data.guidanceResult);
+                    guidanceContainer.style.display = 'block';
+                } else {
+                    guidanceContainer.style.display = 'none';
+                }
+            }
 
             document.getElementById('counseling-summary-modal').style.display = 'block';
             window.scrollTo(0,0);
@@ -2699,6 +2784,9 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                     ค่าความดันและน้ำตาลอยู่ในเกณฑ์มาตรฐาน สุขภาพแข็งแรงดี
                 </div>
             </div>
+
+            <!-- Clinical Guidance & Decision Support Container -->
+            <div id="summary-guidance-container" style="margin-bottom: 16px;"></div>
 
             <!-- 4 Health Cards Grid -->
             <div style="margin-bottom: 16px;">

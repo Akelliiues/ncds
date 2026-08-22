@@ -221,9 +221,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="login-container">
         <div class="login-brand"
             style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 12px;">
-            <img src="assets/icon.png" alt="NCDs Prevention Logo" class="brand-logo">
+            <img src="assets/icon.png" alt="NCDs Portal Logo" class="brand-logo">
             <span>สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?></span>
-            <h1>ระบบคัดกรอง NCD Portal</h1>
+            <h1>ระบบคัดกรอง NCDs Portal</h1>
         </div>
 
         <div class="card-dark" style="margin-bottom: 0; padding: 20px;">

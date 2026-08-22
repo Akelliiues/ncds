@@ -61,7 +61,11 @@ class DemoMockPDO extends PDO {
             'line_house_mappings'      => 'demo_mock_line_house_mappings',
             'staging_hdc_ht'           => 'demo_mock_staging_hdc_ht',
             'staging_hdc_dm'           => 'demo_mock_staging_hdc_dm',
-            'staging_jhcis_person'     => 'demo_mock_staging_jhcis_person'
+            'staging_jhcis_person'     => 'demo_mock_staging_jhcis_person',
+            'system_messages'          => 'demo_mock_system_messages',
+            'system_message_reads'     => 'demo_mock_system_message_reads',
+            'jhcis_sync_configs'       => 'demo_mock_jhcis_sync_configs',
+            'jhcis_sync_logs'          => 'demo_mock_jhcis_sync_logs'
         ];
         foreach ($tables as $real => $mock) {
             $sql = preg_replace('/\b' . preg_quote($real, '/') . '\b/i', $mock, $sql);
@@ -69,17 +73,25 @@ class DemoMockPDO extends PDO {
         return $sql;
     }
 
+    #[\ReturnTypeWillChange]
     public function prepare($query, $options = []) {
         $mockQuery = $this->replaceTables($query);
         $stmt = parent::prepare($mockQuery, $options);
         return new DemoMockPDOStatement($stmt);
     }
 
+    #[\ReturnTypeWillChange]
     public function query($query, $fetchMode = null, ...$fetch_mode_args) {
         $mockQuery = $this->replaceTables($query);
-        return parent::query($mockQuery, $fetchMode, ...$fetch_mode_args);
+        if ($fetchMode !== null) {
+            $stmt = parent::query($mockQuery, $fetchMode, ...$fetch_mode_args);
+        } else {
+            $stmt = parent::query($mockQuery);
+        }
+        return new DemoMockPDOStatement($stmt);
     }
 
+    #[\ReturnTypeWillChange]
     public function exec($statement) {
         $mockStatement = $this->replaceTables($statement);
         return parent::exec($mockStatement);
@@ -106,7 +118,11 @@ function initDemoMockupDatabase($pdo) {
             'line_house_mappings',
             'staging_hdc_ht',
             'staging_hdc_dm',
-            'staging_jhcis_person'
+            'staging_jhcis_person',
+            'system_messages',
+            'system_message_reads',
+            'jhcis_sync_configs',
+            'jhcis_sync_logs'
         ];
 
         foreach ($tablesToDuplicate as $tbl) {

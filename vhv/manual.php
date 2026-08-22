@@ -287,7 +287,7 @@ $province = defined('PROVINCE_NAME') ? PROVINCE_NAME : 'อุบลราชธ
 
         <!-- Header Section -->
         <div class="header-section">
-            <img src="<?= $path_prefix ?>assets/icon.png" alt="NCDs Prevention Logo">
+            <img src="<?= $path_prefix ?>assets/icon.png" alt="NCDs Portal Logo">
             <h1>📖 คู่มือการใช้งานระบบ</h1>
             <p>สำหรับ อสม. ในการลงพื้นที่คัดกรองเชิงรุก</p>
         </div>

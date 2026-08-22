@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['hdc_file'])) {
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h2 style="font-size: 16px; font-weight: 800; line-height: 1.2;">NCDs Prevention Portal - Tansum</h2>
+                <h2 style="font-size: 16px; font-weight: 800; line-height: 1.2;">NCDs Portal - Tansum</h2>
                 <p>ศูนย์คัดกรอง รพ.สต.</p>
             </div>
             <nav class="sidebar-nav">

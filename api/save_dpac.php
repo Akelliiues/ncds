@@ -137,6 +137,11 @@ try {
         $dbp = ($_POST['bp_dia'] !== null && $_POST['bp_dia'] !== '') ? (int)$_POST['bp_dia'] : null;
         $healthRisk = $_POST['health_risk_level'] ?? '';
         $advice = $_POST['advice_given'] ?? '';
+        $sleepQuality = in_array($_POST['sleep_quality'] ?? '', ['good', 'restless', 'poor']) ? $_POST['sleep_quality'] : 'good';
+        $careLevel = in_array($_POST['care_level'] ?? '', ['good', 'fair', 'poor', 'critical']) ? $_POST['care_level'] : 'good';
+        $nextVisitDate = !empty($_POST['next_visit_date']) ? $_POST['next_visit_date'] : null;
+        $guidanceSummary = trim($_POST['guidance_summary'] ?? '');
+        $healthProgress = in_array($_POST['health_progress'] ?? '', ['improved', 'stable', 'worsened', 'baseline']) ? $_POST['health_progress'] : null;
 
         $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
         if ($isSandboxVal) {
@@ -146,6 +151,7 @@ try {
                     weight = ?, height = ?, waist = ?,
                     fbs = ?, bp_sys = ?, bp_dia = ?,
                     health_risk_level = ?, advice_given = ?,
+                    sleep_quality = ?, care_level = ?, next_visit_date = ?, guidance_summary = ?, health_progress = ?,
                     is_sandbox_completed = 1
                 WHERE followup_id = ? AND vhv_id = ?
             ");
@@ -155,11 +161,16 @@ try {
                 SET status = 'completed', completed_at = CURRENT_TIMESTAMP,
                     weight = ?, height = ?, waist = ?,
                     fbs = ?, bp_sys = ?, bp_dia = ?,
-                    health_risk_level = ?, advice_given = ?
+                    health_risk_level = ?, advice_given = ?,
+                    sleep_quality = ?, care_level = ?, next_visit_date = ?, guidance_summary = ?, health_progress = ?
                 WHERE followup_id = ? AND vhv_id = ?
             ");
         }
-        $updateStmt->execute([$weight, $height, $waist, $fbs, $sbp, $dbp, $healthRisk, $advice, $fid, $vhvId]);
+        $updateStmt->execute([
+            $weight, $height, $waist, $fbs, $sbp, $dbp, $healthRisk, $advice,
+            $sleepQuality, $careLevel, $nextVisitDate, $guidanceSummary, $healthProgress,
+            $fid, $vhvId
+        ]);
 
         // Calculate points to earn: 1.00 - (skip_count * 0.25)
         $skipCount = (int)$followup['skip_count'];

@@ -196,7 +196,7 @@ function get_time_diff_display($timestamp) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เกี่ยวกับระบบและผู้พัฒนา - NCDs Prevention Portal</title>
+    <title>เกี่ยวกับระบบและผู้พัฒนา - NCDs Portal</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <style>
         body {
@@ -475,17 +475,17 @@ function get_time_diff_display($timestamp) {
         <div class="about-card">
             <!-- Clickable Logo -->
             <div class="about-logo-wrapper" onclick="openModal('assets/aboutus.png')" title="คลิกเพื่อดูรูปภาพขนาดใหญ่">
-                <img src="assets/aboutus.png" alt="NCDs Prevention Logo" class="about-logo">
+                <img src="assets/aboutus.png" alt="NCDs Portal Logo" class="about-logo">
             </div>
 
-            <h1 class="about-title">NCDs Prevention Portal</h1>
+            <h1 class="about-title">NCDs Portal</h1>
             <p class="about-subtitle">สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?></p>
 
             <!-- Info Grid -->
             <div class="info-grid">
                 <div class="info-row">
                     <div class="info-label">ชื่อระบบ:</div>
-                    <div class="info-value">ระบบคัดกรอง ดูแล และป้องกันโรคไม่ติดต่อเรื้อรัง (NCDs Prevention Portal)
+                    <div class="info-value">ระบบคัดกรอง ดูแล และป้องกันโรคไม่ติดต่อเรื้อรัง (NCDs Portal)
                     </div>
                 </div>
                 <div class="info-row">

@@ -34,42 +34,6 @@ try {
 $relations = [];
 try {
     $stmtV = $pdo->query("SELECT vhid_code, sub_district_code, moo, village_name, hoscode FROM villages ORDER BY hoscode ASC, moo ASC");
-<?php
-// admin/reports.php
-require_once __DIR__ . '/../config/session.php';
-
-if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    header("Location: ../index.php");
-    exit();
-}
-
-require_once __DIR__ . '/../config/db.php';
-
-$admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
-
-$hc_names = get_health_units();
-
-$admin_title = get_admin_title();
-
-$tambons = [];
-try {
-    $stmt = $pdo->query("SELECT sub_district_code, CONCAT('ตำบล', sub_district_name) FROM sub_districts ORDER BY sub_district_code ASC");
-    $tambons = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-} catch (\Exception $e) {
-    $tambons = [
-        '341801' => 'ตำบลตาลสุม',
-        '341802' => 'ตำบลสำโรง',
-        '341803' => 'ตำบลจิกเทิง',
-        '341804' => 'ตำบลหนองกุง',
-        '341805' => 'ตำบลนาคาย',
-        '341806' => 'ตำบลคำหว้า'
-    ];
-}
-
-// ดึงข้อมูลความสัมพันธ์หมู่บ้านและ รพ.สต. เพื่อใช้ในการกรองข้อมูลให้ตรงกับที่ตั้งค่าในระบบ
-$relations = [];
-try {
-    $stmtV = $pdo->query("SELECT vhid_code, sub_district_code, moo, village_name, hoscode FROM villages ORDER BY hoscode ASC, moo ASC");
     $allVillages = $stmtV->fetchAll(PDO::FETCH_ASSOC);
     foreach ($allVillages as $v) {
         $hc = $v['hoscode'];
@@ -686,7 +650,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>รายงานและพิมพ์ข้อมูล - NCDs Prevention Portal</title>
+    <title>รายงานและพิมพ์ข้อมูล - NCDs Portal</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -933,7 +897,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
         </p>
     </div>
     <div class="print-footer">
-        <span>พิมพ์จากระบบ NCDs Prevention Portal - Tansum เมื่อวันที่ <?= date('d/m/Y H:i') ?> น.</span>
+        <span>พิมพ์จากระบบ NCDs Portal - Tansum เมื่อวันที่ <?= date('d/m/Y H:i') ?> น.</span>
     </div>
 
     <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">

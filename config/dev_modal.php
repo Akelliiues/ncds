@@ -274,7 +274,7 @@ if (file_exists('assets/aboutus.png')) {
         <!-- Compact Developer Info Card -->
         <div class="dev-app-header">
             <img src="<?= $path_prefix ?>assets/aboutus.png" alt="App Logo" class="dev-app-logo">
-            <h2 class="dev-app-title">NCDs Prevention Portal</h2>
+            <h2 class="dev-app-title">NCDs Portal</h2>
             <p class="dev-app-subtitle">สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?></p>
         </div>
 
