@@ -451,8 +451,10 @@ if (DemoDataProvider::isDemoMode()) {
                                 <?php endif; ?>
                             </p>
                         </div>
-                        <div>
-                            <svg width="24" height="24" fill="none" stroke="var(--border-color)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"></path></svg>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: var(--color-green, #10B981); font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px; box-shadow: none;">
+                                📋 คัดกรอง ➔
+                            </span>
                         </div>
                     </div>
                 <?php endforeach; ?>

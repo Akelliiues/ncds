@@ -25,13 +25,29 @@ $residents = [];
 $history = [];
 
 if (DemoDataProvider::isDemoMode()) {
-    $allDemo = DemoDataProvider::getDemoVhvTasks()['pending'];
+    $allTargets = DemoDataProvider::getMockTargets();
     if (!empty($cid)) {
-        $filtered = array_values(array_filter($allDemo, function($r) use ($cid) { return $r['cid'] === $cid; }));
-        $residents = !empty($filtered) ? $filtered : $allDemo;
+        $filtered = array_values(array_filter($allTargets, function($r) use ($cid) { return $r['cid'] === $cid; }));
+        $residents = !empty($filtered) ? $filtered : [$allTargets[0]];
+    } elseif (!empty($hid)) {
+        $filtered = array_values(array_filter($allTargets, function($r) use ($hid) { return $r['house_no'] === $hid || $r['cid'] === $hid; }));
+        $residents = !empty($filtered) ? $filtered : [$allTargets[0]];
     } else {
-        $residents = $allDemo;
+        $residents = DemoDataProvider::getDemoVhvTasks()['pending'];
     }
+    
+    // Check if target is in locked village (Moo 3, 4, 5)
+    if (!empty($residents) && in_array(strval($residents[0]['moo']), ['3', '4', '5'])) {
+        header("Location: scan.php");
+        exit();
+    }
+
+    foreach ($residents as &$res) {
+        if (empty($res['assignment_id'])) {
+            $res['assignment_id'] = 'DEMO_ASSIGN_' . substr($res['cid'], -2);
+        }
+    }
+    unset($res);
 } elseif (!$isShell) {
     // Auto-assign task if no pending assignment exists yet
     $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;

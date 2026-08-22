@@ -11,9 +11,10 @@ class DemoDataProvider {
         return $_SESSION['demo_role'] ?? 'vhv';
     }
 
-    // 1. รายชื่อประชากรจำลอง 100% (CID สมมติ 99999..., ชื่อสมมติ ปลอดภัยจากข้อมูลจริง 100%)
+    // 1. รายชื่อประชากรจำลอง 10 คน (CID สมมติ ปลอดภัยจากข้อมูลจริง 100% ครอบคลุมหมู่ 1 ถึง 5)
     public static function getMockTargets() {
         return [
+            // --- หมู่ 1: ได้รับมอบหมาย (กดคัดกรองได้จากหน้าหลัก อสม. หรือสแกน QR ก็ผ่าน) ---
             [
                 'cid' => '9999900000001',
                 'first_name' => 'สมชาย',
@@ -33,7 +34,8 @@ class DemoDataProvider {
                 'last_sbp' => 135,
                 'last_dbp' => 85,
                 'last_dtx' => 118,
-                'last_dtx_type' => 'fpg'
+                'last_dtx_type' => 'fpg',
+                'demo_category' => 'moo1_assigned'
             ],
             [
                 'cid' => '9999900000002',
@@ -54,8 +56,11 @@ class DemoDataProvider {
                 'last_sbp' => 120,
                 'last_dbp' => 78,
                 'last_dtx' => 142,
-                'last_dtx_type' => 'fpg'
+                'last_dtx_type' => 'fpg',
+                'demo_category' => 'moo1_assigned'
             ],
+
+            // --- หมู่ 2: Bypass สแกน QR Code หมู่ 2 ได้ทั้งหมด และเข้าคัดกรองได้ปกติ ---
             [
                 'cid' => '9999900000003',
                 'first_name' => 'บุญมี',
@@ -75,7 +80,8 @@ class DemoDataProvider {
                 'last_sbp' => 148,
                 'last_dbp' => 92,
                 'last_dtx' => 165,
-                'last_dtx_type' => 'fpg'
+                'last_dtx_type' => 'fpg',
+                'demo_category' => 'moo2_bypass'
             ],
             [
                 'cid' => '9999900000004',
@@ -90,14 +96,17 @@ class DemoDataProvider {
                 'need_screen_dm' => 0,
                 'need_screen_ht' => 1,
                 'health_status_origin' => 'HT_ONLY',
-                'assignment_status' => 'completed',
+                'assignment_status' => 'pending',
                 'round_number' => 1,
                 'assigned_vhv' => 'อสม. สายสมร มีสุข (จำลอง)',
                 'last_sbp' => 118,
                 'last_dbp' => 76,
                 'last_dtx' => 95,
-                'last_dtx_type' => 'fpg'
+                'last_dtx_type' => 'fpg',
+                'demo_category' => 'moo2_bypass'
             ],
+
+            // --- หมู่ 3: ล็อกการคัดกรองเพราะ "ยังไม่ได้รับมอบหมายงาน" ---
             [
                 'cid' => '9999900000005',
                 'first_name' => 'วิชัย',
@@ -111,18 +120,133 @@ class DemoDataProvider {
                 'need_screen_dm' => 1,
                 'need_screen_ht' => 1,
                 'health_status_origin' => 'BOTH',
-                'assignment_status' => 'completed',
+                'assignment_status' => 'unassigned',
                 'round_number' => 1,
-                'assigned_vhv' => 'อสม. บุญทัน เจริญดี (จำลอง)',
+                'assigned_vhv' => '-',
                 'last_sbp' => 162,
                 'last_dbp' => 98,
                 'last_dtx' => 210,
-                'last_dtx_type' => 'fpg'
+                'last_dtx_type' => 'fpg',
+                'demo_category' => 'moo3_unassigned'
+            ],
+            [
+                'cid' => '9999900000006',
+                'first_name' => 'อำนวย',
+                'last_name' => 'รวยรื่น (จำลอง)',
+                'sex' => '2',
+                'birth' => '1965-03-25',
+                'age' => 61,
+                'house_no' => '22',
+                'moo' => '3',
+                'tambon_name' => 'ตาลสุม (จำลอง)',
+                'need_screen_dm' => 1,
+                'need_screen_ht' => 0,
+                'health_status_origin' => 'DM_ONLY',
+                'assignment_status' => 'unassigned',
+                'round_number' => 1,
+                'assigned_vhv' => '-',
+                'last_sbp' => 128,
+                'last_dbp' => 82,
+                'last_dtx' => 135,
+                'last_dtx_type' => 'fpg',
+                'demo_category' => 'moo3_unassigned'
+            ],
+
+            // --- หมู่ 4: ล็อกการคัดกรองเพราะ "สแกนข้ามเขต" ---
+            [
+                'cid' => '9999900000007',
+                'first_name' => 'มานพ',
+                'last_name' => 'สมบูรณ์ (จำลอง)',
+                'sex' => '1',
+                'birth' => '1970-10-18',
+                'age' => 56,
+                'house_no' => '54',
+                'moo' => '4',
+                'tambon_name' => 'ตาลสุม (จำลอง)',
+                'need_screen_dm' => 1,
+                'need_screen_ht' => 1,
+                'health_status_origin' => 'BOTH',
+                'assignment_status' => 'out_of_territory',
+                'round_number' => 1,
+                'assigned_vhv' => 'อสม. ชาญชัย (เขต ม.4)',
+                'last_sbp' => 142,
+                'last_dbp' => 88,
+                'last_dtx' => 150,
+                'last_dtx_type' => 'fpg',
+                'demo_category' => 'moo4_outofarea'
+            ],
+            [
+                'cid' => '9999900000008',
+                'first_name' => 'สายใจ',
+                'last_name' => 'ยิ่งยง (จำลอง)',
+                'sex' => '2',
+                'birth' => '1952-12-05',
+                'age' => 74,
+                'house_no' => '76/1',
+                'moo' => '4',
+                'tambon_name' => 'ตาลสุม (จำลอง)',
+                'need_screen_dm' => 0,
+                'need_screen_ht' => 1,
+                'health_status_origin' => 'HT_ONLY',
+                'assignment_status' => 'out_of_territory',
+                'round_number' => 1,
+                'assigned_vhv' => 'อสม. ชาญชัย (เขต ม.4)',
+                'last_sbp' => 155,
+                'last_dbp' => 95,
+                'last_dtx' => 110,
+                'last_dtx_type' => 'fpg',
+                'demo_category' => 'moo4_outofarea'
+            ],
+
+            // --- หมู่ 5: ล็อกการคัดกรองเพราะ "สแกนข้ามเขต" ---
+            [
+                'cid' => '9999900000009',
+                'first_name' => 'ประเสริฐ',
+                'last_name' => 'เลิศล้ำ (จำลอง)',
+                'sex' => '1',
+                'birth' => '1960-07-14',
+                'age' => 66,
+                'house_no' => '9/1',
+                'moo' => '5',
+                'tambon_name' => 'ตาลสุม (จำลอง)',
+                'need_screen_dm' => 1,
+                'need_screen_ht' => 1,
+                'health_status_origin' => 'BOTH',
+                'assignment_status' => 'out_of_territory',
+                'round_number' => 1,
+                'assigned_vhv' => 'อสม. วนิดา (เขต ม.5)',
+                'last_sbp' => 136,
+                'last_dbp' => 84,
+                'last_dtx' => 124,
+                'last_dtx_type' => 'fpg',
+                'demo_category' => 'moo5_outofarea'
+            ],
+            [
+                'cid' => '9999900000010',
+                'first_name' => 'พวงเพ็ญ',
+                'last_name' => 'เจริญผล (จำลอง)',
+                'sex' => '2',
+                'birth' => '1967-02-28',
+                'age' => 59,
+                'house_no' => '33',
+                'moo' => '5',
+                'tambon_name' => 'ตาลสุม (จำลอง)',
+                'need_screen_dm' => 1,
+                'need_screen_ht' => 0,
+                'health_status_origin' => 'DM_ONLY',
+                'assignment_status' => 'out_of_territory',
+                'round_number' => 1,
+                'assigned_vhv' => 'อสม. วนิดา (เขต ม.5)',
+                'last_sbp' => 122,
+                'last_dbp' => 80,
+                'last_dtx' => 178,
+                'last_dtx_type' => 'fpg',
+                'demo_category' => 'moo5_outofarea'
             ]
         ];
     }
 
-    // 2. งาน อสม. จำลอง
+    // 2. งาน อสม. จำลอง (เฉพาะหมู่ 1 ที่ได้รับมอบหมายในหน้าหลัก)
     public static function getDemoVhvTasks() {
         $targets = self::getMockTargets();
         return [
@@ -134,8 +258,7 @@ class DemoDataProvider {
                 array_merge($targets[2], ['assignment_id' => 'DEMO_ASSIGN_3', 'dpac_id' => 'DEMO_DPAC_1', 'round_no' => 2])
             ],
             'completed' => [
-                array_merge($targets[3], ['assignment_id' => 'DEMO_ASSIGN_4']),
-                array_merge($targets[4], ['assignment_id' => 'DEMO_ASSIGN_5'])
+                array_merge($targets[3], ['assignment_id' => 'DEMO_ASSIGN_4', 'assignment_status' => 'completed'])
             ],
             'skipped' => []
         ];

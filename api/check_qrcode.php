@@ -10,37 +10,84 @@ require_once __DIR__ . '/../config/demo_data.php';
 
 if (DemoDataProvider::isDemoMode()) {
     $hid = trim($_POST['hid'] ?? '');
+    $targets = DemoDataProvider::getMockTargets();
     
-    // เคสทดสอบที่ 2.2: สแกน QR ที่ไม่ได้รับมอบหมาย / อยู่นอกเขตรับผิดชอบ (ติดล็อค PDPA)
-    if ($hid === 'DEMO_HOUSE_LOCKED_999' || $hid === '9999999999999' || stripos($hid, 'LOCKED') !== false || stripos($hid, 'UNASSIGNED') !== false) {
-        echo json_encode([
-            'status' => 'error',
-            'error_code' => 'UNASSIGNED_HOUSE',
-            'message' => 'รหัส ' . htmlspecialchars($hid) . ' อยู่นอกเขตรับผิดชอบ หรือยังไม่มีการมอบหมายงานในระบบ',
-            'is_demo' => true
-        ], JSON_UNESCAPED_UNICODE);
-        exit();
-    }
-    
-    // เคสทดสอบที่ 2.1: สแกน QR ที่ได้รับมอบหมายถูกต้อง (ผ่านเข้าสู่การคัดกรอง)
-    $demoTasks = DemoDataProvider::getDemoVhvTasks();
-    $targetResident = null;
-    foreach ($demoTasks['pending'] as $t) {
-        if ($t['cid'] === $hid || $t['house_no'] === $hid || $t['assignment_id'] === $hid || $hid === 'DEMO_HOUSE_12_1' || $hid === 'DEMO_HID_1') {
-            $targetResident = $t;
+    // Find matching target in 10 mock targets
+    $matched = null;
+    foreach ($targets as $t) {
+        if ($t['cid'] === $hid || $t['house_no'] === $hid || (isset($t['assignment_id']) && $t['assignment_id'] === $hid)) {
+            $matched = $t;
             break;
         }
     }
-    if (!$targetResident) {
-        $targetResident = $demoTasks['pending'][0];
+    
+    // Special test code aliases
+    if (!$matched) {
+        if (strpos($hid, 'DEMO_MOO1') !== false || $hid === 'DEMO_HOUSE_12_1' || $hid === 'DEMO_HID_1') {
+            $matched = $targets[0];
+        } elseif (strpos($hid, 'DEMO_MOO2') !== false || $hid === 'DEMO_HOUSE_88_2' || $hid === 'DEMO_HOUSE_101_2') {
+            $matched = $targets[2];
+        } elseif (strpos($hid, 'DEMO_MOO3') !== false || $hid === 'DEMO_HOUSE_15_3' || $hid === 'DEMO_HOUSE_22_3') {
+            $matched = $targets[4];
+        } elseif (strpos($hid, 'DEMO_MOO4') !== false || $hid === 'DEMO_HOUSE_54_4' || $hid === 'DEMO_HOUSE_76_4') {
+            $matched = $targets[6];
+        } elseif (strpos($hid, 'DEMO_MOO5') !== false || $hid === 'DEMO_HOUSE_9_5' || $hid === 'DEMO_HOUSE_33_5' || $hid === 'DEMO_HOUSE_LOCKED_999') {
+            $matched = $targets[8];
+        }
+    }
+
+    if ($matched) {
+        $moo = strval($matched['moo']);
+        
+        // 1. หมู่ 1 และ หมู่ 2: สแกนผ่าน เข้าสู่แบบฟอร์มคัดกรองได้ปกติ
+        if ($moo === '1' || $moo === '2') {
+            echo json_encode([
+                'status' => 'success',
+                'hid' => $matched['cid'],
+                'house_no' => $matched['house_no'],
+                'moo' => $matched['moo'],
+                'residents' => [$matched],
+                'is_demo' => true
+            ], JSON_UNESCAPED_UNICODE);
+            exit();
+        }
+        
+        // 2. หมู่ 3: ล็อกการคัดกรองเพราะ "ยังไม่ได้รับมอบหมายงาน"
+        if ($moo === '3') {
+            echo json_encode([
+                'status' => 'error',
+                'error_code' => 'UNASSIGNED_TASK',
+                'moo' => '3',
+                'lock_title' => 'ยังไม่ได้รับมอบหมายงาน (หมู่ 3)',
+                'message' => 'รหัสบ้านเลขที่ ' . htmlspecialchars($matched['house_no']) . ' ม.3 (คุณ' . htmlspecialchars($matched['first_name'] . ' ' . $matched['last_name']) . ') ยังไม่มีการมอบหมายงานในระบบ อสม.',
+                'sub_message' => 'กรุณาประสานเจ้าหน้าที่ รพ.สต. เพื่อทำการมอบหมายงานก่อนเริ่มคัดกรอง',
+                'is_demo' => true
+            ], JSON_UNESCAPED_UNICODE);
+            exit();
+        }
+        
+        // 3. หมู่ 4 และ หมู่ 5: ล็อกการคัดกรองเพราะ "สแกนข้ามเขต"
+        if ($moo === '4' || $moo === '5') {
+            echo json_encode([
+                'status' => 'error',
+                'error_code' => 'OUT_OF_TERRITORY',
+                'moo' => $moo,
+                'lock_title' => 'สแกนข้ามเขตรับผิดชอบ (หมู่ ' . $moo . ')',
+                'message' => 'รหัสบ้านเลขที่ ' . htmlspecialchars($matched['house_no']) . ' ม.' . $moo . ' (คุณ' . htmlspecialchars($matched['first_name'] . ' ' . $matched['last_name']) . ') อยู่นอกเขตพื้นที่รับผิดชอบของท่าน',
+                'sub_message' => 'ระบบได้บันทึกการพยายามเข้าถึงข้ามเขต และล็อกข้อมูลตามมาตรการ PDPA',
+                'is_demo' => true
+            ], JSON_UNESCAPED_UNICODE);
+            exit();
+        }
     }
     
+    // Default fallback: ล็อกข้อมูล
     echo json_encode([
-        'status' => 'success',
-        'hid' => $targetResident['cid'],
-        'house_no' => $targetResident['house_no'],
-        'moo' => $targetResident['moo'],
-        'residents' => [$targetResident],
+        'status' => 'error',
+        'error_code' => 'OUT_OF_TERRITORY',
+        'lock_title' => 'สแกนข้ามเขต / ไม่พบข้อมูล',
+        'message' => 'รหัส ' . htmlspecialchars($hid) . ' อยู่นอกเขตพื้นที่รับผิดชอบ หรือยังไม่มีการมอบหมายงานในระบบ',
+        'sub_message' => 'ระบบล็อกการเข้าถึงตามมาตรการคุ้มครองข้อมูลส่วนบุคคล (PDPA)',
         'is_demo' => true
     ], JSON_UNESCAPED_UNICODE);
     exit();
