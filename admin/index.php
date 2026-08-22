@@ -425,15 +425,15 @@ if (DemoDataProvider::isDemoMode()) {
             p.moo,
             COUNT(DISTINCT p.cid) as total_targets,
             COUNT(DISTINCT CASE WHEN (
-                (ta.round_number = 1 OR ta.round_number IS NULL OR ta.round_number = 0) AND (ta.assignment_status = 'completed' OR sr.screening_id IS NOT NULL)
+                COALESCE(sr.round_number, ta.round_number, 1) = 1 AND (ta.assignment_status = 'completed' OR sr.screening_id IS NOT NULL)
             ) THEN p.cid END) as r1_completed,
-            COUNT(DISTINCT CASE WHEN ta.round_number = 2 AND ta.assignment_status = 'pending' THEN p.cid END) as r2_assigned,
-            COUNT(DISTINCT CASE WHEN ta.round_number = 2 AND (ta.assignment_status = 'completed' OR (sr.screening_id IS NOT NULL AND sr.round_number = 2)) THEN p.cid END) as r2_completed,
-            COUNT(DISTINCT CASE WHEN ta.round_number >= 3 AND ta.assignment_status = 'pending' THEN p.cid END) as r3_assigned,
-            COUNT(DISTINCT CASE WHEN ta.round_number >= 3 AND (ta.assignment_status = 'completed' OR (sr.screening_id IS NOT NULL AND sr.round_number >= 3)) THEN p.cid END) as r3_completed
+            COUNT(DISTINCT CASE WHEN COALESCE(ta.round_number, 1) = 2 AND ta.assignment_status = 'pending' THEN p.cid END) as r2_assigned,
+            COUNT(DISTINCT CASE WHEN (COALESCE(sr.round_number, ta.round_number) = 2 AND (ta.assignment_status = 'completed' OR sr.screening_id IS NOT NULL)) OR sr.round_number = 2 THEN p.cid END) as r2_completed,
+            COUNT(DISTINCT CASE WHEN COALESCE(ta.round_number, 1) >= 3 AND ta.assignment_status = 'pending' THEN p.cid END) as r3_assigned,
+            COUNT(DISTINCT CASE WHEN (COALESCE(sr.round_number, ta.round_number) >= 3 AND (ta.assignment_status = 'completed' OR sr.screening_id IS NOT NULL)) OR sr.round_number >= 3 THEN p.cid END) as r3_completed
         FROM target_population p
         LEFT JOIN task_assignments ta ON p.cid = ta.target_cid AND (ta.budget_year = 2026 OR ta.budget_year IS NULL) AND COALESCE(ta.is_sandbox, 0) = ?
-        LEFT JOIN screening_results sr ON (p.cid = sr.target_cid OR ta.assignment_id = sr.assignment_id) AND COALESCE(sr.is_sandbox, 0) = ?
+        LEFT JOIN screening_results sr ON (sr.assignment_id = ta.assignment_id OR (sr.target_cid = p.cid AND (sr.round_number = ta.round_number OR ta.assignment_id IS NULL))) AND COALESCE(sr.is_sandbox, 0) = ?
         WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY p.hoscode, p.moo
         ORDER BY p.hoscode, p.moo
