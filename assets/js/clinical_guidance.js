@@ -20,6 +20,59 @@
     };
 
     /**
+     * ระบบอ่านออกเสียงบทสนทนาพลังบวก (Text-to-Speech Voice Coach)
+     */
+    function speak(text, btnElement) {
+        if (!('speechSynthesis' in window)) {
+            alert('อุปกรณ์นี้ยังไม่รองรับระบบเสียงพูดในตัว');
+            return;
+        }
+
+        if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+            if (btnElement) {
+                btnElement.innerHTML = '<span>🔊</span> <span>เปิดเสียงพูด</span>';
+                btnElement.style.background = '#10B981';
+            }
+            return;
+        }
+
+        const cleanText = text.replace(/["'“”✨🌿🟢🟡🔴🚨💡💬]/g, '').trim();
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = 'th-TH';
+        utterance.rate = 0.92; // ความเร็วพอดี นุ่มนวล ชัดถ้อยชัดคำสำหรับผู้สูงอายุ
+        utterance.pitch = 1.05; // โทนเสียงอบอุ่น เป็นมิตร
+
+        // ค้นหาเสียงภาษาไทยถ้ามี
+        const voices = window.speechSynthesis.getVoices();
+        const thaiVoice = voices.find(v => (v.lang && v.lang.toLowerCase().includes('th')) || (v.name && v.name.includes('Thai')));
+        if (thaiVoice) {
+            utterance.voice = thaiVoice;
+        }
+
+        if (btnElement) {
+            btnElement.innerHTML = '<span>⏹️</span> <span>กำลังพูด... (กดหยุด)</span>';
+            btnElement.style.background = '#EF4444';
+        }
+
+        utterance.onend = function() {
+            if (btnElement) {
+                btnElement.innerHTML = '<span>🔊</span> <span>ฟังอีกครั้ง</span>';
+                btnElement.style.background = '#10B981';
+            }
+        };
+
+        utterance.onerror = function() {
+            if (btnElement) {
+                btnElement.innerHTML = '<span>🔊</span> <span>เปิดเสียงพูด</span>';
+                btnElement.style.background = '#10B981';
+            }
+        };
+
+        window.speechSynthesis.speak(utterance);
+    }
+
+    /**
      * วิเคราะห์ผลสุขภาพ คำนวณ Care Level, Guidance, และ Health Progress
      */
     function analyze(data) {
@@ -119,16 +172,16 @@
         let conciseTip = '';
 
         if (isEmergency) {
-            whatToSay = '"ค่าน้ำตาล/ความดันรอบนี้ต้องรีบดูแลเป็นพิเศษค่ะ เดี๋ยว อสม. ช่วยประสาน รพ.สต. ให้นะคะ"';
+            whatToSay = 'ค่าน้ำตาลและความดันรอบนี้ต้องรีบดูแลเป็นพิเศษค่ะ เดี๋ยว อสม. ช่วยประสานคุณหมอที่ รพ.สต. ให้นะคะ';
             conciseTip = 'ให้นั่งพักในที่อากาศถ่ายเท หลีกเลี่ยงของหวานจัด และประสาน รพ.สต. หรือ 1669 ทันที';
         } else if (healthProgress === 'improved') {
-            whatToSay = '"ยินดีด้วยนะคะ! ผลตรวจรอบนี้ดีขึ้นมาก ดูแลตัวเองได้ยอดเยี่ยมมาก ทำต่อเนื่องไปนะคะ ✨"';
+            whatToSay = 'ยินดีด้วยนะคะ ผลตรวจรอบนี้ดีขึ้นมากเลย ดูแลตัวเองได้ยอดเยี่ยมมาก ทำต่อเนื่องไปนะคะ';
             conciseTip = 'รักษาวินัยการทานอาหารรสจืด ดื่มน้ำเปล่าบ่อยๆ และออกกำลังกายสม่ำเสมอ';
         } else if (careLevel === 'poor' || healthProgress === 'worsened') {
-            whatToSay = '"รอบนี้เริ่มสูงขึ้นนิดหน่อยนะคะ ไม่เป็นไรค่ะ เรามาช่วยกันลดหวาน ลดเค็ม ดื่มน้ำเปล่าเพิ่มกันนะคะ"';
+            whatToSay = 'รอบนี้เริ่มสูงขึ้นนิดหน่อยนะคะ ไม่เป็นไรค่ะ เรามาช่วยกันลดหวาน ลดเค็ม ดื่มน้ำเปล่าเพิ่มกันนะคะ';
             conciseTip = 'ชวนลดของหวาน ของทอด แกงกะทิ ทานยาตรงเวลา และพักผ่อนให้เพียงพอ';
         } else {
-            whatToSay = '"ผลสุขภาพโดยรวมปกติดีค่ะ สดชื่นแข็งแรง รักษาสุขภาพแบบนี้ต่อไปเรื่อยๆ นะคะ"';
+            whatToSay = 'ผลสุขภาพโดยรวมปกติดีค่ะ สดชื่นแข็งแรง รักษาสุขภาพแบบนี้ต่อไปเรื่อยๆ นะคะ';
             conciseTip = 'รับประทานอาหารรสไม่หวานจัด ดื่มน้ำสะอาด 6-8 แก้ว และขยับกายออกกำลังเบาๆ ทุกวัน';
         }
 
@@ -156,7 +209,7 @@
     }
 
     /**
-     * Render Simple & Easy Guidance Card (Clean Mobile First - ไม่มีข้อย่อยรกรุงรัง)
+     * Render Simple & Easy Guidance Card with Text-to-Speech Button
      */
     function renderGuidanceCard(result) {
         let emergencyHtml = '';
@@ -173,6 +226,8 @@
             `;
         }
 
+        const safeScript = result.what_to_say.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
         return `
             <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 14px; box-shadow: var(--neumorph-flat); margin-bottom: 12px;">
                 ${emergencyHtml}
@@ -187,10 +242,17 @@
                     </span>
                 </div>
 
-                <!-- Positive Speech Script (บทพูดภาษาบวก สั้น กระชับ อสม. อ่านได้ทันที) -->
-                <div style="background: rgba(16, 185, 129, 0.08); border-left: 3.5px solid #10B981; border-radius: 0 12px 12px 0; padding: 10px 12px; font-size: 13.5px; color: var(--text-primary); line-height: 1.45; margin-bottom: 8px;">
-                    <div style="font-size: 11px; font-weight: 800; color: #10B981; margin-bottom: 2px;">💬 บทพูดชวนคุยกับชาวบ้าน:</div>
-                    <div style="font-style: italic; font-weight: 600;">${result.what_to_say}</div>
+                <!-- Positive Speech Script with Instant Audio Speaker Button -->
+                <div style="background: rgba(16, 185, 129, 0.08); border-left: 3.5px solid #10B981; border-radius: 0 14px 14px 0; padding: 12px; font-size: 13.5px; color: var(--text-primary); line-height: 1.45; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
+                        <span style="font-size: 11.5px; font-weight: 800; color: #10B981; display: flex; align-items: center; gap: 4px;">
+                            <span>💬</span> <span>บทพูดชวนคุยกับชาวบ้าน:</span>
+                        </span>
+                        <button type="button" onclick="ClinicalGuidance.speak('${safeScript}', this)" style="background: #10B981; color: white; border: none; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35); transition: all 0.2s;">
+                            <span>🔊</span> <span>เปิดเสียงพูด</span>
+                        </button>
+                    </div>
+                    <div style="font-style: italic; font-weight: 600; color: var(--text-primary); font-size: 14px;">"${result.what_to_say}"</div>
                 </div>
 
                 <!-- 1-Line Clean Tip -->
@@ -204,6 +266,7 @@
 
     window.ClinicalGuidance = {
         analyze: analyze,
+        speak: speak,
         renderGuidanceCard: renderGuidanceCard,
         CARE_LEVEL_CONFIG: CARE_LEVEL_CONFIG,
         SLEEP_CONFIG: SLEEP_CONFIG
