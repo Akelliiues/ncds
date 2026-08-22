@@ -447,26 +447,26 @@ try {
             $trendDetails[] = 'บันทึกเป็นฐานข้อมูลประเมินสุขภาพประจำปีเรียบร้อย';
         }
 
-        // Calculate overall risk and counseling summary metadata
+        // Calculate overall risk and counseling summary metadata (4 Tiers: green, yellow, orange, red)
         $hl_risk_level = 'green';
         $risk_color = '#10B981';
-        $risk_title = '🟢 ปกติ (สุขภาพดี)';
+        $risk_title = '🟢 สุขภาพปกติ (เกณฑ์ดีเยี่ยม)';
         $status_desc = 'ค่าความดันโลหิตและระดับน้ำตาลในเลือดอยู่ในเกณฑ์ปกติ สุขภาพแข็งแรงดี';
 
         if ($sys1 >= 180 || $dia1 >= 110 || $dtx >= 300) {
             $hl_risk_level = 'red';
-            $risk_color = '#EF4444';
-            $risk_title = '🔴 เสี่ยงสูงวิกฤต (ต้องพบแพทย์ทันที)';
-            $status_desc = 'พบค่าสัญญาณชีพสูงวิกฤต เสี่ยงต่อภาวะแทรกซ้อนรุนแรง ต้องนำส่ง รพ.สต./โรงพยาบาล ด่วน!';
-        } elseif ($sys1 >= 160 || $dia1 >= 100 || ($dtxType === 'fpg' && $dtx >= 126) || ($dtxType === 'random' && $dtx >= 200) || $cvRiskScore >= 30) {
-            $hl_risk_level = 'red';
-            $risk_color = '#EF4444';
-            $risk_title = '🔴 กลุ่มเสี่ยงสูง / สงสัยป่วย';
-            $status_desc = 'พบค่าสัญญาณชีพสูงกว่าเกณฑ์ปกติอย่างมาก ควรได้รับการตรวจยืนยันโรคโดยแพทย์';
-        } elseif ($sys1 >= 140 || $dia1 >= 90 || ($dtxType === 'fpg' && $dtx >= 100) || ($dtxType === 'random' && $dtx >= 140) || $cvRiskScore >= 20 || $bmi >= 23) {
+            $risk_color = '#DC2626';
+            $risk_title = '🔴 ระดับวิกฤต (สูงรุนแรง - ส่งต่อด่วน)';
+            $status_desc = 'พบค่าสัญญาณชีพสูงวิกฤต เสี่ยงต่อภาวะแทรกซ้อนรุนแรง ต้องส่งต่อ รพ.สต. หรือแพทย์ด่วน!';
+        } elseif ($sys1 >= 150 || $dia1 >= 95 || ($dtxType === 'fpg' && $dtx >= 126) || ($dtxType === 'random' && $dtx >= 200) || $cvRiskScore >= 30) {
+            $hl_risk_level = 'orange';
+            $risk_color = '#EA580C';
+            $risk_title = '🟠 กลุ่มเสี่ยงสูง (สงสัยป่วย - ควรพบแพทย์)';
+            $status_desc = 'พบค่าสัญญาณชีพสูงกว่าเกณฑ์ปกติอย่างมาก ควรได้รับการตรวจยืนยันสภาวะโรคโดยแพทย์';
+        } elseif ($sys1 >= 130 || $dia1 >= 85 || ($dtxType === 'fpg' && $dtx >= 100) || ($dtxType === 'random' && $dtx >= 140) || $cvRiskScore >= 20 || $bmi >= 23) {
             $hl_risk_level = 'yellow';
             $risk_color = '#F59E0B';
-            $risk_title = '🟡 กลุ่มเสี่ยง (ต้องปรับพฤติกรรม)';
+            $risk_title = '🟡 กลุ่มเสี่ยง (เริ่มสูง - ปรับพฤติกรรม)';
             $status_desc = 'พบค่าความดัน/น้ำตาลเริ่มสูง หรือดัชนีมวลกายเกินเกณฑ์ ควรปรับเปลี่ยนพฤติกรรม 3อ 2ส';
         }
 

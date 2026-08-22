@@ -2093,31 +2093,84 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             
             document.getElementById('summary-resident-name').innerText = resName;
             
-            // Hero Overall Health Card
+            // Header Strip and Hero Overall Health Card
+            const headerStrip = document.getElementById('summary-header-strip');
+            const headerIconBox = document.getElementById('summary-header-icon-box');
+            const riskPill = document.getElementById('summary-risk-pill');
             const heroCard = document.getElementById('summary-hero-card');
             const heroIcon = document.getElementById('summary-hero-icon');
             const heroTitle = document.getElementById('summary-hero-title');
             const heroDesc = document.getElementById('summary-hero-desc');
 
             const riskLevel = meta.risk_level || 'green';
-            if (riskLevel === 'red') {
-                heroCard.style.background = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)';
-                heroCard.style.boxShadow = '0 8px 24px rgba(239, 68, 68, 0.35)';
-                heroIcon.innerText = '🔴';
-                heroTitle.innerText = meta.risk_title || 'กลุ่มเสี่ยงสูง (ควรพบแพทย์)';
-                heroDesc.innerText = meta.status_desc || 'พบค่าสัญญาณชีพสูงกว่าเกณฑ์ ควรตรวจยืนยันที่ รพ.สต.';
-            } else if (riskLevel === 'yellow') {
+            if (riskLevel === 'red' || riskLevel === 'critical') {
+                // RED (แดง - วิกฤตด่วน)
+                if (headerStrip) {
+                    headerStrip.style.background = 'rgba(220, 38, 38, 0.14)';
+                    headerStrip.style.borderColor = 'rgba(220, 38, 38, 0.55)';
+                }
+                if (headerIconBox) headerIconBox.style.background = '#DC2626';
+                if (riskPill) {
+                    riskPill.style.background = '#DC2626';
+                    riskPill.innerText = '🔴 ระดับวิกฤต (ฉุกเฉิน)';
+                }
+
+                heroCard.style.background = 'linear-gradient(135deg, #DC2626 0%, #991B1B 100%)';
+                heroCard.style.boxShadow = '0 8px 24px rgba(220, 38, 38, 0.45)';
+                heroIcon.innerText = '🚨 🔴';
+                heroTitle.innerText = meta.risk_title || '🔴 ระดับวิกฤต (สูงรุนแรง - ส่งต่อด่วน)';
+                heroDesc.innerText = meta.status_desc || 'พบค่าสัญญาณชีพสูงวิกฤต เสี่ยงต่อภาวะแทรกซ้อนรุนแรง ต้องส่งต่อ รพ.สต./แพทย์ด่วน!';
+            } else if (riskLevel === 'orange' || riskLevel === 'high_risk' || riskLevel === 'suspect') {
+                // ORANGE (ส้ม - เสี่ยงสูง สงสัยป่วย)
+                if (headerStrip) {
+                    headerStrip.style.background = 'rgba(234, 88, 12, 0.14)';
+                    headerStrip.style.borderColor = 'rgba(234, 88, 12, 0.55)';
+                }
+                if (headerIconBox) headerIconBox.style.background = '#EA580C';
+                if (riskPill) {
+                    riskPill.style.background = '#EA580C';
+                    riskPill.innerText = '🟠 เสี่ยงสูง (สงสัยป่วย)';
+                }
+
+                heroCard.style.background = 'linear-gradient(135deg, #EA580C 0%, #C2410C 100%)';
+                heroCard.style.boxShadow = '0 8px 24px rgba(234, 88, 12, 0.45)';
+                heroIcon.innerText = '🟠';
+                heroTitle.innerText = meta.risk_title || '🟠 กลุ่มเสี่ยงสูง (สงสัยป่วย - ควรพบแพทย์)';
+                heroDesc.innerText = meta.status_desc || 'ความดันหรือน้ำตาลสูงเกินเกณฑ์ แนะนำตรวจยืนยันสภาวะโรคที่ รพ.สต.';
+            } else if (riskLevel === 'yellow' || riskLevel === 'risk') {
+                // YELLOW (เหลือง - กลุ่มเสี่ยง เริ่มสูง)
+                if (headerStrip) {
+                    headerStrip.style.background = 'rgba(245, 158, 11, 0.14)';
+                    headerStrip.style.borderColor = 'rgba(245, 158, 11, 0.55)';
+                }
+                if (headerIconBox) headerIconBox.style.background = '#F59E0B';
+                if (riskPill) {
+                    riskPill.style.background = '#F59E0B';
+                    riskPill.innerText = '🟡 กลุ่มเสี่ยง (เริ่มสูง)';
+                }
+
                 heroCard.style.background = 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)';
-                heroCard.style.boxShadow = '0 8px 24px rgba(245, 158, 11, 0.35)';
+                heroCard.style.boxShadow = '0 8px 24px rgba(245, 158, 11, 0.4)';
                 heroIcon.innerText = '🟡';
-                heroTitle.innerText = meta.risk_title || 'กลุ่มเสี่ยง (เริ่มสูง)';
-                heroDesc.innerText = meta.status_desc || 'พบค่าเริ่มสูงกว่าเกณฑ์เล็กน้อย ควรปรับเปลี่ยนพฤติกรรม 3อ. 2ส.';
+                heroTitle.innerText = meta.risk_title || '🟡 กลุ่มเสี่ยง (เริ่มสูง - ปรับ 3อ. 2ส.)';
+                heroDesc.innerText = meta.status_desc || 'เริ่มมีความเสี่ยง ควรปรับอาหาร ลดเค็ม ลดหวาน และออกกำลังกาย';
             } else {
+                // GREEN (เขียว - สุขภาพปกติ)
+                if (headerStrip) {
+                    headerStrip.style.background = 'rgba(16, 185, 129, 0.14)';
+                    headerStrip.style.borderColor = 'rgba(16, 185, 129, 0.55)';
+                }
+                if (headerIconBox) headerIconBox.style.background = '#10B981';
+                if (riskPill) {
+                    riskPill.style.background = '#10B981';
+                    riskPill.innerText = '🟢 สุขภาพปกติ (เกณฑ์ดี)';
+                }
+
                 heroCard.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
                 heroCard.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.35)';
                 heroIcon.innerText = '🟢';
-                heroTitle.innerText = meta.risk_title || 'สุขภาพปกติ (เกณฑ์ดี)';
-                heroDesc.innerText = meta.status_desc || 'ค่าความดันโลหิตและน้ำตาลอยู่ในเกณฑ์มาตรฐาน สุขภาพแข็งแรงดี';
+                heroTitle.innerText = meta.risk_title || '🟢 สุขภาพปกติ (เกณฑ์ดีเยี่ยม)';
+                heroDesc.innerText = meta.status_desc || 'ค่าความดันโลหิตและระดับน้ำตาลอยู่ในเกณฑ์มาตรฐาน สุขภาพแข็งแรงดี';
             }
 
             // 4 Health Cards Grid
@@ -2366,36 +2419,47 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             padding: 16px;
             box-sizing: border-box;
         ">
-            <!-- Compact Top Bar -->
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color, rgba(148, 163, 184, 0.2));">
+            <!-- Dynamic Risk Header Strip (เขียว / เหลือง / ส้ม / แดง) -->
+            <div id="summary-header-strip" style="
+                display: flex; 
+                align-items: center; 
+                justify-content: space-between; 
+                margin-bottom: 12px; 
+                padding: 10px 12px; 
+                border-radius: 16px; 
+                background: rgba(16, 185, 129, 0.12); 
+                border: 1.5px solid rgba(16, 185, 129, 0.4); 
+                transition: all 0.3s ease;
+            ">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--color-accent, #0d2c54), var(--color-primary, #3B82F6)); display: flex; align-items: center; justify-content: center; color: white; font-size: 16px;">
+                    <div id="summary-header-icon-box" style="width: 34px; height: 34px; border-radius: 50%; background: #10B981; display: flex; align-items: center; justify-content: center; color: white; font-size: 17px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
                         🩺
                     </div>
                     <div>
-                        <div style="font-size: 14px; font-weight: 800; color: var(--color-accent, #0d2c54); line-height: 1.2;">สรุปผลการคัดกรองสุขภาพ</div>
-                        <div id="summary-resident-name" style="font-size: 12.5px; color: var(--text-secondary); font-weight: 700;">คุณ...</div>
+                        <div style="font-size: 13px; font-weight: 800; color: var(--color-accent, #0d2c54); line-height: 1.2;">สรุปผลการคัดกรองสุขภาพ</div>
+                        <div id="summary-resident-name" style="font-size: 13.5px; color: var(--text-primary); font-weight: 900;">คุณ...</div>
                     </div>
                 </div>
-                <span style="font-size: 11px; font-weight: 800; color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 4px 8px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
-                    บันทึกสำเร็จ ✅
+                <span id="summary-risk-pill" style="font-size: 11.5px; font-weight: 900; color: #FFFFFF; background: #10B981; padding: 5px 10px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); letter-spacing: -0.2px;">
+                    🟢 ปกติ (สุขภาพดี)
                 </span>
             </div>
 
-            <!-- Hero Overall Health Status Banner -->
+            <!-- Hero Overall Health Status Banner (Risk-Themed Gradient) -->
             <div id="summary-hero-card" style="
                 border-radius: 16px; 
-                padding: 12px 14px; 
+                padding: 14px 16px; 
                 margin-bottom: 12px; 
                 color: #FFFFFF; 
                 text-align: center;
                 transition: all 0.3s ease;
+                box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
             ">
-                <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 3px;">
-                    <span id="summary-hero-icon" style="font-size: 20px;">🟢</span>
-                    <span id="summary-hero-title" style="font-size: 17px; font-weight: 900; letter-spacing: -0.3px;">สุขภาพปกติ</span>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 4px;">
+                    <span id="summary-hero-icon" style="font-size: 22px;">🟢</span>
+                    <span id="summary-hero-title" style="font-size: 18.5px; font-weight: 900; letter-spacing: -0.3px; text-shadow: 0 1px 3px rgba(0,0,0,0.25);">สุขภาพปกติ (เกณฑ์ดีเยี่ยม)</span>
                 </div>
-                <div id="summary-hero-desc" style="font-size: 12px; opacity: 0.95; line-height: 1.35; font-weight: 500;">
+                <div id="summary-hero-desc" style="font-size: 12.5px; opacity: 0.95; line-height: 1.4; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.15);">
                     ค่าความดันและน้ำตาลอยู่ในเกณฑ์มาตรฐาน สุขภาพแข็งแรงดี
                 </div>
             </div>

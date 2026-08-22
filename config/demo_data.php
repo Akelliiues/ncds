@@ -365,25 +365,25 @@ class DemoDataProvider {
         $isHighDtx = ($dtxType === 'fpg' ? $dtx >= 126 : $dtx >= 200);
         $isRiskDtx = ($dtxType === 'fpg' ? ($dtx >= 100 && $dtx < 126) : ($dtx >= 140 && $dtx < 200));
 
-        $riskLevel = 'normal';
+        $riskLevel = 'green';
         $riskColor = '#10B981';
-        $riskTitle = '🟢 สุขภาพปกติ';
-        $statusDesc = 'ค่าความดันและน้ำตาลอยู่ในเกณฑ์มาตรฐาน สุขภาพดีเยี่ยม';
+        $riskTitle = '🟢 สุขภาพปกติ (เกณฑ์ดีเยี่ยม)';
+        $statusDesc = 'ค่าความดันโลหิตและระดับน้ำตาลอยู่ในเกณฑ์มาตรฐาน สุขภาพแข็งแรงดี';
 
         if ($isCriticalBp || $isCriticalDtx) {
-            $riskLevel = 'critical';
-            $riskColor = '#EF4444';
-            $riskTitle = '🔴 วิกฤต (พบแพทย์ด่วน)';
-            $statusDesc = 'พบค่าสัญญาณชีพสูงวิกฤต ต้องนำส่ง รพ.สต./โรงพยาบาล ทันที';
+            $riskLevel = 'red';
+            $riskColor = '#DC2626';
+            $riskTitle = '🔴 ระดับวิกฤต (สูงรุนแรง - ส่งต่อด่วน)';
+            $statusDesc = 'พบค่าสัญญาณชีพสูงวิกฤต เสี่ยงต่อภาวะแทรกซ้อนรุนแรง ต้องส่งต่อ รพ.สต. หรือแพทย์ด่วน!';
         } elseif ($isHighBp || $isHighDtx) {
-            $riskLevel = 'high_risk';
-            $riskColor = '#EF4444';
-            $riskTitle = '🔴 กลุ่มเสี่ยงสูง (สงสัยป่วย)';
-            $statusDesc = 'ความดันหรือน้ำตาลสูงเกินเกณฑ์ แนะนำตรวจยืนยันที่ รพ.สต.';
+            $riskLevel = 'orange';
+            $riskColor = '#EA580C';
+            $riskTitle = '🟠 กลุ่มเสี่ยงสูง (สงสัยป่วย - ควรพบแพทย์)';
+            $statusDesc = 'ความดันหรือน้ำตาลสูงเกินเกณฑ์ แนะนำตรวจยืนยันสภาวะโรคที่ รพ.สต.';
         } elseif ($isRiskBp || $isRiskDtx || $bmi >= 23) {
-            $riskLevel = 'risk';
+            $riskLevel = 'yellow';
             $riskColor = '#F59E0B';
-            $riskTitle = '🟡 กลุ่มเสี่ยง (ต้องปรับ 3อ. 2ส.)';
+            $riskTitle = '🟡 กลุ่มเสี่ยง (เริ่มสูง - ปรับ 3อ. 2ส.)';
             $statusDesc = 'เริ่มมีความเสี่ยง ควรปรับอาหาร ลดเค็ม ลดหวาน และออกกำลังกาย';
         }
 
