@@ -688,14 +688,51 @@ if (DemoDataProvider::isDemoMode()) {
             SUM(CASE WHEN (s.sys_bp1 < 140 AND s.dia_bp1 < 90) AND (s.dtx_value < 126 OR s.dtx_value IS NULL) 
                       AND ((s.sys_bp1 >= 120) OR (s.dia_bp1 >= 80) OR (s.dtx_value >= 100) OR (s.cv_risk_score >= 10)) THEN 1 ELSE 0 END) as risk_group,
             SUM(CASE WHEN (s.sys_bp1 < 120 AND s.dia_bp1 < 80) AND (s.dtx_value < 100 OR s.dtx_value IS NULL) AND (s.cv_risk_score < 10 OR s.cv_risk_score IS NULL) THEN 1 ELSE 0 END) as normal_group
-        FROM screening_results s
-        JOIN task_assignments a ON s.assignment_id = a.assignment_id AND a.assignment_status = 'completed'
-        JOIN target_population p ON a.target_cid = p.cid
+        FROM target_population p
+        JOIN screening_results s ON s.screening_id = (
+            SELECT sr.screening_id FROM screening_results sr 
+            LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id
+            WHERE sr.target_cid = p.cid OR ta2.target_cid = p.cid
+            ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1
+        )
         WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+    ");
+    $chartDiseaseStmt->execute($valid_hoscodes);
+    $chartDiseaseData = $chartDiseaseStmt->fetch(PDO::FETCH_ASSOC);
+
+    $chartTrendStmt = $pdo->prepare("
+        SELECT DATE(created_at) as screen_date, COUNT(*) as daily_count
+        FROM (
+            SELECT s.created_at
+            FROM screening_results s
+            LEFT JOIN task_assignments a ON s.assignment_id = a.assignment_id
+            JOIN target_population p ON (s.target_cid = p.cid OR a.target_cid = p.cid)
+            WHERE s.created_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+              AND p.hoscode IN ($inPlaceholdersSa)
+              AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+            UNION ALL
+            SELECT f.completed_at as created_at
+            FROM dpac_followups f
+            JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
+            JOIN target_population p ON e.cid = p.cid
+            WHERE f.status = 'completed'
+              AND f.completed_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+              AND p.hoscode IN ($inPlaceholdersSa)
+              AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+        ) as combined
+        GROUP BY DATE(created_at)
+        ORDER BY screen_date ASC
+    ");
+    $chartTrendStmt->execute(array_merge($valid_hoscodes, $valid_hoscodes));
+    $chartTrendData = $chartTrendStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Skipped Reasons Data
+    $chartSkippedStmt = $pdo->prepare("
+        SELECT s.skipped_reason, COUNT(*) as count 
         FROM screening_results s 
-        JOIN task_assignments a ON s.assignment_id = a.assignment_id
-        JOIN target_population p ON a.target_cid = p.cid
-        WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+        LEFT JOIN task_assignments a ON s.assignment_id = a.assignment_id
+        JOIN target_population p ON (s.target_cid = p.cid OR a.target_cid = p.cid)
+        WHERE (a.assignment_status = 'skipped' OR s.skipped_reason IS NOT NULL) AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY s.skipped_reason
     ");
     $chartSkippedStmt->execute($valid_hoscodes);
