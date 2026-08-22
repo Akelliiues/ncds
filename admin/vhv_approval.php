@@ -97,6 +97,8 @@ function get_village_full_name($vhid_code, $moo) {
 
     $name = $villages[$tambon][$moo] ?? '';
     return $name ? "หมู่ที่ {$moo} {$name}" : "หมู่ที่ {$moo}";
+}
+
 require_once __DIR__ . '/../config/demo_data.php';
 
 if (DemoDataProvider::isDemoMode()) {
