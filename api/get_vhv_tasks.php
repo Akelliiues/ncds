@@ -93,6 +93,9 @@ try {
     }
 
     $isSandboxVal = isSandboxMode($vhv['hoscode']) ? 1 : 0;
+    $currentBudgetYear = isset($_GET['budget_year']) && is_numeric($_GET['budget_year']) 
+        ? (int)$_GET['budget_year'] 
+        : (function_exists('get_current_budget_year') ? get_current_budget_year() : 2026);
 
     // 2. Fetch assigned tasks (UNION NCD screenings and DPAC followups)
     $tStmt = $pdo->prepare("
@@ -123,7 +126,7 @@ try {
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
         LEFT JOIN screening_results sr ON a.assignment_id = sr.assignment_id
-        WHERE a.vhv_id = ? AND a.budget_year = 2026
+        WHERE a.vhv_id = ? AND a.budget_year = ?
         
         UNION ALL
         
@@ -155,7 +158,7 @@ try {
         
         ORDER BY CAST(house_no AS UNSIGNED) ASC, house_no ASC, cid ASC, round_number ASC
     ");
-    $tStmt->execute([$vhvId, $vhvId]);
+    $tStmt->execute([$vhvId, $currentBudgetYear, $vhvId]);
     $tasks = $tStmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode([

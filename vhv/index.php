@@ -36,6 +36,7 @@ if (DemoDataProvider::isDemoMode()) {
 } else {
     try {
         $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
+        $currentBudgetYear = function_exists('get_current_budget_year') ? get_current_budget_year() : 2026;
 
     $pendingStmt = $pdo->prepare("
         SELECT a.assignment_id, a.assignment_status, a.round_number, p.cid, p.hid, p.first_name, p.last_name, p.house_no, p.moo, p.sex, p.birth, p.need_screen_dm, p.need_screen_ht, p.health_status_origin,
@@ -57,15 +58,21 @@ if (DemoDataProvider::isDemoMode()) {
                ) AS last_dtx_type
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status = 'pending' AND COALESCE(a.is_sandbox, 0) = ?
+        WHERE a.vhv_id = ? AND a.budget_year = ? AND a.assignment_status = 'pending' AND COALESCE(a.is_sandbox, 0) = ?
           AND (
               (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
               OR 
-              (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+              (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+              OR
+              p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+              OR
+              COALESCE(p.is_manual, 0) = 1
+              OR
+              a.assignment_id IS NOT NULL
           )
         ORDER BY LENGTH(p.house_no), p.house_no
     ");
-    $pendingStmt->execute([$vhvId, $isSandboxVal]);
+    $pendingStmt->execute([$vhvId, $currentBudgetYear, $isSandboxVal]);
     $pendingTasks = $pendingStmt->fetchAll();
 
     $completedStmt = $pdo->prepare("
@@ -80,15 +87,21 @@ if (DemoDataProvider::isDemoMode()) {
         LEFT JOIN screening_results sr ON a.assignment_id = sr.assignment_id
         LEFT JOIN staging_hdc_ht ht ON p.cid = ht.cid
         LEFT JOIN staging_hdc_dm dm ON p.cid = dm.cid
-        WHERE a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('completed', 'skipped') AND COALESCE(a.is_sandbox, 0) = ?
+        WHERE a.vhv_id = ? AND a.budget_year = ? AND a.assignment_status IN ('completed', 'skipped') AND COALESCE(a.is_sandbox, 0) = ?
           AND (
               (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
               OR 
-              (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+              (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+              OR
+              p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+              OR
+              COALESCE(p.is_manual, 0) = 1
+              OR
+              a.assignment_id IS NOT NULL
           )
         ORDER BY a.assigned_at DESC
     ");
-    $completedStmt->execute([$vhvId, $isSandboxVal]);
+    $completedStmt->execute([$vhvId, $currentBudgetYear, $isSandboxVal]);
     $completedTasks = $completedStmt->fetchAll();
 
     // Fetch DPAC followups
@@ -99,22 +112,18 @@ if (DemoDataProvider::isDemoMode()) {
         JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
         JOIN target_population p ON e.cid = p.cid
         WHERE f.vhv_id = ? AND f.status = 'pending' AND COALESCE(f.is_sandbox, 0) = ?
-        ORDER BY p.moo, p.house_no
+        ORDER BY f.round_number ASC, f.assigned_at ASC
     ");
     $dpacStmt->execute([$vhvId, $isSandboxVal]);
     $dpacTasks = $dpacStmt->fetchAll();
 
     // Fetch completed DPAC followups
     $completedDpacStmt = $pdo->prepare("
-        SELECT f.followup_id, f.round_number, f.completed_at, e.risk_type,
-               f.weight, f.height, f.waist, f.bp_sys, f.bp_dia, f.fbs, f.health_risk_level, f.advice_given,
-               p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.sex, p.birth,
-               ht.sbp as base_sbp, ht.dbp as base_dbp, dm.bslevel as base_bslevel
+        SELECT f.followup_id, f.round_number, f.status, f.completed_at, f.weight, f.height, f.waist, f.bp_sys, f.bp_dia, f.fbs, f.health_risk_level, f.advice_given,
+               e.risk_type, p.cid, p.hid, p.first_name, p.last_name, p.house_no, p.moo
         FROM dpac_followups f
         JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
         JOIN target_population p ON e.cid = p.cid
-        LEFT JOIN staging_hdc_ht ht ON p.cid = ht.cid
-        LEFT JOIN staging_hdc_dm dm ON p.cid = dm.cid
         WHERE f.vhv_id = ? AND f.status = 'completed' AND COALESCE(f.is_sandbox, 0) = ?
         ORDER BY f.completed_at DESC
     ");
@@ -124,8 +133,8 @@ if (DemoDataProvider::isDemoMode()) {
     // Check if the current VHV has submitted the satisfaction survey
     $hasSubmittedSurvey = false;
     try {
-        $surveyCheck = $pdo->prepare("SELECT COUNT(*) FROM vhv_survey_participants WHERE vhv_id = ? AND budget_year = 2026");
-        $surveyCheck->execute([$vhvId]);
+        $surveyCheck = $pdo->prepare("SELECT COUNT(*) FROM vhv_survey_participants WHERE vhv_id = ? AND budget_year = ?");
+        $surveyCheck->execute([$vhvId, $currentBudgetYear]);
         $hasSubmittedSurvey = ($surveyCheck->fetchColumn() > 0);
     } catch (\Throwable $e) {}
 

@@ -1549,6 +1549,76 @@ if (!function_exists('get_query_hoscodes')) {
     }
 }
 
+if (!function_exists('get_current_budget_year')) {
+    function get_current_budget_year(): int {
+        // Thailand Fiscal Year: Starts Oct 1 to Sep 30 (Oct-Dec is next calendar year's budget year)
+        $m = (int)date('n');
+        $y = (int)date('Y');
+        return ($m >= 10) ? ($y + 1) : $y;
+    }
+}
+
+if (!function_exists('get_budget_year_thai')) {
+    function get_budget_year_thai($year = null): int {
+        $y = $year ? (int)$year : get_current_budget_year();
+        return $y + 543;
+    }
+}
+
+if (!function_exists('get_available_budget_years')) {
+    function get_available_budget_years(): array {
+        global $pdo;
+        $currentYear = get_current_budget_year();
+        $years = [$currentYear];
+        
+        if (isset($pdo)) {
+            try {
+                $stmt = $pdo->query("
+                    SELECT DISTINCT budget_year FROM task_assignments WHERE budget_year IS NOT NULL
+                    UNION SELECT DISTINCT budget_year FROM dpac_enrollments WHERE budget_year IS NOT NULL
+                    UNION SELECT DISTINCT budget_year FROM vhv_surveys WHERE budget_year IS NOT NULL
+                    ORDER BY budget_year DESC
+                ");
+                $dbYears = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                if (!empty($dbYears)) {
+                    $years = array_unique(array_merge($dbYears, $years));
+                }
+                
+                // Also check custom registered years in system_settings
+                if (function_exists('get_system_setting')) {
+                    $customYearsJson = get_system_setting('custom_budget_years', '[]');
+                    $customYears = json_decode($customYearsJson, true);
+                    if (is_array($customYears) && !empty($customYears)) {
+                        $years = array_unique(array_merge($customYears, $years));
+                    }
+                }
+                
+                rsort($years, SORT_NUMERIC);
+            } catch (\Throwable $e) {
+                // Fallback
+            }
+        }
+        return array_map('intval', array_values($years));
+    }
+}
+
+if (!function_exists('set_system_setting')) {
+    function set_system_setting($key, $value): bool {
+        global $pdo;
+        if (!isset($pdo)) return false;
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO system_settings (setting_key, setting_value) 
+                VALUES (?, ?) 
+                ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
+            ");
+            return $stmt->execute([$key, (string)$value]);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+}
+
 // Auto-migration: Fix target_population screening defaults and incorrect values
 try {
     $stmt = $pdo->query("SHOW COLUMNS FROM `target_population` LIKE 'need_screen_dm'");

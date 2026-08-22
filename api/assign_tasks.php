@@ -29,7 +29,7 @@ if (!$data || empty($data['vhv_id']) || empty($data['target_cids']) || !is_array
 
 $vhvId = $data['vhv_id'];
 $cids = $data['target_cids'];
-$currentYear = 2026;
+$currentYear = isset($data['budget_year']) && is_numeric($data['budget_year']) ? (int)$data['budget_year'] : (isset($_SESSION['active_budget_year']) ? (int)$_SESSION['active_budget_year'] : (function_exists('get_current_budget_year') ? get_current_budget_year() : 2026));
 $staffName = "ผู้ดูแลระบบ (Smart Assignment)";
 $reason = "แอดมินจัดสรรแบบระบุตัว";
 

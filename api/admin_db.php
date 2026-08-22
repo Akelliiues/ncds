@@ -518,6 +518,74 @@ if ($action === 'clear_hoscode') {
         ]);
     }
     exit();
+} elseif ($action === 'add_budget_year') {
+    $rawYear = (int)($_POST['budget_year'] ?? 0);
+    if ($rawYear <= 0) {
+        echo json_encode(['status' => 'error', 'message' => 'กรุณาระบุปีงบประมาณที่ถูกต้อง']);
+        exit();
+    }
+    // If year is entered as Buddhist Era (e.g. 2570), convert to CE (2027)
+    $ceYear = ($rawYear > 2400) ? ($rawYear - 543) : $rawYear;
+    $beYear = $ceYear + 543;
+
+    if ($ceYear < 2020 || $ceYear > 2100) {
+        echo json_encode(['status' => 'error', 'message' => "ปีงบประมาณ $beYear ($ceYear) อยู่นอกช่วงที่รองรับ (พ.ศ. 2563 - 2643)"]);
+        exit();
+    }
+
+    $customYearsJson = get_system_setting('custom_budget_years', '[]');
+    $customYears = json_decode($customYearsJson, true);
+    if (!is_array($customYears)) {
+        $customYears = [];
+    }
+
+    if (!in_array($ceYear, $customYears)) {
+        $customYears[] = $ceYear;
+        rsort($customYears, SORT_NUMERIC);
+        set_system_setting('custom_budget_years', json_encode(array_values($customYears)));
+    }
+
+    echo json_encode([
+        'status' => 'success',
+        'message' => "เพิ่มปีงบประมาณ พ.ศ. $beYear ($ceYear) เข้าสู่ระบบเรียบร้อยแล้ว",
+        'budget_year' => $ceYear,
+        'budget_year_thai' => $beYear
+    ]);
+    exit();
+} elseif ($action === 'set_active_budget_year') {
+    $rawYear = (int)($_POST['budget_year'] ?? 0);
+    if ($rawYear <= 0) {
+        echo json_encode(['status' => 'error', 'message' => 'กรุณาระบุปีงบประมาณ']);
+        exit();
+    }
+    $ceYear = ($rawYear > 2400) ? ($rawYear - 543) : $rawYear;
+    $_SESSION['active_budget_year'] = $ceYear;
+    set_system_setting('default_budget_year', (string)$ceYear);
+
+    echo json_encode([
+        'status' => 'success',
+        'message' => "ตั้งค่าปีงบประมาณหลักของระบบเป็น พ.ศ. " . ($ceYear + 543) . " ($ceYear) เรียบร้อยแล้ว",
+        'active_year' => $ceYear
+    ]);
+    exit();
+} elseif ($action === 'remove_budget_year') {
+    $rawYear = (int)($_POST['budget_year'] ?? 0);
+    $ceYear = ($rawYear > 2400) ? ($rawYear - 543) : $rawYear;
+
+    $customYearsJson = get_system_setting('custom_budget_years', '[]');
+    $customYears = json_decode($customYearsJson, true);
+    if (is_array($customYears)) {
+        $customYears = array_filter($customYears, function($y) use ($ceYear) {
+            return (int)$y !== $ceYear;
+        });
+        set_system_setting('custom_budget_years', json_encode(array_values($customYears)));
+    }
+
+    echo json_encode([
+        'status' => 'success',
+        'message' => "ลบปีงบประมาณ พ.ศ. " . ($ceYear + 543) . " ออกจากรายการสำเร็จ"
+    ]);
+    exit();
 } else {
     echo json_encode(['status' => 'error', 'message' => 'คำสั่งไม่ถูกต้อง']);
     exit();

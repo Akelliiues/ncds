@@ -9,6 +9,11 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 
 require_once __DIR__ . '/../config/db.php';
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
+$selectedBudgetYear = isset($_SESSION['active_budget_year']) ? (int)$_SESSION['active_budget_year'] : (function_exists('get_current_budget_year') ? get_current_budget_year() : 2026);
+if (isset($_GET['budget_year']) && ctype_digit((string)$_GET['budget_year'])) {
+    $selectedBudgetYear = (int)$_GET['budget_year'];
+    $_SESSION['active_budget_year'] = $selectedBudgetYear;
+}
 // Self-healing normalization: check and normalize hoscodes and PIDs if a new import occurred
 try {
     $checkUnnormalized = $pdo->query("
@@ -596,7 +601,7 @@ if (isset($_GET['action'])) {
                 t.health_status_origin,
                 t.is_manual,
                 h.bslevel, h.bstest, h.sbp, h.dbp,
-                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = t.cid AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
+                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = t.cid AND dp.budget_year = {$selectedBudgetYear} AND dp.status = 'active' LIMIT 1) as is_dpac
             FROM target_population t
             LEFT JOIN (
                 SELECT 
@@ -646,7 +651,7 @@ if (isset($_GET['action'])) {
                 h.health_status_origin,
                 0 as is_manual,
                 h.bslevel, h.bstest, h.sbp, h.dbp,
-                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = h.cid AND dp.budget_year = 2026 AND dp.status = 'active' LIMIT 1) as is_dpac
+                (SELECT 1 FROM dpac_enrollments dp WHERE dp.cid = h.cid AND dp.budget_year = {$selectedBudgetYear} AND dp.status = 'active' LIMIT 1) as is_dpac
             FROM (
                 SELECT 
                     cid, pid, hoscode, name as first_name, lname as last_name, birth, addr as house_no, check_vhid,
@@ -691,8 +696,10 @@ if (isset($_GET['action'])) {
             $sql .= " WHERE (need_screen_dm = 1 OR need_screen_ht = 1)";
         } elseif ($status === 'non_target') {
             $sql .= " WHERE (need_screen_dm = 0 AND need_screen_ht = 0) AND age >= 35";
+        } elseif ($status === 'under_35_risk') {
+            $sql .= " WHERE age < 35 AND (need_screen_dm = 1 OR need_screen_ht = 1 OR health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH') OR COALESCE(is_manual, 0) = 1)";
         } else {
-            $sql .= " WHERE (need_screen_dm = 1 OR need_screen_ht = 1 OR age >= 35)";
+            $sql .= " WHERE (need_screen_dm = 1 OR need_screen_ht = 1 OR age >= 35 OR health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH') OR COALESCE(is_manual, 0) = 1)";
         }
 
         if ($search !== '') {
@@ -832,7 +839,7 @@ if (isset($_GET['action'])) {
         $data = json_decode(file_get_contents('php://input'), true);
         $cid = $data['cid'] ?? '';
         $risk_type = $data['risk_type'] ?? 'DM'; // 'DM' or 'HT'
-        $budget_year = 2026;
+        $budget_year = isset($data['budget_year']) ? (int)$data['budget_year'] : $selectedBudgetYear;
 
         if (!$cid) {
             echo json_encode(['status' => 'error', 'message' => 'ข้อมูลไม่ถูกต้อง']);
@@ -1242,8 +1249,9 @@ if (isset($_GET['action'])) {
                 <div>
                     <label class="form-label">สถานะกลุ่มเป้าหมาย</label>
                     <select id="status_filter" class="form-select" onchange="fetchData(1)">
-                        <option value="all">ทั้งหมด</option>
-                        <option value="target">เป็นกลุ่มเป้าหมายแล้ว</option>
+                        <option value="all">ทั้งหมด (ครอบคลุมทุกกลุ่มอายุ)</option>
+                        <option value="target">เป็นกลุ่มเป้าหมายแล้ว (ต้องตรวจ DM/HT)</option>
+                        <option value="under_35_risk">กลุ่มเสี่ยงอายุน้อยกว่า 35 ปี (< 35 ปี)</option>
                         <option value="non_target">ยังไม่ถูกตั้งเป็นเป้าหมาย</option>
                     </select>
                 </div>

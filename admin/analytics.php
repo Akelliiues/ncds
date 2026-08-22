@@ -23,9 +23,9 @@ if (DemoDataProvider::isDemoMode()) {
     $mockExec = DemoDataProvider::getMockExecutiveMetrics();
     $mockAnalytics = DemoDataProvider::getMockAnalyticsData();
 
-    $availableBudgetYears = [2026, 2025];
-    $defaultBudgetYear = 2026;
-    $selectedBudgetYear = 2026;
+    $availableBudgetYears = function_exists('get_available_budget_years') ? get_available_budget_years() : [2026, 2025];
+    $defaultBudgetYear = !empty($availableBudgetYears) ? (int)$availableBudgetYears[0] : 2026;
+    $selectedBudgetYear = $defaultBudgetYear;
     $selectedRound = 0;
     $dateFrom = '';
     $dateTo = '';
@@ -230,17 +230,19 @@ if (DemoDataProvider::isDemoMode()) {
         $inPlaceholders = '?';
     }
 
-    $availableBudgetYears = [];
-    try {
-        $availableBudgetYears = $pdo->query("
-            SELECT DISTINCT budget_year FROM task_assignments WHERE budget_year IS NOT NULL
-            UNION SELECT DISTINCT budget_year FROM dpac_enrollments WHERE budget_year IS NOT NULL
-            ORDER BY budget_year DESC
-        ")->fetchAll(PDO::FETCH_COLUMN);
-    } catch (\Throwable $e) {}
-    $defaultBudgetYear = !empty($availableBudgetYears) ? (int)$availableBudgetYears[0] : (int)date('Y');
+    $availableBudgetYears = function_exists('get_available_budget_years') ? get_available_budget_years() : [];
+    if (empty($availableBudgetYears)) {
+        try {
+            $availableBudgetYears = $pdo->query("
+                SELECT DISTINCT budget_year FROM task_assignments WHERE budget_year IS NOT NULL
+                UNION SELECT DISTINCT budget_year FROM dpac_enrollments WHERE budget_year IS NOT NULL
+                ORDER BY budget_year DESC
+            ")->fetchAll(PDO::FETCH_COLUMN);
+        } catch (\Throwable $e) {}
+    }
+    $defaultBudgetYear = !empty($availableBudgetYears) ? (int)$availableBudgetYears[0] : (function_exists('get_current_budget_year') ? get_current_budget_year() : (int)date('Y'));
     $selectedBudgetYear = isset($_GET['budget_year']) && ctype_digit((string)$_GET['budget_year'])
-        ? (int)$_GET['budget_year'] : $defaultBudgetYear;
+        ? (int)$_GET['budget_year'] : (isset($_SESSION['active_budget_year']) ? (int)$_SESSION['active_budget_year'] : $defaultBudgetYear);
     $selectedRound = isset($_GET['round']) && ctype_digit((string)$_GET['round']) ? max(0, (int)$_GET['round']) : 0;
     $dateFromInput = (string)($_GET['date_from'] ?? '');
     $dateToInput = (string)($_GET['date_to'] ?? '');
@@ -1233,65 +1235,118 @@ try {
             ระบบวิเคราะห์ข้อมูลเชิงลึก (Advanced Analytics)
         </h2>
         <!-- Executive Actions Bar -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; gap: 12px; flex-wrap: wrap;" class="no-print">
-            <div style="font-size: 14px; font-weight: bold; color: var(--text-secondary);">
-                📊 รายงานวิเคราะห์ข้อมูลเชิงลึกขั้นสูง (Advanced Analytics Suite)
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; gap: 14px; flex-wrap: wrap;" class="no-print">
+            <div style="font-size: 14px; font-weight: bold; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+                <span>📊 รายงานวิเคราะห์ข้อมูลเชิงลึกขั้นสูง (Advanced Analytics Suite)</span>
             </div>
-            <div style="display: flex; gap: 10px;">
-                <button type="button" onclick="exportR2RCSV()" class="btn-control" style="background: rgba(14, 165, 233, 0.12); color: #0ea5e9; border-color: rgba(14, 165, 233, 0.3);">
-                    📥 ดาวน์โหลดชุดข้อมูล R2R (CSV)
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button type="button" onclick="exportR2RCSV()" class="btn-control" style="background: rgba(14, 165, 233, 0.12); color: #0ea5e9; border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 12px; font-weight: 700; padding: 9px 16px; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--neumorph-flat); transition: all 0.2s;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>ดาวน์โหลดชุดข้อมูล R2R (CSV)</span>
                 </button>
-                <button type="button" onclick="window.print()" class="btn-control" style="background: rgba(34, 197, 94, 0.12); color: #22c55e; border-color: rgba(34, 197, 94, 0.3);">
-                    🖨️ พิมพ์สรุปภาพรวมผู้บริหาร (Print Brief)
+                <button type="button" onclick="window.print()" class="btn-control" style="background: rgba(34, 197, 94, 0.12); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 12px; font-weight: 700; padding: 9px 16px; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--neumorph-flat); transition: all 0.2s;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    <span>พิมพ์สรุปภาพรวมผู้บริหาร (Print Brief)</span>
                 </button>
             </div>
         </div>
 
         <!-- Shared analytics filters -->
-        <form method="GET" class="card-dark no-print" style="margin-bottom:24px; padding:18px; display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; align-items:end;">
-            <label style="font-size:12px; color:var(--text-secondary);">ปีงบประมาณ
-                <select name="budget_year" class="form-control" style="margin-top:6px; width:100%;">
-                    <?php foreach ($availableBudgetYears ?: [$defaultBudgetYear] as $year): ?>
-                        <option value="<?= (int)$year ?>" <?= (int)$year === $selectedBudgetYear ? 'selected' : '' ?>><?= (int)$year ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <?php if (!$admin_hoscode): ?>
-            <label style="font-size:12px; color:var(--text-secondary);">หน่วยบริการ
-                <select name="hoscode" class="form-control" style="margin-top:6px; width:100%;">
-                    <option value="">ทุกหน่วยบริการ</option>
-                    <?php foreach ($allowedHoscodes as $code): ?>
-                        <option value="<?= htmlspecialchars($code) ?>" <?= $selectedHoscode === $code ? 'selected' : '' ?>><?= htmlspecialchars($hc_names[$code] ?? $code) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <?php endif; ?>
-            <label style="font-size:12px; color:var(--text-secondary);">รอบคัดกรอง
-                <select name="round" class="form-control" style="margin-top:6px; width:100%;">
-                    <option value="0">ทุกรอบ</option>
-                    <?php for ($r = 1; $r <= 10; $r++): ?>
-                        <option value="<?= $r ?>" <?= $selectedRound === $r ? 'selected' : '' ?>>รอบที่ <?= $r ?></option>
-                    <?php endfor; ?>
-                </select>
-            </label>
-            <label style="font-size:12px; color:var(--text-secondary);">ตั้งแต่วันที่
-                <input type="date" name="date_from" value="<?= htmlspecialchars($dateFrom) ?>" class="form-control" style="margin-top:6px; width:100%;">
-            </label>
-            <label style="font-size:12px; color:var(--text-secondary);">ถึงวันที่
-                <input type="date" name="date_to" value="<?= htmlspecialchars($dateTo) ?>" class="form-control" style="margin-top:6px; width:100%;">
-            </label>
-            <div style="display:flex; gap:8px;">
-                <button type="submit" class="btn-control" style="flex:1;">ใช้ตัวกรอง</button>
-                <a href="analytics.php" class="btn-control" style="text-decoration:none; text-align:center;">ล้าง</a>
+        <form method="GET" class="card-dark no-print" style="margin-bottom: 24px; padding: 22px 24px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: var(--neumorph-flat);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                <div style="font-size: 14px; font-weight: 800; color: var(--color-accent); display: flex; align-items: center; gap: 8px;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                    <span>ตัวกรองมิติข้อมูลการวิเคราะห์ (Analytics Filters)</span>
+                </div>
+                <div style="font-size: 12.5px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+                    <span>ปีงบประมาณที่เลือก:</span>
+                    <span style="background: rgba(13, 44, 84, 0.08); color: var(--color-primary); font-weight: 800; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        พ.ศ. <?= (int)$selectedBudgetYear + 543 ?> (<?= (int)$selectedBudgetYear ?>)
+                    </span>
+                </div>
             </div>
-            <div style="grid-column:1/-1; font-size:11px; color:var(--text-muted);">
-                ปีงบประมาณและหน่วยบริการใช้กับสรุปงานหลายรอบ งานติดตาม และการเปรียบเทียบ NCD/DPAC ส่วนตัวกรองรอบและวันที่ใช้กับรายละเอียด NCD คะแนนจัดลำดับติดตาม และคุณภาพข้อมูล
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; align-items: flex-end;">
+                <!-- ปีงบประมาณ -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label style="font-size: 12.5px; font-weight: 700; color: var(--text-secondary);">📅 ปีงบประมาณ</label>
+                        <a href="db_manager.php#fiscal-year" style="font-size: 11px; font-weight: 700; color: var(--color-primary); text-decoration: none; display: inline-flex; align-items: center; gap: 2px;" title="เพิ่ม/จัดการปีงบประมาณ">
+                            + จัดการปีงบ
+                        </a>
+                    </div>
+                    <select name="budget_year" class="form-control" style="width: 100%; font-weight: 700; color: var(--text-primary); border-radius: 10px; padding: 9px 12px; box-sizing: border-box;">
+                        <?php foreach ($availableBudgetYears ?: [$defaultBudgetYear] as $year): ?>
+                            <option value="<?= (int)$year ?>" <?= (int)$year === $selectedBudgetYear ? 'selected' : '' ?>>
+                                พ.ศ. <?= (int)$year + 543 ?> (<?= (int)$year ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <!-- หน่วยบริการ -->
+                <?php if (!$admin_hoscode): ?>
+                <div>
+                    <label style="display: block; font-size: 12.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px;">🏥 หน่วยบริการ (รพ.สต.)</label>
+                    <select name="hoscode" class="form-control" style="width: 100%; border-radius: 10px; padding: 9px 12px; box-sizing: border-box;">
+                        <option value="">ทุกหน่วยบริการ (ทั้งหมด)</option>
+                        <?php foreach ($allowedHoscodes as $code): ?>
+                            <option value="<?= htmlspecialchars($code) ?>" <?= $selectedHoscode === $code ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($hc_names[$code] ?? $code) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <?php endif; ?>
+
+                <!-- รอบคัดกรอง -->
+                <div>
+                    <label style="display: block; font-size: 12.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px;">🔄 รอบคัดกรอง</label>
+                    <select name="round" class="form-control" style="width: 100%; border-radius: 10px; padding: 9px 12px; box-sizing: border-box;">
+                        <option value="0">ทุกรอบคัดกรอง</option>
+                        <?php for ($r = 1; $r <= 10; $r++): ?>
+                            <option value="<?= $r ?>" <?= $selectedRound === $r ? 'selected' : '' ?>>
+                                รอบที่ <?= $r ?> <?= $r === 1 ? '(ประจำปี)' : '(ติดตาม)' ?>
+                            </option>
+                        <?php endfor; ?>
+                    </select>
+                </div>
+
+                <!-- ตั้งแต่วันที่ -->
+                <div>
+                    <label style="display: block; font-size: 12.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px;">📆 ตั้งแต่วันที่</label>
+                    <input type="date" name="date_from" value="<?= htmlspecialchars($dateFrom) ?>" class="form-control" style="width: 100%; border-radius: 10px; padding: 8px 10px; box-sizing: border-box;">
+                </div>
+
+                <!-- ถึงวันที่ -->
+                <div>
+                    <label style="display: block; font-size: 12.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px;">📆 ถึงวันที่</label>
+                    <input type="date" name="date_to" value="<?= htmlspecialchars($dateTo) ?>" class="form-control" style="width: 100%; border-radius: 10px; padding: 8px 10px; box-sizing: border-box;">
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 8px; min-width: 190px;">
+                    <button type="submit" class="btn-control" style="flex: 2; height: 42px; background: linear-gradient(135deg, var(--color-primary), var(--color-accent)); color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 13.5px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(13, 44, 84, 0.2); cursor: pointer; white-space: nowrap;">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg>
+                        <span>ใช้ตัวกรอง</span>
+                    </button>
+                    <a href="analytics.php" class="btn-control" style="flex: 1; height: 42px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 4px; border-radius: 10px; font-weight: 700; font-size: 13px; background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border-color); box-shadow: var(--neumorph-flat); white-space: nowrap;" title="ล้างตัวกรองทั้งหมด">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5"></path></svg>
+                        <span>ล้าง</span>
+                    </a>
+                </div>
+            </div>
+
+            <div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--border-color); font-size: 11.5px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <span>💡 <strong>คำแนะนำ:</strong> ตัวกรองปีงบประมาณและหน่วยบริการใช้กับสรุปงานหลายรอบและเปรียบเทียบ NCD/DPAC | ตัวกรองรอบและช่วงวันที่ใช้กับรายละเอียดสัญญาณชีพและคะแนนติดตาม</span>
             </div>
         </form>
 
         <!-- Multi-round operational funnel -->
-        <div class="card-dark" style="margin-bottom:24px; padding:22px;">
-            <h3 style="margin:0 0 16px; color:var(--color-accent); font-size:17px;">เส้นทางผลงานคัดกรองหลายรอบ ปีงบประมาณ <?= $selectedBudgetYear ?></h3>
+        <div class="card-dark" style="margin-bottom: 24px; padding: 22px;">
+            <h3 style="margin: 0 0 16px; color: var(--color-accent); font-size: 17px; display: flex; align-items: center; gap: 8px;">
+                <span>เส้นทางผลงานคัดกรองหลายรอบ ปีงบประมาณ พ.ศ. <?= (int)$selectedBudgetYear + 543 ?> (<?= (int)$selectedBudgetYear ?>)</span>
+            </h3>
             <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;">
                 <?php
                 $funnelCards = [

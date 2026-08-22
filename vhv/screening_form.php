@@ -58,15 +58,16 @@ if (DemoDataProvider::isDemoMode()) {
     unset($res);
 } elseif (!$isShell) {
     // Auto-assign task if no pending assignment exists yet
+    $currentBudgetYear = function_exists('get_current_budget_year') ? get_current_budget_year() : 2026;
     $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
     if (!empty($hid)) {
         $checkStmt = $pdo->prepare("SELECT cid FROM target_population WHERE CAST(hid AS UNSIGNED) = CAST(? AS UNSIGNED)");
         $checkStmt->execute([$hid]);
         $targets = $checkStmt->fetchAll(PDO::FETCH_COLUMN);
         if (!empty($targets)) {
-            $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, 2026, 'pending', ?)");
+            $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, ?, 'pending', ?)");
             foreach ($targets as $tc) {
-                $ins->execute([$tc, $vhvId, $isSandboxVal]);
+                $ins->execute([$tc, $vhvId, $currentBudgetYear, $isSandboxVal]);
             }
         }
     } elseif (!empty($cid)) {
@@ -74,8 +75,8 @@ if (DemoDataProvider::isDemoMode()) {
         $checkStmt->execute([$cid]);
         $pop = $checkStmt->fetch();
         if ($pop) {
-            $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, 2026, 'pending', ?)");
-            $ins->execute([$cid, $vhvId, $isSandboxVal]);
+            $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, ?, 'pending', ?)");
+            $ins->execute([$cid, $vhvId, $currentBudgetYear, $isSandboxVal]);
         }
     }
 
@@ -102,14 +103,20 @@ if (DemoDataProvider::isDemoMode()) {
                    ) AS last_dtx_type
             FROM task_assignments a
             JOIN target_population p ON a.target_cid = p.cid
-            WHERE CAST(p.hid AS UNSIGNED) = CAST(? AS UNSIGNED) AND a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('pending', 'skipped') AND a.is_sandbox = ?
+            WHERE CAST(p.hid AS UNSIGNED) = CAST(? AS UNSIGNED) AND a.vhv_id = ? AND a.budget_year = ? AND a.assignment_status IN ('pending', 'skipped') AND a.is_sandbox = ?
               AND (
                   (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
                   OR 
-                  (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+                  (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+                  OR
+                  p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+                  OR
+                  COALESCE(p.is_manual, 0) = 1
+                  OR
+                  a.assignment_id IS NOT NULL
               )
         ");
-        $residentsStmt->execute([$hid, $vhvId, $isSandboxVal]);
+        $residentsStmt->execute([$hid, $vhvId, $currentBudgetYear, $isSandboxVal]);
         $residents = $residentsStmt->fetchAll();
 
         if (empty($residents)) {
@@ -117,14 +124,20 @@ if (DemoDataProvider::isDemoMode()) {
                 SELECT p.*, a.assignment_status
                 FROM task_assignments a
                 JOIN target_population p ON a.target_cid = p.cid
-                WHERE CAST(p.hid AS UNSIGNED) = CAST(? AS UNSIGNED) AND a.vhv_id = ? AND a.budget_year = 2026 AND a.is_sandbox = ?
+                WHERE CAST(p.hid AS UNSIGNED) = CAST(? AS UNSIGNED) AND a.vhv_id = ? AND a.budget_year = ? AND a.is_sandbox = ?
                   AND (
                       (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
                       OR 
-                      (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+                      (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+                      OR
+                      p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+                      OR
+                      COALESCE(p.is_manual, 0) = 1
+                      OR
+                      a.assignment_id IS NOT NULL
                   )
             ");
-            $historyStmt->execute([$hid, $vhvId, $isSandboxVal]);
+            $historyStmt->execute([$hid, $vhvId, $currentBudgetYear, $isSandboxVal]);
             $history = $historyStmt->fetchAll();
         }
     } else {
@@ -148,14 +161,20 @@ if (DemoDataProvider::isDemoMode()) {
                    ) AS last_dtx_type
             FROM task_assignments a
             JOIN target_population p ON a.target_cid = p.cid
-            WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('pending', 'skipped') AND a.is_sandbox = ?
+            WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = ? AND a.assignment_status IN ('pending', 'skipped') AND a.is_sandbox = ?
               AND (
                   (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
                   OR 
-                  (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+                  (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+                  OR
+                  p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+                  OR
+                  COALESCE(p.is_manual, 0) = 1
+                  OR
+                  a.assignment_id IS NOT NULL
               )
         ");
-        $residentsStmt->execute([$cid, $vhvId, $isSandboxVal]);
+        $residentsStmt->execute([$cid, $vhvId, $currentBudgetYear, $isSandboxVal]);
         $residents = $residentsStmt->fetchAll();
 
         if (empty($residents)) {
@@ -163,14 +182,20 @@ if (DemoDataProvider::isDemoMode()) {
                 SELECT p.*, a.assignment_status
                 FROM task_assignments a
                 JOIN target_population p ON a.target_cid = p.cid
-                WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.is_sandbox = ?
+                WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = ? AND a.is_sandbox = ?
                   AND (
                       (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
                       OR 
-                      (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+                      (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+                      OR
+                      p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+                      OR
+                      COALESCE(p.is_manual, 0) = 1
+                      OR
+                      a.assignment_id IS NOT NULL
                   )
             ");
-            $historyStmt->execute([$cid, $vhvId, $isSandboxVal]);
+            $historyStmt->execute([$cid, $vhvId, $currentBudgetYear, $isSandboxVal]);
             $history = $historyStmt->fetchAll();
         }
     }
@@ -509,7 +534,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             <div class="card-dark" style="text-align: center; padding: 40px 20px;">
                 <span style="font-size: 48px; display: block; margin-bottom: 16px;">✅</span>
                 <h3 style="color: var(--color-green); font-size: 22px; margin-bottom: 8px;">คัดกรองเรียบร้อยแล้ว</h3>
-                <p style="color: var(--text-secondary); margin-bottom: 24px;">สมาชิกทั้งหมดในบ้านเลขที่นี้ได้รับการคัดกรองเสร็จสิ้นเรียบร้อยแล้วในรอบปีงบประมาณนี้</p>
+                <p style="color: var(--text-secondary); margin-bottom: 24px;">สมาชิกทั้งหมดในบ้านเลขที่นี้ได้รับการคัดกรองเสร็จสิ้นเรียบร้อยแล้วในรอบการคัดกรองนี้</p>
                 <a href="index.php" class="btn-giant btn-giant-primary">กลับหน้าหลัก</a>
             </div>
         <?php else: ?>
@@ -1206,7 +1231,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                             <div class="card-dark" style="text-align: center; padding: 40px 20px;">
                                 <span style="font-size: 48px; display: block; margin-bottom: 16px;">✅</span>
                                 <h3 style="color: var(--color-green); font-size: 22px; margin-bottom: 8px;">คัดกรองเรียบร้อยแล้ว</h3>
-                                <p style="color: var(--text-secondary); margin-bottom: 24px;">สมาชิกทั้งหมดในบ้านเลขที่นี้ได้รับการคัดกรองเสร็จสิ้นเรียบร้อยแล้วในรอบปีงบประมาณนี้</p>
+                                <p style="color: var(--text-secondary); margin-bottom: 24px;">สมาชิกทั้งหมดในบ้านเลขที่นี้ได้รับการคัดกรองเสร็จสิ้นเรียบร้อยแล้วในรอบการคัดกรองนี้</p>
                                 <a href="index.php" class="btn-giant btn-giant-primary">กลับหน้าหลัก</a>
                             </div>
                         `;

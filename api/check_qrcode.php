@@ -76,7 +76,7 @@ if (DemoDataProvider::isDemoMode()) {
             'error_code' => 'UNASSIGNED_TASK',
             'moo' => $matched['moo'] ?? '4',
             'lock_title' => 'สิทธิ์การเข้าถึง: ยังไม่ได้รับมอบหมายงาน (หมู่ ' . ($matched['moo'] ?? '4') . ')',
-            'message' => 'รหัสบ้านเลขที่ ' . htmlspecialchars($matched['house_no'] ?? '99/4') . ' ม.' . ($matched['moo'] ?? '4') . ' (คุณ' . htmlspecialchars($matched['first_name'] . ' ' . $matched['last_name']) . ') ท่านไม่ได้รับมอบหมายงานคัดกรองบุคคล/บ้านหลังนี้ในปีงบประมาณปัจจุบัน',
+            'message' => 'รหัสบ้านเลขที่ ' . htmlspecialchars($matched['house_no'] ?? '99/4') . ' ม.' . ($matched['moo'] ?? '4') . ' (คุณ' . htmlspecialchars($matched['first_name'] . ' ' . $matched['last_name']) . ') ท่านไม่ได้รับมอบหมายงานคัดกรองบุคคล/บ้านหลังนี้ในรอบปัจจุบัน',
             'sub_message' => 'กรุณาประสานเจ้าหน้าที่ รพ.สต. เพื่อทำการมอบหมายงานก่อนเริ่มคัดกรอง',
             'is_demo' => true
         ], JSON_UNESCAPED_UNICODE);
@@ -135,6 +135,7 @@ if (empty($hid)) {
 
 try {
     $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
+    $currentBudgetYear = function_exists('get_current_budget_year') ? get_current_budget_year() : 2026;
     // Check if input is a 13-digit CID or raw HID
     $isCid = preg_match('/^\d{13}$/', $hid);
 
@@ -144,9 +145,9 @@ try {
             SELECT a.assignment_id, p.vhid_code, p.hoscode, p.first_name, p.last_name
             FROM task_assignments a
             JOIN target_population p ON a.target_cid = p.cid
-            WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = 2026 AND a.is_sandbox = ?
+            WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = ? AND a.is_sandbox = ?
         ");
-        $stmt->execute([$hid, $vhvId, $isSandboxVal]);
+        $stmt->execute([$hid, $vhvId, $currentBudgetYear, $isSandboxVal]);
         $assignments = $stmt->fetchAll();
 
         // Auto-assign in Sandbox Mode if target exists but no assignment
@@ -155,10 +156,10 @@ try {
             $checkStmt->execute([$hid]);
             $pop = $checkStmt->fetch();
             if ($pop) {
-                $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, 2026, 'pending', 1)");
-                $ins->execute([$hid, $vhvId]);
+                $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, ?, 'pending', 1)");
+                $ins->execute([$hid, $vhvId, $currentBudgetYear]);
                 
-                $stmt->execute([$hid, $vhvId, $isSandboxVal]);
+                $stmt->execute([$hid, $vhvId, $currentBudgetYear, $isSandboxVal]);
                 $assignments = $stmt->fetchAll();
             }
         }
@@ -173,9 +174,9 @@ try {
             SELECT a.assignment_id, p.vhid_code, p.hoscode, p.first_name, p.last_name
             FROM task_assignments a
             JOIN target_population p ON a.target_cid = p.cid
-            WHERE CAST(p.hid AS UNSIGNED) = CAST(? AS UNSIGNED) AND a.vhv_id = ? AND a.budget_year = 2026 AND a.is_sandbox = ?
+            WHERE CAST(p.hid AS UNSIGNED) = CAST(? AS UNSIGNED) AND a.vhv_id = ? AND a.budget_year = ? AND a.is_sandbox = ?
         ");
-        $stmt->execute([$hid, $vhvId, $isSandboxVal]);
+        $stmt->execute([$hid, $vhvId, $currentBudgetYear, $isSandboxVal]);
         $assignments = $stmt->fetchAll();
 
         // Auto-assign in Sandbox Mode if targets exist in house but no assignments to this VHV
@@ -184,12 +185,12 @@ try {
             $checkStmt->execute([$hid]);
             $targets = $checkStmt->fetchAll(PDO::FETCH_COLUMN);
             if (!empty($targets)) {
-                $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, 2026, 'pending', 1)");
+                $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, ?, 'pending', 1)");
                 foreach ($targets as $tc) {
-                    $ins->execute([$tc, $vhvId]);
+                    $ins->execute([$tc, $vhvId, $currentBudgetYear]);
                 }
                 
-                $stmt->execute([$hid, $vhvId, $isSandboxVal]);
+                $stmt->execute([$hid, $vhvId, $currentBudgetYear, $isSandboxVal]);
                 $assignments = $stmt->fetchAll();
             }
         }
@@ -235,16 +236,16 @@ try {
             if ($isSameArea) {
                 // อสม. สแกนบ้านในเขตรับผิดชอบตนเอง -> เปิดใบงานให้ อสม. อัตโนมัติและอนุญาตเข้าทำงาน
                 if ($isCid) {
-                    $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, 2026, 'pending', ?)");
-                    $ins->execute([$hid, $vhvId, $isSandboxVal]);
+                    $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, ?, 'pending', ?)");
+                    $ins->execute([$hid, $vhvId, $currentBudgetYear, $isSandboxVal]);
                 } else {
                     $checkStmt = $pdo->prepare("SELECT cid FROM target_population WHERE CAST(hid AS UNSIGNED) = CAST(? AS UNSIGNED)");
                     $checkStmt->execute([$hid]);
                     $targets = $checkStmt->fetchAll(PDO::FETCH_COLUMN);
                     if (!empty($targets)) {
-                        $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, 2026, 'pending', ?)");
+                        $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, ?, 'pending', ?)");
                         foreach ($targets as $tc) {
-                            $ins->execute([$tc, $vhvId, $isSandboxVal]);
+                            $ins->execute([$tc, $vhvId, $currentBudgetYear, $isSandboxVal]);
                         }
                     }
                 }
@@ -333,7 +334,7 @@ try {
         // Return error message to VHV app
         $msgText = 'ความปลอดภัย: บล็อกการแสดงข้อมูลเนื่องจากสแกนบ้านนอกเขตรับผิดชอบของท่าน';
         if ($incidentType === 'NO_ASSIGNMENT') {
-            $msgText = 'สิทธิ์การเข้าถึง: ท่านไม่ได้รับมอบหมายงานคัดกรองบุคคล/บ้านหลังนี้ในปีงบประมาณปัจจุบัน';
+            $msgText = 'สิทธิ์การเข้าถึง: ท่านไม่ได้รับมอบหมายงานคัดกรองบุคคล/บ้านหลังนี้ในรอบปัจจุบัน';
         } elseif ($incidentType === 'UNAUTHORIZED_SCAN') {
             $msgText = 'สิทธิ์การเข้าถึง: ไม่พบรหัสบ้านหรือเลขบัตรประชาชนนี้ในฐานข้อมูลระบบ';
         }

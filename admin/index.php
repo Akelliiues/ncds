@@ -15,6 +15,11 @@ require_once __DIR__ . '/../config/db.php';
 
 // Fetch summary metrics
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
+$selectedBudgetYear = isset($_SESSION['active_budget_year']) ? (int)$_SESSION['active_budget_year'] : (function_exists('get_current_budget_year') ? get_current_budget_year() : 2026);
+if (isset($_GET['budget_year']) && ctype_digit((string)$_GET['budget_year'])) {
+    $selectedBudgetYear = (int)$_GET['budget_year'];
+    $_SESSION['active_budget_year'] = $selectedBudgetYear;
+}
 
 $hc_names = get_health_units();
 require_once __DIR__ . '/../config/demo_data.php';

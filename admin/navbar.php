@@ -1,6 +1,23 @@
 <?php
 // admin/navbar.php
 require_once __DIR__ . '/../config/demo_banner.php';
+
+// Handle active budget year switch
+if (isset($_GET['set_budget_year']) && ctype_digit((string)$_GET['set_budget_year'])) {
+    $_SESSION['active_budget_year'] = (int)$_GET['set_budget_year'];
+    $redirectUrl = strtok($_SERVER["REQUEST_URI"], '?');
+    $queryParams = $_GET;
+    unset($queryParams['set_budget_year']);
+    if (!empty($queryParams)) {
+        $redirectUrl .= '?' . http_build_query($queryParams);
+    }
+    header("Location: " . $redirectUrl);
+    exit();
+}
+
+$activeBudgetYear = isset($_SESSION['active_budget_year']) ? (int)$_SESSION['active_budget_year'] : (function_exists('get_current_budget_year') ? get_current_budget_year() : 2026);
+$availableBudgetYearsNav = function_exists('get_available_budget_years') ? get_available_budget_years() : [2026];
+
 $current_page = basename($_SERVER['PHP_SELF']);
 // Determine if super admin
 $is_super_admin = (!isset($admin_hoscode) || empty($admin_hoscode)) && (isset($_SESSION['admin_username']) && $_SESSION['admin_username'] !== 'adminsso');
@@ -450,6 +467,15 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
                     </svg>
                     จัดการฐานข้อมูล / โหมดจำลอง
                 </a>
+                <a href="db_manager.php#fiscal-year">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    จัดการปีงบประมาณ
+                </a>
                 <?php if ($is_super_admin): ?>
                     <a href="user_manager.php" class="<?= $current_page == 'user_manager.php' ? 'active' : '' ?>">
                         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -473,6 +499,24 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
                     </a>
                 <?php endif; ?>
             </div>
+        </div>
+
+        <!-- Global Budget Year Selector -->
+        <div class="budget-year-selector-nav no-print" style="display: flex; align-items: center; gap: 6px; margin-right: 12px; background: var(--bg-card); padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--neumorph-flat);">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color: var(--color-accent);">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <span style="font-size: 11.5px; font-weight: 800; color: var(--text-secondary); white-space: nowrap;">ปีงบ:</span>
+            <select onchange="window.location.href='?set_budget_year=' + this.value" style="padding: 3px 6px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--color-accent); font-weight: 800; font-size: 12.5px; cursor: pointer; outline: none;">
+                <?php foreach ($availableBudgetYearsNav as $by): ?>
+                    <option value="<?= (int)$by ?>" <?= (int)$by === $activeBudgetYear ? 'selected' : '' ?>>
+                        <?= (int)$by + 543 ?> (<?= (int)$by ?>)
+                    </option>
+                <?php endforeach; ?>
+            </select>
         </div>
 
         <!-- Theme Toggle Button -->

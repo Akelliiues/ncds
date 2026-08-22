@@ -51,6 +51,10 @@ if ($admin_hoscode !== null) {
 }
 
 try {
+    $selectedBudgetYear = isset($_GET['budget_year']) && is_numeric($_GET['budget_year']) 
+        ? (int)$_GET['budget_year'] 
+        : (isset($_SESSION['active_budget_year']) ? (int)$_SESSION['active_budget_year'] : (function_exists('get_current_budget_year') ? get_current_budget_year() : 2026));
+
     if ($type === 'targets') {
         // Fetch active enrolled DPAC participants in the village
         $query = "
@@ -62,11 +66,11 @@ try {
             FROM dpac_enrollments e
             JOIN target_population p ON e.cid = p.cid
             LEFT JOIN vhv_users v ON e.assigned_vhv_id = v.vhv_id
-            WHERE e.budget_year = 2026 AND e.status = 'active'
+            WHERE e.budget_year = ? AND e.status = 'active'
               AND (p.vhid_code = ? OR (CAST(p.moo AS UNSIGNED) = CAST(? AS UNSIGNED) AND p.hoscode = ?))
         ";
         
-        $params = [$vhid, $moo, $hoscode];
+        $params = [$selectedBudgetYear, $vhid, $moo, $hoscode];
         
         if ($hoscode) {
             $hoscodes = get_query_hoscodes($hoscode);
@@ -100,15 +104,23 @@ try {
                        FROM task_assignments a 
                        JOIN target_population p ON a.target_cid = p.cid
                        WHERE a.vhv_id = v.vhv_id 
-                         AND a.budget_year = 2026 
+                         AND a.budget_year = ? 
                          AND a.assignment_status = 'pending'
-                         AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+                         AND (
+                             (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+                             OR 
+                             (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+                             OR
+                             p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+                             OR
+                             COALESCE(p.is_manual, 0) = 1
+                         )
                    ) as pending_screen_count
             FROM vhv_users v
             WHERE v.vhid_code = ? AND v.approved = 1
         ";
         
-        $params = [$vhid];
+        $params = [$selectedBudgetYear, $vhid];
         
         if ($hoscode) {
             $hoscodes = get_query_hoscodes($hoscode);

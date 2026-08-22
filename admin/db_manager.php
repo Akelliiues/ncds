@@ -48,6 +48,23 @@ $hcNames = get_health_units();
 $isSandbox = isSandboxMode($admin_hoscode);
 $mockTargetCount = (int)$pdo->query("SELECT COUNT(*) FROM target_population WHERE cid IN ('1234567890111', '1234567890112', '1234567890113', '1234567890114')")->fetchColumn();
 $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN ('1001', '1002', '1003')")->fetchColumn();
+
+$activeBudgetYear = isset($_SESSION['active_budget_year']) ? (int)$_SESSION['active_budget_year'] : (function_exists('get_current_budget_year') ? get_current_budget_year() : 2026);
+$allBudgetYears = function_exists('get_available_budget_years') ? get_available_budget_years() : [2026];
+
+$yearStats = [];
+try {
+    $byStatsStmt = $pdo->query("
+        SELECT budget_year, COUNT(*) as total_tasks, 
+               COUNT(CASE WHEN assignment_status = 'completed' THEN 1 END) as completed_tasks
+        FROM task_assignments 
+        WHERE budget_year IS NOT NULL 
+        GROUP BY budget_year
+    ");
+    while ($row = $byStatsStmt->fetch()) {
+        $yearStats[(int)$row['budget_year']] = $row;
+    }
+} catch (\Throwable $e) {}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -377,6 +394,72 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
                     </button>
                 </div>
             <?php endif; ?>
+        </div>
+
+        <!-- Fiscal Year Management Card -->
+        <div id="fiscal-year" class="db-card" style="margin-bottom: 20px; border-left: 4px solid var(--color-accent); background: var(--bg-card);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+                <div>
+                    <h3 style="color: var(--color-accent); margin: 0; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+                        🗓️ จัดการปีงบประมาณระบบ (Fiscal Year Management)
+                    </h3>
+                    <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 13px;">
+                        บริหารจัดการปีงบประมาณ เพิ่มปีงบประมาณใหม่ล่วงหน้า (เช่น 2570, 2571) และกำหนดปีงบประมาณหลักที่ใช้งานในระบบ
+                    </p>
+                </div>
+                <div style="background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 12px; padding: 6px 14px; font-size: 13px; font-weight: 800; color: #0ea5e9; display: flex; align-items: center; gap: 6px;">
+                    <span>ปีงบหลักปัจจุบัน:</span>
+                    <span style="font-size: 15px; color: var(--color-primary);">พ.ศ. <?= $activeBudgetYear + 543 ?> (<?= $activeBudgetYear ?>)</span>
+                </div>
+            </div>
+
+            <!-- List of available budget years -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 20px;">
+                <?php foreach ($allBudgetYears as $by): 
+                    $st = $yearStats[$by] ?? ['total_tasks' => 0, 'completed_tasks' => 0];
+                    $isActive = ((int)$by === $activeBudgetYear);
+                ?>
+                    <div style="background: var(--bg-darker); border: 1px solid <?= $isActive ? 'var(--color-primary)' : 'var(--border-color)' ?>; border-radius: 14px; padding: 14px 16px; position: relative; box-shadow: <?= $isActive ? '0 0 0 2px rgba(13,44,84,0.15)' : 'none' ?>;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                            <div>
+                                <div style="font-size: 16px; font-weight: 800; color: var(--text-primary);">
+                                    พ.ศ. <?= $by + 543 ?> <small style="font-size: 12px; color: var(--text-muted);">(<?= $by ?>)</small>
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
+                                    มอบหมาย: <strong><?= number_format((int)$st['total_tasks']) ?></strong> | คัดกรองเสร็จ: <strong style="color: var(--color-green);"><?= number_format((int)$st['completed_tasks']) ?></strong>
+                                </div>
+                            </div>
+                            <?php if ($isActive): ?>
+                                <span style="background: var(--color-primary); color: white; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 20px;">
+                                    ใช้งานอยู่
+                                </span>
+                            <?php else: ?>
+                                <button onclick="setActiveYear(<?= $by ?>)" class="btn-control" style="font-size: 11.5px; padding: 4px 10px; border-radius: 8px;" title="สลับเป็นปีงบหลัก">
+                                    เลือกใช้งาน
+                                </button>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <!-- Form to add new fiscal year -->
+            <div style="background: rgba(13, 44, 84, 0.03); border: 1px dashed var(--border-color); border-radius: 14px; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                <div style="flex: 1; min-width: 250px;">
+                    <div style="font-size: 13.5px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">
+                        ➕ เพิ่มปีงบประมาณใหม่เข้าสู่ระบบ
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-muted);">
+                        สามารถกรอกเป็น พ.ศ. (เช่น 2570, 2571) หรือ ค.ศ. (เช่น 2027, 2028) เพื่อเปิดรอบงานและให้ตัวกรองทุกหน้ารองรับได้ทันที
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <input type="number" id="input_new_budget_year" class="form-control" placeholder="เช่น 2570 หรือ 2027" style="width: 180px; padding: 8px 12px; border-radius: 10px; font-weight: 700;">
+                    <button type="button" onclick="submitAddBudgetYear()" class="btn-giant btn-giant-primary" style="margin: 0; padding: 8px 18px; font-size: 13.5px; height: auto;">
+                        บันทึกปีงบประมาณ
+                    </button>
+                </div>
+            </div>
         </div>
 
         <?php if ($admin_hoscode !== null): ?>
@@ -726,6 +809,57 @@ $mockVhvCount = (int)$pdo->query("SELECT COUNT(*) FROM vhv_users WHERE vhv_id IN
                     actionsDiv.innerHTML = '<button class="btn-cancel" onclick="closeMaintenanceModal()">ปิดหน้าต่าง</button>';
                 }, 600);
             });
+        }
+
+        function submitAddBudgetYear() {
+            const input = document.getElementById('input_new_budget_year');
+            const val = input.value.trim();
+            if (!val || parseInt(val) <= 0) {
+                alert('กรุณาระบุปีงบประมาณ (เช่น 2570 หรือ 2027)');
+                return;
+            }
+
+            fetch('../api/admin_db.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    action: 'add_budget_year',
+                    budget_year: val
+                })
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.status === 'success') {
+                    alert(res.message);
+                    window.location.reload();
+                } else {
+                    alert('เกิดข้อผิดพลาด: ' + (res.message || 'ไม่สามารถเพิ่มปีงบประมาณได้'));
+                }
+            })
+            .catch(err => alert('เกิดข้อผิดพลาดในการเชื่อมต่อ'));
+        }
+
+        function setActiveYear(year) {
+            const beYear = year > 2400 ? year : year + 543;
+            if (!confirm(`ต้องการสลับปีงบประมาณหลักเป็น พ.ศ. ${beYear} ใช่หรือไม่?`)) return;
+            
+            fetch('../api/admin_db.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    action: 'set_active_budget_year',
+                    budget_year: year
+                })
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.status === 'success') {
+                    window.location.href = window.location.pathname + '?set_budget_year=' + (year > 2400 ? year - 543 : year);
+                } else {
+                    alert('เกิดข้อผิดพลาด: ' + (res.message || 'ไม่สามารถเปลี่ยนปีงบประมาณได้'));
+                }
+            })
+            .catch(err => alert('เกิดข้อผิดพลาดในการเชื่อมต่อ'));
         }
     </script>
 

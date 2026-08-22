@@ -72,6 +72,7 @@ if (empty($type) || empty($vhid)) {
 
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 $hoscode = $admin_hoscode ? $admin_hoscode : ($_GET['hoscode'] ?? null);
+$selectedBudgetYear = isset($_GET['budget_year']) && is_numeric($_GET['budget_year']) ? (int)$_GET['budget_year'] : (isset($_SESSION['active_budget_year']) ? (int)$_SESSION['active_budget_year'] : (function_exists('get_current_budget_year') ? get_current_budget_year() : 2026));
 
 try {
     if ($type === 'targets') {
@@ -81,21 +82,21 @@ try {
                    TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) AS age,
                    v.vhv_name as assigned_vhv, a.assignment_status, a.round_number,
                    GREATEST(
-                       IFNULL((SELECT MAX(CASE WHEN ta.round_number IS NULL OR ta.round_number = 0 THEN 1 ELSE ta.round_number END) FROM task_assignments ta WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' AND ta.is_sandbox = ?), 0),
-                       IFNULL((SELECT MAX(CASE WHEN sr.round_number IS NULL OR sr.round_number = 0 THEN 1 ELSE sr.round_number END) FROM screening_results sr LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id WHERE (sr.target_cid = p.cid OR ta2.target_cid = p.cid) AND sr.is_sandbox = ?), 0)
+                       IFNULL((SELECT MAX(CASE WHEN ta.round_number IS NULL OR ta.round_number = 0 THEN 1 ELSE ta.round_number END) FROM task_assignments ta WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' AND ta.budget_year = {$selectedBudgetYear} AND ta.is_sandbox = ?), 0),
+                       IFNULL((SELECT MAX(CASE WHEN sr.round_number IS NULL OR sr.round_number = 0 THEN 1 ELSE sr.round_number END) FROM screening_results sr LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id WHERE (sr.target_cid = p.cid OR ta2.target_cid = p.cid) AND (ta2.budget_year = {$selectedBudgetYear} OR ta2.budget_year IS NULL) AND sr.is_sandbox = ?), 0)
                    ) as max_completed_round,
                    (
                        SELECT v2.vhv_name 
                        FROM task_assignments ta_prev 
                        LEFT JOIN vhv_users v2 ON ta_prev.vhv_id = v2.vhv_id 
-                       WHERE ta_prev.target_cid = p.cid AND ta_prev.assignment_status = 'completed' AND ta_prev.is_sandbox = ?
+                       WHERE ta_prev.target_cid = p.cid AND ta_prev.assignment_status = 'completed' AND ta_prev.budget_year = {$selectedBudgetYear} AND ta_prev.is_sandbox = ?
                        ORDER BY ta_prev.round_number DESC, ta_prev.assignment_id DESC LIMIT 1
                    ) as prev_vhv_name,
                    p.health_status_origin, p.need_screen_dm, p.need_screen_ht
             FROM target_population p
             LEFT JOIN task_assignments a ON a.assignment_id = (
                 SELECT assignment_id FROM task_assignments ta 
-                WHERE ta.target_cid = p.cid AND ta.budget_year = 2026 AND ta.assignment_status = 'pending' AND ta.is_sandbox = ?
+                WHERE ta.target_cid = p.cid AND ta.budget_year = {$selectedBudgetYear} AND ta.assignment_status = 'pending' AND ta.is_sandbox = ?
                 ORDER BY ta.round_number DESC, ta.assignment_id DESC LIMIT 1
             )
             LEFT JOIN vhv_users v ON a.vhv_id = v.vhv_id
@@ -106,9 +107,12 @@ try {
         if ($group === 'suspect') {
             // Suspect group requires age 35+ and not already an active target
             $query .= " AND p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35";
+        } elseif ($group === 'under_35_risk') {
+            // Specific under-35 risk group
+            $query .= " AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) < 35 AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1 OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH') OR COALESCE(p.is_manual, 0) = 1)";
         } else {
-            // Active target group allows any age
-            $query .= " AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)";
+            // Active target group allows any age (including under-35 risk cases and manual additions)
+            $query .= " AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1 OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH') OR COALESCE(p.is_manual, 0) = 1)";
         }
         
         // กรองข้อมูลประชากรจำลองทดสอบออกในโหมดจริง
@@ -139,7 +143,7 @@ try {
                            SELECT COUNT(*) 
                            FROM task_assignments a 
                            WHERE a.vhv_id = v.vhv_id 
-                             AND a.budget_year = 2026 
+                             AND a.budget_year = {$selectedBudgetYear} 
                              AND a.assignment_status = 'pending'
                              AND a.is_sandbox = :is_sandbox1
                        ) + (
@@ -155,7 +159,7 @@ try {
                            SELECT COUNT(*) 
                            FROM task_assignments a 
                            WHERE a.vhv_id = v.vhv_id 
-                             AND a.budget_year = 2026 
+                             AND a.budget_year = {$selectedBudgetYear} 
                              AND a.is_sandbox = :is_sandbox3
                        ) + (
                            SELECT COUNT(*) 
@@ -170,7 +174,7 @@ try {
                            FROM task_assignments a 
                            JOIN target_population p ON a.target_cid = p.cid
                            WHERE a.vhv_id = v.vhv_id 
-                             AND a.budget_year = 2026 
+                             AND a.budget_year = {$selectedBudgetYear} 
                              AND p.vhid_code = :vhid1
                              AND a.is_sandbox = :is_sandbox5
                        ) + (

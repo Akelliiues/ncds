@@ -57,26 +57,28 @@ try {
         $isSandboxVal = 1;
     }
     
+    $currentBudgetYear = function_exists('get_current_budget_year') ? get_current_budget_year() : 2026;
+    
     $pdo->beginTransaction();
     
     // 1. Check duplicate participation
-    $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM vhv_survey_participants WHERE vhv_id = ? AND budget_year = 2026");
-    $checkStmt->execute([$vhvId]);
+    $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM vhv_survey_participants WHERE vhv_id = ? AND budget_year = ?");
+    $checkStmt->execute([$vhvId, $currentBudgetYear]);
     if ($checkStmt->fetchColumn() > 0) {
         $pdo->rollBack();
-        echo json_encode(['status' => 'error', 'message' => 'คุณได้ทำการประเมินความพึงพอใจประจำปีงบประมาณนี้เรียบร้อยแล้ว']);
+        echo json_encode(['status' => 'error', 'message' => 'คุณได้ทำการประเมินความพึงพอใจประจำรอบนี้เรียบร้อยแล้ว']);
         exit();
     }
     
     // 2. Register participant
-    $participantStmt = $pdo->prepare("INSERT INTO vhv_survey_participants (vhv_id, budget_year) VALUES (?, 2026)");
-    $participantStmt->execute([$vhvId]);
+    $participantStmt = $pdo->prepare("INSERT INTO vhv_survey_participants (vhv_id, budget_year) VALUES (?, ?)");
+    $participantStmt->execute([$vhvId, $currentBudgetYear]);
     
     // 3. Insert anonymous response
     $selected_tags = json_encode($tags, JSON_UNESCAPED_UNICODE);
     $surveyStmt = $pdo->prepare("
         INSERT INTO vhv_surveys (hoscode, sub_district_code, score_peou, score_sq, score_iq, score_pu, score_bi, selected_tags, budget_year, is_sandbox)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 2026, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
     $surveyStmt->execute([
         $hoscode,
@@ -87,6 +89,7 @@ try {
         $score_pu,
         $score_bi,
         $selected_tags,
+        $currentBudgetYear,
         $isSandboxVal
     ]);
     

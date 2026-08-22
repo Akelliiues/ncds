@@ -34,6 +34,42 @@ try {
 $relations = [];
 try {
     $stmtV = $pdo->query("SELECT vhid_code, sub_district_code, moo, village_name, hoscode FROM villages ORDER BY hoscode ASC, moo ASC");
+<?php
+// admin/reports.php
+require_once __DIR__ . '/../config/session.php';
+
+if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+    header("Location: ../index.php");
+    exit();
+}
+
+require_once __DIR__ . '/../config/db.php';
+
+$admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
+
+$hc_names = get_health_units();
+
+$admin_title = get_admin_title();
+
+$tambons = [];
+try {
+    $stmt = $pdo->query("SELECT sub_district_code, CONCAT('ตำบล', sub_district_name) FROM sub_districts ORDER BY sub_district_code ASC");
+    $tambons = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+} catch (\Exception $e) {
+    $tambons = [
+        '341801' => 'ตำบลตาลสุม',
+        '341802' => 'ตำบลสำโรง',
+        '341803' => 'ตำบลจิกเทิง',
+        '341804' => 'ตำบลหนองกุง',
+        '341805' => 'ตำบลนาคาย',
+        '341806' => 'ตำบลคำหว้า'
+    ];
+}
+
+// ดึงข้อมูลความสัมพันธ์หมู่บ้านและ รพ.สต. เพื่อใช้ในการกรองข้อมูลให้ตรงกับที่ตั้งค่าในระบบ
+$relations = [];
+try {
+    $stmtV = $pdo->query("SELECT vhid_code, sub_district_code, moo, village_name, hoscode FROM villages ORDER BY hoscode ASC, moo ASC");
     $allVillages = $stmtV->fetchAll(PDO::FETCH_ASSOC);
     foreach ($allVillages as $v) {
         $hc = $v['hoscode'];
@@ -74,6 +110,8 @@ if ($filter_round !== 'all' && (!ctype_digit((string)$filter_round) || (int)$fil
     $filter_round = '1';
 }
 
+$selectedBudgetYear = isset($_GET['budget_year']) && is_numeric($_GET['budget_year']) ? (int)$_GET['budget_year'] : (isset($_SESSION['active_budget_year']) ? (int)$_SESSION['active_budget_year'] : (function_exists('get_current_budget_year') ? get_current_budget_year() : 2026));
+
 // Force sub-admin to see only their hoscode
 if ($admin_hoscode !== null) {
     $filter_hoscode = $admin_hoscode;
@@ -85,7 +123,7 @@ $maxAvailableRound = 3;
 try {
     $maxRoundQuery = $pdo->query("
         SELECT GREATEST(
-            IFNULL((SELECT MAX(round_number) FROM task_assignments), 1),
+            IFNULL((SELECT MAX(round_number) FROM task_assignments WHERE budget_year = {$selectedBudgetYear}), 1),
             IFNULL((SELECT MAX(round_number) FROM screening_results), 1)
         )
     ");
@@ -93,21 +131,6 @@ try {
 } catch (\Throwable $e) {
     $maxAvailableRound = 3;
 }
-
-function appendDemographicFilters(&$sql, $alias = 'p') {
-    global $filter_gender, $filter_age;
-    if ($filter_gender === '1' || $filter_gender === '2') {
-        $sql .= " AND $alias.sex = " . intval($filter_gender);
-    }
-    if ($filter_age === '35-59') {
-        $sql .= " AND (TIMESTAMPDIFF(YEAR, $alias.birth, CURDATE()) BETWEEN 35 AND 59)";
-    } elseif ($filter_age === '60+') {
-        $sql .= " AND (TIMESTAMPDIFF(YEAR, $alias.birth, CURDATE()) >= 60)";
-    }
-}
-
-// Build SQL Query
-$whereClauses = [];
 $params = [];
 
 if ($filter_source === 'screened') {

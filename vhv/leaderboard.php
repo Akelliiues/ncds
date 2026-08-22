@@ -70,6 +70,7 @@ if (DemoDataProvider::isDemoMode()) {
     $totalVhvs = count($allLeaders);
 } else {
     $isSandboxVal = isSandboxMode() ? 1 : 0;
+    $currentBudgetYear = function_exists('get_current_budget_year') ? get_current_budget_year() : 2026;
 
     // Query Top 50 VHVs with points breakdown and subqueries for badges calculation
     $leaderboardStmt = $pdo->prepare("
@@ -90,22 +91,30 @@ if (DemoDataProvider::isDemoMode()) {
                 SELECT COUNT(*) 
                 FROM task_assignments ta 
                 JOIN target_population p ON ta.target_cid = p.cid 
-                WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = 2026 AND ta.is_sandbox = :is_sandbox2
+                WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = :budget_year1 AND ta.is_sandbox = :is_sandbox2
                   AND (
                       (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
                       OR 
-                      (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+                      (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+                      OR
+                      p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+                      OR
+                      COALESCE(p.is_manual, 0) = 1
                   )
             ) as total_assigned,
             (
                 SELECT COUNT(*) 
                 FROM task_assignments ta 
                 JOIN target_population p ON ta.target_cid = p.cid 
-                WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = 2026 AND ta.assignment_status = 'completed' AND ta.is_sandbox = :is_sandbox3
+                WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = :budget_year2 AND ta.assignment_status = 'completed' AND ta.is_sandbox = :is_sandbox3
                   AND (
                       (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
                       OR 
-                      (p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+                      (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+                      OR
+                      p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+                      OR
+                      COALESCE(p.is_manual, 0) = 1
                   )
             ) as completed,
             (SELECT COUNT(*) FROM vhv_rewards WHERE vhv_id = u.vhv_id AND approval_status = 'waiting' AND is_sandbox = :is_sandbox4) as waiting_rewards
@@ -118,7 +127,9 @@ if (DemoDataProvider::isDemoMode()) {
         'is_sandbox1' => $isSandboxVal,
         'is_sandbox2' => $isSandboxVal,
         'is_sandbox3' => $isSandboxVal,
-        'is_sandbox4' => $isSandboxVal
+        'is_sandbox4' => $isSandboxVal,
+        'budget_year1' => $currentBudgetYear,
+        'budget_year2' => $currentBudgetYear
     ]);
     $allLeaders = $leaderboardStmt->fetchAll();
     $totalVhvs = count($allLeaders);
@@ -192,6 +203,7 @@ function getBadgesList($total_assigned, $completed, $waiting_rewards)
 // 1. Query village (Moo) completion stats under current VHV's hospital (hoscode)
 $hoscode = $_SESSION['hoscode'] ?? '';
 $villageStats = [];
+$currentBudgetYear = function_exists('get_current_budget_year') ? get_current_budget_year() : 2026;
 if (!empty($hoscode)) {
     $villQuery = "
         SELECT 
@@ -201,17 +213,25 @@ if (!empty($hoscode)) {
             COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) as completed_targets
         FROM target_population p
         LEFT JOIN villages v ON p.moo = v.moo AND p.hoscode = v.hoscode
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026 AND a.is_sandbox = ?
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = ? AND a.is_sandbox = ?
         WHERE p.hoscode = ? 
           AND p.moo > 0 
           AND p.moo IS NOT NULL 
-          AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+          AND (
+              (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+              OR 
+              (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+              OR
+              p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+              OR
+              COALESCE(p.is_manual, 0) = 1
+          )
         GROUP BY p.moo
         HAVING total_targets > 0
         ORDER BY p.moo ASC
     ";
     $villStmt = $pdo->prepare($villQuery);
-    $villStmt->execute([$isSandboxVal, $hoscode]);
+    $villStmt->execute([$currentBudgetYear, $isSandboxVal, $hoscode]);
     $villageStats = $villStmt->fetchAll();
 }
 
@@ -224,14 +244,22 @@ try {
             COUNT(DISTINCT p.cid) as total_targets,
             COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) as completed_targets
         FROM health_units u
-        LEFT JOIN target_population p ON u.hoscode = p.hoscode AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026 AND a.is_sandbox = ?
+        LEFT JOIN target_population p ON u.hoscode = p.hoscode AND (
+            (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+            OR 
+            (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+            OR
+            p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+            OR
+            COALESCE(p.is_manual, 0) = 1
+        )
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = ? AND a.is_sandbox = ?
         GROUP BY u.hoscode
         HAVING COUNT(DISTINCT p.cid) > 0
         ORDER BY (COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) / COUNT(DISTINCT p.cid)) DESC, u.hoscode ASC
     ";
     $hosStmt = $pdo->prepare($hosQuery);
-    $hosStmt->execute([$isSandboxVal]);
+    $hosStmt->execute([$currentBudgetYear, $isSandboxVal]);
     $hospitalStats = $hosStmt->fetchAll();
 } catch (\Exception $e) {
     // Fail silently
