@@ -7,6 +7,14 @@ require_once __DIR__ . '/../config/session.php';
 
 header('Content-Type: application/json');
 
+require_once __DIR__ . '/../config/demo_data.php';
+
+if (DemoDataProvider::isDemoMode()) {
+    $result = DemoDataProvider::processDemoScreening($_POST);
+    echo json_encode($result, JSON_UNESCAPED_UNICODE);
+    exit();
+}
+
 if (!isset($_SESSION['vhv_id'])) {
     echo json_encode([
         'status' => 'error',
@@ -357,13 +365,56 @@ try {
             }
         }
 
-        // Calculate overall risk for HL-Coach
+        // Calculate overall risk and counseling summary metadata
         $hl_risk_level = 'green';
-        if ($sys1 >= 160 || $dia1 >= 100 || ($dtxType === 'fpg' && $dtx >= 126) || ($dtxType === 'random' && $dtx >= 200) || $cvRiskScore >= 30) {
+        $risk_color = '#10B981';
+        $risk_title = '🟢 ปกติ (สุขภาพดี)';
+        $status_desc = 'ค่าความดันโลหิตและระดับน้ำตาลในเลือดอยู่ในเกณฑ์ปกติ สุขภาพแข็งแรงดี';
+
+        if ($sys1 >= 180 || $dia1 >= 110 || $dtx >= 300) {
             $hl_risk_level = 'red';
-        } elseif ($sys1 >= 140 || $dia1 >= 90 || ($dtxType === 'fpg' && $dtx >= 100) || ($dtxType === 'random' && $dtx >= 140) || $cvRiskScore >= 20) {
+            $risk_color = '#EF4444';
+            $risk_title = '🔴 เสี่ยงสูงวิกฤต (ต้องพบแพทย์ทันที)';
+            $status_desc = 'พบค่าสัญญาณชีพสูงวิกฤต เสี่ยงต่อภาวะแทรกซ้อนรุนแรง ต้องนำส่ง รพ.สต./โรงพยาบาล ด่วน!';
+        } elseif ($sys1 >= 160 || $dia1 >= 100 || ($dtxType === 'fpg' && $dtx >= 126) || ($dtxType === 'random' && $dtx >= 200) || $cvRiskScore >= 30) {
+            $hl_risk_level = 'red';
+            $risk_color = '#EF4444';
+            $risk_title = '🔴 กลุ่มเสี่ยงสูง / สงสัยป่วย';
+            $status_desc = 'พบค่าสัญญาณชีพสูงกว่าเกณฑ์ปกติอย่างมาก ควรได้รับการตรวจยืนยันโรคโดยแพทย์';
+        } elseif ($sys1 >= 140 || $dia1 >= 90 || ($dtxType === 'fpg' && $dtx >= 100) || ($dtxType === 'random' && $dtx >= 140) || $cvRiskScore >= 20 || $bmi >= 23) {
             $hl_risk_level = 'yellow';
+            $risk_color = '#F59E0B';
+            $risk_title = '🟡 กลุ่มเสี่ยง (ต้องปรับพฤติกรรม)';
+            $status_desc = 'พบค่าความดัน/น้ำตาลเริ่มสูง หรือดัชนีมวลกายเกินเกณฑ์ ควรปรับเปลี่ยนพฤติกรรม 3อ 2ส';
         }
+
+        $advice_list = [];
+        if ($sys1 >= 130 || $dia1 >= 85) {
+            $advice_list[] = [
+                'icon' => '🧂',
+                'title' => 'ลดเค็ม โซเดียม',
+                'desc' => 'งดอาหารรสจัด ซอส ปรุงรส อาหารหมักดอง และงดซดน้ำแกง'
+            ];
+        }
+        if ($dtx >= 100 || $bmi >= 23) {
+            $advice_list[] = [
+                'icon' => '🍬',
+                'title' => 'ลดหวาน ขนม น้ำหวาน',
+                'desc' => 'งดน้ำอัดลม ชาไข่มุก ขนมหวาน ลดปริมาณข้าวแป้งทานเน้นผักใบเขียว'
+            ];
+        }
+        if ($bmi >= 23) {
+            $advice_list[] = [
+                'icon' => '🚶‍♂️',
+                'title' => 'เพิ่มการขยับกาย ออกกำลังกาย',
+                'desc' => 'เดินสะสมก้าวอย่างน้อยวันละ 30 นาที 5 วัน/สัปดาห์'
+            ];
+        }
+        $advice_list[] = [
+            'icon' => '🍎',
+            'title' => 'ยึดหลัก 3อ 2ส',
+            'desc' => 'อาหาร อารมณ์ ออกกำลังกาย งดบุหรี่ งดสุรา'
+        ];
 
         echo json_encode([
             'status' => 'success',
@@ -371,8 +422,24 @@ try {
             'reward_status' => $approvalStatus,
             'log' => $reasonLog,
             'hl_risk_level' => $hl_risk_level,
-            'is_hl_coach' => $_SESSION['is_hl_coach'] ?? false
-        ]);
+            'is_hl_coach' => $_SESSION['is_hl_coach'] ?? false,
+            'summary_metadata' => [
+                'resident_name' => $residentName,
+                'sbp' => $sys1,
+                'dbp' => $dia1,
+                'dtx' => $dtx,
+                'dtx_type' => $dtxType,
+                'bmi' => round($bmi, 1),
+                'waist' => $waist,
+                'cv_risk' => $cvRiskScore,
+                'risk_level' => $hl_risk_level,
+                'risk_color' => $risk_color,
+                'risk_title' => $risk_title,
+                'status_desc' => $status_desc,
+                'advice_list' => $advice_list,
+                'next_appointment' => date('d/m/Y', strtotime('+3 months'))
+            ]
+        ], JSON_UNESCAPED_UNICODE);
         exit();
 
     } elseif ($action === 'skip_case') {

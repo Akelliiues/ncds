@@ -492,3 +492,20 @@ class VhvNumPad {
         this.input.dispatchEvent(event);
     }
 }
+
+// GIS House-Level Map Privacy Jittering (PDPA Compliance ±50m)
+window.getDeterministicPrivacyJitter = function(lat, lng, seedStr) {
+    if (!lat || !lng) return { lat: 0, lng: 0 };
+    let hash = 2166136261;
+    const str = String(seedStr || (lat + ',' + lng));
+    for (let i = 0; i < str.length; i++) {
+        hash ^= str.charCodeAt(i);
+        hash = (hash * 16777619) >>> 0;
+    }
+    const rx = ((hash & 0xFFFF) / 0xFFFF) - 0.5;
+    const ry = (((hash >>> 16) & 0xFFFF) / 0xFFFF) - 0.5;
+    return {
+        lat: lat + (rx * 0.0009),
+        lng: lng + (ry * 0.0009)
+    };
+};

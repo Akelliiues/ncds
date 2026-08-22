@@ -8,6 +8,8 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
     exit();
 }
 
+require_once __DIR__ . '/../config/demo_banner.php';
+
 require_once __DIR__ . '/../config/db.php';
 
 

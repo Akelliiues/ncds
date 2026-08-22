@@ -3,6 +3,48 @@
 require_once __DIR__ . '/config/session.php';
 require_once __DIR__ . '/config/db.php';
 
+// Exit demo mode if requested
+if (isset($_GET['exit_demo'])) {
+    unset($_SESSION['is_demo_mode']);
+    unset($_SESSION['demo_role']);
+    session_destroy();
+    header("Location: index.php");
+    exit();
+}
+
+// Handle Demo Sandbox Role Selection
+if (isset($_GET['demo_role']) || isset($_POST['demo_role'])) {
+    $demoRole = trim($_GET['demo_role'] ?? $_POST['demo_role'] ?? '');
+    $_SESSION['is_demo_mode'] = true;
+    $_SESSION['demo_role'] = $demoRole;
+
+    if ($demoRole === 'vhv') {
+        $_SESSION['vhv_id'] = 'DEMO_1001';
+        $_SESSION['vhv_name'] = 'อสม. ใจดี มีสุข (โหมดจำลอง)';
+        $_SESSION['vhv_moo'] = 1;
+        $_SESSION['vhid_code'] = '34100101';
+        $_SESSION['hoscode'] = '99999';
+        $_SESSION['is_leader'] = 0;
+        $_SESSION['is_hl_coach'] = 0;
+        header("Location: vhv/index.php");
+        exit();
+    } elseif ($demoRole === 'staff') {
+        $_SESSION['admin_logged_in'] = true;
+        $_SESSION['admin_username'] = 'demo_staff';
+        $_SESSION['admin_hoscode'] = '99999';
+        $_SESSION['is_visitor'] = false;
+        header("Location: admin/index.php");
+        exit();
+    } elseif ($demoRole === 'admin') {
+        $_SESSION['admin_logged_in'] = true;
+        $_SESSION['admin_username'] = 'demo_admin';
+        $_SESSION['admin_hoscode'] = null;
+        $_SESSION['is_visitor'] = false;
+        header("Location: admin/index.php");
+        exit();
+    }
+}
+
 // If already logged in, redirect to respective dashboard
 if (isset($_SESSION['vhv_id'])) {
     header("Location: vhv/index.php");
@@ -217,11 +259,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     เข้าสู่ระบบ
                 </button>
             </form>
-            <div style="text-align: center;">
+            <div style="text-align: center; margin-bottom: 12px;">
                 <a href="vhv/register.php"
                     style="color: var(--color-accent); text-decoration: none; font-weight: bold; font-size: 14px; display: inline-block;">
                     📝 ลงทะเบียน อสม. ใหม่
                 </a>
+            </div>
+
+            <!-- Demo Sandbox Mode Selector -->
+            <div style="margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border-color, #334155); text-align: center;">
+                <div style="font-size: 12px; font-weight: 700; color: #F59E0B; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                    <span>🧪</span> <span>ทดลองใช้งานเสมือนจริง (Demo Sandbox)</span>
+                </div>
+                <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
+                    <a href="index.php?demo_role=vhv" style="
+                        flex: 1 1 30%;
+                        min-width: 90px;
+                        background: rgba(16, 185, 129, 0.12);
+                        border: 1px solid #10B981;
+                        color: #10B981;
+                        padding: 6px 4px;
+                        border-radius: 8px;
+                        font-size: 11px;
+                        font-weight: 700;
+                        text-decoration: none;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 2px;
+                    ">
+                        <span style="font-size: 14px;">🟩</span>
+                        <span>อสม.</span>
+                    </a>
+                    <a href="index.php?demo_role=staff" style="
+                        flex: 1 1 30%;
+                        min-width: 90px;
+                        background: rgba(59, 130, 246, 0.12);
+                        border: 1px solid #3B82F6;
+                        color: #60A5FA;
+                        padding: 6px 4px;
+                        border-radius: 8px;
+                        font-size: 11px;
+                        font-weight: 700;
+                        text-decoration: none;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 2px;
+                    ">
+                        <span style="font-size: 14px;">🟦</span>
+                        <span>รพ.สต.</span>
+                    </a>
+                    <a href="index.php?demo_role=admin" style="
+                        flex: 1 1 30%;
+                        min-width: 90px;
+                        background: rgba(239, 68, 68, 0.12);
+                        border: 1px solid #EF4444;
+                        color: #FCA5A5;
+                        padding: 6px 4px;
+                        border-radius: 8px;
+                        font-size: 11px;
+                        font-weight: 700;
+                        text-decoration: none;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 2px;
+                    ">
+                        <span style="font-size: 14px;">🟥</span>
+                        <span>Admin</span>
+                    </a>
+                </div>
             </div>
         </div>
 
