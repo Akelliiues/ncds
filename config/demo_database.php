@@ -40,6 +40,9 @@ class DemoMockPDOStatement {
 
 class DemoMockPDO extends PDO {
     public function replaceTables($sql) {
+        if (strpos($sql, 'demo_mock_') !== false) {
+            return $sql;
+        }
         $tables = [
             'target_population'        => 'demo_mock_target_population',
             'task_assignments'         => 'demo_mock_task_assignments',
