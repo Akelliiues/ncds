@@ -23,7 +23,11 @@ $hoscode = $_SESSION['hoscode'] ?? null;
 $residents = [];
 $history = [];
 
-if (!$isShell) {
+require_once __DIR__ . '/../config/demo_data.php';
+
+if (DemoDataProvider::isDemoMode()) {
+    $residents = DemoDataProvider::getDemoVhvTasks()['pending'];
+} elseif (!$isShell) {
     require_once __DIR__ . '/../config/db.php';
     
     // Auto-assign task if no pending assignment exists yet

@@ -3,6 +3,14 @@
 require_once __DIR__ . '/../config/session.php';
 header('Content-Type: application/json; charset=utf-8');
 
+require_once __DIR__ . '/../config/demo_data.php';
+
+if (DemoDataProvider::isDemoMode()) {
+    $demoTasks = DemoDataProvider::getDemoVhvTasks();
+    echo json_encode($demoTasks['pending'], JSON_UNESCAPED_UNICODE);
+    exit();
+}
+
 if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
     echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
     exit();

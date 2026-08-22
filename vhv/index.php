@@ -24,10 +24,17 @@ $completedTasks = [];
 $completedDpacTasks = [];
 $dpacTasks = [];
 $subVhvs = [];
-$db_error = '';
+require_once __DIR__ . '/../config/demo_data.php';
 
-try {
-    $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
+if (DemoDataProvider::isDemoMode()) {
+    $demoTasks = DemoDataProvider::getDemoVhvTasks();
+    $pendingTasks = $demoTasks['pending'];
+    $dpacTasks = $demoTasks['dpac'];
+    $completedTasks = $demoTasks['completed'];
+    $skippedTasks = $demoTasks['skipped'] ?? [];
+} else {
+    try {
+        $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
 
     $pendingStmt = $pdo->prepare("
         SELECT a.assignment_id, a.assignment_status, a.round_number, p.cid, p.hid, p.first_name, p.last_name, p.house_no, p.moo, p.sex, p.birth, p.need_screen_dm, p.need_screen_ht, p.health_status_origin,
@@ -142,6 +149,7 @@ try {
     }
 } catch (\Throwable $e) {
     $db_error = $e->getMessage();
+}
 }
 ?>
 <!DOCTYPE html>

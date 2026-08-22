@@ -22,7 +22,23 @@ $riskType = '';
 $isDM = false;
 $isHT = false;
 
-if (!$isShell) {
+require_once __DIR__ . '/../config/demo_banner.php';
+require_once __DIR__ . '/../config/demo_data.php';
+
+if (DemoDataProvider::isDemoMode()) {
+    $task = [
+        'followup_id' => 'DEMO_DPAC_1',
+        'first_name' => 'บุญมี',
+        'last_name' => 'มีโชค',
+        'house_no' => '88',
+        'moo' => '1',
+        'round_no' => 2,
+        'risk_type' => 'BOTH'
+    ];
+    $riskType = 'BOTH';
+    $isDM = true;
+    $isHT = true;
+} elseif (!$isShell) {
     require_once __DIR__ . '/../config/db.php';
 
     // Fetch Followup Data
@@ -881,21 +897,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         document.getElementById('dpacForm').onsubmit = function (e) {
+            e.preventDefault();
             const risk = document.getElementById('health_risk_level').value;
             if (!risk) {
-                e.preventDefault();
                 alert('กรุณากรอกข้อมูลเพื่อประเมินความเสี่ยงให้ครบถ้วน');
                 return;
             }
 
             if (!checkCriticalValues()) {
-                e.preventDefault();
                 return;
             }
 
-            if (!navigator.onLine) {
-                e.preventDefault();
+            const formData = new FormData(this);
+            const residentName = document.getElementById('dpac-name') ? document.getElementById('dpac-name').innerText : 'ผู้รับการติดตาม DPAC';
+            formData.append('_residentName', residentName);
 
+            if (!navigator.onLine) {
                 // Serialize form data for offline sync queue
                 const weight = document.getElementById('weight').value;
                 const height = document.getElementById('height').value;
@@ -906,12 +923,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 const healthRisk = document.getElementById('health_risk_level').value;
                 const advice = document.getElementById('advice_given').value;
 
-                // Get URL parameter for followup ID
                 const urlParams = new URLSearchParams(window.location.search);
                 const fidVal = urlParams.get('fid');
-
-                // Get resident name from title or DOM
-                const residentName = document.getElementById('dpac-name').innerText;
 
                 const data = {
                     'action': 'save_dpac',
@@ -933,14 +946,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 queue.push(data);
                 localStorage.setItem('offline_submissions', JSON.stringify(queue));
 
-                // Update local task cache
                 updateLocalDpacTask(fidVal);
 
                 showToast("บันทึกผลการติดตาม DPAC ในเครื่องเรียบร้อยแล้ว (โหมดออฟไลน์)", "warning");
                 setTimeout(() => {
                     window.location.href = 'index.php';
                 }, 1500);
+                return;
             }
+
+            fetch('../api/save_dpac.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showCounselingSummaryModal(data);
+                } else {
+                    alert('เกิดข้อผิดพลาดในการบันทึก: ' + (data.message || 'โปรดลองใหม่อีกครั้ง'));
+                }
+            })
+            .catch(err => {
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย: ' + err);
+            });
         };
 
         // Shell mode and offline parameters check
@@ -1212,8 +1241,147 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 .catch(err => {
                     alert("เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย");
                 });
+        // Full-Screen Counseling Summary Modal Implementation
+        function showCounselingSummaryModal(data) {
+            const meta = data.summary_metadata || {};
+            
+            const resName = meta.resident_name || (document.getElementById('dpac-name') ? document.getElementById('dpac-name').innerText : 'ผู้รับการติดตาม DPAC');
+            document.getElementById('summary-resident-name').innerText = resName;
+            
+            // 1. สิ่งที่เกิดขึ้น (Results Grid)
+            const grid = document.getElementById('summary-results-grid');
+            grid.innerHTML = `
+                <div style="background: #0F172A; padding: 10px; border-radius: 8px;">
+                    <div style="font-size: 11px; color: #94A3B8;">ความดันโลหิต</div>
+                    <div style="font-size: 16px; font-weight: 800; color: ${meta.sbp >= 140 ? '#F97316' : '#F8FAFC'};">${meta.sbp || 0}/${meta.dbp || 0} <span style="font-size: 11px;">mmHg</span></div>
+                </div>
+                <div style="background: #0F172A; padding: 10px; border-radius: 8px;">
+                    <div style="font-size: 11px; color: #94A3B8;">ค่าน้ำตาล (DTX)</div>
+                    <div style="font-size: 16px; font-weight: 800; color: ${meta.dtx >= 126 ? '#F97316' : '#F8FAFC'};">${meta.dtx || 0} <span style="font-size: 11px;">mg/dL</span></div>
+                </div>
+                <div style="background: #0F172A; padding: 10px; border-radius: 8px;">
+                    <div style="font-size: 11px; color: #94A3B8;">ดัชนีมวลกาย BMI</div>
+                    <div style="font-size: 16px; font-weight: 800; color: ${meta.bmi >= 23 ? '#F59E0B' : '#F8FAFC'};">${meta.bmi || '0.0'} <span style="font-size: 11px;">kg/m²</span></div>
+                </div>
+                <div style="background: #0F172A; padding: 10px; border-radius: 8px;">
+                    <div style="font-size: 11px; color: #94A3B8;">รอบเอว</div>
+                    <div style="font-size: 16px; font-weight: 800; color: #F8FAFC;">${meta.waist || 0} <span style="font-size: 11px;">cm</span></div>
+                </div>
+            `;
+
+            // 2. สิ่งที่เป็น (Risk Status)
+            const badge = document.getElementById('summary-risk-badge');
+            badge.innerText = meta.risk_title || '🟡 กลุ่มเสี่ยง DPAC';
+            badge.style.background = meta.risk_color ? meta.risk_color + '33' : 'rgba(245,158,11,0.2)';
+            badge.style.color = meta.risk_color || '#F59E0B';
+            badge.style.border = `1px solid ${meta.risk_color || '#F59E0B'}`;
+
+            document.getElementById('summary-status-desc').innerText = meta.status_desc || 'บันทึกการเยี่ยมติดตามเรียบร้อยแล้ว';
+
+            // 3. สิ่งที่ต้องปรับเปลี่ยน (Advice List)
+            const adviceContainer = document.getElementById('summary-advice-container');
+            const adviceList = meta.advice_list || [];
+            let adviceHtml = '';
+            adviceList.forEach(item => {
+                adviceHtml += `
+                    <div style="display: flex; gap: 10px; background: #0F172A; padding: 10px; border-radius: 8px; align-items: flex-start;">
+                        <span style="font-size: 20px;">${item.icon || '💡'}</span>
+                        <div>
+                            <div style="font-weight: 700; font-size: 13.5px; color: #F8FAFC;">${item.title}</div>
+                            <div style="font-size: 12px; color: #94A3B8; line-height: 1.4;">${item.desc}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            adviceContainer.innerHTML = adviceHtml;
+
+            document.getElementById('summary-next-date').innerText = meta.next_appointment || '-';
+
+            document.getElementById('counseling-summary-modal').style.display = 'block';
+        }
+
+        function closeCounselingSummaryAndFinish() {
+            document.getElementById('counseling-summary-modal').style.display = 'none';
+            window.location.href = 'index.php';
         }
     </script>
+
+    <!-- Full-Screen Counseling Summary Modal -->
+    <div id="counseling-summary-modal" style="
+        position: fixed;
+        inset: 0;
+        z-index: 999999;
+        background: #0F172A;
+        color: #F8FAFC;
+        overflow-y: auto;
+        display: none;
+        padding: 16px;
+        box-sizing: border-box;
+        font-family: var(--font-base, sans-serif);
+    ">
+        <div style="max-width: 480px; margin: 0 auto; padding-bottom: 24px;">
+            <div style="text-align: center; margin-bottom: 16px; border-bottom: 1px solid #334155; padding-bottom: 12px;">
+                <div style="font-size: 28px; margin-bottom: 4px;">🩺</div>
+                <h2 style="font-size: 20px; font-weight: 800; color: #38BDF8; margin: 0 0 4px 0;">สรุปผลการคัดกรอง & สุขศึกษา (DPAC)</h2>
+                <p id="summary-resident-name" style="font-size: 15px; color: #94A3B8; margin: 0; font-weight: 600;">คุณ...</p>
+            </div>
+
+            <!-- Section 1: สิ่งที่เกิดขึ้น -->
+            <div style="background: #1E293B; border-radius: 12px; padding: 14px; margin-bottom: 14px; border: 1px solid #334155;">
+                <div style="font-weight: 800; font-size: 15px; color: #38BDF8; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                    <span>📊</span> <span>1. สิ่งที่เกิดขึ้น (ผลการตรวจวัดสด)</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;" id="summary-results-grid">
+                    <!-- Dynamic Grid Items -->
+                </div>
+            </div>
+
+            <!-- Section 2: สิ่งที่เป็น -->
+            <div style="background: #1E293B; border-radius: 12px; padding: 14px; margin-bottom: 14px; border: 1px solid #334155;" id="summary-status-card">
+                <div style="font-weight: 800; font-size: 15px; color: #F59E0B; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                    <span>🩺</span> <span>2. สิ่งที่เป็น (สภาวะสุขภาพปัจจุบัน)</span>
+                </div>
+                <div id="summary-risk-badge" style="display: inline-block; padding: 6px 12px; border-radius: 999px; font-weight: 800; font-size: 14px; margin-bottom: 8px;">
+                    <!-- Risk Title -->
+                </div>
+                <p id="summary-status-desc" style="font-size: 13.5px; color: #CBD5E1; line-height: 1.5; margin: 0;">
+                    <!-- Status Desc -->
+                </p>
+            </div>
+
+            <!-- Section 3: สิ่งที่ต้องปรับเปลี่ยน -->
+            <div style="background: #1E293B; border-radius: 12px; padding: 14px; margin-bottom: 16px; border: 1px solid #334155;">
+                <div style="font-weight: 800; font-size: 15px; color: #10B981; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                    <span>💡</span> <span>3. สิ่งที่ต้องปรับเปลี่ยน (คำแนะนำสุขภาพ)</span>
+                </div>
+                <div id="summary-advice-container" style="display: flex; flex-direction: column; gap: 8px;">
+                    <!-- Advice Items -->
+                </div>
+                <div style="margin-top: 10px; font-size: 12px; color: #94A3B8; text-align: center; border-top: 1px dashed #334155; padding-top: 8px;">
+                    📅 กำหนดนัดติดตามครั้งถัดไป: <strong id="summary-next-date" style="color: #F8FAFC;">-</strong>
+                </div>
+            </div>
+
+            <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10B981; border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 16px; color: #34D399; font-weight: 700; font-size: 13.5px;">
+                🎉 อสม. ได้รับ +1 คะแนนสะสมจากการเยี่ยมติดตามครั้งนี้!
+            </div>
+
+            <button type="button" onclick="closeCounselingSummaryAndFinish()" style="
+                width: 100%;
+                background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+                color: white;
+                border: none;
+                padding: 14px;
+                border-radius: 12px;
+                font-weight: 800;
+                font-size: 16px;
+                cursor: pointer;
+                box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+            ">
+                ✅ รับทราบผลตรวจ และเสร็จสิ้นงาน
+            </button>
+        </div>
+    </div>
 </body>
 
 </html>

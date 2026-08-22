@@ -5,6 +5,37 @@ require_once __DIR__ . '/../config/session.php';
 
 header('Content-Type: application/json');
 
+require_once __DIR__ . '/../config/demo_data.php';
+
+if (DemoDataProvider::isDemoMode()) {
+    echo json_encode([
+        'status' => 'success',
+        'message' => 'บันทึกการติดตามพฤติกรรม DPAC (โหมดจำลอง) เรียบร้อยแล้ว',
+        'reward_points' => 1,
+        'is_demo' => true,
+        'summary_metadata' => [
+            'resident_name' => $_POST['_residentName'] ?? 'คุณบุญมี มีโชค (โหมดจำลอง)',
+            'sbp' => intval($_POST['sbp'] ?? 138),
+            'dbp' => intval($_POST['dbp'] ?? 86),
+            'dtx' => intval($_POST['dtx'] ?? 145),
+            'dtx_type' => 'fpg',
+            'bmi' => round(floatval($_POST['weight'] ?? 65) / pow(floatval($_POST['height'] ?? 165) / 100, 2), 1),
+            'waist' => floatval($_POST['waist'] ?? 82),
+            'risk_level' => 'yellow',
+            'risk_color' => '#F59E0B',
+            'risk_title' => '🟡 กลุ่มเสี่ยง DPAC (ปรับพฤติกรรมดีขึ้น)',
+            'status_desc' => 'พบแนวโน้มผลคัดกรองเริ่มดีขึ้น ควรติดตามปรับพฤติกรรม 3อ 2ส อย่างต่อเนื่องในรอบถัดไป',
+            'advice_list' => [
+                ['icon' => '🚶‍♂️', 'title' => 'ออกกำลังกายต่อเนื่อง', 'desc' => 'เดินสะสมก้าววันละ 30 นาที 5 วันต่อสัปดาห์'],
+                ['icon' => '🧂', 'title' => 'ควบคุมโซเดียม', 'desc' => 'หลีกเลี่ยงอาหารปรุงเค็มจัดและซุปก๋วยเตี๋ยว'],
+                ['icon' => '🍎', 'title' => 'ยึดหลัก 3อ 2ส', 'desc' => 'ทานผักผลไม้หวานน้อย พักผ่อนให้เพียงพอ']
+            ],
+            'next_appointment' => date('d/m/Y', strtotime('+1 month'))
+        ]
+    ], JSON_UNESCAPED_UNICODE);
+    exit();
+}
+
 if (!isset($_SESSION['vhv_id'])) {
     echo json_encode([
         'status' => 'error',
