@@ -454,17 +454,17 @@ if (DemoDataProvider::isDemoMode()) {
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                         <div>
                             <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 6px;">น้ำหนัก (กก.)</label>
-                            <input type="text" name="weight" id="weight" class="input-large" value="<?= $isDemo ? '60.0' : '' ?>" readonly onclick="openScrollPicker('weight', 'น้ำหนัก (กก.)', 30, 150, 60.0)" placeholder="0.0">
+                            <input type="number" step="0.1" inputmode="decimal" name="weight" id="weight" class="input-large" value="<?= $isDemo ? '60.0' : '' ?>" oninput="calculateBmi()" onclick="openScrollPicker('weight', 'น้ำหนัก (กก.)', 30, 150, 60.0)" placeholder="0.0">
                         </div>
                         <div>
                             <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 6px;">ส่วนสูง (ซม.)</label>
-                            <input type="text" name="height" id="height" class="input-large" value="<?= $isDemo ? '165.0' : '' ?>" readonly onclick="openScrollPicker('height', 'ส่วนสูง (ซม.)', 100, 220, 160.0)" placeholder="0.0">
+                            <input type="number" step="0.1" inputmode="decimal" name="height" id="height" class="input-large" value="<?= $isDemo ? '165.0' : '' ?>" oninput="calculateBmi()" onclick="openScrollPicker('height', 'ส่วนสูง (ซม.)', 100, 220, 160.0)" placeholder="0.0">
                         </div>
                     </div>
 
                     <div style="margin-bottom: 20px;">
                         <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 6px;">รอบเอว (นิ้ว)</label>
-                        <input type="text" name="waist" id="waist" class="input-large" value="<?= $isDemo ? '30.0' : '' ?>" readonly onclick="openScrollPicker('waist', 'รอบเอว (นิ้ว)', 20, 60, 30.0)" placeholder="0.0">
+                        <input type="number" step="0.1" inputmode="decimal" name="waist" id="waist" class="input-large" value="<?= $isDemo ? '30.0' : '' ?>" oninput="calculateCvRisk()" onclick="openScrollPicker('waist', 'รอบเอว (นิ้ว)', 20, 60, 30.0)" placeholder="0.0">
                     </div>
 
                     <!-- BMI Auto-Display -->
@@ -485,21 +485,21 @@ if (DemoDataProvider::isDemoMode()) {
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                             <div>
                                 <label style="font-size: 13px; color: var(--text-secondary);">ครั้งที่ 1 ตัวบน (SYS)</label>
-                                <input type="text" name="sys_bp1" id="sys_bp1" class="input-large" value="<?= $isDemo ? '118' : '' ?>" readonly onclick="openNumPad('sys_bp1', 'ความดันตัวบน SYS1')" placeholder="0">
+                                <input type="number" inputmode="numeric" name="sys_bp1" id="sys_bp1" class="input-large" value="<?= $isDemo ? '118' : '' ?>" oninput="calculateCvRisk()" onclick="openNumPad('sys_bp1', 'ความดันตัวบน SYS1')" placeholder="0">
                             </div>
                             <div>
                                 <label style="font-size: 13px; color: var(--text-secondary);">ครั้งที่ 1 ตัวล่าง (DIA)</label>
-                                <input type="text" name="dia_bp1" id="dia_bp1" class="input-large" value="<?= $isDemo ? '76' : '' ?>" readonly onclick="openNumPad('dia_bp1', 'ความดันตัวล่าง DIA1')" placeholder="0">
+                                <input type="number" inputmode="numeric" name="dia_bp1" id="dia_bp1" class="input-large" value="<?= $isDemo ? '76' : '' ?>" oninput="calculateCvRisk()" onclick="openNumPad('dia_bp1', 'ความดันตัวล่าง DIA1')" placeholder="0">
                             </div>
                         </div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                             <div>
                                 <label style="font-size: 13px; color: var(--text-secondary);">ครั้งที่ 2 ตัวบน (SYS)</label>
-                                <input type="text" name="sys_bp2" id="sys_bp2" class="input-large" value="<?= $isDemo ? '116' : '' ?>" readonly onclick="openNumPad('sys_bp2', 'ความดันตัวบน SYS2')" placeholder="0">
+                                <input type="number" inputmode="numeric" name="sys_bp2" id="sys_bp2" class="input-large" value="<?= $isDemo ? '116' : '' ?>" oninput="calculateCvRisk()" onclick="openNumPad('sys_bp2', 'ความดันตัวบน SYS2')" placeholder="0">
                             </div>
                             <div>
                                 <label style="font-size: 13px; color: var(--text-secondary);">ครั้งที่ 2 ตัวล่าง (DIA)</label>
-                                <input type="text" name="dia_bp2" id="dia_bp2" class="input-large" value="<?= $isDemo ? '74' : '' ?>" readonly onclick="openNumPad('dia_bp2', 'ความดันตัวล่าง DIA2')" placeholder="0">
+                                <input type="number" inputmode="numeric" name="dia_bp2" id="dia_bp2" class="input-large" value="<?= $isDemo ? '74' : '' ?>" oninput="calculateCvRisk()" onclick="openNumPad('dia_bp2', 'ความดันตัวล่าง DIA2')" placeholder="0">
                             </div>
                         </div>
                     </div>
@@ -522,7 +522,7 @@ if (DemoDataProvider::isDemoMode()) {
                             </div>
                         </div>
                         <div>
-                            <input type="text" name="dtx_value" id="dtx_value" class="input-large" value="<?= $isDemo ? '95' : '' ?>" readonly onclick="openNumPad('dtx_value', 'ระดับน้ำตาล DTX')" placeholder="0">
+                            <input type="number" inputmode="numeric" name="dtx_value" id="dtx_value" class="input-large" value="<?= $isDemo ? '95' : '' ?>" oninput="calculateCvRisk()" onclick="openNumPad('dtx_value', 'ระดับน้ำตาล DTX')" placeholder="0">
                         </div>
                     </div>
 
@@ -1295,6 +1295,80 @@ if (DemoDataProvider::isDemoMode()) {
             });
             document.getElementById(stepId).classList.add('active');
             window.scrollTo(0,0);
+        }
+
+        // Inline VhvNumPad Class to guarantee zero external dependency failure
+        if (typeof VhvNumPad === 'undefined') {
+            class VhvNumPad {
+                constructor(inputId, padContainerId, displayBoxId = null) {
+                    this.input = document.getElementById(inputId);
+                    this.container = document.getElementById(padContainerId);
+                    this.displayBox = displayBoxId ? document.getElementById(displayBoxId) : null;
+                    this.currentValue = '';
+                    if (this.input && this.container) {
+                        this.init();
+                    }
+                }
+
+                init() {
+                    this.container.innerHTML = `
+                        <div class="numpad-grid">
+                            <button type="button" class="numpad-btn" data-val="1">1</button>
+                            <button type="button" class="numpad-btn" data-val="2">2</button>
+                            <button type="button" class="numpad-btn" data-val="3">3</button>
+                            <button type="button" class="numpad-btn" data-val="4">4</button>
+                            <button type="button" class="numpad-btn" data-val="5">5</button>
+                            <button type="button" class="numpad-btn" data-val="6">6</button>
+                            <button type="button" class="numpad-btn" data-val="7">7</button>
+                            <button type="button" class="numpad-btn" data-val="8">8</button>
+                            <button type="button" class="numpad-btn" data-val="9">9</button>
+                            <button type="button" class="numpad-btn btn-action" data-val=".">.</button>
+                            <button type="button" class="numpad-btn" data-val="0">0</button>
+                            <button type="button" class="numpad-btn btn-action" data-val="del">⌫</button>
+                        </div>
+                    `;
+
+                    this.container.querySelectorAll('.numpad-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            const val = btn.getAttribute('data-val');
+                            this.handlePress(val);
+                        });
+                    });
+                }
+
+                handlePress(val) {
+                    if (val === 'del') {
+                        this.currentValue = this.currentValue.slice(0, -1);
+                    } else if (val === '.') {
+                        if (!this.currentValue.includes('.')) {
+                            this.currentValue += '.';
+                        }
+                    } else {
+                        if (this.currentValue.length < 6) {
+                            this.currentValue += val;
+                        }
+                    }
+                    this.updateDisplay();
+                }
+
+                setValue(val) {
+                    this.currentValue = (val !== null && val !== undefined) ? val.toString() : '';
+                    this.updateDisplay();
+                }
+                
+                updateDisplay() {
+                    if (this.input) {
+                        this.input.value = this.currentValue;
+                        this.input.dispatchEvent(new Event('input'));
+                    }
+                    if (this.displayBox) {
+                        this.displayBox.innerText = this.currentValue || '0';
+                    }
+                    calculateBmi();
+                    calculateCvRisk();
+                }
+            }
+            window.VhvNumPad = VhvNumPad;
         }
 
         // Zero-Typing Num Pad functions
