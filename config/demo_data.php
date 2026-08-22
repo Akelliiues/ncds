@@ -31,11 +31,12 @@ class DemoDataProvider {
                 'assignment_status' => 'pending',
                 'round_number' => 1,
                 'assigned_vhv' => 'อสม. สมชาย ใจดี (จำลอง)',
-                'last_sbp' => 135,
-                'last_dbp' => 85,
-                'last_dtx' => 118,
+                'last_sbp' => 136,
+                'last_dbp' => 86,
+                'last_dtx' => 116,
                 'last_dtx_type' => 'fpg',
-                'demo_category' => 'moo1_assigned'
+                'demo_category' => 'moo1_assigned',
+                'health_case' => 'risk' // กลุ่มเสี่ยง (Pre-HT/DM)
             ],
             [
                 'cid' => '9999900000002',
@@ -48,16 +49,17 @@ class DemoDataProvider {
                 'moo' => '1',
                 'tambon_name' => 'ตาลสุม (จำลอง)',
                 'need_screen_dm' => 1,
-                'need_screen_ht' => 0,
-                'health_status_origin' => 'DM_ONLY',
+                'need_screen_ht' => 1,
+                'health_status_origin' => 'BOTH',
                 'assignment_status' => 'pending',
                 'round_number' => 1,
                 'assigned_vhv' => 'อสม. สมชาย ใจดี (จำลอง)',
-                'last_sbp' => 120,
-                'last_dbp' => 78,
-                'last_dtx' => 142,
+                'last_sbp' => 158,
+                'last_dbp' => 96,
+                'last_dtx' => 175,
                 'last_dtx_type' => 'fpg',
-                'demo_category' => 'moo1_assigned'
+                'demo_category' => 'moo1_assigned',
+                'health_case' => 'abnormal_high_risk' // กลุ่มผิดปกติ/สงสัยป่วยสูง
             ],
 
             // --- หมู่ 2: Bypass สแกน QR Code หมู่ 2 ได้ทั้งหมด และเข้าคัดกรองได้ปกติ ---
@@ -77,11 +79,12 @@ class DemoDataProvider {
                 'assignment_status' => 'pending',
                 'round_number' => 2,
                 'assigned_vhv' => 'อสม. สายสมร มีสุข (จำลอง)',
-                'last_sbp' => 148,
-                'last_dbp' => 92,
-                'last_dtx' => 165,
+                'last_sbp' => 162,
+                'last_dbp' => 98,
+                'last_dtx' => 195,
                 'last_dtx_type' => 'fpg',
-                'demo_category' => 'moo2_bypass'
+                'demo_category' => 'moo2_bypass',
+                'health_case' => 'round2_comparison' // เคสรอบที่ 2 สำหรับเปรียบเทียบผลกับรอบ 1
             ],
             [
                 'cid' => '9999900000004',
@@ -103,7 +106,8 @@ class DemoDataProvider {
                 'last_dbp' => 76,
                 'last_dtx' => 95,
                 'last_dtx_type' => 'fpg',
-                'demo_category' => 'moo2_bypass'
+                'demo_category' => 'moo2_bypass',
+                'health_case' => 'normal' // เคสสุขภาพปกติ
             ],
 
             // --- หมู่ 3: ล็อกการคัดกรองเพราะ "ยังไม่ได้รับมอบหมายงาน" ---

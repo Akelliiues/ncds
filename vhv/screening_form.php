@@ -167,6 +167,11 @@ if (DemoDataProvider::isDemoMode()) {
         }
     }
 }
+
+$isDemo = DemoDataProvider::isDemoMode();
+$activeResident = !empty($residents) ? $residents[0] : null;
+$activeName = $activeResident ? ($activeResident['first_name'] . ' ' . $activeResident['last_name']) : '';
+$activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_ASSIGN_1') : '';
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -435,7 +440,57 @@ if (DemoDataProvider::isDemoMode()) {
                     <div class="card-dark" style="padding: 16px; margin-bottom: 20px;">
                         <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">ชื่อผู้รับการคัดกรอง:</span>
                         <div id="selected-resident-name" style="font-size: 20px; font-weight: 800; color: var(--color-accent); margin-top: 4px;"><?= $isDemo ? $activeName : '' ?></div>
+                        <?php if ($isDemo && !empty($activeResident)): ?>
+                        <div style="margin-top: 6px; font-size: 12px; color: var(--text-muted); display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span>บ้านเลขที่ <?= htmlspecialchars($activeResident['house_no']) ?> ม.<?= htmlspecialchars($activeResident['moo']) ?></span>
+                            <span>•</span>
+                            <span>รอบที่ <?= htmlspecialchars($activeResident['round_number'] ?? 1) ?></span>
+                            <?php if (!empty($activeResident['last_sbp'])): ?>
+                            <span>•</span>
+                            <span style="color: var(--color-primary); font-weight: 600;">ค่าเดิม: <?= $activeResident['last_sbp'] ?>/<?= $activeResident['last_dbp'] ?> mmHg, DTX: <?= $activeResident['last_dtx'] ?> mg/dL</span>
+                            <?php endif; ?>
+                        </div>
+                        <?php endif; ?>
                     </div>
+
+                    <?php if ($isDemo): ?>
+                    <!-- Demo Quick Preset Testing Toolbar -->
+                    <div class="card-dark" style="padding: 14px; margin-bottom: 20px; border: 1.5px dashed #3B82F6; background: rgba(59, 130, 246, 0.04); border-radius: var(--border-radius);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: #3B82F6; font-size: 13.5px; font-weight: 800; display: flex; align-items: center; gap: 6px;">
+                                🧪 แผงหยอดข้อมูลจำลองเพื่อเปรียบเทียบผล (Demo Preset)
+                            </span>
+                            <span style="font-size: 10px; background: #3B82F6; color: white; padding: 2px 6px; border-radius: 9999px; font-weight: bold;">1-Click Fill</span>
+                        </div>
+                        <p style="color: var(--text-secondary); font-size: 12px; margin: 0 0 10px 0; line-height: 1.4;">
+                            เลือกชุดค่าตรวจเพื่อทดสอบการประเมินความเสี่ยงและเปรียบเทียบผล:
+                        </p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <button type="button" onclick="applyDemoPreset('normal')" style="padding: 8px 6px; border-radius: 10px; border: 1px solid rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08); color: #10B981; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                                🟢 สุขภาพปกติ (118/76)
+                            </button>
+                            <button type="button" onclick="applyDemoPreset('risk')" style="padding: 8px 6px; border-radius: 10px; border: 1px solid rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08); color: #D97706; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                                🟡 กลุ่มเสี่ยง (134/86)
+                            </button>
+                            <button type="button" onclick="applyDemoPreset('high_risk')" style="padding: 8px 6px; border-radius: 10px; border: 1px solid rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.08); color: #EF4444; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                                🟠 สงสัยป่วย (158/96)
+                            </button>
+                            <button type="button" onclick="applyDemoPreset('critical')" style="padding: 8px 6px; border-radius: 10px; border: 1px solid rgba(220, 38, 38, 0.4); background: rgba(220, 38, 38, 0.12); color: #B91C1C; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                                🔴 วิกฤตด่วน (185/112)
+                            </button>
+                        </div>
+                        <?php if (intval($activeResident['round_number'] ?? 1) >= 2 || (isset($activeResident['health_case']) && $activeResident['health_case'] === 'round2_comparison')): ?>
+                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(59, 130, 246, 0.25); display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <button type="button" onclick="applyDemoPreset('round2_improved')" style="padding: 8px 6px; border-radius: 10px; border: 1.5px solid #10B981; background: #10B981; color: white; font-size: 11.5px; font-weight: 800; cursor: pointer;">
+                                📈 รอบ 2: ผลดีขึ้นชัดเจน
+                            </button>
+                            <button type="button" onclick="applyDemoPreset('round2_worsened')" style="padding: 8px 6px; border-radius: 10px; border: 1.5px solid #F59E0B; background: #F59E0B; color: white; font-size: 11.5px; font-weight: 800; cursor: pointer;">
+                                ⚠️ รอบ 2: ผลแย่ลง/เสี่ยงขึ้น
+                            </button>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
 
                     <?php if (isSandboxMode($hoscode) && isset($_GET['debug']) && $_GET['debug'] === 'true'): ?>
                     <!-- GPS Mock Testing Tool -->
@@ -1686,6 +1741,66 @@ if (DemoDataProvider::isDemoMode()) {
         }
 
         // Submit Screening Data
+        function applyDemoPreset(type) {
+            if (type === 'normal') {
+                const w = document.getElementById('weight'); if (w) w.value = '58.0';
+                const h = document.getElementById('height'); if (h) h.value = '165.0';
+                const wst = document.getElementById('waist'); if (wst) wst.value = '28.0';
+                const s1 = document.getElementById('sys_bp1'); if (s1) s1.value = '118';
+                const d1 = document.getElementById('dia_bp1'); if (d1) d1.value = '76';
+                const s2 = document.getElementById('sys_bp2'); if (s2) s2.value = '116';
+                const d2 = document.getElementById('dia_bp2'); if (d2) d2.value = '74';
+                const dtx = document.getElementById('dtx_value'); if (dtx) dtx.value = '92';
+            } else if (type === 'risk') {
+                const w = document.getElementById('weight'); if (w) w.value = '72.0';
+                const h = document.getElementById('height'); if (h) h.value = '160.0';
+                const wst = document.getElementById('waist'); if (wst) wst.value = '34.0';
+                const s1 = document.getElementById('sys_bp1'); if (s1) s1.value = '134';
+                const d1 = document.getElementById('dia_bp1'); if (d1) d1.value = '86';
+                const s2 = document.getElementById('sys_bp2'); if (s2) s2.value = '132';
+                const d2 = document.getElementById('dia_bp2'); if (d2) d2.value = '84';
+                const dtx = document.getElementById('dtx_value'); if (dtx) dtx.value = '115';
+            } else if (type === 'high_risk') {
+                const w = document.getElementById('weight'); if (w) w.value = '80.0';
+                const h = document.getElementById('height'); if (h) h.value = '158.0';
+                const wst = document.getElementById('waist'); if (wst) wst.value = '37.0';
+                const s1 = document.getElementById('sys_bp1'); if (s1) s1.value = '158';
+                const d1 = document.getElementById('dia_bp1'); if (d1) d1.value = '96';
+                const s2 = document.getElementById('sys_bp2'); if (s2) s2.value = '155';
+                const d2 = document.getElementById('dia_bp2'); if (d2) d2.value = '94';
+                const dtx = document.getElementById('dtx_value'); if (dtx) dtx.value = '175';
+            } else if (type === 'critical') {
+                const w = document.getElementById('weight'); if (w) w.value = '85.0';
+                const h = document.getElementById('height'); if (h) h.value = '155.0';
+                const wst = document.getElementById('waist'); if (wst) wst.value = '40.0';
+                const s1 = document.getElementById('sys_bp1'); if (s1) s1.value = '185';
+                const d1 = document.getElementById('dia_bp1'); if (d1) d1.value = '112';
+                const s2 = document.getElementById('sys_bp2'); if (s2) s2.value = '182';
+                const d2 = document.getElementById('dia_bp2'); if (d2) d2.value = '110';
+                const dtx = document.getElementById('dtx_value'); if (dtx) dtx.value = '310';
+            } else if (type === 'round2_improved') {
+                const w = document.getElementById('weight'); if (w) w.value = '65.0';
+                const h = document.getElementById('height'); if (h) h.value = '165.0';
+                const wst = document.getElementById('waist'); if (wst) wst.value = '31.0';
+                const s1 = document.getElementById('sys_bp1'); if (s1) s1.value = '122';
+                const d1 = document.getElementById('dia_bp1'); if (d1) d1.value = '78';
+                const s2 = document.getElementById('sys_bp2'); if (s2) s2.value = '120';
+                const d2 = document.getElementById('dia_bp2'); if (d2) d2.value = '76';
+                const dtx = document.getElementById('dtx_value'); if (dtx) dtx.value = '102';
+            } else if (type === 'round2_worsened') {
+                const w = document.getElementById('weight'); if (w) w.value = '82.0';
+                const h = document.getElementById('height'); if (h) h.value = '165.0';
+                const wst = document.getElementById('waist'); if (wst) wst.value = '38.0';
+                const s1 = document.getElementById('sys_bp1'); if (s1) s1.value = '168';
+                const d1 = document.getElementById('dia_bp1'); if (d1) d1.value = '102';
+                const s2 = document.getElementById('sys_bp2'); if (s2) s2.value = '165';
+                const d2 = document.getElementById('dia_bp2'); if (d2) d2.value = '100';
+                const dtx = document.getElementById('dtx_value'); if (dtx) dtx.value = '215';
+            }
+            if (typeof calculateBmi === 'function') calculateBmi();
+            if (typeof calculateCvRisk === 'function') calculateCvRisk();
+        }
+
         function submitScreening() {
             if (!selectedResident) {
                 alert("กรุณาเลือกผู้รับการคัดกรอง");
