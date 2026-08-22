@@ -17,11 +17,51 @@ require_once __DIR__ . '/../config/db.php';
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 
 $hc_names = get_health_units();
+require_once __DIR__ . '/../config/demo_data.php';
 
-$admin_title = get_admin_title();
-$isSandboxVal = isSandboxMode($admin_hoscode ? $admin_hoscode : null) ? 1 : 0;
-
-if ($admin_hoscode) {
+if (DemoDataProvider::isDemoMode()) {
+    $mockExec = DemoDataProvider::getMockExecutiveMetrics();
+    $total_targets_val = $mockExec['total_targets'];
+    $screened_val = $mockExec['screened'];
+    $screened_percent = $mockExec['screened_percent'];
+    $normal_val = $mockExec['normal'];
+    $risk_val = $mockExec['risk'];
+    $high_risk_val = $mockExec['high_risk'];
+    $critical_val = $mockExec['critical'];
+    $groupCounts = [
+        'group_dm' => 45,
+        'group_ht' => 80,
+        'group_both' => 125,
+        'group_risk' => 250,
+        'group_normal' => 0,
+        'group_suspected' => 0
+    ];
+    $village_stats = $mockExec['village_stats'];
+    $recent_screenings = $mockExec['recent_screenings'];
+    $dpac_followups = $mockExec['dpac_followups'];
+    $mapData = [
+        [
+            'cid' => '9999900000001',
+            'first_name' => 'สมชาย',
+            'last_name' => 'ใจดี (จำลอง)',
+            'house_no' => '12/1',
+            'moo' => '1',
+            'latitude' => 15.4321,
+            'longitude' => 104.9812,
+            'risk_level' => 'normal'
+        ],
+        [
+            'cid' => '9999900000003',
+            'first_name' => 'บุญมี',
+            'last_name' => 'มีโชค (จำลอง)',
+            'house_no' => '88',
+            'moo' => '2',
+            'latitude' => 15.4335,
+            'longitude' => 104.9840,
+            'risk_level' => 'risk'
+        ]
+    ];
+} elseif ($admin_hoscode) {
     $hoscodes = get_query_hoscodes($admin_hoscode);
     $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
 

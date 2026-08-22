@@ -38,24 +38,34 @@ if ($search !== '') {
     $params[] = '%' . $search . '%';
 }
 
-// Count total
-$countStmt = $pdo->prepare("SELECT COUNT(p.cid) FROM target_population p WHERE $where");
-$countStmt->execute($params);
-$totalRecords = $countStmt->fetchColumn();
-$totalPages = ceil($totalRecords / $limit);
+require_once __DIR__ . '/../config/demo_data.php';
 
-// Fetch data
-$sql = "SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.birth, p.sex,
-               a.assignment_id, a.assignment_status, v.vhv_name
-        FROM target_population p
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026
-        LEFT JOIN vhv_users v ON a.vhv_id = v.vhv_id
-        WHERE $where 
-        ORDER BY CAST(p.moo AS UNSIGNED) ASC, CAST(p.house_no AS UNSIGNED) ASC 
-        LIMIT $limit OFFSET $offset";
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$records = $stmt->fetchAll(PDO::FETCH_ASSOC);
+if (DemoDataProvider::isDemoMode()) {
+    $records = DemoDataProvider::getMockTargets();
+    $totalRecords = count($records);
+    $totalPages = 1;
+} else {
+    // Count total
+    $countStmt = $pdo->prepare("SELECT COUNT(p.cid) FROM target_population p WHERE $where");
+    $countStmt->execute($params);
+    $totalRecords = $countStmt->fetchColumn();
+    $totalPages = ceil($totalRecords / $limit);
+}
+
+if (!DemoDataProvider::isDemoMode()) {
+    // Fetch data
+    $sql = "SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.birth, p.sex,
+                   a.assignment_id, a.assignment_status, v.vhv_name
+            FROM target_population p
+            LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = 2026
+            LEFT JOIN vhv_users v ON a.vhv_id = v.vhv_id
+            WHERE $where 
+            ORDER BY CAST(p.moo AS UNSIGNED) ASC, CAST(p.house_no AS UNSIGNED) ASC 
+            LIMIT $limit OFFSET $offset";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 
 ?>
 <!DOCTYPE html>

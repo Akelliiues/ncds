@@ -6,8 +6,7 @@ header('Content-Type: application/json');
 require_once __DIR__ . '/../config/demo_data.php';
 
 if (DemoDataProvider::isDemoMode()) {
-    $demoTasks = DemoDataProvider::getDemoVhvTasks();
-    echo json_encode($demoTasks['pending'], JSON_UNESCAPED_UNICODE);
+    echo json_encode(DemoDataProvider::getMockTargets(), JSON_UNESCAPED_UNICODE);
     exit();
 }
 

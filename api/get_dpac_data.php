@@ -4,8 +4,36 @@ require_once __DIR__ . '/../config/session.php';
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    echo json_encode([]);
+require_once __DIR__ . '/../config/demo_data.php';
+
+if (DemoDataProvider::isDemoMode()) {
+    $type = $_GET['type'] ?? '';
+    if ($type === 'targets') {
+        echo json_encode([
+            [
+                'enrollment_id' => 'DEMO_ENROLL_1',
+                'risk_type' => 'BOTH',
+                'enrolled_at' => date('Y-m-d H:i:s', strtotime('-30 days')),
+                'cid' => '9999900000003',
+                'first_name' => 'บุญมี',
+                'last_name' => 'มีโชค (จำลอง)',
+                'house_no' => '88',
+                'moo' => '2',
+                'assigned_vhv' => 'อสม. สายสมร มีสุข (จำลอง)',
+                'total_rounds' => 3,
+                'pending_rounds' => 1
+            ]
+        ], JSON_UNESCAPED_UNICODE);
+    } else {
+        echo json_encode([
+            [
+                'vhv_id' => 'DEMO_1001',
+                'vhv_name' => 'อสม. สายสมร มีสุข (จำลอง)',
+                'pending_dpac_count' => 1,
+                'pending_screen_count' => 2
+            ]
+        ], JSON_UNESCAPED_UNICODE);
+    }
     exit();
 }
 
