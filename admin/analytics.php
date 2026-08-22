@@ -275,9 +275,8 @@ if (DemoDataProvider::isDemoMode()) {
         $dateFrom, $dateFrom, $dateTo, $dateTo
     ], $hoscodes));
     $ncdBeforeAfterData = $ncdBeforeAfterStmt->fetchAll(PDO::FETCH_ASSOC);
-}
 
-// Operational funnel and action queues for the selected budget year.
+    // Operational funnel and action queues for the selected budget year.
 $funnelData = ['total_targets' => 0, 'r1_completed' => 0, 'r2_assigned' => 0, 'r2_completed' => 0, 'r3_completed' => 0];
 $actionCounts = ['overdue' => 0, 'awaiting_r2' => 0, 'high_risk_unassigned' => 0];
 $overdueActionRows = [];
