@@ -117,8 +117,8 @@ if (DemoDataProvider::isDemoMode()) {
     $screened = $pdo->prepare("
         SELECT COUNT(DISTINCT p.cid) 
         FROM target_population p
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed' AND a.is_sandbox = ?
-        LEFT JOIN screening_results s ON (p.cid = s.target_cid OR a.assignment_id = s.assignment_id) AND s.is_sandbox = ?
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed' AND COALESCE(a.is_sandbox, 0) = ?
+        LEFT JOIN screening_results s ON (p.cid = s.target_cid OR a.assignment_id = s.assignment_id) AND COALESCE(s.is_sandbox, 0) = ?
         WHERE p.hoscode IN ($inPlaceholders) 
           AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
           AND (a.assignment_id IS NOT NULL OR s.screening_id IS NOT NULL)

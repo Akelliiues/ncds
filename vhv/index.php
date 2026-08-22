@@ -57,7 +57,7 @@ if (DemoDataProvider::isDemoMode()) {
                ) AS last_dtx_type
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status = 'pending' AND a.is_sandbox = ?
+        WHERE a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status = 'pending' AND COALESCE(a.is_sandbox, 0) = ?
           AND (
               (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
               OR 
@@ -80,7 +80,7 @@ if (DemoDataProvider::isDemoMode()) {
         LEFT JOIN screening_results sr ON a.assignment_id = sr.assignment_id
         LEFT JOIN staging_hdc_ht ht ON p.cid = ht.cid
         LEFT JOIN staging_hdc_dm dm ON p.cid = dm.cid
-        WHERE a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('completed', 'skipped') AND a.is_sandbox = ?
+        WHERE a.vhv_id = ? AND a.budget_year = 2026 AND a.assignment_status IN ('completed', 'skipped') AND COALESCE(a.is_sandbox, 0) = ?
           AND (
               (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
               OR 
@@ -98,7 +98,7 @@ if (DemoDataProvider::isDemoMode()) {
         FROM dpac_followups f
         JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
         JOIN target_population p ON e.cid = p.cid
-        WHERE f.vhv_id = ? AND f.status = 'pending' AND f.is_sandbox = ?
+        WHERE f.vhv_id = ? AND f.status = 'pending' AND COALESCE(f.is_sandbox, 0) = ?
         ORDER BY p.moo, p.house_no
     ");
     $dpacStmt->execute([$vhvId, $isSandboxVal]);
@@ -115,7 +115,7 @@ if (DemoDataProvider::isDemoMode()) {
         JOIN target_population p ON e.cid = p.cid
         LEFT JOIN staging_hdc_ht ht ON p.cid = ht.cid
         LEFT JOIN staging_hdc_dm dm ON p.cid = dm.cid
-        WHERE f.vhv_id = ? AND f.status = 'completed' AND f.is_sandbox = ?
+        WHERE f.vhv_id = ? AND f.status = 'completed' AND COALESCE(f.is_sandbox, 0) = ?
         ORDER BY f.completed_at DESC
     ");
     $completedDpacStmt->execute([$vhvId, $isSandboxVal]);

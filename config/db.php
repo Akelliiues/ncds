@@ -521,6 +521,11 @@ try {
     if ($check->rowCount() === 0) {
         $pdo->exec("ALTER TABLE `dpac_enrollments` ADD COLUMN `assigned_vhv_id` VARCHAR(20) DEFAULT NULL AFTER `risk_type`");
     }
+
+    $checkDpacSandbox = $pdo->query("SHOW COLUMNS FROM `dpac_enrollments` LIKE 'is_sandbox'");
+    if ($checkDpacSandbox->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `dpac_enrollments` ADD COLUMN `is_sandbox` TINYINT(1) NOT NULL DEFAULT 0");
+    }
 } catch (\PDOException $e) {
     // Fail silently or handle
 }
@@ -542,8 +547,14 @@ try {
         `bp_dia` INT,
         `fbs` INT,
         `health_risk_level` VARCHAR(20),
-        `advice_given` TEXT
+        `advice_given` TEXT,
+        `is_sandbox` TINYINT(1) NOT NULL DEFAULT 0
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+    $checkFollowupSandbox = $pdo->query("SHOW COLUMNS FROM `dpac_followups` LIKE 'is_sandbox'");
+    if ($checkFollowupSandbox->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `dpac_followups` ADD COLUMN `is_sandbox` TINYINT(1) NOT NULL DEFAULT 0");
+    }
 } catch (\PDOException $e) {
     // Fail silently or handle
 }
