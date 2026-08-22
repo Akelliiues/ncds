@@ -211,10 +211,14 @@ if (DemoDataProvider::isDemoMode()) {
                       AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as risk,
             SUM(CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) 
                       AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as normal
-        FROM screening_results s
-        JOIN task_assignments a ON s.assignment_id = a.assignment_id
-        JOIN target_population p ON a.target_cid = p.cid
-        WHERE p.hoscode IN ($inPlaceholders) AND a.assignment_status = 'completed' AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+        FROM target_population p
+        JOIN screening_results s ON s.screening_id = (
+            SELECT sr.screening_id FROM screening_results sr 
+            LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id
+            WHERE sr.target_cid = p.cid OR ta2.target_cid = p.cid
+            ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1
+        )
+        WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ");
     $screenedDetailQuery->execute($hoscodes);
     $screenedDetail = $screenedDetailQuery->fetch(PDO::FETCH_ASSOC);
@@ -421,16 +425,15 @@ if (DemoDataProvider::isDemoMode()) {
             p.moo,
             COUNT(DISTINCT p.cid) as total_targets,
             COUNT(DISTINCT CASE WHEN (
-                (ta.round_number = 1 OR ta.round_number IS NULL OR ta.round_number = 0) AND ta.assignment_status = 'completed'
-                OR (sr.round_number = 1 OR sr.round_number IS NULL OR sr.round_number = 0)
+                (ta.round_number = 1 OR ta.round_number IS NULL OR ta.round_number = 0) AND (ta.assignment_status = 'completed' OR sr.screening_id IS NOT NULL)
             ) THEN p.cid END) as r1_completed,
             COUNT(DISTINCT CASE WHEN ta.round_number = 2 AND ta.assignment_status = 'pending' THEN p.cid END) as r2_assigned,
-            COUNT(DISTINCT CASE WHEN (ta.round_number = 2 AND ta.assignment_status = 'completed') OR sr.round_number = 2 THEN p.cid END) as r2_completed,
+            COUNT(DISTINCT CASE WHEN ta.round_number = 2 AND (ta.assignment_status = 'completed' OR (sr.screening_id IS NOT NULL AND sr.round_number = 2)) THEN p.cid END) as r2_completed,
             COUNT(DISTINCT CASE WHEN ta.round_number >= 3 AND ta.assignment_status = 'pending' THEN p.cid END) as r3_assigned,
-            COUNT(DISTINCT CASE WHEN (ta.round_number >= 3 AND ta.assignment_status = 'completed') OR sr.round_number >= 3 THEN p.cid END) as r3_completed
+            COUNT(DISTINCT CASE WHEN ta.round_number >= 3 AND (ta.assignment_status = 'completed' OR (sr.screening_id IS NOT NULL AND sr.round_number >= 3)) THEN p.cid END) as r3_completed
         FROM target_population p
-        LEFT JOIN task_assignments ta ON p.cid = ta.target_cid AND (ta.budget_year = 2026 OR ta.budget_year IS NULL) AND ta.is_sandbox = ?
-        LEFT JOIN screening_results sr ON (p.cid = sr.target_cid OR ta.assignment_id = sr.assignment_id) AND sr.is_sandbox = ?
+        LEFT JOIN task_assignments ta ON p.cid = ta.target_cid AND (ta.budget_year = 2026 OR ta.budget_year IS NULL) AND COALESCE(ta.is_sandbox, 0) = ?
+        LEFT JOIN screening_results sr ON (p.cid = sr.target_cid OR ta.assignment_id = sr.assignment_id) AND COALESCE(sr.is_sandbox, 0) = ?
         WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY p.hoscode, p.moo
         ORDER BY p.hoscode, p.moo
@@ -548,10 +551,14 @@ if (DemoDataProvider::isDemoMode()) {
                       AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as risk,
             SUM(CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) 
                       AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as normal
-        FROM screening_results s
-        JOIN task_assignments a ON s.assignment_id = a.assignment_id
-        JOIN target_population p ON a.target_cid = p.cid
-        WHERE a.assignment_status = 'completed' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+        FROM target_population p
+        JOIN screening_results s ON s.screening_id = (
+            SELECT sr.screening_id FROM screening_results sr 
+            LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id
+            WHERE sr.target_cid = p.cid OR ta2.target_cid = p.cid
+            ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1
+        )
+        WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ");
     $screenedDetailStmt->execute($valid_hoscodes);
     $screenedDetail = $screenedDetailStmt->fetch(PDO::FETCH_ASSOC);
