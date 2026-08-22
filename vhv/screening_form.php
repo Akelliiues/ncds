@@ -26,7 +26,13 @@ $history = [];
 require_once __DIR__ . '/../config/demo_data.php';
 
 if (DemoDataProvider::isDemoMode()) {
-    $residents = DemoDataProvider::getDemoVhvTasks()['pending'];
+    $allDemo = DemoDataProvider::getDemoVhvTasks()['pending'];
+    if (!empty($cid)) {
+        $filtered = array_values(array_filter($allDemo, function($r) use ($cid) { return $r['cid'] === $cid; }));
+        $residents = !empty($filtered) ? $filtered : $allDemo;
+    } else {
+        $residents = $allDemo;
+    }
 } elseif (!$isShell) {
     require_once __DIR__ . '/../config/db.php';
     

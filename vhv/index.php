@@ -588,17 +588,16 @@ if (DemoDataProvider::isDemoMode()) {
         let currentTestHid = '';
         let currentTestCid = '';
         function openTestModal(houseNo, hid, cid) {
-            if (!isSandboxMode) {
-                alert("⚠️ ระบบทำงานในโหมดใช้งานจริง: กรุณากดปุ่ม 'สแกนบ้าน' ด้านล่างเพื่อสแกน QR Code ประจำบ้านเป้าหมายและเริ่มทำการคัดกรอง");
+            if (isSandboxMode) {
+                // โหมดจำลอง / แซนด์บ็อกซ์: เข้าสู่หน้าตรวจคัดกรองได้ทันทีโดยตรง
+                if (cid) {
+                    window.location.href = 'screening_form.php?cid=' + encodeURIComponent(cid);
+                } else if (hid) {
+                    window.location.href = 'screening_form.php?hid=' + encodeURIComponent(hid);
+                }
                 return;
             }
-            document.getElementById('test-house-no').textContent = houseNo;
-            currentTestHid = hid;
-            currentTestCid = cid;
-            document.getElementById('test-modal').style.display = 'flex';
-        }
-        function closeTestModal() {
-            document.getElementById('test-modal').style.display = 'none';
+            alert("⚠️ ระบบทำงานในโหมดใช้งานจริง: กรุณากดปุ่ม 'สแกนบ้าน' ด้านล่างเพื่อสแกน QR Code ประจำบ้านเป้าหมายและเริ่มทำการคัดกรอง");
         }
         document.getElementById('btn-enter-test').onclick = function() {
             if (currentTestHid) {
