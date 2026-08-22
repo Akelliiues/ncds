@@ -5,6 +5,7 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/demo_banner.php';
 require_once __DIR__ . '/../config/demo_data.php';
 
+$isShell = isset($_GET['shell']) && $_GET['shell'] === 'true';
 $hid = $_GET['hid'] ?? '';
 $cid = $_GET['cid'] ?? '';
 $code = !empty($hid) ? $hid : $cid;
@@ -47,12 +48,6 @@ if (DemoDataProvider::isDemoMode()) {
         $residents = !empty($filtered) ? $filtered : [$allTargets[0]];
     } else {
         $residents = DemoDataProvider::getDemoVhvTasks()['pending'];
-    }
-    
-    // Check if target is in locked village (Moo 3, 4, 5)
-    if (!empty($residents) && in_array(strval($residents[0]['moo']), ['3', '4', '5'])) {
-        header("Location: scan.php");
-        exit();
     }
 
     foreach ($residents as &$res) {

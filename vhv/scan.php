@@ -119,97 +119,51 @@ $presetHid = $_GET['hid'] ?? '';
     </div>
 
     <?php if (DemoDataProvider::isDemoMode()): ?>
-    <!-- Demo Sandbox QR Simulation Card (ครอบคลุมหมู่ 1 - 5) -->
+    <!-- Demo Sandbox QR Simulation Card (ครอบคลุมทั้ง 10 ตัวอย่าง) -->
     <div class="card-dark" style="margin-bottom: 20px; border: 2px dashed #3b82f6; background: rgba(59, 130, 246, 0.05); border-radius: 16px; padding: 14px;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
             <span style="font-weight: 800; color: #3b82f6; font-size: 14.5px; display: flex; align-items: center; gap: 6px;">
-                🧪 แผงจำลองการสแกน QR Code (แยกตามหมู่ 1 - 5)
+                🧪 เลือกเคสจำลองเข้าคัดกรองทันที (10 Mockup Cases)
             </span>
             <span style="font-size: 11px; background: #3b82f6; color: white; padding: 2px 8px; border-radius: 9999px; font-weight: bold;">โหมดทดสอบ</span>
         </div>
         <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.4;">
-            ทดสอบสแกนหรือส่อง QR จำลองตามเงื่อนไขที่กำหนดของแต่ละหมู่:
+            กดปุ่มเพื่อจำลองการสแกน QR Code เข้าสู่การคัดกรองตามโปรไฟล์สุขภาพที่ต้องการเปรียบเทียบ:
         </p>
         
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            <!-- Scenario 1: หมู่ 1 (ได้รับมอบหมาย / หน้าหลัก) -->
-            <div style="padding: 10px; border-radius: 10px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.35);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
-                    <strong style="color: var(--color-green, #10B981); font-size: 13px;">🟢 หมู่ 1: ได้รับมอบหมาย (สแกนผ่าน)</strong>
-                    <span style="font-size: 11px; color: var(--color-green, #10B981); font-weight: bold;">บ้าน 12/1 (นายสมชาย)</span>
+        <div style="display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; padding-right: 4px;">
+            <?php 
+            $mockTargetsList = DemoDataProvider::getMockTargets();
+            $riskBadges = [
+                'high_risk' => ['label' => '🚨 เสี่ยงสูงมาก (BP/DTX สูง)', 'color' => '#DC2626', 'bg' => 'rgba(220,38,38,0.1)'],
+                'warning'   => ['label' => '⚠️ กลุ่มเสี่ยง (BP สูง/อ้วน)', 'color' => '#EA580C', 'bg' => 'rgba(234,88,12,0.1)'],
+                'normal'    => ['label' => '🟢 ปกติ (สุขภาพดี)', 'color' => '#10B981', 'bg' => 'rgba(16,185,129,0.1)'],
+            ];
+            foreach ($mockTargetsList as $idx => $t): 
+                $badge = ($idx % 3 == 0) ? $riskBadges['high_risk'] : (($idx % 3 == 1) ? $riskBadges['warning'] : $riskBadges['normal']);
+            ?>
+            <div style="padding: 9px 12px; border-radius: 10px; background: var(--bg-card); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                <div style="min-width: 0; flex: 1;">
+                    <div style="font-weight: 700; font-size: 13px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        <?= ($idx + 1) ?>. คุณ<?= htmlspecialchars($t['first_name'] . ' ' . $t['last_name']) ?>
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                        <span>บ้าน <?= htmlspecialchars($t['house_no']) ?> ม.<?= htmlspecialchars($t['moo']) ?></span>
+                        <span style="color: <?= $badge['color'] ?>; background: <?= $badge['bg'] ?>; padding: 1px 6px; border-radius: 4px; font-weight: 700; font-size: 10.5px;">
+                            <?= $badge['label'] ?>
+                        </span>
+                    </div>
                 </div>
-                <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px;">
-                    เคสในเขตรับผิดชอบ (กดคัดกรองได้ทั้งจากหน้าหลัก หรือสแกน QR ก็ผ่าน)
-                </div>
-                <div style="display: flex; gap: 6px;">
-                    <button type="button" onclick="simulateScan('DEMO_HOUSE_12_1')" class="btn-action" style="flex: 1; padding: 8px 10px; font-size: 12px; font-weight: bold; background: var(--color-green, #10B981); color: white; border: none; border-radius: 8px; cursor: pointer;">
-                        ⚡ จำลองสแกนผ่าน
+                <div style="display: flex; gap: 4px; flex-shrink: 0;">
+                    <button type="button" onclick="goToForm('<?= htmlspecialchars($t['cid']) ?>')" class="btn-action" style="padding: 6px 10px; font-size: 11.5px; font-weight: bold; background: var(--color-primary); color: white; border: none; border-radius: 6px; cursor: pointer;">
+                        ⚡ คัดกรอง
                     </button>
-                    <button type="button" onclick="showQrModal('DEMO_HOUSE_12_1', 'หมู่ 1: บ้าน 12/1 (นายสมชาย ใจดี)')" style="padding: 8px 10px; font-size: 12px; font-weight: bold; background: rgba(255,255,255,0.1); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
-                        📷 ส่อง QR
-                    </button>
-                </div>
-            </div>
-
-            <!-- Scenario 2: หมู่ 2 (Bypass สแกนได้ทั้งหมด) -->
-            <div style="padding: 10px; border-radius: 10px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.35);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
-                    <strong style="color: var(--color-primary, #3B82F6); font-size: 13px;">🔵 หมู่ 2: Bypass สแกนผ่านทั้งหมด</strong>
-                    <span style="font-size: 11px; color: var(--color-primary, #3B82F6); font-weight: bold;">บ้าน 88 (นายบุญมี)</span>
-                </div>
-                <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px;">
-                    Bypass QR Code ให้สแกนบ้านในหมู่ 2 ได้ทั้งหมด และเข้าสู่การคัดกรองได้ปกติ
-                </div>
-                <div style="display: flex; gap: 6px;">
-                    <button type="button" onclick="simulateScan('DEMO_HOUSE_88_2')" class="btn-action" style="flex: 1; padding: 8px 10px; font-size: 12px; font-weight: bold; background: var(--color-primary, #3B82F6); color: white; border: none; border-radius: 8px; cursor: pointer;">
-                        ⚡ จำลองสแกนผ่าน (ม.2)
-                    </button>
-                    <button type="button" onclick="showQrModal('DEMO_HOUSE_88_2', 'หมู่ 2: บ้าน 88 (นายบุญมี มีโชค)')" style="padding: 8px 10px; font-size: 12px; font-weight: bold; background: rgba(255,255,255,0.1); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
-                        📷 ส่อง QR
+                    <button type="button" onclick="showQrModal('<?= htmlspecialchars($t['cid']) ?>', 'คุณ<?= htmlspecialchars($t['first_name'] . ' ' . $t['last_name']) ?> (บ้าน <?= htmlspecialchars($t['house_no']) ?> ม.<?= htmlspecialchars($t['moo']) ?>)')" style="padding: 6px 8px; font-size: 11.5px; background: rgba(255,255,255,0.1); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;">
+                        📷 QR
                     </button>
                 </div>
             </div>
-
-            <!-- Scenario 3: หมู่ 3 (ล็อกเพราะยังไม่ได้รับมอบหมายงาน) -->
-            <div style="padding: 10px; border-radius: 10px; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.35);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
-                    <strong style="color: #D97706; font-size: 13px;">🟡 หมู่ 3: ยังไม่ได้รับมอบหมาย (ติดล็อก)</strong>
-                    <span style="font-size: 11px; color: #D97706; font-weight: bold;">บ้าน 15/3 (นายวิชัย)</span>
-                </div>
-                <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px;">
-                    ระบบจะล็อกการคัดกรองทันทีเนื่องจากยังไม่มีการมอบหมายงานในระบบ อสม.
-                </div>
-                <div style="display: flex; gap: 6px;">
-                    <button type="button" onclick="simulateScan('DEMO_HOUSE_15_3')" class="btn-action" style="flex: 1; padding: 8px 10px; font-size: 12px; font-weight: bold; background: #F59E0B; color: white; border: none; border-radius: 8px; cursor: pointer;">
-                        ⚡ จำลองสแกน (ล็อกมอบหมาย)
-                    </button>
-                    <button type="button" onclick="showQrModal('DEMO_HOUSE_15_3', 'หมู่ 3: บ้าน 15/3 (นายวิชัย มั่นคง - ยังไม่มอบหมาย)')" style="padding: 8px 10px; font-size: 12px; font-weight: bold; background: rgba(255,255,255,0.1); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
-                        📷 ส่อง QR
-                    </button>
-                </div>
-            </div>
-
-            <!-- Scenario 4: หมู่ 4 และ 5 (ล็อกเพราะสแกนข้ามเขต) -->
-            <div style="padding: 10px; border-radius: 10px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.35);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
-                    <strong style="color: var(--color-red, #EF4444); font-size: 13px;">🔴 หมู่ 4 & 5: สแกนข้ามเขต (ติดล็อก PDPA)</strong>
-                    <span style="font-size: 11px; color: var(--color-red, #EF4444); font-weight: bold;">บ้าน 54 (ม.4) / 9/1 (ม.5)</span>
-                </div>
-                <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px;">
-                    ระบบจะล็อกการคัดกรองและแจ้งเตือนว่าสแกนข้ามเขตพื้นที่รับผิดชอบ
-                </div>
-                <div style="display: flex; gap: 6px;">
-                    <button type="button" onclick="simulateScan('DEMO_HOUSE_54_4')" class="btn-action" style="flex: 1; padding: 8px 10px; font-size: 12px; font-weight: bold; background: var(--color-red, #EF4444); color: white; border: none; border-radius: 8px; cursor: pointer;">
-                        ⚡ จำลองสแกน (ม.4 ข้ามเขต)
-                    </button>
-                    <button type="button" onclick="simulateScan('DEMO_HOUSE_9_5')" class="btn-action" style="flex: 1; padding: 8px 10px; font-size: 12px; font-weight: bold; background: #DC2626; color: white; border: none; border-radius: 8px; cursor: pointer;">
-                        ⚡ จำลองสแกน (ม.5 ข้ามเขต)
-                    </button>
-                    <button type="button" onclick="showQrModal('DEMO_HOUSE_54_4', 'หมู่ 4: บ้าน 54 (นายมานพ - ข้ามเขต)')" style="padding: 8px 10px; font-size: 12px; font-weight: bold; background: rgba(255,255,255,0.1); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
-                        📷 ส่อง QR
-                    </button>
-                </div>
-            </div>
+            <?php endforeach; ?>
         </div>
     </div>
     <?php endif; ?>
