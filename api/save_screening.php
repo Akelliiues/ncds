@@ -369,6 +369,84 @@ try {
             }
         }
 
+        // Fetch previous screening baseline (Round 1) to compare trends in real mode
+        $lastSbp = 0;
+        $lastDtx = 0;
+        try {
+            $prevStmt = $pdo->prepare("
+                SELECT sys_bp1, dia_bp1, dtx_value 
+                FROM screening_results 
+                WHERE (target_cid = ? OR assignment_id IN (SELECT assignment_id FROM task_assignments WHERE target_cid = ?))
+                  AND round_number < ?
+                ORDER BY created_at DESC 
+                LIMIT 1
+            ");
+            $prevStmt->execute([$targetCid, $targetCid, $roundNumber]);
+            $prevScreening = $prevStmt->fetch();
+            if ($prevScreening) {
+                $lastSbp = intval($prevScreening['sys_bp1'] ?? 0);
+                $lastDtx = intval($prevScreening['dtx_value'] ?? 0);
+            }
+        } catch (\Exception $exPrev) {
+            // Ignore if query fails
+        }
+
+        $hasHistory = ($lastSbp > 0 || $lastDtx > 0 || $roundNumber >= 2);
+        $trendStatus = 'stable';
+        $trendTitle = '⚖️ สุขภาพทรงตัว';
+        $trendColor = '#38BDF8';
+        $trendDetails = [];
+
+        if ($hasHistory && $lastSbp > 0) {
+            $improvedPoints = 0;
+            $worsenedPoints = 0;
+
+            if ($sys1 < $lastSbp - 3) {
+                $improvedPoints++;
+                $diff = $lastSbp - $sys1;
+                $trendDetails[] = "ความดันตัวบนลดลง $diff mmHg (เดิม $lastSbp → ใหม่ $sys1)";
+            } elseif ($sys1 > $lastSbp + 5) {
+                $worsenedPoints++;
+                $diff = $sys1 - $lastSbp;
+                $trendDetails[] = "ความดันตัวบนเพิ่มขึ้น $diff mmHg (เดิม $lastSbp → ใหม่ $sys1)";
+            } else {
+                $trendDetails[] = "ความดันใกล้เคียงเดิม ($sys1 mmHg)";
+            }
+
+            if ($lastDtx > 0 && $dtx > 0) {
+                if ($dtx < $lastDtx - 5) {
+                    $improvedPoints++;
+                    $diff = $lastDtx - $dtx;
+                    $trendDetails[] = "น้ำตาลในเลือดลดลง $diff mg/dL (เดิม $lastDtx → ใหม่ $dtx)";
+                } elseif ($dtx > $lastDtx + 10) {
+                    $worsenedPoints++;
+                    $diff = $dtx - $lastDtx;
+                    $trendDetails[] = "น้ำตาลในเลือดเพิ่มขึ้น $diff mg/dL (เดิม $lastDtx → ใหม่ $dtx)";
+                } else {
+                    $trendDetails[] = "ระดับน้ำตาลใกล้เคียงเดิม ($dtx mg/dL)";
+                }
+            }
+
+            if ($improvedPoints > $worsenedPoints) {
+                $trendStatus = 'improved';
+                $trendTitle = '📈 สุขภาพดีขึ้นกว่ารอบก่อน';
+                $trendColor = '#10B981';
+            } elseif ($worsenedPoints > $improvedPoints) {
+                $trendStatus = 'worsened';
+                $trendTitle = '⚠️ เฝ้าระวัง (ค่าตรวจสูงขึ้น)';
+                $trendColor = '#F59E0B';
+            } else {
+                $trendStatus = 'stable';
+                $trendTitle = '⚖️ สุขภาพทรงตัวจากรอบก่อน';
+                $trendColor = '#38BDF8';
+            }
+        } else {
+            $trendStatus = 'first_round';
+            $trendTitle = '✨ คัดกรองรอบที่ 1 (จุดเซฟเริ่มต้น)';
+            $trendColor = '#6366F1';
+            $trendDetails[] = 'บันทึกเป็นฐานข้อมูลประเมินสุขภาพประจำปีเรียบร้อย';
+        }
+
         // Calculate overall risk and counseling summary metadata
         $hl_risk_level = 'green';
         $risk_color = '#10B981';
@@ -396,39 +474,52 @@ try {
         if ($sys1 >= 130 || $dia1 >= 85) {
             $advice_list[] = [
                 'icon' => '🧂',
-                'title' => 'ลดเค็ม โซเดียม',
+                'title' => 'ลดเค็ม เลี่ยงปลาร้า/แจ่วบอง',
                 'desc' => 'งดอาหารรสจัด ซอส ปรุงรส อาหารหมักดอง และงดซดน้ำแกง'
             ];
         }
         if ($dtx >= 100 || $bmi >= 23) {
             $advice_list[] = [
                 'icon' => '🍬',
-                'title' => 'ลดหวาน ขนม น้ำหวาน',
+                'title' => 'ลดหวาน งดน้ำอัดลม/ชาหวาน',
                 'desc' => 'งดน้ำอัดลม ชาไข่มุก ขนมหวาน ลดปริมาณข้าวแป้งทานเน้นผักใบเขียว'
             ];
         }
-        if ($bmi >= 23) {
+        if ($bmi >= 23 || $hl_risk_level === 'yellow') {
             $advice_list[] = [
                 'icon' => '🚶‍♂️',
-                'title' => 'เพิ่มการขยับกาย ออกกำลังกาย',
+                'title' => 'ขยับกาย เดินวันละ 30 นาที',
                 'desc' => 'เดินสะสมก้าวอย่างน้อยวันละ 30 นาที 5 วัน/สัปดาห์'
             ];
         }
-        $advice_list[] = [
-            'icon' => '🍎',
-            'title' => 'ยึดหลัก 3อ 2ส',
-            'desc' => 'อาหาร อารมณ์ ออกกำลังกาย งดบุหรี่ งดสุรา'
-        ];
+        if ($hl_risk_level === 'red') {
+            $advice_list[] = [
+                'icon' => '🩺',
+                'title' => 'ส่งต่อพบแพทย์ รพ.สต.',
+                'desc' => 'นัดติดตามตรวจยืนยันสภาวะโรคเพื่อรับการรักษาที่เหมาะสม'
+            ];
+        }
+        if (empty($advice_list)) {
+            $advice_list[] = [
+                'icon' => '🌟',
+                'title' => 'รักษาวินัย 3อ. 2ส. ยอดเยี่ยม',
+                'desc' => 'ปฏิบัติตัวดีเยี่ยม รักษาสุขภาพแข็งแรงต่อเนื่อง'
+            ];
+        }
 
         echo json_encode([
             'status' => 'success',
             'message' => 'บันทึกข้อมูลเรียบร้อย',
             'reward_status' => $approvalStatus,
+            'reward_points' => $pointsEarned,
+            'round_number' => $roundNumber,
             'log' => $reasonLog,
             'hl_risk_level' => $hl_risk_level,
             'is_hl_coach' => $_SESSION['is_hl_coach'] ?? false,
             'summary_metadata' => [
                 'resident_name' => $residentName,
+                'round_number' => $roundNumber,
+                'reward_points' => $pointsEarned,
                 'sbp' => $sys1,
                 'dbp' => $dia1,
                 'dtx' => $dtx,
@@ -440,6 +531,11 @@ try {
                 'risk_color' => $risk_color,
                 'risk_title' => $risk_title,
                 'status_desc' => $status_desc,
+                'has_history' => $hasHistory,
+                'trend_status' => $trendStatus,
+                'trend_title' => $trendTitle,
+                'trend_color' => $trendColor,
+                'trend_details' => $trendDetails,
                 'advice_list' => $advice_list,
                 'next_appointment' => date('d/m/Y', strtotime('+3 months'))
             ]
