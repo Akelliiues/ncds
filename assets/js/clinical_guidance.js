@@ -20,30 +20,18 @@
     };
 
     let currentAudio = null;
-    let availableVoices = [];
 
-    function loadVoices() {
-        if ('speechSynthesis' in window) {
-            availableVoices = window.speechSynthesis.getVoices();
+    function getAudioBasePath() {
+        if (window.location.pathname.includes('/vhv/') || window.location.pathname.includes('/admin/')) {
+            return '../assets/audio/';
         }
-    }
-    loadVoices();
-    if ('speechSynthesis' in window && window.speechSynthesis.onvoiceschanged !== undefined) {
-        window.speechSynthesis.onvoiceschanged = loadVoices;
-    }
-
-    function findNativeThaiVoice() {
-        const voices = ('speechSynthesis' in window) ? (availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices()) : [];
-        return voices.find(v => (v.lang === 'th-TH' || v.lang === 'th_TH' || v.lang.startsWith('th')) && 
-            (v.name.includes('Premwadee') || v.name.includes('Google') || v.name.includes('Thai') || v.name.includes('ภาษาไทย') || v.name.includes('Narisa') || v.name.includes('Kanya') || v.name.includes('Achara')));
+        return 'assets/audio/';
     }
 
     /**
-     * ระบบอ่านออกเสียงสำเนียงไทยแท้ (Natural Native Thai Female Voice Coach)
+     * ระบบเล่นเสียงพากย์พยาบาลธรรมชาติ HD (Studio-Quality Natural Thai Voice)
      */
-    function speak(text, btnElement) {
-        const cleanText = text.replace(/["'“”✨🌿🟢🟡🔴🚨💡💬]/g, '').trim();
-
+    function speak(audioKey, fallbackText, btnElement) {
         // 1. ถ้ากำลังเล่นเสียงอยู่ ให้กดเพื่อหยุด (Toggle Stop)
         if (currentAudio) {
             currentAudio.pause();
@@ -70,9 +58,9 @@
             btnElement.style.background = '#EF4444';
         }
 
-        // 2. ลำดับแรก: ใช้ Natural High-Definition Thai Voice (สำเนียงไทยแท้ อ่อนหวาน เป็นธรรมชาติ 100%)
-        const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=th&client=tw-ob&q=${encodeURIComponent(cleanText)}`;
-        const audio = new Audio(ttsUrl);
+        // 2. เล่นไฟล์เสียง HD Studio Voice (เสียงพากย์ธรรมชาติแท้ 100%)
+        const soundFile = getAudioBasePath() + 'voice_' + (audioKey || 'normal') + '.mp3';
+        const audio = new Audio(soundFile);
         currentAudio = audio;
 
         audio.onended = function() {
@@ -83,19 +71,15 @@
             }
         };
 
-        // 3. Fallback: ถ้าไม่มีเน็ตหรือไม่สามารถโหลดออนไลน์ได้ ให้ใช้ SpeechSynthesis ภาษาไทยเฉพาะ
         audio.onerror = function() {
             currentAudio = null;
-            if ('speechSynthesis' in window) {
+            // Fallback: ใช้ Web Speech API ถ้าหาไฟล์ไม่พบ
+            if ('speechSynthesis' in window && fallbackText) {
+                const cleanText = fallbackText.replace(/["'“”✨🌿🟢🟡🔴🚨💡💬]/g, '').trim();
                 const utterance = new SpeechSynthesisUtterance(cleanText);
                 utterance.lang = 'th-TH';
                 utterance.rate = 0.92;
                 utterance.pitch = 1.05;
-
-                const thaiVoice = findNativeThaiVoice();
-                if (thaiVoice) {
-                    utterance.voice = thaiVoice;
-                }
 
                 utterance.onend = function() {
                     if (btnElement) {
@@ -221,17 +205,22 @@
         // 3. บทพูดพลังบวกสั้นกระชับ & คำแนะนำ 1 บรรทัด (Simple & Easy ไม่รกรุงรัง)
         let whatToSay = '';
         let conciseTip = '';
+        let audioKey = 'normal';
 
         if (isEmergency) {
+            audioKey = 'critical';
             whatToSay = 'ค่าน้ำตาลและความดันรอบนี้ต้องรีบดูแลเป็นพิเศษค่ะ เดี๋ยว อสม. ช่วยประสานคุณหมอที่ รพ.สต. ให้นะคะ';
             conciseTip = 'ให้นั่งพักในที่อากาศถ่ายเท หลีกเลี่ยงของหวานจัด และประสาน รพ.สต. หรือ 1669 ทันที';
         } else if (healthProgress === 'improved') {
-            whatToSay = 'ยินดีด้วยนะคะ ผลตรวจรอบนี้ดีขึ้นมากเลย ดูแลตัวเองได้ยอดเยี่ยมมาก ทำต่อเนื่องไปนะคะ';
+            audioKey = 'improved';
+            whatToSay = 'ยินดีด้วยนะคะ! ผลตรวจรอบนี้ดีขึ้นมากเลย ดูแลตัวเองได้ยอดเยี่ยมมาก ทำต่อเนื่องไปนะคะ';
             conciseTip = 'รักษาวินัยการทานอาหารรสจืด ดื่มน้ำเปล่าบ่อยๆ และออกกำลังกายสม่ำเสมอ';
         } else if (careLevel === 'poor' || healthProgress === 'worsened') {
+            audioKey = 'warning';
             whatToSay = 'รอบนี้เริ่มสูงขึ้นนิดหน่อยนะคะ ไม่เป็นไรค่ะ เรามาช่วยกันลดหวาน ลดเค็ม ดื่มน้ำเปล่าเพิ่มกันนะคะ';
             conciseTip = 'ชวนลดของหวาน ของทอด แกงกะทิ ทานยาตรงเวลา และพักผ่อนให้เพียงพอ';
         } else {
+            audioKey = 'normal';
             whatToSay = 'ผลสุขภาพโดยรวมปกติดีค่ะ สดชื่นแข็งแรง รักษาสุขภาพแบบนี้ต่อไปเรื่อยๆ นะคะ';
             conciseTip = 'รับประทานอาหารรสไม่หวานจัด ดื่มน้ำสะอาด 6-8 แก้ว และขยับกายออกกำลังเบาๆ ทุกวัน';
         }
@@ -255,12 +244,13 @@
             sleep_quality: sleep,
             sleep_meta: SLEEP_CONFIG[sleep] || SLEEP_CONFIG.good,
             what_to_say: whatToSay,
-            concise_tip: conciseTip
+            concise_tip: conciseTip,
+            audio_key: audioKey
         };
     }
 
     /**
-     * Render Simple & Easy Guidance Card with Text-to-Speech Button
+     * Render Simple & Easy Guidance Card with Natural Studio Voice Button
      */
     function renderGuidanceCard(result) {
         let emergencyHtml = '';
@@ -278,6 +268,7 @@
         }
 
         const safeScript = result.what_to_say.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        const safeAudioKey = result.audio_key || 'normal';
 
         return `
             <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 14px; box-shadow: var(--neumorph-flat); margin-bottom: 12px;">
@@ -293,14 +284,14 @@
                     </span>
                 </div>
 
-                <!-- Positive Speech Script with Instant Audio Speaker Button -->
+                <!-- Positive Speech Script with Instant Natural Voice Coach Button -->
                 <div style="background: rgba(16, 185, 129, 0.08); border-left: 3.5px solid #10B981; border-radius: 0 14px 14px 0; padding: 12px; font-size: 13.5px; color: var(--text-primary); line-height: 1.45; margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
                         <span style="font-size: 11.5px; font-weight: 800; color: #10B981; display: flex; align-items: center; gap: 4px;">
                             <span>💬</span> <span>บทพูดชวนคุยกับชาวบ้าน:</span>
                         </span>
-                        <button type="button" onclick="ClinicalGuidance.speak('${safeScript}', this)" style="background: #10B981; color: white; border: none; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35); transition: all 0.2s;">
-                            <span>🔊</span> <span>เปิดเสียงพูด (สำเนียงไทย)</span>
+                        <button type="button" onclick="ClinicalGuidance.speak('${safeAudioKey}', '${safeScript}', this)" style="background: #10B981; color: white; border: none; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35); transition: all 0.2s;">
+                            <span>🔊</span> <span>เปิดเสียงพูด (เสียงธรรมชาติ)</span>
                         </button>
                     </div>
                     <div style="font-style: italic; font-weight: 600; color: var(--text-primary); font-size: 14px;">"${result.what_to_say}"</div>
