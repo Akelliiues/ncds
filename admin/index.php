@@ -420,22 +420,47 @@ if (DemoDataProvider::isDemoMode()) {
     // --- RE-SCREENING MULTI-ROUND CHARTS DATA (ADMIN) ---
     $chartRescreenStmt = $pdo->prepare("
         SELECT 
-            p.hoscode, 
+            COALESCE(v.hoscode, p.hoscode) as hoscode, 
             p.moo,
             COUNT(DISTINCT p.cid) as total_targets,
-            COUNT(DISTINCT CASE WHEN IFNULL(sr.round_number, ta.round_number) = 1 OR (sr.round_number IS NULL AND ta.round_number IS NULL) THEN p.cid END) as r1_completed,
-            COUNT(DISTINCT CASE WHEN ta.round_number = 2 AND ta.assignment_status = 'pending' THEN p.cid END) as r2_assigned,
-            COUNT(DISTINCT CASE WHEN IFNULL(sr.round_number, ta.round_number) = 2 THEN p.cid END) as r2_completed,
-            COUNT(DISTINCT CASE WHEN ta.round_number >= 3 AND ta.assignment_status = 'pending' THEN p.cid END) as r3_assigned,
-            COUNT(DISTINCT CASE WHEN IFNULL(sr.round_number, ta.round_number) >= 3 THEN p.cid END) as r3_completed
+            (SELECT COUNT(DISTINCT s1.target_cid) 
+             FROM screening_results s1 
+             LEFT JOIN task_assignments a1 ON s1.assignment_id = a1.assignment_id 
+             JOIN target_population p1 ON (s1.target_cid = p1.cid OR a1.target_cid = p1.cid) 
+             LEFT JOIN villages v1 ON p1.sub_district_code = v1.sub_district_code AND CAST(p1.moo AS UNSIGNED) = v1.moo 
+             WHERE (p1.need_screen_dm = 1 OR p1.need_screen_ht = 1) 
+               AND COALESCE(v1.hoscode, p1.hoscode) = COALESCE(v.hoscode, p.hoscode) 
+               AND p1.moo = p.moo 
+               AND (IFNULL(s1.round_number, a1.round_number) = 1 OR (s1.round_number IS NULL AND a1.round_number IS NULL))
+            ) as r1_completed,
+            (SELECT COUNT(DISTINCT s2.target_cid) 
+             FROM screening_results s2 
+             LEFT JOIN task_assignments a2 ON s2.assignment_id = a2.assignment_id 
+             JOIN target_population p2 ON (s2.target_cid = p2.cid OR a2.target_cid = p2.cid) 
+             LEFT JOIN villages v2 ON p2.sub_district_code = v2.sub_district_code AND CAST(p2.moo AS UNSIGNED) = v2.moo 
+             WHERE (p2.need_screen_dm = 1 OR p2.need_screen_ht = 1) 
+               AND COALESCE(v2.hoscode, p2.hoscode) = COALESCE(v.hoscode, p.hoscode) 
+               AND p2.moo = p.moo 
+               AND IFNULL(s2.round_number, a2.round_number) = 2
+            ) as r2_completed,
+            (SELECT COUNT(DISTINCT s3.target_cid) 
+             FROM screening_results s3 
+             LEFT JOIN task_assignments a3 ON s3.assignment_id = a3.assignment_id 
+             JOIN target_population p3 ON (s3.target_cid = p3.cid OR a3.target_cid = p3.cid) 
+             LEFT JOIN villages v3 ON p3.sub_district_code = v3.sub_district_code AND CAST(p3.moo AS UNSIGNED) = v3.moo 
+             WHERE (p3.need_screen_dm = 1 OR p3.need_screen_ht = 1) 
+               AND COALESCE(v3.hoscode, p3.hoscode) = COALESCE(v.hoscode, p.hoscode) 
+               AND p3.moo = p.moo 
+               AND IFNULL(s3.round_number, a3.round_number) >= 3
+            ) as r3_completed
         FROM target_population p
-        LEFT JOIN task_assignments ta ON p.cid = ta.target_cid AND (ta.budget_year = 2026 OR ta.budget_year IS NULL) AND COALESCE(ta.is_sandbox, 0) = ?
-        LEFT JOIN screening_results sr ON (sr.target_cid = p.cid OR sr.assignment_id = ta.assignment_id) AND COALESCE(sr.is_sandbox, 0) = ?
-        WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-        GROUP BY p.hoscode, p.moo
-        ORDER BY p.hoscode, p.moo
+        LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
+        WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+          AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholders)
+        GROUP BY COALESCE(v.hoscode, p.hoscode), p.moo
+        ORDER BY COALESCE(v.hoscode, p.hoscode), p.moo
     ");
-    $chartRescreenStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $hoscodes));
+    $chartRescreenStmt->execute($hoscodes);
     $chartRescreenData = $chartRescreenStmt->fetchAll(PDO::FETCH_ASSOC);
     foreach ($chartRescreenData as &$row) {
         $row['village_name'] = get_village_display_name_by_hoscode($row['hoscode'], $row['moo']);
@@ -745,21 +770,43 @@ if (DemoDataProvider::isDemoMode()) {
     // --- RE-SCREENING MULTI-ROUND CHARTS DATA (SUPER ADMIN) ---
     $chartRescreenStmt = $pdo->prepare("
         SELECT 
-            p.hoscode,
+            COALESCE(v.hoscode, p.hoscode) as hoscode,
             COUNT(DISTINCT p.cid) as total_targets,
-            COUNT(DISTINCT CASE WHEN IFNULL(sr.round_number, ta.round_number) = 1 OR (sr.round_number IS NULL AND ta.round_number IS NULL) THEN p.cid END) as r1_completed,
-            COUNT(DISTINCT CASE WHEN ta.round_number = 2 AND ta.assignment_status = 'pending' THEN p.cid END) as r2_assigned,
-            COUNT(DISTINCT CASE WHEN IFNULL(sr.round_number, ta.round_number) = 2 THEN p.cid END) as r2_completed,
-            COUNT(DISTINCT CASE WHEN ta.round_number >= 3 AND ta.assignment_status = 'pending' THEN p.cid END) as r3_assigned,
-            COUNT(DISTINCT CASE WHEN IFNULL(sr.round_number, ta.round_number) >= 3 THEN p.cid END) as r3_completed
+            (SELECT COUNT(DISTINCT s1.target_cid) 
+             FROM screening_results s1 
+             LEFT JOIN task_assignments a1 ON s1.assignment_id = a1.assignment_id 
+             JOIN target_population p1 ON (s1.target_cid = p1.cid OR a1.target_cid = p1.cid) 
+             LEFT JOIN villages v1 ON p1.sub_district_code = v1.sub_district_code AND CAST(p1.moo AS UNSIGNED) = v1.moo 
+             WHERE (p1.need_screen_dm = 1 OR p1.need_screen_ht = 1) 
+               AND COALESCE(v1.hoscode, p1.hoscode) = COALESCE(v.hoscode, p.hoscode) 
+               AND (IFNULL(s1.round_number, a1.round_number) = 1 OR (s1.round_number IS NULL AND a1.round_number IS NULL))
+            ) as r1_completed,
+            (SELECT COUNT(DISTINCT s2.target_cid) 
+             FROM screening_results s2 
+             LEFT JOIN task_assignments a2 ON s2.assignment_id = a2.assignment_id 
+             JOIN target_population p2 ON (s2.target_cid = p2.cid OR a2.target_cid = p2.cid) 
+             LEFT JOIN villages v2 ON p2.sub_district_code = v2.sub_district_code AND CAST(p2.moo AS UNSIGNED) = v2.moo 
+             WHERE (p2.need_screen_dm = 1 OR p2.need_screen_ht = 1) 
+               AND COALESCE(v2.hoscode, p2.hoscode) = COALESCE(v.hoscode, p.hoscode) 
+               AND IFNULL(s2.round_number, a2.round_number) = 2
+            ) as r2_completed,
+            (SELECT COUNT(DISTINCT s3.target_cid) 
+             FROM screening_results s3 
+             LEFT JOIN task_assignments a3 ON s3.assignment_id = a3.assignment_id 
+             JOIN target_population p3 ON (s3.target_cid = p3.cid OR a3.target_cid = p3.cid) 
+             LEFT JOIN villages v3 ON p3.sub_district_code = v3.sub_district_code AND CAST(p3.moo AS UNSIGNED) = v3.moo 
+             WHERE (p3.need_screen_dm = 1 OR p3.need_screen_ht = 1) 
+               AND COALESCE(v3.hoscode, p3.hoscode) = COALESCE(v.hoscode, p.hoscode) 
+               AND IFNULL(s3.round_number, a3.round_number) >= 3
+            ) as r3_completed
         FROM target_population p
-        LEFT JOIN task_assignments ta ON p.cid = ta.target_cid AND (ta.budget_year = 2026 OR ta.budget_year IS NULL) AND COALESCE(ta.is_sandbox, 0) = ?
-        LEFT JOIN screening_results sr ON (sr.target_cid = p.cid OR sr.assignment_id = ta.assignment_id) AND COALESCE(sr.is_sandbox, 0) = ?
-        WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-        GROUP BY p.hoscode
-        ORDER BY p.hoscode
+        LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
+        WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+          AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholdersSa)
+        GROUP BY COALESCE(v.hoscode, p.hoscode)
+        ORDER BY COALESCE(v.hoscode, p.hoscode)
     ");
-    $chartRescreenStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $valid_hoscodes));
+    $chartRescreenStmt->execute($valid_hoscodes);
     $chartRescreenData = $chartRescreenStmt->fetchAll(PDO::FETCH_ASSOC);
     $metrics['r1_completed'] = array_sum(array_column($chartRescreenData, 'r1_completed'));
     $metrics['r2_completed'] = array_sum(array_column($chartRescreenData, 'r2_completed'));
