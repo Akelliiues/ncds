@@ -69,6 +69,15 @@ if (DemoDataProvider::isDemoMode()) {
     $bestImprovement = $improvementList;
     $concerningAreas = array_reverse($improvementList);
 
+    $villageImprovementData = [
+        ['hoscode' => '99999', 'moo' => '1', 'total_enrolled' => 12, 'completed_followups' => 10, 'improved_count' => 8],
+        ['hoscode' => '99999', 'moo' => '2', 'total_enrolled' => 15, 'completed_followups' => 12, 'improved_count' => 9],
+        ['hoscode' => '99999', 'moo' => '3', 'total_enrolled' => 8, 'completed_followups' => 6, 'improved_count' => 4],
+        ['hoscode' => '99999', 'moo' => '4', 'total_enrolled' => 6, 'completed_followups' => 4, 'improved_count' => 3],
+        ['hoscode' => '99999', 'moo' => '5', 'total_enrolled' => 5, 'completed_followups' => 3, 'improved_count' => 2]
+    ];
+    $spatialPrevalenceData = [];
+
     $historyRecords = [
         ['cid' => '9999900000001', 'latitude' => 15.4312, 'longitude' => 104.9823, 'risk_level' => 'MODERATE', 'created_at' => date('Y-m-d H:i:s', strtotime('-10 days'))],
         ['cid' => '9999900000002', 'latitude' => 15.4354, 'longitude' => 104.9856, 'risk_level' => 'HIGH', 'created_at' => date('Y-m-d H:i:s', strtotime('-8 days'))],
@@ -1731,7 +1740,7 @@ try {
                         <?php else: ?>
                             <?php foreach ($villageImprovementData as $vi): ?>
                                 <?php
-                                $village_only = $hoscode_villages[$vi['hoscode']]['villages'][intval($vi['moo'])] ?? get_village_only_name($hoscode_villages[$vi['hoscode']]['tambon'], $vi['moo']);
+                                $village_only = $hoscode_villages[$vi['hoscode']]['villages'][intval($vi['moo'])] ?? (isset($hoscode_villages[$vi['hoscode']]['tambon']) ? get_village_only_name($hoscode_villages[$vi['hoscode']]['tambon'], $vi['moo']) : ('หมู่ที่ ' . $vi['moo']));
                                 $hcName = $hc_names[$vi['hoscode']] ?? $vi['hoscode'];
                                 $successRate = $vi['completed_followups'] > 0 ? ($vi['improved_count'] / $vi['completed_followups']) * 100 : 0;
                                 ?>
@@ -1763,7 +1772,7 @@ try {
                     $improved = intval($vi['improved_count']);
                     $rate = ($improved / $completed) * 100;
                     if ($rate < 50) {
-                        $vname = $hoscode_villages[$vi['hoscode']]['villages'][intval($vi['moo'])] ?? get_village_only_name($hoscode_villages[$vi['hoscode']]['tambon'], $vi['moo']);
+                        $vname = $hoscode_villages[$vi['hoscode']]['villages'][intval($vi['moo'])] ?? (isset($hoscode_villages[$vi['hoscode']]['tambon']) ? get_village_only_name($hoscode_villages[$vi['hoscode']]['tambon'], $vi['moo']) : ('หมู่ที่ ' . $vi['moo']));
                         $poorVillages[] = [
                             'name' => $vname ?: 'หมู่ที่ ' . $vi['moo'],
                             'hc' => $hc_names[$vi['hoscode']] ?? $vi['hoscode'],
