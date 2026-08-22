@@ -35,13 +35,6 @@ if (isset($_GET['demo_role']) || isset($_POST['demo_role'])) {
         $_SESSION['is_visitor'] = false;
         header("Location: admin/index.php");
         exit();
-    } elseif ($demoRole === 'admin') {
-        $_SESSION['admin_logged_in'] = true;
-        $_SESSION['admin_username'] = 'demo_admin';
-        $_SESSION['admin_hoscode'] = null;
-        $_SESSION['is_visitor'] = false;
-        header("Location: admin/index.php");
-        exit();
     }
 }
 
@@ -276,99 +269,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg>
                     <span>ทดลองใช้งานเสมือนจริง (Demo Sandbox)</span>
                 </div>
-                <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+                <div style="display: flex; gap: 10px; justify-content: center;">
                     <a href="index.php?demo_role=vhv" style="
-                        flex: 1 1 28%;
-                        min-width: 95px;
+                        flex: 1;
                         background: var(--demo-vhv-bg, rgba(16, 185, 129, 0.08));
                         border: 1.5px solid var(--color-green, #10B981);
                         color: var(--color-green, #10B981);
-                        padding: 8px 6px;
-                        border-radius: 12px;
-                        font-size: 12px;
+                        padding: 10px 8px;
+                        border-radius: 14px;
+                        font-size: 13px;
                         font-weight: 700;
                         text-decoration: none;
                         display: flex;
                         flex-direction: column;
                         align-items: center;
-                        gap: 4px;
+                        gap: 5px;
                         transition: transform 0.15s ease, box-shadow 0.15s ease;
                         box-shadow: 0 2px 6px rgba(16, 185, 129, 0.15);
                     " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
                         <div style="
-                            width: 32px;
-                            height: 32px;
+                            width: 36px;
+                            height: 36px;
                             border-radius: 50%;
                             background: rgba(16, 185, 129, 0.15);
                             display: flex;
                             align-items: center;
                             justify-content: center;
                         ">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M16 11h6"/></svg>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M16 11h6"/></svg>
                         </div>
-                        <span>อสม.</span>
+                        <span>อสม. (หมอคนที่ 1)</span>
                     </a>
                     <a href="index.php?demo_role=staff" style="
-                        flex: 1 1 28%;
-                        min-width: 95px;
+                        flex: 1;
                         background: var(--demo-staff-bg, rgba(59, 130, 246, 0.08));
                         border: 1.5px solid var(--color-primary, #3B82F6);
                         color: var(--color-primary, #3B82F6);
-                        padding: 8px 6px;
-                        border-radius: 12px;
-                        font-size: 12px;
+                        padding: 10px 8px;
+                        border-radius: 14px;
+                        font-size: 13px;
                         font-weight: 700;
                         text-decoration: none;
                         display: flex;
                         flex-direction: column;
                         align-items: center;
-                        gap: 4px;
+                        gap: 5px;
                         transition: transform 0.15s ease, box-shadow 0.15s ease;
                         box-shadow: 0 2px 6px rgba(59, 130, 246, 0.15);
                     " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
                         <div style="
-                            width: 32px;
-                            height: 32px;
+                            width: 36px;
+                            height: 36px;
                             border-radius: 50%;
                             background: rgba(59, 130, 246, 0.15);
                             display: flex;
                             align-items: center;
                             justify-content: center;
                         ">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 21v-4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4"/><path d="M10 9h4"/><path d="M12 7v4"/></svg>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 21v-4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4"/><path d="M10 9h4"/><path d="M12 7v4"/></svg>
                         </div>
-                        <span>รพ.สต.</span>
-                    </a>
-                    <a href="index.php?demo_role=admin" style="
-                        flex: 1 1 28%;
-                        min-width: 95px;
-                        background: var(--demo-admin-bg, rgba(239, 68, 68, 0.08));
-                        border: 1.5px solid var(--color-red, #EF4444);
-                        color: var(--color-red, #EF4444);
-                        padding: 8px 6px;
-                        border-radius: 12px;
-                        font-size: 12px;
-                        font-weight: 700;
-                        text-decoration: none;
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        gap: 4px;
-                        transition: transform 0.15s ease, box-shadow 0.15s ease;
-                        box-shadow: 0 2px 6px rgba(239, 68, 68, 0.15);
-                    " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
-                        <div style="
-                            width: 32px;
-                            height: 32px;
-                            border-radius: 50%;
-                            background: rgba(239, 68, 68, 0.15);
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                        ">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
-                        </div>
-                        <span>Admin</span>
+                        <span>เจ้าหน้าที่ รพ.สต.</span>
                     </a>
                 </div>
             </div>
