@@ -107,6 +107,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($is_admin) {
+            unset($_SESSION['is_demo_mode']);
+            unset($_SESSION['demo_role']);
             $_SESSION['admin_logged_in'] = true;
             $_SESSION['admin_username'] = strtolower($username);
             $_SESSION['admin_hoscode'] = $admin_hoscode;
@@ -132,6 +134,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if (isset($user['approved']) && $user['approved'] == 0) {
                             $error = 'บัญชี อสม. นี้อยู่ระหว่างรอการอนุมัติการใช้งานจากผู้ดูแลระบบ';
                         } else {
+                            unset($_SESSION['is_demo_mode']);
+                            unset($_SESSION['demo_role']);
                             $_SESSION['vhv_id'] = $user['vhv_id'];
                             $_SESSION['vhv_name'] = $user['vhv_name'];
                             $_SESSION['vhv_moo'] = $user['vhv_moo'];
