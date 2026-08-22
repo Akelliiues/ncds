@@ -333,9 +333,16 @@ $options = [
     PDO::ATTR_EMULATE_PREPARES => false,
 ];
 
+require_once __DIR__ . '/demo_database.php';
+
 try {
-    $pdo = new PDO($dsn, $user, $pass, $options);
-    $pdo->setAttribute(PDO::ATTR_STATEMENT_CLASS, ['VisitorMaskPDOStatement', [$pdo]]);
+    if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION['is_demo_mode']) && $_SESSION['is_demo_mode'] === true) {
+        $pdo = new DemoMockPDO($dsn, $user, $pass, $options);
+        initDemoMockupDatabase($pdo);
+    } else {
+        $pdo = new PDO($dsn, $user, $pass, $options);
+        $pdo->setAttribute(PDO::ATTR_STATEMENT_CLASS, ['VisitorMaskPDOStatement', [$pdo]]);
+    }
 } catch (\PDOException $e) {
     global $allow_db_failure;
     if (php_sapi_name() === 'cli' || (isset($allow_db_failure) && $allow_db_failure === true)) {
