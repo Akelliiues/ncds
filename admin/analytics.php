@@ -157,6 +157,35 @@ if (DemoDataProvider::isDemoMode()) {
         ['assigned_vhv' => 'DEMO_1003', 'vhv_name' => 'อสม. บุญทัน เจริญดี (จำลอง)', 'hoscode' => '99999', 'village' => '3', 'total_screened' => 32, 'risk_found' => 6, 'total_dpac_enrolled' => 8, 'dpac_improved_count' => 6]
     ];
     $avgYieldRate = 20.2;
+    $totalRiskFoundAll = 24;
+    $totalScreenedAll = 119;
+
+    $ncdTotalAnalyzed = count($ncdBeforeAfterData);
+    $ncdImprovedBpCount = 2;
+    $ncdImprovedDtxCount = 2;
+
+    $totalAnalyzed = count($beforeAfterData);
+    $improvedBpCount = 3;
+    $improvedFbsCount = 3;
+    $totalHtCases = 3;
+    $totalDmCases = 3;
+
+    $avgSbpBefore = 160.7;
+    $avgSbpAfter = 136.7;
+    $avgDbpBefore = 97.3;
+    $avgDbpAfter = 86.0;
+    $avgFbsBefore = 193.3;
+    $avgFbsAfter = 142.7;
+
+    $pctBpImprovement = 100.0;
+    $pctFbsImprovement = 100.0;
+
+    $beforeHigh = 3;
+    $beforeModerate = 0;
+    $beforeNormal = 0;
+    $afterHigh = 0;
+    $afterModerate = 3;
+    $afterNormal = 0;
 
     $ageGroups = ['35-44 ปี', '45-54 ปี', '55-64 ปี', '65 ปีขึ้นไป', 'ไม่ทราบอายุ'];
     $maleTotal = [25, 40, 35, 20, 0];
