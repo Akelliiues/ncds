@@ -6,8 +6,51 @@ header('Content-Type: application/json');
 require_once __DIR__ . '/../config/demo_data.php';
 
 if (DemoDataProvider::isDemoMode()) {
-    echo json_encode(DemoDataProvider::getMockTargets(), JSON_UNESCAPED_UNICODE);
-    exit();
+    $type = $_GET['type'] ?? '';
+    $moo = intval($_GET['moo'] ?? 0);
+    
+    if ($type === 'vhvs') {
+        $allVhvs = DemoDataProvider::getMockVhvs();
+        $filteredVhvs = [];
+        foreach ($allVhvs as $v) {
+            if ($moo === 0 || intval($v['moo']) === $moo) {
+                $filteredVhvs[] = [
+                    'vhv_id' => $v['vhv_id'],
+                    'vhv_name' => $v['vhv_name'],
+                    'village_task_count' => $v['assigned_count'],
+                    'total_task_count' => $v['assigned_count'] - $v['completed_count']
+                ];
+            }
+        }
+        echo json_encode($filteredVhvs, JSON_UNESCAPED_UNICODE);
+        exit();
+    } else {
+        $allTargets = DemoDataProvider::getMockTargets();
+        $filtered = [];
+        foreach ($allTargets as $t) {
+            if ($moo === 0 || intval($t['moo']) === $moo) {
+                $cid = $t['cid'];
+                $assignedVhv = $_SESSION['demo_assignments'][$cid] ?? ($t['assigned_vhv'] ?? '-');
+                $filtered[] = [
+                    'cid' => $t['cid'],
+                    'first_name' => $t['first_name'],
+                    'last_name' => $t['last_name'],
+                    'house_no' => $t['house_no'],
+                    'birth' => $t['birth'],
+                    'age' => $t['age'],
+                    'assigned_vhv' => $assignedVhv,
+                    'assignment_status' => $t['assignment_status'],
+                    'round_number' => $t['round_number'],
+                    'max_completed_round' => ($t['round_number'] >= 2 ? 1 : 0),
+                    'health_status_origin' => $t['health_status_origin'],
+                    'need_screen_dm' => $t['need_screen_dm'],
+                    'need_screen_ht' => $t['need_screen_ht']
+                ];
+            }
+        }
+        echo json_encode($filtered, JSON_UNESCAPED_UNICODE);
+        exit();
+    }
 }
 
 if (!isset($_SESSION['admin_logged_in'])) {

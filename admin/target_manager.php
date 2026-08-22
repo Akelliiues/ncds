@@ -396,8 +396,78 @@ try {
     // Fail silently
 }
 
+require_once __DIR__ . '/../config/demo_data.php';
+
 // Handle API requests
 if (isset($_GET['action'])) {
+    if (DemoDataProvider::isDemoMode()) {
+        if ($_GET['action'] == 'get_targets') {
+            header('Content-Type: application/json');
+            $moo = $_GET['moo'] ?? '';
+            $status = $_GET['status'] ?? 'all';
+            $search = trim($_GET['search'] ?? '');
+            
+            $mockTargets = DemoDataProvider::getMockTargetPopulation();
+            $filtered = [];
+            foreach ($mockTargets as $t) {
+                $mooMatch = ($moo === 'all' || $moo === '' || intval($t['moo']) === intval($moo));
+                $searchMatch = true;
+                if ($search !== '') {
+                    $searchMatch = (strpos($t['first_name'], $search) !== false || strpos($t['last_name'], $search) !== false || strpos($t['cid'], $search) !== false || strpos($t['house_no'], $search) !== false);
+                }
+                $statusMatch = true;
+                if ($status === 'target') {
+                    $statusMatch = ($t['need_screen_dm'] == 1 || $t['need_screen_ht'] == 1);
+                } elseif ($status === 'non_target') {
+                    $statusMatch = ($t['need_screen_dm'] == 0 && $t['need_screen_ht'] == 0);
+                }
+
+                if ($mooMatch && $searchMatch && $statusMatch) {
+                    $filtered[] = [
+                        'cid' => $t['cid'],
+                        'pid' => $t['cid'],
+                        'hoscode' => '99999',
+                        'prefix' => ($t['sex'] == 1 ? 'นาย' : 'นาง'),
+                        'first_name' => $t['first_name'],
+                        'last_name' => $t['last_name'],
+                        'birth' => $t['birth'],
+                        'house_no' => $t['house_no'],
+                        'moo' => $t['moo'],
+                        'sub_district_code' => '341001',
+                        'vhid_code' => '3410010' . $t['moo'],
+                        'age' => $t['age'],
+                        'need_screen_dm' => $t['need_screen_dm'],
+                        'need_screen_ht' => $t['need_screen_ht'],
+                        'health_status_origin' => $t['health_status_origin'],
+                        'is_manual' => 0,
+                        'bslevel' => $t['last_dtx'] ?? null,
+                        'bstest' => 'fpg',
+                        'sbp' => $t['last_sbp'] ?? null,
+                        'dbp' => $t['last_dbp'] ?? null,
+                        'is_dpac' => 0
+                    ];
+                }
+            }
+            echo json_encode([
+                'data' => $filtered,
+                'total' => count($filtered),
+                'page' => 1,
+                'limit' => 50,
+                'totalPages' => 1
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        if ($_GET['action'] == 'toggle_target_disease' || $_GET['action'] == 'enroll_dpac_single') {
+            header('Content-Type: application/json');
+            $data = json_decode(file_get_contents('php://input'), true);
+            $cid = $data['cid'] ?? '';
+            DemoDataProvider::toggleTargetStatus($cid);
+            echo json_encode(['status' => 'success', 'message' => 'จำลองการปรับสถานะกลุ่มเป้าหมายสำเร็จ (โหมดจำลอง)'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+    }
+
     if ($_GET['action'] == 'get_targets') {
         header('Content-Type: application/json');
         $hoscode = $_GET['hoscode'] ?? '';

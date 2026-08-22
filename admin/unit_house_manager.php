@@ -8,12 +8,19 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 }
 
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/demo_data.php';
 
 // Check if super admin
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 $is_super_admin = (!isset($admin_hoscode) || empty($admin_hoscode)) && (isset($_SESSION['admin_username']) && $_SESSION['admin_username'] !== 'adminsso');
 
-if (!$is_super_admin) {
+if (DemoDataProvider::isDemoMode()) {
+    $is_super_admin = true;
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+        header("Location: unit_house_manager.php?tab=" . urlencode($_GET['tab'] ?? 'units') . "&status=success&msg=" . urlencode("จำลองการดำเนินการสำเร็จ (โหมดจำลอง)"));
+        exit();
+    }
+} elseif (!$is_super_admin) {
     header("Location: index.php");
     exit();
 }

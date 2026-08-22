@@ -21,6 +21,9 @@ require_once __DIR__ . '/../config/demo_data.php';
 
 if (DemoDataProvider::isDemoMode()) {
     $mockExec = DemoDataProvider::getMockExecutiveMetrics();
+    $mockAnalytics = DemoDataProvider::getMockAnalyticsData();
+    $mockTargets = DemoDataProvider::getMockTargets();
+
     $total_targets_val = $mockExec['total_targets'];
     $screened_val = $mockExec['screened'];
     $screened_percent = $mockExec['screened_percent'];
@@ -33,34 +36,99 @@ if (DemoDataProvider::isDemoMode()) {
         'group_ht' => 80,
         'group_both' => 125,
         'group_risk' => 250,
-        'group_normal' => 0,
-        'group_suspected' => 0
+        'group_normal' => 30,
+        'group_suspected' => 15
     ];
     $village_stats = $mockExec['village_stats'];
     $recent_screenings = $mockExec['recent_screenings'];
     $dpac_followups = $mockExec['dpac_followups'];
-    $mapData = [
-        [
-            'cid' => '9999900000001',
-            'first_name' => 'สมชาย',
-            'last_name' => 'ใจดี (จำลอง)',
-            'house_no' => '12/1',
-            'moo' => '1',
-            'latitude' => 15.4321,
-            'longitude' => 104.9812,
-            'risk_level' => 'normal'
-        ],
-        [
-            'cid' => '9999900000003',
-            'first_name' => 'บุญมี',
-            'last_name' => 'มีโชค (จำลอง)',
-            'house_no' => '88',
-            'moo' => '2',
-            'latitude' => 15.4335,
-            'longitude' => 104.9840,
-            'risk_level' => 'risk'
-        ]
+
+    // Map targets
+    $allMapTargets = [];
+    $latBase = 15.4320;
+    $lngBase = 104.9810;
+    foreach ($mockTargets as $i => $t) {
+        $allMapTargets[] = [
+            'cid' => $t['cid'],
+            'first_name' => $t['first_name'],
+            'last_name' => $t['last_name'],
+            'house_no' => $t['house_no'],
+            'moo' => $t['moo'],
+            'sub_district_code' => '341001',
+            'hoscode' => '99999',
+            'latitude' => $latBase + ($i * 0.0015),
+            'longitude' => $lngBase + ($i * 0.0018),
+            'health_status_origin' => $t['health_status_origin'] ?? 'BOTH',
+            'sys_bp1' => $t['last_sbp'] ?? 120,
+            'dia_bp1' => $t['last_dbp'] ?? 80,
+            'dtx_value' => $t['last_dtx'] ?? 100,
+            'cv_risk_score' => ($i % 3 == 0) ? 15.5 : (($i % 3 == 1) ? 8.2 : 3.5),
+            'bmi' => 24.5
+        ];
+    }
+    $mapData = $allMapTargets;
+    $mapHoscodes = ['99999'];
+    $editableTargets = $allMapTargets;
+
+    // Charts Data
+    $chartCoverageData = [];
+    foreach ($village_stats as $vs) {
+        $chartCoverageData[] = [
+            'hoscode' => '99999',
+            'moo' => $vs['moo'],
+            'total_targets' => $vs['total'],
+            'screened' => $vs['screened'],
+            'village_name' => $vs['village_name']
+        ];
+    }
+
+    $chartRiskData = [
+        ['hoscode' => '99999', 'moo' => '1', 'village_name' => 'หมู่ 1 บ้านตาลสุม (จำลอง)', 'high_risk' => 8, 'moderate_risk' => 12, 'normal' => 22, 'unscreened' => 8],
+        ['hoscode' => '99999', 'moo' => '2', 'village_name' => 'หมู่ 2 บ้านดอนใหญ่ (จำลอง)', 'high_risk' => 7, 'moderate_risk' => 10, 'normal' => 28, 'unscreened' => 15],
+        ['hoscode' => '99999', 'moo' => '3', 'village_name' => 'หมู่ 3 บ้านโคกสว่าง (จำลอง)', 'high_risk' => 5, 'moderate_risk' => 9, 'normal' => 18, 'unscreened' => 13],
+        ['hoscode' => '99999', 'moo' => '4', 'village_name' => 'หมู่ 4 บ้านนาเจริญ (จำลอง)', 'high_risk' => 6, 'moderate_risk' => 8, 'normal' => 24, 'unscreened' => 17],
+        ['hoscode' => '99999', 'moo' => '5', 'village_name' => 'หมู่ 5 บ้านโนนงาม (จำลอง)', 'high_risk' => 4, 'moderate_risk' => 6, 'normal' => 18, 'unscreened' => 12]
     ];
+
+    $chartDiseaseData = [
+        'ht_dm' => 22,
+        'ht_only' => 45,
+        'dm_only' => 18,
+        'risk_group' => 45,
+        'normal_group' => 55
+    ];
+
+    $chartTrendData = [];
+    for ($d = 13; $d >= 0; $d--) {
+        $chartTrendData[] = [
+            'screen_date' => date('Y-m-d', strtotime("-$d days")),
+            'daily_count' => rand(8, 22)
+        ];
+    }
+
+    $chartSkippedData = [
+        ['skipped_reason' => 'ไม่อยู่บ้าน/ไปทำงานต่างจังหวัด', 'count' => 14],
+        ['skipped_reason' => 'ปฏิเสธการตรวจ', 'count' => 5],
+        ['skipped_reason' => 'ย้ายที่อยู่ชั่วคราว', 'count' => 8]
+    ];
+
+    $chartDpacData = [
+        ['risk_type' => 'BOTH', 'count' => 24],
+        ['risk_type' => 'HT_ONLY', 'count' => 18],
+        ['risk_type' => 'DM_ONLY', 'count' => 12]
+    ];
+
+    $chartRescreenData = [
+        ['hoscode' => '99999', 'moo' => '1', 'village_name' => 'หมู่ 1 บ้านตาลสุม (จำลอง)', 'total_targets' => 50, 'r1_completed' => 42, 'r2_completed' => 18, 'r3_completed' => 4],
+        ['hoscode' => '99999', 'moo' => '2', 'village_name' => 'หมู่ 2 บ้านดอนใหญ่ (จำลอง)', 'total_targets' => 60, 'r1_completed' => 45, 'r2_completed' => 16, 'r3_completed' => 2],
+        ['hoscode' => '99999', 'moo' => '3', 'village_name' => 'หมู่ 3 บ้านโคกสว่าง (จำลอง)', 'total_targets' => 45, 'r1_completed' => 32, 'r2_completed' => 12, 'r3_completed' => 0],
+        ['hoscode' => '99999', 'moo' => '4', 'village_name' => 'หมู่ 4 บ้านนาเจริญ (จำลอง)', 'total_targets' => 55, 'r1_completed' => 38, 'r2_completed' => 10, 'r3_completed' => 1],
+        ['hoscode' => '99999', 'moo' => '5', 'village_name' => 'หมู่ 5 บ้านโนนงาม (จำลอง)', 'total_targets' => 40, 'r1_completed' => 28, 'r2_completed' => 8, 'r3_completed' => 0]
+    ];
+
+    $chartRound1Count = 185;
+    $chartRound2Count = 64;
+    $chartRound3Count = 7;
 } elseif ($admin_hoscode) {
     $hoscodes = get_query_hoscodes($admin_hoscode);
     $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));

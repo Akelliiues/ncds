@@ -17,98 +17,131 @@ $hc_names = get_health_units();
 
 $admin_title = get_admin_title();
 
-if ($admin_hoscode) {
-    $hoscodes = get_query_hoscodes($admin_hoscode);
-    $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
+require_once __DIR__ . '/../config/demo_data.php';
+
+if (DemoDataProvider::isDemoMode()) {
+    $mockExec = DemoDataProvider::getMockExecutiveMetrics();
+    $mockAnalytics = DemoDataProvider::getMockAnalyticsData();
+
+    $beforeAfterData = $mockAnalytics['beforeAfterData'];
+    $ncdBeforeAfterData = $mockAnalytics['ncdMultiRoundData'];
+    $funnelData = ['total_targets' => 250, 'r1_completed' => 185, 'r2_assigned' => 70, 'r2_completed' => 64, 'r3_completed' => 7];
+    $actionCounts = ['overdue' => 2, 'awaiting_r2' => 115, 'high_risk_unassigned' => 4];
+    $overdueActionRows = [
+        [
+            'assignment_id' => 'DEMO_OVERDUE_1',
+            'round_number' => 2,
+            'assigned_at' => date('Y-m-d H:i:s', strtotime('-10 days')),
+            'cid' => '9999900000005',
+            'first_name' => 'วิชัย',
+            'last_name' => 'มั่นคง (จำลอง)',
+            'house_no' => '15/3',
+            'moo' => '3',
+            'hoscode' => '99999',
+            'vhv_name' => 'อสม. บุญทัน เจริญดี (จำลอง)',
+            'waiting_days' => 10
+        ]
+    ];
+    $dataQuality = ['missing_body' => 0, 'missing_vitals' => 0, 'missing_geo' => 0, 'round_mismatch' => 0, 'orphan_results' => 0, 'mock_cid' => 0];
+    $availableBudgetYears = [2026, 2025];
+    $selectedBudgetYear = 2026;
+    $selectedRound = 0;
+    $dateFrom = '';
+    $dateTo = '';
 } else {
-    $valid_hoscodes = get_query_hoscodes();
-    $inPlaceholders = implode(',', array_fill(0, count($valid_hoscodes), '?'));
-    $hoscodes = $valid_hoscodes;
+    if ($admin_hoscode) {
+        $hoscodes = get_query_hoscodes($admin_hoscode);
+        $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
+    } else {
+        $valid_hoscodes = get_query_hoscodes();
+        $inPlaceholders = implode(',', array_fill(0, count($valid_hoscodes), '?'));
+        $hoscodes = $valid_hoscodes;
+    }
+
+    // Shared analytics filters. The unit selector can only narrow the units that
+    // the signed-in administrator is already allowed to access.
+    $allowedHoscodes = $hoscodes;
+    $selectedHoscode = trim((string)($_GET['hoscode'] ?? ''));
+    if ($selectedHoscode !== '' && in_array($selectedHoscode, $allowedHoscodes, true)) {
+        $hoscodes = [$selectedHoscode];
+        $inPlaceholders = '?';
+    }
+
+    $availableBudgetYears = [];
+    try {
+        $availableBudgetYears = $pdo->query("
+            SELECT DISTINCT budget_year FROM task_assignments WHERE budget_year IS NOT NULL
+            UNION SELECT DISTINCT budget_year FROM dpac_enrollments WHERE budget_year IS NOT NULL
+            ORDER BY budget_year DESC
+        ")->fetchAll(PDO::FETCH_COLUMN);
+    } catch (\Throwable $e) {}
+    $defaultBudgetYear = !empty($availableBudgetYears) ? (int)$availableBudgetYears[0] : (int)date('Y');
+    $selectedBudgetYear = isset($_GET['budget_year']) && ctype_digit((string)$_GET['budget_year'])
+        ? (int)$_GET['budget_year'] : $defaultBudgetYear;
+    $selectedRound = isset($_GET['round']) && ctype_digit((string)$_GET['round']) ? max(0, (int)$_GET['round']) : 0;
+    $dateFromInput = (string)($_GET['date_from'] ?? '');
+    $dateToInput = (string)($_GET['date_to'] ?? '');
+    $dateFrom = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFromInput) ? $dateFromInput : '';
+    $dateTo = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateToInput) ? $dateToInput : '';
+
+    // 1. Before-After Query for DPAC progress tracking
+    $beforeAfterStmt = $pdo->prepare("
+        SELECT 
+            e.enrollment_id,
+            e.risk_type,
+            p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
+            f1.bp_sys AS sbp_before, f1.bp_dia AS dbp_before, f1.fbs AS fbs_before, f1.health_risk_level AS risk_before,
+            fl.bp_sys AS sbp_after, fl.bp_dia AS dbp_after, fl.fbs AS fbs_after, fl.health_risk_level AS risk_after,
+            fl.round_number AS latest_round
+        FROM dpac_enrollments e
+        JOIN target_population p ON e.cid = p.cid
+        JOIN dpac_followups f1 ON e.enrollment_id = f1.enrollment_id AND f1.round_number = 1 AND f1.status = 'completed' AND f1.is_sandbox = ?
+        JOIN dpac_followups fl ON e.enrollment_id = fl.enrollment_id AND fl.status = 'completed' AND fl.is_sandbox = ?
+        JOIN (
+            SELECT enrollment_id, MAX(round_number) as max_round
+            FROM dpac_followups
+            WHERE status = 'completed' AND is_sandbox = ?
+            GROUP BY enrollment_id
+        ) max_f ON fl.enrollment_id = max_f.enrollment_id AND fl.round_number = max_f.max_round
+        WHERE max_f.max_round > 1 AND e.budget_year = ? AND p.hoscode IN ($inPlaceholders)
+        ORDER BY fl.completed_at DESC
+    ");
+    $beforeAfterStmt->execute(array_merge([$isSandboxVal, $isSandboxVal, $isSandboxVal, $selectedBudgetYear], $hoscodes));
+    $beforeAfterData = $beforeAfterStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // NCD Multi-Round Re-screening Before-After Query (Round 1 vs Latest Round)
+    $ncdBeforeAfterStmt = $pdo->prepare("
+        SELECT 
+            p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
+            s1.sys_bp1 AS sbp_r1, s1.dia_bp1 AS dbp_r1, s1.dtx_value AS dtx_r1, s1.bmi AS bmi_r1, s1.created_at AS date_r1,
+            sl.sys_bp1 AS sbp_latest, sl.dia_bp1 AS dbp_latest, sl.dtx_value AS dtx_latest, sl.bmi AS bmi_latest, sl.created_at AS date_latest,
+            al.round_number AS latest_round
+        FROM target_population p
+        JOIN task_assignments a1 ON p.cid = a1.target_cid AND a1.round_number = 1 AND a1.assignment_status = 'completed' AND a1.budget_year = ? AND a1.is_sandbox = ?
+        JOIN screening_results s1 ON a1.assignment_id = s1.assignment_id AND s1.is_sandbox = ?
+        JOIN task_assignments al ON p.cid = al.target_cid AND al.round_number > 1 AND al.assignment_status = 'completed' AND al.budget_year = ? AND al.is_sandbox = ?
+        JOIN screening_results sl ON al.assignment_id = sl.assignment_id AND sl.is_sandbox = ?
+        JOIN (
+            SELECT target_cid, MAX(round_number) as max_round
+            FROM task_assignments
+            WHERE assignment_status = 'completed' AND budget_year = ? AND is_sandbox = ?
+            GROUP BY target_cid
+        ) max_a ON al.target_cid = max_a.target_cid AND al.round_number = max_a.max_round
+        WHERE (? = 0 OR al.round_number = ?)
+          AND (? = '' OR DATE(sl.created_at) >= ?)
+          AND (? = '' OR DATE(sl.created_at) <= ?)
+          AND p.hoscode IN ($inPlaceholders)
+        ORDER BY sl.created_at DESC
+    ");
+    $ncdBeforeAfterStmt->execute(array_merge([
+        $selectedBudgetYear, $isSandboxVal, $isSandboxVal,
+        $selectedBudgetYear, $isSandboxVal, $isSandboxVal,
+        $selectedBudgetYear, $isSandboxVal,
+        $selectedRound, $selectedRound,
+        $dateFrom, $dateFrom, $dateTo, $dateTo
+    ], $hoscodes));
+    $ncdBeforeAfterData = $ncdBeforeAfterStmt->fetchAll(PDO::FETCH_ASSOC);
 }
-
-// Shared analytics filters. The unit selector can only narrow the units that
-// the signed-in administrator is already allowed to access.
-$allowedHoscodes = $hoscodes;
-$selectedHoscode = trim((string)($_GET['hoscode'] ?? ''));
-if ($selectedHoscode !== '' && in_array($selectedHoscode, $allowedHoscodes, true)) {
-    $hoscodes = [$selectedHoscode];
-    $inPlaceholders = '?';
-}
-
-$availableBudgetYears = [];
-try {
-    $availableBudgetYears = $pdo->query("
-        SELECT DISTINCT budget_year FROM task_assignments WHERE budget_year IS NOT NULL
-        UNION SELECT DISTINCT budget_year FROM dpac_enrollments WHERE budget_year IS NOT NULL
-        ORDER BY budget_year DESC
-    ")->fetchAll(PDO::FETCH_COLUMN);
-} catch (\Throwable $e) {}
-$defaultBudgetYear = !empty($availableBudgetYears) ? (int)$availableBudgetYears[0] : (int)date('Y');
-$selectedBudgetYear = isset($_GET['budget_year']) && ctype_digit((string)$_GET['budget_year'])
-    ? (int)$_GET['budget_year'] : $defaultBudgetYear;
-$selectedRound = isset($_GET['round']) && ctype_digit((string)$_GET['round']) ? max(0, (int)$_GET['round']) : 0;
-$dateFromInput = (string)($_GET['date_from'] ?? '');
-$dateToInput = (string)($_GET['date_to'] ?? '');
-$dateFrom = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFromInput) ? $dateFromInput : '';
-$dateTo = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateToInput) ? $dateToInput : '';
-
-// 1. Before-After Query for DPAC progress tracking
-$beforeAfterStmt = $pdo->prepare("
-    SELECT 
-        e.enrollment_id,
-        e.risk_type,
-        p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
-        f1.bp_sys AS sbp_before, f1.bp_dia AS dbp_before, f1.fbs AS fbs_before, f1.health_risk_level AS risk_before,
-        fl.bp_sys AS sbp_after, fl.bp_dia AS dbp_after, fl.fbs AS fbs_after, fl.health_risk_level AS risk_after,
-        fl.round_number AS latest_round
-    FROM dpac_enrollments e
-    JOIN target_population p ON e.cid = p.cid
-    JOIN dpac_followups f1 ON e.enrollment_id = f1.enrollment_id AND f1.round_number = 1 AND f1.status = 'completed' AND f1.is_sandbox = ?
-    JOIN dpac_followups fl ON e.enrollment_id = fl.enrollment_id AND fl.status = 'completed' AND fl.is_sandbox = ?
-    JOIN (
-        SELECT enrollment_id, MAX(round_number) as max_round
-        FROM dpac_followups
-        WHERE status = 'completed' AND is_sandbox = ?
-        GROUP BY enrollment_id
-    ) max_f ON fl.enrollment_id = max_f.enrollment_id AND fl.round_number = max_f.max_round
-    WHERE max_f.max_round > 1 AND e.budget_year = ? AND p.hoscode IN ($inPlaceholders)
-    ORDER BY fl.completed_at DESC
-");
-$beforeAfterStmt->execute(array_merge([$isSandboxVal, $isSandboxVal, $isSandboxVal, $selectedBudgetYear], $hoscodes));
-$beforeAfterData = $beforeAfterStmt->fetchAll(PDO::FETCH_ASSOC);
-
-// NCD Multi-Round Re-screening Before-After Query (Round 1 vs Latest Round)
-$ncdBeforeAfterStmt = $pdo->prepare("
-    SELECT 
-        p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
-        s1.sys_bp1 AS sbp_r1, s1.dia_bp1 AS dbp_r1, s1.dtx_value AS dtx_r1, s1.bmi AS bmi_r1, s1.created_at AS date_r1,
-        sl.sys_bp1 AS sbp_latest, sl.dia_bp1 AS dbp_latest, sl.dtx_value AS dtx_latest, sl.bmi AS bmi_latest, sl.created_at AS date_latest,
-        al.round_number AS latest_round
-    FROM target_population p
-    JOIN task_assignments a1 ON p.cid = a1.target_cid AND a1.round_number = 1 AND a1.assignment_status = 'completed' AND a1.budget_year = ? AND a1.is_sandbox = ?
-    JOIN screening_results s1 ON a1.assignment_id = s1.assignment_id AND s1.is_sandbox = ?
-    JOIN task_assignments al ON p.cid = al.target_cid AND al.round_number > 1 AND al.assignment_status = 'completed' AND al.budget_year = ? AND al.is_sandbox = ?
-    JOIN screening_results sl ON al.assignment_id = sl.assignment_id AND sl.is_sandbox = ?
-    JOIN (
-        SELECT target_cid, MAX(round_number) as max_round
-        FROM task_assignments
-        WHERE assignment_status = 'completed' AND budget_year = ? AND is_sandbox = ?
-        GROUP BY target_cid
-    ) max_a ON al.target_cid = max_a.target_cid AND al.round_number = max_a.max_round
-    WHERE (? = 0 OR al.round_number = ?)
-      AND (? = '' OR DATE(sl.created_at) >= ?)
-      AND (? = '' OR DATE(sl.created_at) <= ?)
-      AND p.hoscode IN ($inPlaceholders)
-    ORDER BY sl.created_at DESC
-");
-$ncdBeforeAfterStmt->execute(array_merge([
-    $selectedBudgetYear, $isSandboxVal, $isSandboxVal,
-    $selectedBudgetYear, $isSandboxVal, $isSandboxVal,
-    $selectedBudgetYear, $isSandboxVal,
-    $selectedRound, $selectedRound,
-    $dateFrom, $dateFrom, $dateTo, $dateTo
-], $hoscodes));
-$ncdBeforeAfterData = $ncdBeforeAfterStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Operational funnel and action queues for the selected budget year.
 $funnelData = ['total_targets' => 0, 'r1_completed' => 0, 'r2_assigned' => 0, 'r2_completed' => 0, 'r3_completed' => 0];

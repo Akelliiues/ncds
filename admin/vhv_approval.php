@@ -97,9 +97,38 @@ function get_village_full_name($vhid_code, $moo) {
 
     $name = $villages[$tambon][$moo] ?? '';
     return $name ? "หมู่ที่ {$moo} {$name}" : "หมู่ที่ {$moo}";
-}
+require_once __DIR__ . '/../config/demo_data.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+if (DemoDataProvider::isDemoMode()) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+        $action = $_POST['action'];
+        $target_vhv_id = $_POST['target_vhv_id'] ?? '';
+
+        if ($action === 'check_leader') {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'ok']);
+            exit();
+        }
+
+        if ($action === 'approve') {
+            DemoDataProvider::approveVhv($target_vhv_id);
+            $message = "จำลองการอนุมัติสิทธิ์การใช้งาน อสม. เรียบร้อยแล้ว (โหมดจำลอง)";
+        } elseif ($action === 'suspend') {
+            DemoDataProvider::rejectVhv($target_vhv_id);
+            $message = "จำลองการระงับสิทธิ์การใช้งาน อสม. เรียบร้อยแล้ว (โหมดจำลอง)";
+        } elseif ($action === 'toggle_hl_coach') {
+            DemoDataProvider::toggleHlCoach($target_vhv_id);
+            $message = "จำลองการอัปเดตสถานะ HL-Coach เรียบร้อยแล้ว (โหมดจำลอง)";
+        } elseif ($action === 'toggle_leader') {
+            DemoDataProvider::toggleVhvLeader($target_vhv_id);
+            $message = "จำลองการอัปเดตสถานะผู้นำ อสม. เรียบร้อยแล้ว (โหมดจำลอง)";
+        } elseif ($action === 'reset_password') {
+            $message = "จำลองการรีเซ็ตรหัสผ่านของ อสม. รายนี้เป็น '1234' เรียบร้อยแล้ว (โหมดจำลอง)";
+        } elseif ($action === 'delete') {
+            $message = "จำลองการลบข้อมูล อสม. เรียบร้อยแล้ว (โหมดจำลอง)";
+        }
+    }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
 
     if ($action === 'check_leader') {
@@ -382,43 +411,71 @@ try {
         $where_approved[] = "is_hl_coach = 1";
     }
 
-    // 1. Fetch counts for tab badges
-    $count_pending_query = "SELECT COUNT(*) FROM vhv_users WHERE " . implode(" AND ", $where_pending);
-    $count_approved_query = "SELECT COUNT(*) FROM vhv_users WHERE " . implode(" AND ", $where_approved);
+    if (DemoDataProvider::isDemoMode()) {
+        $allMock = DemoDataProvider::getMockVhvs();
+        $pendingMock = [];
+        $approvedMock = [];
+        foreach ($allMock as $v) {
+            $isApproved = ($v['status'] === 'approved');
+            $mooMatch = ($moo_filter === '' || intval($v['moo']) === intval($moo_filter));
+            $roleMatch = true;
+            if ($role_filter === 'leader_moo' && ($v['is_leader'] ?? 0) != 1) $roleMatch = false;
+            elseif ($role_filter === 'hl_coach' && ($v['is_hl_coach'] ?? 0) != 1) $roleMatch = false;
+            elseif ($role_filter === 'member' && ($v['is_leader'] ?? 0) != 0) $roleMatch = false;
 
-    $stmt = $pdo->prepare($count_pending_query);
-    $stmt->execute($params_pending);
-    $total_pending = $stmt->fetchColumn();
-
-    $stmt = $pdo->prepare($count_approved_query);
-    $stmt->execute($params_approved);
-    $total_approved = $stmt->fetchColumn();
-
-    // 2. Fetch records for active tab only
-    $total_records = ($tab === 'approved') ? $total_approved : $total_pending;
-    $total_pages = ceil($total_records / $limit);
-
-    // Guard page overflow
-    if ($page > $total_pages && $total_pages > 0) {
-        $page = $total_pages;
-        $offset = ($page - 1) * $limit;
-    }
-
-    if ($tab === 'approved') {
-        $active_query = "SELECT * FROM vhv_users WHERE " . implode(" AND ", $where_approved) . " ORDER BY vhv_name ASC LIMIT $limit OFFSET $offset";
-        $active_params = $params_approved;
+            if ($mooMatch && $roleMatch) {
+                if ($isApproved) {
+                    $approvedMock[] = $v;
+                } else {
+                    $pendingMock[] = $v;
+                }
+            }
+        }
+        $total_pending = count($pendingMock);
+        $total_approved = count($approvedMock);
+        $total_records = ($tab === 'approved') ? $total_approved : $total_pending;
+        $total_pages = 1;
+        $pending_list = ($tab === 'pending') ? $pendingMock : [];
+        $approved_list = ($tab === 'approved') ? $approvedMock : [];
     } else {
-        $active_query = "SELECT * FROM vhv_users WHERE " . implode(" AND ", $where_pending) . " ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
-        $active_params = $params_pending;
+        // 1. Fetch counts for tab badges
+        $count_pending_query = "SELECT COUNT(*) FROM vhv_users WHERE " . implode(" AND ", $where_pending);
+        $count_approved_query = "SELECT COUNT(*) FROM vhv_users WHERE " . implode(" AND ", $where_approved);
+
+        $stmt = $pdo->prepare($count_pending_query);
+        $stmt->execute($params_pending);
+        $total_pending = $stmt->fetchColumn();
+
+        $stmt = $pdo->prepare($count_approved_query);
+        $stmt->execute($params_approved);
+        $total_approved = $stmt->fetchColumn();
+
+        // 2. Fetch records for active tab only
+        $total_records = ($tab === 'approved') ? $total_approved : $total_pending;
+        $total_pages = ceil($total_records / $limit);
+
+        // Guard page overflow
+        if ($page > $total_pages && $total_pages > 0) {
+            $page = $total_pages;
+            $offset = ($page - 1) * $limit;
+        }
+
+        if ($tab === 'approved') {
+            $active_query = "SELECT * FROM vhv_users WHERE " . implode(" AND ", $where_approved) . " ORDER BY vhv_name ASC LIMIT $limit OFFSET $offset";
+            $active_params = $params_approved;
+        } else {
+            $active_query = "SELECT * FROM vhv_users WHERE " . implode(" AND ", $where_pending) . " ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
+            $active_params = $params_pending;
+        }
+
+        $stmt = $pdo->prepare($active_query);
+        $stmt->execute($active_params);
+        $active_list = $stmt->fetchAll();
+
+        // Map $pending_list and $approved_list to work with existing HTML code
+        $pending_list = ($tab === 'pending') ? $active_list : [];
+        $approved_list = ($tab === 'approved') ? $active_list : [];
     }
-
-    $stmt = $pdo->prepare($active_query);
-    $stmt->execute($active_params);
-    $active_list = $stmt->fetchAll();
-
-    // Map $pending_list and $approved_list to work with existing HTML code
-    $pending_list = ($tab === 'pending') ? $active_list : [];
-    $approved_list = ($tab === 'approved') ? $active_list : [];
 } catch (\PDOException $e) {
     $error = "เกิดข้อผิดพลาดในการโหลดข้อมูล: " . $e->getMessage();
     $pending_list = [];

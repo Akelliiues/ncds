@@ -1,7 +1,17 @@
 <?php
 // api/assign_tasks.php
-require_once __DIR__ . '/../config/session.php';
-header('Content-Type: application/json');
+require_once __DIR__ . '/../config/demo_data.php';
+
+if (DemoDataProvider::isDemoMode()) {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $vhvId = $data['vhv_id'] ?? '';
+    $cids = $data['target_cids'] ?? [];
+    foreach ($cids as $cid) {
+        DemoDataProvider::assignTarget($cid, $vhvId);
+    }
+    echo json_encode(['status' => 'success', 'message' => 'จำลองการมอบหมายงานสำเร็จ ' . count($cids) . ' ราย (โหมดจำลอง)'], JSON_UNESCAPED_UNICODE);
+    exit();
+}
 
 if (!isset($_SESSION['admin_logged_in'])) {
     echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);

@@ -604,4 +604,359 @@ class DemoDataProvider {
         }
         return $list;
     }
+
+    // 6. รายชื่อ อสม. จำลองทั้งหมด 5 หมู่บ้าน สำหรับงานบริหาร (Admin/Staff)
+    public static function getMockVhvs() {
+        $baseVhvs = [
+            [
+                'vhv_id' => 'DEMO_1001',
+                'username' => 'vhv_moo1_1',
+                'vhv_name' => 'อสม. สมชาย ใจดี (จำลอง)',
+                'moo' => 1,
+                'village_name' => 'บ้านตาลสุม (จำลอง)',
+                'vhid_code' => '34100101',
+                'hoscode' => '99999',
+                'phone' => '081-234-5671',
+                'is_leader' => 1,
+                'is_hl_coach' => 1,
+                'status' => 'approved',
+                'assigned_count' => 50,
+                'completed_count' => 42,
+                'dpac_count' => 12
+            ],
+            [
+                'vhv_id' => 'DEMO_1002',
+                'username' => 'vhv_moo2_1',
+                'vhv_name' => 'อสม. สายสมร มีสุข (จำลอง)',
+                'moo' => 2,
+                'village_name' => 'บ้านดอนใหญ่ (จำลอง)',
+                'vhid_code' => '34100102',
+                'hoscode' => '99999',
+                'phone' => '082-345-6782',
+                'is_leader' => 0,
+                'is_hl_coach' => 1,
+                'status' => 'approved',
+                'assigned_count' => 60,
+                'completed_count' => 45,
+                'dpac_count' => 15
+            ],
+            [
+                'vhv_id' => 'DEMO_1003',
+                'username' => 'vhv_moo3_1',
+                'vhv_name' => 'อสม. บุญทัน เจริญดี (จำลอง)',
+                'moo' => 3,
+                'village_name' => 'บ้านโคกสว่าง (จำลอง)',
+                'vhid_code' => '34100103',
+                'hoscode' => '99999',
+                'phone' => '083-456-7893',
+                'is_leader' => 1,
+                'is_hl_coach' => 0,
+                'status' => 'approved',
+                'assigned_count' => 45,
+                'completed_count' => 32,
+                'dpac_count' => 8
+            ],
+            [
+                'vhv_id' => 'DEMO_1004',
+                'username' => 'vhv_moo4_1',
+                'vhv_name' => 'อสม. ชาญชัย มั่นคง (จำลอง)',
+                'moo' => 4,
+                'village_name' => 'บ้านนาเจริญ (จำลอง)',
+                'vhid_code' => '34100104',
+                'hoscode' => '99999',
+                'phone' => '084-567-8904',
+                'is_leader' => 0,
+                'is_hl_coach' => 0,
+                'status' => 'approved',
+                'assigned_count' => 55,
+                'completed_count' => 38,
+                'dpac_count' => 10
+            ],
+            [
+                'vhv_id' => 'DEMO_1005',
+                'username' => 'vhv_moo5_1',
+                'vhv_name' => 'อสม. วนิดา สดใส (จำลอง)',
+                'moo' => 5,
+                'village_name' => 'บ้านโนนงาม (จำลอง)',
+                'vhid_code' => '34100105',
+                'hoscode' => '99999',
+                'phone' => '085-678-9015',
+                'is_leader' => 0,
+                'is_hl_coach' => 1,
+                'status' => 'approved',
+                'assigned_count' => 40,
+                'completed_count' => 28,
+                'dpac_count' => 7
+            ],
+            [
+                'vhv_id' => 'DEMO_1006',
+                'username' => 'vhv_new_1',
+                'vhv_name' => 'อสม. สมใจ รักเรียน (จำลอง)',
+                'moo' => 1,
+                'village_name' => 'บ้านตาลสุม (จำลอง)',
+                'vhid_code' => '34100101',
+                'hoscode' => '99999',
+                'phone' => '086-789-0126',
+                'is_leader' => 0,
+                'is_hl_coach' => 0,
+                'status' => 'pending',
+                'assigned_count' => 0,
+                'completed_count' => 0,
+                'dpac_count' => 0
+            ],
+            [
+                'vhv_id' => 'DEMO_1007',
+                'username' => 'vhv_new_2',
+                'vhv_name' => 'อสม. ประนอม ศรีสวัสดิ์ (จำลอง)',
+                'moo' => 3,
+                'village_name' => 'บ้านโคกสว่าง (จำลอง)',
+                'vhid_code' => '34100103',
+                'hoscode' => '99999',
+                'phone' => '087-890-1237',
+                'is_leader' => 0,
+                'is_hl_coach' => 0,
+                'status' => 'pending',
+                'assigned_count' => 0,
+                'completed_count' => 0,
+                'dpac_count' => 0
+            ]
+        ];
+
+        // Apply session mutations
+        foreach ($baseVhvs as &$v) {
+            $vid = $v['vhv_id'];
+            if (isset($_SESSION['demo_vhvs_hl_coach'][$vid])) {
+                $v['is_hl_coach'] = $_SESSION['demo_vhvs_hl_coach'][$vid] ? 1 : 0;
+            }
+            if (isset($_SESSION['demo_vhvs_leader'][$vid])) {
+                $v['is_leader'] = $_SESSION['demo_vhvs_leader'][$vid] ? 1 : 0;
+            }
+            if (isset($_SESSION['demo_vhvs_status'][$vid])) {
+                $v['status'] = $_SESSION['demo_vhvs_status'][$vid];
+            }
+        }
+        unset($v);
+
+        return $baseVhvs;
+    }
+
+    // 7. รายชื่อ อสม. ที่รอการอนุมัติ (Pending Approval)
+    public static function getMockPendingVhvs() {
+        $all = self::getMockVhvs();
+        return array_values(array_filter($all, function($v) {
+            return ($v['status'] ?? '') === 'pending';
+        }));
+    }
+
+    // 8. การจัดการประชากรเป้าหมายจำลองพร้อมสถานะ เปิด/ปิด (Target Population with Active Toggle)
+    public static function getMockTargetPopulation() {
+        $targets = self::getMockTargets();
+        foreach ($targets as &$t) {
+            $cid = $t['cid'];
+            // Session toggle for active/inactive target
+            $t['is_active'] = $_SESSION['demo_target_status'][$cid] ?? 1;
+            $t['hoscode'] = '99999';
+            $t['vhid_code'] = '3410010' . $t['moo'];
+            $t['sub_district_code'] = '341001';
+        }
+        unset($t);
+        return $targets;
+    }
+
+    // 9. ข้อมูลสำหรับการวิเคราะห์และชาร์ตทั้งหมด (Complete Analytics & Multi-Round Comparisons)
+    public static function getMockAnalyticsData() {
+        return [
+            'beforeAfterData' => [
+                [
+                    'enrollment_id' => 'DEMO_ENROLL_1',
+                    'cid' => '9999900000003',
+                    'first_name' => 'บุญมี',
+                    'last_name' => 'มีโชค (จำลอง)',
+                    'house_no' => '88',
+                    'moo' => '2',
+                    'hoscode' => '99999',
+                    'risk_type' => 'BOTH',
+                    'sbp_before' => 162,
+                    'dbp_before' => 98,
+                    'fbs_before' => 195,
+                    'risk_before' => 'high_risk',
+                    'sbp_after' => 138,
+                    'dbp_after' => 86,
+                    'fbs_after' => 145,
+                    'risk_after' => 'risk',
+                    'latest_round' => 2
+                ],
+                [
+                    'enrollment_id' => 'DEMO_ENROLL_2',
+                    'cid' => '9999900000002',
+                    'first_name' => 'สมศรี',
+                    'last_name' => 'สุขสรรค์ (จำลอง)',
+                    'house_no' => '45/2',
+                    'moo' => '1',
+                    'hoscode' => '99999',
+                    'risk_type' => 'BOTH',
+                    'sbp_before' => 158,
+                    'dbp_before' => 96,
+                    'fbs_before' => 175,
+                    'risk_before' => 'high_risk',
+                    'sbp_after' => 132,
+                    'dbp_after' => 84,
+                    'fbs_after' => 128,
+                    'risk_after' => 'risk',
+                    'latest_round' => 2
+                ],
+                [
+                    'enrollment_id' => 'DEMO_ENROLL_3',
+                    'cid' => '9999900000005',
+                    'first_name' => 'วิชัย',
+                    'last_name' => 'มั่นคง (จำลอง)',
+                    'house_no' => '15/3',
+                    'moo' => '3',
+                    'hoscode' => '99999',
+                    'risk_type' => 'BOTH',
+                    'sbp_before' => 162,
+                    'dbp_before' => 98,
+                    'fbs_before' => 210,
+                    'risk_before' => 'high_risk',
+                    'sbp_after' => 140,
+                    'dbp_after' => 88,
+                    'fbs_after' => 155,
+                    'risk_after' => 'risk',
+                    'latest_round' => 2
+                ]
+            ],
+            'ncdMultiRoundData' => [
+                [
+                    'cid' => '9999900000003',
+                    'first_name' => 'บุญมี',
+                    'last_name' => 'มีโชค (จำลอง)',
+                    'house_no' => '88',
+                    'moo' => '2',
+                    'hoscode' => '99999',
+                    'sbp_r1' => 162,
+                    'dbp_r1' => 98,
+                    'dtx_r1' => 195,
+                    'bmi_r1' => 27.5,
+                    'sbp_r2' => 138,
+                    'dbp_r2' => 86,
+                    'dtx_r2' => 145,
+                    'bmi_r2' => 25.8,
+                    'trend_label' => 'improved',
+                    'r1_date' => '2025-11-10',
+                    'r2_date' => '2026-02-15'
+                ],
+                [
+                    'cid' => '9999900000004',
+                    'first_name' => 'ทองสุข',
+                    'last_name' => 'สดใส (จำลอง)',
+                    'house_no' => '101',
+                    'moo' => '2',
+                    'hoscode' => '99999',
+                    'sbp_r1' => 118,
+                    'dbp_r1' => 76,
+                    'dtx_r1' => 95,
+                    'bmi_r1' => 21.2,
+                    'sbp_r2' => 116,
+                    'dbp_r2' => 74,
+                    'dtx_r2' => 92,
+                    'bmi_r2' => 21.0,
+                    'trend_label' => 'stable',
+                    'r1_date' => '2025-11-12',
+                    'r2_date' => '2026-02-18'
+                ],
+                [
+                    'cid' => '9999900000001',
+                    'first_name' => 'สมชาย',
+                    'last_name' => 'ใจดี (จำลอง)',
+                    'house_no' => '12/1',
+                    'moo' => '1',
+                    'hoscode' => '99999',
+                    'sbp_r1' => 136,
+                    'dbp_r1' => 86,
+                    'dtx_r1' => 116,
+                    'bmi_r1' => 24.2,
+                    'sbp_r2' => 126,
+                    'dbp_r2' => 80,
+                    'dtx_r2' => 104,
+                    'bmi_r2' => 23.5,
+                    'trend_label' => 'improved',
+                    'r1_date' => '2025-11-05',
+                    'r2_date' => '2026-02-10'
+                ]
+            ],
+            'roundComparisonSummary' => [
+                'total_re_screened' => 64,
+                'improved' => 38,
+                'improved_percent' => 59.4,
+                'stable' => 18,
+                'stable_percent' => 28.1,
+                'worsened' => 8,
+                'worsened_percent' => 12.5
+            ],
+            'riskStratification' => [
+                'low' => ['label' => '< 10% (ความเสี่ยงต่ำ)', 'count' => 120, 'percent' => 64.9, 'color' => '#10B981'],
+                'moderate' => ['label' => '10 - 20% (ความเสี่ยงปานกลาง)', 'count' => 35, 'percent' => 18.9, 'color' => '#F59E0B'],
+                'high' => ['label' => '20 - 30% (ความเสี่ยงสูง)', 'count' => 18, 'percent' => 9.7, 'color' => '#EA580C'],
+                'very_high' => ['label' => '30 - 40% (ความเสี่ยงสูงมาก)', 'count' => 8, 'percent' => 4.3, 'color' => '#DC2626'],
+                'critical' => ['label' => '> 40% (อันตรายสูงรุนแรง)', 'count' => 4, 'percent' => 2.2, 'color' => '#7F1D1D']
+            ],
+            'bmiDistribution' => [
+                'underweight' => ['label' => 'ผอม (< 18.5)', 'count' => 12, 'percent' => 6.5],
+                'normal'      => ['label' => 'ปกติ (18.5 - 22.9)', 'count' => 88, 'percent' => 47.6],
+                'overweight'  => ['label' => 'ท้วม (23.0 - 24.9)', 'count' => 46, 'percent' => 24.9],
+                'obese_1'     => ['label' => 'อ้วนระดับ 1 (25.0 - 29.9)', 'count' => 28, 'percent' => 15.1],
+                'obese_2'     => ['label' => 'อ้วนอันตราย (>= 30.0)', 'count' => 11, 'percent' => 5.9]
+            ],
+            'lifestyleStats' => [
+                'diet_sweet' => 48,
+                'diet_salty' => 62,
+                'diet_fatty' => 38,
+                'exercise_regular' => 74,
+                'exercise_none' => 111,
+                'stress_high' => 26,
+                'smoking_active' => 32,
+                'alcohol_regular' => 28
+            ]
+        ];
+    }
+
+    // 10. Helper Functions สำหรับการสลับสถานะจำลอง (Simulation Mutators - Session Only)
+    public static function toggleTargetStatus($cid) {
+        if (!isset($_SESSION['demo_target_status'])) $_SESSION['demo_target_status'] = [];
+        $current = $_SESSION['demo_target_status'][$cid] ?? 1;
+        $_SESSION['demo_target_status'][$cid] = ($current == 1) ? 0 : 1;
+        return $_SESSION['demo_target_status'][$cid];
+    }
+
+    public static function toggleHlCoach($vhvId) {
+        if (!isset($_SESSION['demo_vhvs_hl_coach'])) $_SESSION['demo_vhvs_hl_coach'] = [];
+        $current = $_SESSION['demo_vhvs_hl_coach'][$vhvId] ?? 0;
+        $_SESSION['demo_vhvs_hl_coach'][$vhvId] = ($current == 1) ? 0 : 1;
+        return $_SESSION['demo_vhvs_hl_coach'][$vhvId];
+    }
+
+    public static function toggleVhvLeader($vhvId) {
+        if (!isset($_SESSION['demo_vhvs_leader'])) $_SESSION['demo_vhvs_leader'] = [];
+        $current = $_SESSION['demo_vhvs_leader'][$vhvId] ?? 0;
+        $_SESSION['demo_vhvs_leader'][$vhvId] = ($current == 1) ? 0 : 1;
+        return $_SESSION['demo_vhvs_leader'][$vhvId];
+    }
+
+    public static function approveVhv($vhvId) {
+        if (!isset($_SESSION['demo_vhvs_status'])) $_SESSION['demo_vhvs_status'] = [];
+        $_SESSION['demo_vhvs_status'][$vhvId] = 'approved';
+        return true;
+    }
+
+    public static function rejectVhv($vhvId) {
+        if (!isset($_SESSION['demo_vhvs_status'])) $_SESSION['demo_vhvs_status'] = [];
+        $_SESSION['demo_vhvs_status'][$vhvId] = 'rejected';
+        return true;
+    }
+
+    public static function assignTarget($cid, $vhvId) {
+        if (!isset($_SESSION['demo_assignments'])) $_SESSION['demo_assignments'] = [];
+        $_SESSION['demo_assignments'][$cid] = $vhvId;
+        return true;
+    }
 }

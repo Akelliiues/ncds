@@ -6,8 +6,57 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../config/demo_data.php';
 
 if (DemoDataProvider::isDemoMode()) {
-    $demoTasks = DemoDataProvider::getDemoVhvTasks();
-    echo json_encode($demoTasks['pending'], JSON_UNESCAPED_UNICODE);
+    $allTargets = DemoDataProvider::getMockTargets();
+    $mockTasks = [];
+    foreach ($allTargets as $idx => $t) {
+        $isCompleted = ($idx >= 3);
+        $mockTasks[] = [
+            'task_type' => ($idx === 2 ? 'dpac' : 'screen'),
+            'task_id' => 'DEMO_TASK_' . ($idx + 1),
+            'assignment_status' => ($isCompleted ? 'completed' : 'pending'),
+            'is_sandbox' => 1,
+            'assigned_at' => date('Y-m-d H:i:s', strtotime('-5 days')),
+            'round_number' => $t['round_number'] ?? 1,
+            'risk_type' => ($idx === 2 ? 'BOTH' : null),
+            'cid' => $t['cid'],
+            'first_name' => $t['first_name'],
+            'last_name' => $t['last_name'],
+            'house_no' => $t['house_no'],
+            'moo' => $t['moo'],
+            'age' => $t['age'],
+            'screening_id' => ($isCompleted ? 'DEMO_SCR_' . ($idx + 1) : null),
+            'sys_bp1' => $t['last_sbp'] ?? 120,
+            'dia_bp1' => $t['last_dbp'] ?? 80,
+            'sys_bp2' => null,
+            'dia_bp2' => null,
+            'dtx_value' => $t['last_dtx'] ?? 100,
+            'dtx_type' => $t['last_dtx_type'] ?? 'fpg',
+            'weight' => 62.5,
+            'height' => 165,
+            'waist' => 78,
+            'bmi' => 22.95,
+            'cv_risk_score' => ($idx % 3 == 0 ? 12.5 : 4.2),
+            'diet_risk' => 1,
+            'exercise_risk' => 0,
+            'stress_risk' => 0,
+            'smoking_risk' => 0,
+            'alcohol_risk' => 0,
+            'skipped_reason' => null,
+            'advice_given' => 'แนะนำปรับพฤติกรรม 3อ. 2ส. และลดอาหารเค็ม',
+            'screened_at' => ($isCompleted ? date('Y-m-d H:i:s', strtotime('-1 days')) : null),
+            'screening_lat' => 15.4325,
+            'screening_lng' => 104.9815,
+            'prev_sys_bp1' => 135,
+            'prev_dia_bp1' => 85,
+            'prev_dtx_value' => 110,
+            'prev_round_number' => 1
+        ];
+    echo json_encode([
+        'status' => 'success',
+        'vhv_name' => 'อสม. จำลอง (โหมดทดสอบ)',
+        'is_sandbox' => 1,
+        'tasks' => $mockTasks
+    ], JSON_UNESCAPED_UNICODE);
     exit();
 }
 
