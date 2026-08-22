@@ -1,13 +1,14 @@
 <?php
 // vhv/screening_form.php
 require_once __DIR__ . '/../config/session.php';
+require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/demo_banner.php';
+require_once __DIR__ . '/../config/demo_data.php';
 
 if (!isset($_SESSION['vhv_id'])) {
     header("Location: ../index.php");
     exit();
 }
-
-require_once __DIR__ . '/../config/demo_banner.php';
 
 $isShell = isset($_GET['shell']) && $_GET['shell'] === 'true';
 $hid = $_GET['hid'] ?? '';
@@ -23,8 +24,6 @@ $hoscode = $_SESSION['hoscode'] ?? null;
 $residents = [];
 $history = [];
 
-require_once __DIR__ . '/../config/demo_data.php';
-
 if (DemoDataProvider::isDemoMode()) {
     $allDemo = DemoDataProvider::getDemoVhvTasks()['pending'];
     if (!empty($cid)) {
@@ -34,8 +33,6 @@ if (DemoDataProvider::isDemoMode()) {
         $residents = $allDemo;
     }
 } elseif (!$isShell) {
-    require_once __DIR__ . '/../config/db.php';
-    
     // Auto-assign task if no pending assignment exists yet
     $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
     if (!empty($hid)) {
