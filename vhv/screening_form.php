@@ -1943,22 +1943,22 @@ if (DemoDataProvider::isDemoMode()) {
             document.getElementById('advice_given').value = selected.join(', ');
         }
 
-        // Full-Screen Counseling Summary Modal Implementation (Theme-Consistent & Plain Language)
+        // Full-Screen Counseling Summary Modal Implementation (Theme-Consistent, Compact & Ultra-Clear)
         function showCounselingSummaryModal(data) {
             const meta = data.summary_metadata || {};
             
             document.getElementById('summary-resident-name').innerText = meta.resident_name || (selectedResident ? selectedResident.name : 'ผู้รับการคัดกรอง');
             
-            // 1. สภาวะสุขภาพปัจจุบัน (Hero Badge & Qualitative Status)
+            // สภาวะสุขภาพปัจจุบัน (Hero Badge & Qualitative Status)
             const badge = document.getElementById('summary-risk-badge');
             badge.innerText = meta.risk_title || '🟢 สุขภาพปกติ';
             badge.style.background = meta.risk_color ? meta.risk_color + '20' : 'rgba(16,185,129,0.15)';
             badge.style.color = meta.risk_color || 'var(--color-green, #10B981)';
             badge.style.border = `2px solid ${meta.risk_color || 'var(--color-green, #10B981)'}`;
 
-            document.getElementById('summary-status-desc').innerText = meta.status_desc || 'ค่าความดันและน้ำตาลอยู่ในเกณฑ์มาตรฐาน';
+            document.getElementById('summary-status-desc').innerText = meta.status_desc || 'ค่าความดันและน้ำตาลอยู่ในเกณฑ์มาตรฐาน สุขภาพแข็งแรงดี';
 
-            // Qualitative Summary (เข้าใจง่าย ไม่แสดงตัวเลข)
+            // Qualitative Summary (ตัวหนังสือใหญ่เด่นชัด เข้าใจง่ายทันที)
             const grid = document.getElementById('summary-results-grid');
             const sbpVal = meta.sbp || 0;
             const dbpVal = meta.dbp || 0;
@@ -1966,79 +1966,113 @@ if (DemoDataProvider::isDemoMode()) {
             const bmiVal = meta.bmi || 0;
             const waistVal = meta.waist || 0;
 
-            // BP Label
-            let bpLabel = 'ระดับความดันปกติ';
+            // BP Status
+            let bpBadge = '🟢 ปกติ';
+            let bpSub = 'ความดันอยู่ในเกณฑ์ดี';
             let bpColor = 'var(--color-green, #10B981)';
+            let bpBg = 'rgba(16, 185, 129, 0.12)';
             if (sbpVal >= 160 || dbpVal >= 100) {
-                bpLabel = 'ความดันสูง (ควรพบแพทย์)';
+                bpBadge = '🔴 สูงมาก';
+                bpSub = 'ควรพบแพทย์ รพ.สต.';
                 bpColor = 'var(--color-red, #EF4444)';
+                bpBg = 'rgba(239, 68, 68, 0.12)';
             } else if (sbpVal >= 140 || dbpVal >= 90) {
-                bpLabel = 'ความดันเริ่มสูง (กลุ่มเสี่ยง)';
+                bpBadge = '🟡 เริ่มสูง';
+                bpSub = 'กลุ่มเสี่ยงความดัน';
                 bpColor = 'var(--color-yellow, #F59E0B)';
+                bpBg = 'rgba(245, 158, 11, 0.12)';
             } else if (sbpVal >= 120 || dbpVal >= 80) {
-                bpLabel = 'ความดันค่อนข้างสูง';
+                bpBadge = '🟡 ค่อนข้างสูง';
+                bpSub = 'ระวังอาหารเค็ม';
                 bpColor = 'var(--color-yellow, #F59E0B)';
+                bpBg = 'rgba(245, 158, 11, 0.12)';
             }
 
-            // DTX Label
-            let dtxLabel = 'ระดับน้ำตาลปกติ';
+            // DTX Status
+            let dtxBadge = '🟢 ปกติ';
+            let dtxSub = 'ระดับน้ำตาลดีเยี่ยม';
             let dtxColor = 'var(--color-green, #10B981)';
+            let dtxBg = 'rgba(16, 185, 129, 0.12)';
             if (dtxVal >= 126) {
-                dtxLabel = 'น้ำตาลสูง (สงสัยเบาหวาน)';
+                dtxBadge = '🔴 สงสัยเบาหวาน';
+                dtxSub = 'ควรตรวจยืนยันที่ รพ.สต.';
                 dtxColor = 'var(--color-red, #EF4444)';
+                dtxBg = 'rgba(239, 68, 68, 0.12)';
             } else if (dtxVal >= 100) {
-                dtxLabel = 'น้ำตาลเริ่มสูง (กลุ่มเสี่ยง)';
+                dtxBadge = '🟡 เริ่มสูง';
+                dtxSub = 'กลุ่มเสี่ยงเบาหวาน';
                 dtxColor = 'var(--color-yellow, #F59E0B)';
+                dtxBg = 'rgba(245, 158, 11, 0.12)';
             } else if (dtxVal <= 0) {
-                dtxLabel = 'ไม่ได้ตรวจเจาะเลือด';
+                dtxBadge = '⚪ ไม่ได้เจาะตรวจ';
+                dtxSub = 'ไม่มีข้อมูลค่าน้ำตาล';
                 dtxColor = 'var(--text-muted, #94A3B8)';
+                dtxBg = 'rgba(148, 163, 184, 0.08)';
             }
 
-            // BMI Label
-            let bmiLabel = 'น้ำหนักสมส่วนปกติ';
+            // BMI Status
+            let bmiBadge = '🟢 สมส่วน';
+            let bmiSub = 'น้ำหนักมาตรฐาน';
             let bmiColor = 'var(--color-green, #10B981)';
+            let bmiBg = 'rgba(16, 185, 129, 0.12)';
             if (bmiVal >= 25) {
-                bmiLabel = 'ภาวะอ้วน (ควรคุมอาหาร)';
+                bmiBadge = '🔴 อ้วน';
+                bmiSub = 'ควรควบคุมอาหาร';
                 bmiColor = 'var(--color-red, #EF4444)';
+                bmiBg = 'rgba(239, 68, 68, 0.12)';
             } else if (bmiVal >= 23) {
-                bmiLabel = 'เริ่มท้วม / น้ำหนักเกิน';
+                bmiBadge = '🟡 เริ่มท้วม';
+                bmiSub = 'น้ำหนักเกินเกณฑ์';
                 bmiColor = 'var(--color-yellow, #F59E0B)';
+                bmiBg = 'rgba(245, 158, 11, 0.12)';
             } else if (bmiVal <= 0) {
-                bmiLabel = 'ไม่มีข้อมูลส่วนสูง/น้ำหนัก';
+                bmiBadge = '⚪ ไม่มีข้อมูล';
+                bmiSub = 'ไม่ได้ระบุน้ำหนัก/ส่วนสูง';
                 bmiColor = 'var(--text-muted, #94A3B8)';
+                bmiBg = 'rgba(148, 163, 184, 0.08)';
             }
 
-            // Waist Label
-            let waistLabel = 'รอบเอวสมส่วนมาตรฐาน';
+            // Waist Status
+            let waistBadge = '🟢 ปกติ';
+            let waistSub = 'รอบเอวมาตรฐาน';
             let waistColor = 'var(--color-green, #10B981)';
+            let waistBg = 'rgba(16, 185, 129, 0.12)';
             if (waistVal >= 36) {
-                waistLabel = 'รอบเอวเกินเกณฑ์ (เสี่ยงลงพุง)';
+                waistBadge = '🟡 เสี่ยงลงพุง';
+                waistSub = 'รอบเอวเกินเกณฑ์';
                 waistColor = 'var(--color-yellow, #F59E0B)';
+                waistBg = 'rgba(245, 158, 11, 0.12)';
             } else if (waistVal <= 0) {
-                waistLabel = 'ไม่ได้วัดรอบเอว';
+                waistBadge = '⚪ ไม่ได้วัด';
+                waistSub = 'ไม่มีข้อมูลรอบเอว';
                 waistColor = 'var(--text-muted, #94A3B8)';
+                waistBg = 'rgba(148, 163, 184, 0.08)';
             }
 
             grid.innerHTML = `
-                <div class="card-dark" style="padding: 12px; border-radius: var(--border-radius); text-align: center; background: var(--bg-darker); border: 1px solid var(--border-color, transparent);">
-                    <div style="font-size: 13px; color: var(--text-secondary); font-weight: 600; margin-bottom: 4px;">🩺 ความดันโลหิต</div>
-                    <div style="font-size: 15px; font-weight: 800; color: ${bpColor};">${bpLabel}</div>
+                <div class="card-dark" style="padding: 12px; border-radius: 14px; text-align: center; background: ${bpBg}; border: 1.5px solid ${bpColor};">
+                    <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 2px;">🩺 ความดันโลหิต</div>
+                    <div style="font-size: 20px; font-weight: 900; color: ${bpColor}; line-height: 1.2;">${bpBadge}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">${bpSub}</div>
                 </div>
-                <div class="card-dark" style="padding: 12px; border-radius: var(--border-radius); text-align: center; background: var(--bg-darker); border: 1px solid var(--border-color, transparent);">
-                    <div style="font-size: 13px; color: var(--text-secondary); font-weight: 600; margin-bottom: 4px;">🩸 ระดับน้ำตาลในเลือด</div>
-                    <div style="font-size: 15px; font-weight: 800; color: ${dtxColor};">${dtxLabel}</div>
+                <div class="card-dark" style="padding: 12px; border-radius: 14px; text-align: center; background: ${dtxBg}; border: 1.5px solid ${dtxColor};">
+                    <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 2px;">🩸 น้ำตาลในเลือด</div>
+                    <div style="font-size: 20px; font-weight: 900; color: ${dtxColor}; line-height: 1.2;">${dtxBadge}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">${dtxSub}</div>
                 </div>
-                <div class="card-dark" style="padding: 12px; border-radius: var(--border-radius); text-align: center; background: var(--bg-darker); border: 1px solid var(--border-color, transparent);">
-                    <div style="font-size: 13px; color: var(--text-secondary); font-weight: 600; margin-bottom: 4px;">⚖️ รูปร่าง / ดัชนีมวลกาย</div>
-                    <div style="font-size: 15px; font-weight: 800; color: ${bmiColor};">${bmiLabel}</div>
+                <div class="card-dark" style="padding: 12px; border-radius: 14px; text-align: center; background: ${bmiBg}; border: 1.5px solid ${bmiColor};">
+                    <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 2px;">⚖️ รูปร่าง / BMI</div>
+                    <div style="font-size: 20px; font-weight: 900; color: ${bmiColor}; line-height: 1.2;">${bmiBadge}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">${bmiSub}</div>
                 </div>
-                <div class="card-dark" style="padding: 12px; border-radius: var(--border-radius); text-align: center; background: var(--bg-darker); border: 1px solid var(--border-color, transparent);">
-                    <div style="font-size: 13px; color: var(--text-secondary); font-weight: 600; margin-bottom: 4px;">📏 สัดส่วนรอบเอว</div>
-                    <div style="font-size: 15px; font-weight: 800; color: ${waistColor};">${waistLabel}</div>
+                <div class="card-dark" style="padding: 12px; border-radius: 14px; text-align: center; background: ${waistBg}; border: 1.5px solid ${waistColor};">
+                    <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 2px;">📏 สัดส่วนรอบเอว</div>
+                    <div style="font-size: 20px; font-weight: 900; color: ${waistColor}; line-height: 1.2;">${waistBadge}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">${waistSub}</div>
                 </div>
             `;
 
-            // 2. Trend & Comparison Section (เปรียบเทียบกับรอบก่อนหน้า)
+            // Trend & Comparison Section (เปรียบเทียบกับรอบก่อนหน้า)
             const trendBadge = document.getElementById('summary-trend-badge');
             const trendDetailsContainer = document.getElementById('summary-trend-details');
             
@@ -2061,21 +2095,21 @@ if (DemoDataProvider::isDemoMode()) {
 
             let detailHtml = '';
             detailList.forEach(d => {
-                detailHtml += `<div style="font-size: 13.5px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;"><span>✓</span> <span>${d}</span></div>`;
+                detailHtml += `<div style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;"><span>✓</span> <span>${d}</span></div>`;
             });
             trendDetailsContainer.innerHTML = detailHtml;
 
-            // 3. Key Actions (สิ่งที่ต้องปรับเปลี่ยน - สั้น กระชับ ตัวใหญ่)
+            // Key Actions (สิ่งที่ต้องปรับเปลี่ยน - สั้น กระชับ ตัวใหญ่)
             const adviceContainer = document.getElementById('summary-advice-container');
             const adviceList = meta.advice_list || [];
             let adviceHtml = '';
             adviceList.forEach(item => {
                 adviceHtml += `
-                    <div class="card-dark" style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: var(--border-radius); background: var(--bg-darker); border-left: 5px solid var(--color-green, #10B981); margin-bottom: 8px; box-shadow: var(--neumorph-inset);">
-                        <span style="font-size: 28px; line-height: 1;">${item.icon || '💡'}</span>
+                    <div class="card-dark" style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: var(--border-radius); background: var(--bg-darker); border-left: 4px solid var(--color-green, #10B981); margin-bottom: 6px; box-shadow: var(--neumorph-inset);">
+                        <span style="font-size: 24px; line-height: 1;">${item.icon || '💡'}</span>
                         <div>
-                            <div style="font-weight: 800; font-size: 16px; color: var(--text-primary);">${item.title}</div>
-                            <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">${item.desc}</div>
+                            <div style="font-weight: 800; font-size: 15px; color: var(--text-primary);">${item.title}</div>
+                            <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 1px;">${item.desc}</div>
                         </div>
                     </div>
                 `;
@@ -2126,7 +2160,7 @@ if (DemoDataProvider::isDemoMode()) {
         });
     </script>
 
-    <!-- Full-Screen Counseling Summary Modal (System Theme Consistent) -->
+    <!-- Full-Screen Counseling Summary Modal (Compact & Clear UI) -->
     <div id="counseling-summary-modal" style="
         position: fixed;
         inset: 0;
@@ -2135,62 +2169,69 @@ if (DemoDataProvider::isDemoMode()) {
         color: var(--text-primary, #0d2c54);
         overflow-y: auto;
         display: none;
-        padding: 20px 16px 40px 16px;
+        padding: 12px 14px 30px 14px;
         box-sizing: border-box;
         font-family: var(--font-base, sans-serif);
     ">
-        <div style="max-width: 480px; margin: 0 auto;">
-            <!-- Header -->
-            <div class="card-dark" style="text-align: center; margin-bottom: 20px; padding: 20px; border-radius: var(--border-radius); box-shadow: var(--neumorph-flat); background: var(--bg-card);">
-                <div style="font-size: 34px; margin-bottom: 6px;">🩺</div>
-                <h2 style="font-size: 22px; font-weight: 800; color: var(--color-accent, #0d2c54); margin: 0 0 6px 0;">สรุปผลการคัดกรองสุขภาพ</h2>
-                <div id="summary-resident-name" style="font-size: 17px; color: var(--text-primary); font-weight: 700;">คุณ...</div>
+        <div style="max-width: 460px; margin: 0 auto;">
+            <!-- Compact Header -->
+            <div class="card-dark" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 10px 14px; border-radius: var(--border-radius); box-shadow: var(--neumorph-flat); background: var(--bg-card);">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 22px;">🩺</span>
+                    <div>
+                        <div style="font-size: 15px; font-weight: 800; color: var(--color-accent, #0d2c54); line-height: 1.2;">สรุปผลการคัดกรองสุขภาพ</div>
+                        <div id="summary-resident-name" style="font-size: 13px; color: var(--text-secondary); font-weight: 700;">คุณ...</div>
+                    </div>
+                </div>
+                <span style="font-size: 11px; font-weight: 800; color: var(--color-green, #10B981); background: rgba(16, 185, 129, 0.15); padding: 4px 10px; border-radius: 8px; border: 1px solid var(--color-green, #10B981);">
+                    บันทึกสำเร็จ ✅
+                </span>
             </div>
 
-            <!-- 1. ผลการตรวจหลัก (Hero Card) -->
-            <div class="card-dark" style="background: var(--bg-card); border-radius: var(--border-radius); padding: 18px; margin-bottom: 18px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color, transparent);">
-                <div style="font-size: 13px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 10px;">
-                    1. สภาวะสุขภาพปัจจุบัน
+            <!-- ผลการตรวจสุขภาพหลัก (Hero Card) -->
+            <div class="card-dark" style="background: var(--bg-card); border-radius: var(--border-radius); padding: 14px; margin-bottom: 12px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color, transparent);">
+                <div style="font-size: 12.5px; font-weight: 800; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                    <span>🩺</span> <span>สภาวะสุขภาพปัจจุบัน</span>
                 </div>
-                <div id="summary-risk-badge" style="display: block; text-align: center; padding: 12px 16px; border-radius: 14px; font-weight: 900; font-size: 19px; margin-bottom: 10px; letter-spacing: -0.3px;">
+                <div id="summary-risk-badge" style="display: block; text-align: center; padding: 10px 14px; border-radius: 12px; font-weight: 900; font-size: 18px; margin-bottom: 8px; letter-spacing: -0.3px;">
                     <!-- Risk Title -->
                 </div>
-                <p id="summary-status-desc" style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin: 0 0 16px 0; text-align: center; font-weight: 600;">
+                <p id="summary-status-desc" style="font-size: 13px; color: var(--text-secondary); line-height: 1.4; margin: 0 0 12px 0; text-align: center; font-weight: 600;">
                     <!-- Status Desc -->
                 </p>
-                <div id="summary-results-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <!-- Metrics Summary (No numbers) -->
+                <div id="summary-results-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <!-- Metrics Summary (Prominent & Clear) -->
                 </div>
             </div>
 
-            <!-- 2. เปรียบเทียบกับรอบก่อนหน้า (Trend & Comparison) -->
-            <div class="card-dark" style="background: var(--bg-card); border-radius: var(--border-radius); padding: 18px; margin-bottom: 18px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color, transparent);">
-                <div style="font-size: 13px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 10px;">
-                    2. ผลเปรียบเทียบกับรอบก่อนหน้า
+            <!-- เปรียบเทียบกับรอบก่อนหน้า (Trend & Comparison) -->
+            <div class="card-dark" style="background: var(--bg-card); border-radius: var(--border-radius); padding: 14px; margin-bottom: 12px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color, transparent);">
+                <div style="font-size: 12.5px; font-weight: 800; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                    <span>🔄</span> <span>ผลเปรียบเทียบจากรอบก่อน</span>
                 </div>
-                <div id="summary-trend-badge" style="display: block; text-align: center; padding: 10px 14px; border-radius: 14px; font-weight: 800; font-size: 16px; margin-bottom: 12px;">
+                <div id="summary-trend-badge" style="display: block; text-align: center; padding: 8px 12px; border-radius: 12px; font-weight: 800; font-size: 15px; margin-bottom: 8px;">
                     <!-- Trend Badge -->
                 </div>
-                <div id="summary-trend-details" class="card-dark" style="display: flex; flex-direction: column; gap: 8px; background: var(--bg-darker); padding: 14px; border-radius: 14px; box-shadow: var(--neumorph-inset);">
+                <div id="summary-trend-details" class="card-dark" style="display: flex; flex-direction: column; gap: 6px; background: var(--bg-darker); padding: 10px 12px; border-radius: 12px; box-shadow: var(--neumorph-inset);">
                     <!-- Trend Comparison Details -->
                 </div>
             </div>
 
-            <!-- 3. สิ่งที่ต้องปรับเปลี่ยน (Key Health Actions) -->
-            <div class="card-dark" style="background: var(--bg-card); border-radius: var(--border-radius); padding: 18px; margin-bottom: 24px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color, transparent);">
-                <div style="font-size: 13px; font-weight: 800; color: var(--color-green, #10B981); text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
-                    <span>💡</span> <span>3. สิ่งที่ต้องปรับเปลี่ยน (3อ. 2ส.)</span>
+            <!-- ข้อแนะนำการดูแลสุขภาพ (Key Health Actions) -->
+            <div class="card-dark" style="background: var(--bg-card); border-radius: var(--border-radius); padding: 14px; margin-bottom: 16px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color, transparent);">
+                <div style="font-size: 12.5px; font-weight: 800; color: var(--color-green, #10B981); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                    <span>💡</span> <span>ข้อแนะนำการดูแลสุขภาพ (3อ. 2ส.)</span>
                 </div>
-                <div id="summary-advice-container" style="display: flex; flex-direction: column; gap: 4px;">
+                <div id="summary-advice-container" style="display: flex; flex-direction: column; gap: 2px;">
                     <!-- Advice Items -->
                 </div>
-                <div style="margin-top: 14px; font-size: 14px; color: var(--text-secondary); text-align: center; border-top: 1px dashed var(--border-color, #cbd5e1); padding-top: 12px; font-weight: 600;">
-                    📅 กำหนดนัดติดตามครั้งถัดไป: <strong id="summary-next-date" style="color: var(--color-accent, #0d2c54); font-weight: 800;">-</strong>
+                <div style="margin-top: 10px; font-size: 13px; color: var(--text-secondary); text-align: center; border-top: 1px dashed var(--border-color, #cbd5e1); padding-top: 8px; font-weight: 600;">
+                    📅 นัดติดตามครั้งถัดไป: <strong id="summary-next-date" style="color: var(--color-accent, #0d2c54); font-weight: 800;">-</strong>
                 </div>
             </div>
 
             <!-- Finish Button (Giant System CTA) -->
-            <button type="button" onclick="closeCounselingSummaryAndFinish()" class="btn-giant btn-giant-primary" style="margin: 0;">
+            <button type="button" onclick="closeCounselingSummaryAndFinish()" class="btn-giant btn-giant-primary" style="margin: 0; padding: 14px; font-size: 16px;">
                 ✅ รับทราบผลตรวจ และเสร็จสิ้นงาน
             </button>
         </div>
