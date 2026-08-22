@@ -263,73 +263,95 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </a>
             </div>
 
-            <!-- Demo Sandbox Mode Selector -->
-            <div style="margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--border-color, rgba(148, 163, 184, 0.25)); text-align: center;">
-                <div style="font-size: 12px; font-weight: 700; color: #F59E0B; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <!-- Collapsible Demo Sandbox Mode Trigger -->
+            <div style="margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border-color, rgba(148, 163, 184, 0.25)); text-align: center;">
+                <button type="button" id="btn-toggle-demo" onclick="toggleDemoSelector()" style="
+                    background: rgba(245, 158, 11, 0.07);
+                    border: 1px solid rgba(245, 158, 11, 0.35);
+                    color: #D97706;
+                    border-radius: 20px;
+                    padding: 7px 16px;
+                    font-size: 13px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 7px;
+                    transition: all 0.2s ease;
+                    outline: none;
+                " onmouseover="this.style.background='rgba(245, 158, 11, 0.14)'" onmouseout="this.style.background='rgba(245, 158, 11, 0.07)'">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg>
-                    <span>ทดลองใช้งานเสมือนจริง (Demo Sandbox)</span>
-                </div>
-                <div style="display: flex; gap: 10px; justify-content: center;">
-                    <a href="index.php?demo_role=vhv" style="
-                        flex: 1;
-                        background: var(--demo-vhv-bg, rgba(16, 185, 129, 0.08));
-                        border: 1.5px solid var(--color-green, #10B981);
-                        color: var(--color-green, #10B981);
-                        padding: 10px 8px;
-                        border-radius: 14px;
-                        font-size: 13px;
-                        font-weight: 700;
-                        text-decoration: none;
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        gap: 5px;
-                        transition: transform 0.15s ease, box-shadow 0.15s ease;
-                        box-shadow: 0 2px 6px rgba(16, 185, 129, 0.15);
-                    " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
-                        <div style="
-                            width: 36px;
-                            height: 36px;
-                            border-radius: 50%;
-                            background: rgba(16, 185, 129, 0.15);
+                    <span>ทดลองใช้งานระบบ (Demo Mode)</span>
+                    <span id="demo-chevron" style="font-size: 10px; transition: transform 0.2s ease;">▼</span>
+                </button>
+
+                <!-- Expandable Role Selection -->
+                <div id="demo-options-container" style="display: none; margin-top: 14px;">
+                    <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">
+                        เลือกบทบาทเพื่อทดลองใช้งาน (ไม่กระทบข้อมูลจริง):
+                    </div>
+                    <div style="display: flex; gap: 10px; justify-content: center;">
+                        <a href="index.php?demo_role=vhv" style="
+                            flex: 1;
+                            background: var(--demo-vhv-bg, rgba(16, 185, 129, 0.08));
+                            border: 1.5px solid var(--color-green, #10B981);
+                            color: var(--color-green, #10B981);
+                            padding: 10px 8px;
+                            border-radius: 14px;
+                            font-size: 13px;
+                            font-weight: 700;
+                            text-decoration: none;
                             display: flex;
+                            flex-direction: column;
                             align-items: center;
-                            justify-content: center;
-                        ">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M16 11h6"/></svg>
-                        </div>
-                        <span>อสม. (หมอคนที่ 1)</span>
-                    </a>
-                    <a href="index.php?demo_role=staff" style="
-                        flex: 1;
-                        background: var(--demo-staff-bg, rgba(59, 130, 246, 0.08));
-                        border: 1.5px solid var(--color-primary, #3B82F6);
-                        color: var(--color-primary, #3B82F6);
-                        padding: 10px 8px;
-                        border-radius: 14px;
-                        font-size: 13px;
-                        font-weight: 700;
-                        text-decoration: none;
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        gap: 5px;
-                        transition: transform 0.15s ease, box-shadow 0.15s ease;
-                        box-shadow: 0 2px 6px rgba(59, 130, 246, 0.15);
-                    " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
-                        <div style="
-                            width: 36px;
-                            height: 36px;
-                            border-radius: 50%;
-                            background: rgba(59, 130, 246, 0.15);
+                            gap: 5px;
+                            transition: transform 0.15s ease, box-shadow 0.15s ease;
+                            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.15);
+                        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                            <div style="
+                                width: 36px;
+                                height: 36px;
+                                border-radius: 50%;
+                                background: rgba(16, 185, 129, 0.15);
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            ">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M16 11h6"/></svg>
+                            </div>
+                            <span>อสม. (หมอคนที่ 1)</span>
+                        </a>
+                        <a href="index.php?demo_role=staff" style="
+                            flex: 1;
+                            background: var(--demo-staff-bg, rgba(59, 130, 246, 0.08));
+                            border: 1.5px solid var(--color-primary, #3B82F6);
+                            color: var(--color-primary, #3B82F6);
+                            padding: 10px 8px;
+                            border-radius: 14px;
+                            font-size: 13px;
+                            font-weight: 700;
+                            text-decoration: none;
                             display: flex;
+                            flex-direction: column;
                             align-items: center;
-                            justify-content: center;
-                        ">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 21v-4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4"/><path d="M10 9h4"/><path d="M12 7v4"/></svg>
-                        </div>
-                        <span>เจ้าหน้าที่ รพ.สต.</span>
-                    </a>
+                            gap: 5px;
+                            transition: transform 0.15s ease, box-shadow 0.15s ease;
+                            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.15);
+                        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                            <div style="
+                                width: 36px;
+                                height: 36px;
+                                border-radius: 50%;
+                                background: rgba(59, 130, 246, 0.15);
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            ">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 21v-4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4"/><path d="M10 9h4"/><path d="M12 7v4"/></svg>
+                            </div>
+                            <span>เจ้าหน้าที่ รพ.สต.</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -349,6 +371,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
     <?php require_once __DIR__ . '/config/dev_modal.php'; ?>
+
+    <script>
+        function toggleDemoSelector() {
+            const container = document.getElementById('demo-options-container');
+            const chevron = document.getElementById('demo-chevron');
+            if (container.style.display === 'none' || container.style.display === '') {
+                container.style.display = 'block';
+                chevron.innerText = '▲';
+            } else {
+                container.style.display = 'none';
+                chevron.innerText = '▼';
+            }
+        }
+    </script>
 </body>
 
 </html>
