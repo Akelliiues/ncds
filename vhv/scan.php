@@ -132,16 +132,30 @@ $presetHid = $_GET['hid'] ?? '';
             กดปุ่มเพื่อจำลองการสแกน QR Code เข้าสู่การคัดกรองตามโปรไฟล์สุขภาพที่ต้องการเปรียบเทียบ:
         </p>
         
-        <div style="display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; padding-right: 4px;">
+        <div style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; padding-right: 4px;">
             <?php 
             $mockTargetsList = DemoDataProvider::getMockTargets();
             $riskBadges = [
-                'high_risk' => ['label' => '🚨 เสี่ยงสูงมาก (BP/DTX สูง)', 'color' => '#DC2626', 'bg' => 'rgba(220,38,38,0.1)'],
-                'warning'   => ['label' => '⚠️ กลุ่มเสี่ยง (BP สูง/อ้วน)', 'color' => '#EA580C', 'bg' => 'rgba(234,88,12,0.1)'],
-                'normal'    => ['label' => '🟢 ปกติ (สุขภาพดี)', 'color' => '#10B981', 'bg' => 'rgba(16,185,129,0.1)'],
+                'high_risk'        => ['label' => '🚨 เสี่ยงสูงมาก (BP/DTX สูง)', 'color' => '#DC2626', 'bg' => 'rgba(220,38,38,0.1)'],
+                'warning'          => ['label' => '⚠️ กลุ่มเสี่ยง (BP สูง/อ้วน)', 'color' => '#EA580C', 'bg' => 'rgba(234,88,12,0.1)'],
+                'normal'           => ['label' => '🟢 ปกติ (สุขภาพดี)', 'color' => '#10B981', 'bg' => 'rgba(16,185,129,0.1)'],
+                'unassigned_lock'  => ['label' => '🔒 ยังไม่มอบหมาย (จำลองล็อค)', 'color' => '#D97706', 'bg' => 'rgba(245,158,11,0.12)'],
+                'outofarea_lock'   => ['label' => '🚫 สแกนข้ามเขต (จำลองล็อค)', 'color' => '#EF4444', 'bg' => 'rgba(239,68,68,0.12)']
             ];
             foreach ($mockTargetsList as $idx => $t): 
-                $badge = ($idx % 3 == 0) ? $riskBadges['high_risk'] : (($idx % 3 == 1) ? $riskBadges['warning'] : $riskBadges['normal']);
+                $healthCase = $t['health_case'] ?? '';
+                if ($healthCase === 'unassigned_lock' || ($t['assignment_status'] ?? '') === 'unassigned') {
+                    $badge = $riskBadges['unassigned_lock'];
+                } elseif ($healthCase === 'outofarea_lock' || ($t['assignment_status'] ?? '') === 'out_of_territory') {
+                    $badge = $riskBadges['outofarea_lock'];
+                } elseif ($idx % 3 == 0) {
+                    $badge = $riskBadges['high_risk'];
+                } elseif ($idx % 3 == 1) {
+                    $badge = $riskBadges['warning'];
+                } else {
+                    $badge = $riskBadges['normal'];
+                }
+                $isLockCase = in_array($healthCase, ['unassigned_lock', 'outofarea_lock']) || in_array($t['assignment_status'] ?? '', ['unassigned', 'out_of_territory']);
             ?>
             <div style="padding: 9px 12px; border-radius: 10px; background: var(--bg-card); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; gap: 8px;">
                 <div style="min-width: 0; flex: 1;">
@@ -156,10 +170,16 @@ $presetHid = $_GET['hid'] ?? '';
                     </div>
                 </div>
                 <div style="display: flex; gap: 4px; flex-shrink: 0;">
-                    <button type="button" onclick="goToForm('<?= htmlspecialchars($t['cid']) ?>')" class="btn-action" style="padding: 6px 10px; font-size: 11.5px; font-weight: bold; background: var(--color-primary); color: white; border: none; border-radius: 6px; cursor: pointer;">
-                        ⚡ คัดกรอง
-                    </button>
-                    <button type="button" onclick="showQrModal('<?= htmlspecialchars($t['cid']) ?>', 'คุณ<?= htmlspecialchars($t['first_name'] . ' ' . $t['last_name']) ?> (บ้าน <?= htmlspecialchars($t['house_no']) ?> ม.<?= htmlspecialchars($t['moo']) ?>)')" style="padding: 6px 8px; font-size: 11.5px; background: rgba(255,255,255,0.1); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;">
+                    <?php if ($isLockCase): ?>
+                        <button type="button" onclick="simulateScan('<?= htmlspecialchars($t['hid'] ?? $t['cid']) ?>')" class="btn-action" style="padding: 6px 10px; font-size: 11.5px; font-weight: bold; background: <?= ($healthCase === 'unassigned_lock' ? '#D97706' : '#EF4444') ?>; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            ⚡ ทดสอบล็อค
+                        </button>
+                    <?php else: ?>
+                        <button type="button" onclick="simulateScan('<?= htmlspecialchars($t['cid']) ?>')" class="btn-action" style="padding: 6px 10px; font-size: 11.5px; font-weight: bold; background: var(--color-primary); color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            ⚡ คัดกรอง
+                        </button>
+                    <?php endif; ?>
+                    <button type="button" onclick="showQrModal('<?= htmlspecialchars($t['hid'] ?? $t['cid']) ?>', 'คุณ<?= htmlspecialchars($t['first_name'] . ' ' . $t['last_name']) ?> (บ้าน <?= htmlspecialchars($t['house_no']) ?> ม.<?= htmlspecialchars($t['moo']) ?>)')" style="padding: 6px 8px; font-size: 11.5px; background: rgba(255,255,255,0.1); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;">
                         📷 QR
                     </button>
                 </div>

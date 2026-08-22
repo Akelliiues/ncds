@@ -156,50 +156,56 @@ class DemoDataProvider {
                 'demo_category' => 'moo3_unassigned'
             ],
 
-            // --- หมู่ 4: ล็อกการคัดกรองเพราะ "สแกนข้ามเขต" ---
+            // --- หมู่ 4: ล็อกการคัดกรองเพราะ "ยังไม่ได้รับมอบหมายงาน" ---
             [
-                'cid' => '9999900000007',
-                'first_name' => 'มานพ',
-                'last_name' => 'สมบูรณ์ (จำลอง)',
+                'hid' => '1007',
+                'cid' => '9999900001007',
+                'first_name' => 'อนันต์',
+                'last_name' => 'เจริญสุข (จำลอง)',
                 'sex' => '1',
                 'birth' => '1970-10-18',
                 'age' => 56,
-                'house_no' => '54',
+                'house_no' => '99/4',
                 'moo' => '4',
                 'tambon_name' => 'ตาลสุม (จำลอง)',
                 'need_screen_dm' => 1,
                 'need_screen_ht' => 1,
                 'health_status_origin' => 'BOTH',
-                'assignment_status' => 'out_of_territory',
+                'assignment_status' => 'unassigned',
                 'round_number' => 1,
-                'assigned_vhv' => 'อสม. ชาญชัย (เขต ม.4)',
+                'assigned_vhv' => '-',
                 'last_sbp' => 142,
                 'last_dbp' => 88,
                 'last_dtx' => 150,
                 'last_dtx_type' => 'fpg',
-                'demo_category' => 'moo4_outofarea'
+                'demo_category' => 'moo4_unassigned',
+                'health_case' => 'unassigned_lock'
             ],
+
+            // --- หมู่ 5: ล็อกการคัดกรองเพราะ "สแกนข้ามเขต" ---
             [
-                'cid' => '9999900000008',
-                'first_name' => 'สายใจ',
-                'last_name' => 'ยิ่งยง (จำลอง)',
+                'hid' => '1008',
+                'cid' => '9999900001008',
+                'first_name' => 'อุบล',
+                'last_name' => 'มีสุข (จำลอง)',
                 'sex' => '2',
                 'birth' => '1952-12-05',
                 'age' => 74,
-                'house_no' => '76/1',
-                'moo' => '4',
+                'house_no' => '23/2',
+                'moo' => '5',
                 'tambon_name' => 'ตาลสุม (จำลอง)',
                 'need_screen_dm' => 0,
                 'need_screen_ht' => 1,
                 'health_status_origin' => 'HT_ONLY',
                 'assignment_status' => 'out_of_territory',
                 'round_number' => 1,
-                'assigned_vhv' => 'อสม. ชาญชัย (เขต ม.4)',
+                'assigned_vhv' => 'อสม. วนิดา (เขต ม.5)',
                 'last_sbp' => 155,
                 'last_dbp' => 95,
                 'last_dtx' => 110,
                 'last_dtx_type' => 'fpg',
-                'demo_category' => 'moo4_outofarea'
+                'demo_category' => 'moo5_outofarea',
+                'health_case' => 'outofarea_lock'
             ],
 
             // --- หมู่ 5: ล็อกการคัดกรองเพราะ "สแกนข้ามเขต" ---

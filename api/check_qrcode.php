@@ -38,6 +38,7 @@ if (DemoDataProvider::isDemoMode()) {
     $matched = null;
     foreach ($targets as $t) {
         if ($t['cid'] === $hid || $t['cid'] === $cleanHid || 
+            (isset($t['hid']) && ($t['hid'] === $hid || $t['hid'] === $cleanHid)) ||
             $t['house_no'] === $hid || $t['house_no'] === $cleanHid || 
             (isset($t['assignment_id']) && ($t['assignment_id'] === $hid || $t['assignment_id'] === $cleanHid))) {
             $matched = $t;
@@ -47,16 +48,20 @@ if (DemoDataProvider::isDemoMode()) {
     
     // Special test code aliases
     if (!$matched) {
-        if (strpos($hid, 'DEMO_MOO1') !== false || $hid === 'DEMO_HOUSE_12_1' || $hid === 'DEMO_HID_1' || $cleanHid === '12/1' || $cleanHid === '45/2') {
+        if (strpos($hid, '1007') !== false || strpos($hid, '99/4') !== false || strpos($hid, 'อนันต์') !== false || $cleanHid === '99/4' || $hid === 'DEMO_HOUSE_99_4') {
+            $matched = $targets[6]; // อนันต์ เจริญสุข (ม.4)
+        } elseif (strpos($hid, '1008') !== false || strpos($hid, '23/2') !== false || strpos($hid, 'อุบล') !== false || $cleanHid === '23/2' || $hid === 'DEMO_HOUSE_23_2') {
+            $matched = $targets[7]; // อุบล มีสุข (ม.5)
+        } elseif (strpos($hid, 'DEMO_MOO1') !== false || $hid === 'DEMO_HOUSE_12_1' || $hid === 'DEMO_HID_1' || $cleanHid === '12/1' || $cleanHid === '45/2') {
             $matched = ($cleanHid === '45/2') ? $targets[1] : $targets[0];
         } elseif (strpos($hid, 'DEMO_MOO2') !== false || $hid === 'DEMO_HOUSE_88_2' || $hid === 'DEMO_HOUSE_101_2' || $cleanHid === '88' || $cleanHid === '101') {
             $matched = ($cleanHid === '101' || $hid === 'DEMO_HOUSE_101_2') ? $targets[3] : $targets[2];
         } elseif (strpos($hid, 'DEMO_MOO3') !== false || $hid === 'DEMO_HOUSE_15_3' || $hid === 'DEMO_HOUSE_22_3' || $cleanHid === '15/3' || $cleanHid === '22') {
             $matched = ($cleanHid === '22' || $hid === 'DEMO_HOUSE_22_3') ? $targets[5] : $targets[4];
         } elseif (strpos($hid, 'DEMO_MOO4') !== false || $hid === 'DEMO_HOUSE_54_4' || $hid === 'DEMO_HOUSE_76_4' || $cleanHid === '54' || $cleanHid === '76/1') {
-            $matched = ($cleanHid === '76/1' || $hid === 'DEMO_HOUSE_76_4') ? $targets[7] : $targets[6];
-        } elseif (strpos($hid, 'DEMO_MOO5') !== false || $hid === 'DEMO_HOUSE_9_5' || $hid === 'DEMO_HOUSE_33_5' || $hid === 'DEMO_HOUSE_LOCKED_999' || $cleanHid === '9/1' || $cleanHid === '33') {
-            $matched = ($cleanHid === '33' || $hid === 'DEMO_HOUSE_33_5') ? $targets[9] : $targets[8];
+            $matched = $targets[6];
+        } elseif (strpos($hid, 'DEMO_MOO5') !== false || $hid === 'DEMO_HOUSE_9_5' || $hid === 'DEMO_HOUSE_33_5' || $cleanHid === '9/1' || $cleanHid === '33') {
+            $matched = $targets[7];
         }
     }
 
@@ -64,6 +69,35 @@ if (DemoDataProvider::isDemoMode()) {
         $matched = $targets[0];
     }
 
+    // กรณีที่ 1: จำลองสถานการณ์ "ยังไม่ได้รับมอบหมายงาน" (อนันต์ เจริญสุข บ้าน 99/4 ม.4 HID 1007)
+    if (($matched['assignment_status'] ?? '') === 'unassigned' || ($matched['health_case'] ?? '') === 'unassigned_lock' || ($matched['hid'] ?? '') === '1007' || ($matched['house_no'] ?? '') === '99/4') {
+        echo json_encode([
+            'status' => 'error',
+            'error_code' => 'UNASSIGNED_TASK',
+            'moo' => $matched['moo'] ?? '4',
+            'lock_title' => 'ยังไม่ได้รับมอบหมายงาน (หมู่ ' . ($matched['moo'] ?? '4') . ')',
+            'message' => 'รหัสบ้านเลขที่ ' . htmlspecialchars($matched['house_no'] ?? '99/4') . ' ม.' . ($matched['moo'] ?? '4') . ' (คุณ' . htmlspecialchars($matched['first_name'] . ' ' . $matched['last_name']) . ') ยังไม่มีการมอบหมายงานในระบบ อสม.',
+            'sub_message' => 'กรุณาประสานเจ้าหน้าที่ รพ.สต. เพื่อทำการมอบหมายงานก่อนเริ่มคัดกรอง',
+            'is_demo' => true
+        ], JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+
+    // กรณีที่ 2: จำลองสถานการณ์ "สแกนข้ามเขตรับผิดชอบ" (อุบล มีสุข บ้าน 23/2 ม.5 HID 1008)
+    if (($matched['assignment_status'] ?? '') === 'out_of_territory' || ($matched['health_case'] ?? '') === 'outofarea_lock' || ($matched['hid'] ?? '') === '1008' || ($matched['house_no'] ?? '') === '23/2') {
+        echo json_encode([
+            'status' => 'error',
+            'error_code' => 'OUT_OF_TERRITORY',
+            'moo' => $matched['moo'] ?? '5',
+            'lock_title' => 'สแกนข้ามเขตรับผิดชอบ (หมู่ ' . ($matched['moo'] ?? '5') . ')',
+            'message' => 'รหัสบ้านเลขที่ ' . htmlspecialchars($matched['house_no'] ?? '23/2') . ' ม.' . ($matched['moo'] ?? '5') . ' (คุณ' . htmlspecialchars($matched['first_name'] . ' ' . $matched['last_name']) . ') อยู่นอกเขตพื้นที่รับผิดชอบของท่าน',
+            'sub_message' => 'ระบบได้บันทึกการพยายามเข้าถึงข้ามเขต และปฏิบัติตามมาตรการคุ้มครองข้อมูลส่วนบุคคล (PDPA)',
+            'is_demo' => true
+        ], JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+
+    // กรณีเคสทั่วไป (หมู่ 1, หมู่ 2): สแกนผ่านและเข้าสู่แบบฟอร์มคัดกรองได้ปกติ
     echo json_encode([
         'status' => 'success',
         'hid' => $matched['cid'],
