@@ -25,7 +25,10 @@ $history = [];
 
 require_once __DIR__ . '/../config/demo_data.php';
 
-if (DemoDataProvider::isDemoMode()) {
+$isDemo = DemoDataProvider::isDemoMode();
+$curResident = null;
+
+if ($isDemo) {
     $allDemo = DemoDataProvider::getDemoVhvTasks()['pending'];
     if (!empty($cid)) {
         $filtered = array_values(array_filter($allDemo, function($r) use ($cid) { return $r['cid'] === $cid; }));
@@ -33,6 +36,7 @@ if (DemoDataProvider::isDemoMode()) {
     } else {
         $residents = $allDemo;
     }
+    $curResident = !empty($residents) ? $residents[0] : null;
 } elseif (!$isShell) {
     require_once __DIR__ . '/../config/db.php';
     
@@ -365,12 +369,12 @@ if (DemoDataProvider::isDemoMode()) {
             </div>
         <?php else: ?>
             <form id="screening-form" action="" method="POST">
-                <input type="hidden" name="assignment_id" id="assignment_id" value="">
-                <input type="hidden" name="screening_lat" id="screening_lat" value="">
-                <input type="hidden" name="screening_lng" id="screening_lng" value="">
+                <input type="hidden" name="assignment_id" id="assignment_id" value="<?= ($isDemo && $curResident) ? htmlspecialchars($curResident['assignment_id']) : '' ?>">
+                <input type="hidden" name="screening_lat" id="screening_lat" value="<?= $isDemo ? '15.430000' : '' ?>">
+                <input type="hidden" name="screening_lng" id="screening_lng" value="<?= $isDemo ? '104.980000' : '' ?>">
 
                 <!-- STEP 1: Select Resident -->
-                <div id="step-resident" class="step-section active">
+                <div id="step-resident" class="step-section <?= $isDemo ? '' : 'active' ?>">
                     <span class="form-label-big">1. เลือกบุคคลที่ต้องการคัดกรอง</span>
                     
                     <div id="residents-container">
@@ -412,10 +416,12 @@ if (DemoDataProvider::isDemoMode()) {
                 </div>
 
                 <!-- STEP 2: Vital Signs & Measurements (Consolidated) -->
-                <div id="step-vital" class="step-section">
+                <div id="step-vital" class="step-section <?= $isDemo ? 'active' : '' ?>">
                     <div class="card-dark" style="padding: 16px; margin-bottom: 20px;">
                         <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">ชื่อผู้รับการคัดกรอง:</span>
-                        <div id="selected-resident-name" style="font-size: 20px; font-weight: 800; color: var(--color-accent); margin-top: 4px;"></div>
+                        <div id="selected-resident-name" style="font-size: 20px; font-weight: 800; color: var(--color-accent); margin-top: 4px;">
+                            <?= ($isDemo && $curResident) ? htmlspecialchars($curResident['first_name'] . ' ' . $curResident['last_name'] . ' (บ้านเลขที่ ' . $curResident['house_no'] . ')') : '' ?>
+                        </div>
                     </div>
 
                     <?php if (DemoDataProvider::isDemoMode()): ?>
@@ -471,28 +477,26 @@ if (DemoDataProvider::isDemoMode()) {
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                         <div>
                             <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 6px;">น้ำหนัก (กก.)</label>
-                            <input type="text" name="weight" id="weight" class="input-large" readonly onclick="openScrollPicker('weight', 'น้ำหนัก (กก.)', 30, 150, 60.0)" placeholder="0.0">
+                            <input type="text" name="weight" id="weight" class="input-large" readonly onclick="openScrollPicker('weight', 'น้ำหนัก (กก.)', 30, 150, 60.0)" value="<?= $isDemo ? '60.0' : '' ?>" placeholder="0.0">
                         </div>
                         <div>
                             <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 6px;">ส่วนสูง (ซม.)</label>
-                            <input type="text" name="height" id="height" class="input-large" readonly onclick="openScrollPicker('height', 'ส่วนสูง (ซม.)', 100, 220, 160.0)" placeholder="0.0">
+                            <input type="text" name="height" id="height" class="input-large" readonly onclick="openScrollPicker('height', 'ส่วนสูง (ซม.)', 100, 220, 160.0)" value="<?= $isDemo ? '165.0' : '' ?>" placeholder="0.0">
                         </div>
                     </div>
 
                     <div style="margin-bottom: 20px;">
                         <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 6px;">รอบเอว (นิ้ว)</label>
-                        <input type="text" name="waist" id="waist" class="input-large" readonly onclick="openScrollPicker('waist', 'รอบเอว (นิ้ว)', 20, 60, 30.0)" placeholder="0.0">
+                        <input type="text" name="waist" id="waist" class="input-large" readonly onclick="openScrollPicker('waist', 'รอบเอว (นิ้ว)', 20, 60, 30.0)" value="<?= $isDemo ? '30.0' : '' ?>" placeholder="0.0">
                     </div>
 
                     <!-- BMI Auto-Display -->
                     <div class="neumorph-inset" style="padding: 20px; border-radius: var(--border-radius); margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <span style="color: var(--text-secondary); font-size: 14px; font-weight: 600;">ค่าดัชนีมวลกาย (BMI)</span>
-                            <div id="bmi-display" style="font-size: 26px; font-weight: 800; color: var(--color-primary); margin-top: 4px;">0.00</div>
+                            <div id="bmi-display" style="font-size: 26px; font-weight: 800; color: var(--color-primary); margin-top: 4px;"><?= $isDemo ? '22.04' : '0.00' ?></div>
                         </div>
-                        <div id="bmi-status" class="badge" style="font-size: 14px; padding: 6px 12px; color: var(--text-secondary);">
-                            รอป้อนข้อมูล
-                        </div>
+                        <div id="bmi-status" class="badge" style="font-size: 14px; padding: 6px 12px; color: var(--text-secondary);"><?= $isDemo ? 'สมส่วน (ปกติ)' : 'รอป้อนข้อมูล' ?></div>
                     </div>
 
                     <!-- Blood Pressure section -->
@@ -502,27 +506,27 @@ if (DemoDataProvider::isDemoMode()) {
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                             <div>
                                 <label style="font-size: 13px; color: var(--text-secondary);">ครั้งที่ 1 ตัวบน (SYS)</label>
-                                <input type="text" name="sys_bp1" id="sys_bp1" class="input-large" readonly onclick="openNumPad('sys_bp1', 'ความดันตัวบน SYS1')" placeholder="0">
+                                <input type="text" name="sys_bp1" id="sys_bp1" class="input-large" readonly onclick="openNumPad('sys_bp1', 'ความดันตัวบน SYS1')" value="<?= $isDemo ? '118' : '' ?>" placeholder="0">
                             </div>
                             <div>
                                 <label style="font-size: 13px; color: var(--text-secondary);">ครั้งที่ 1 ตัวล่าง (DIA)</label>
-                                <input type="text" name="dia_bp1" id="dia_bp1" class="input-large" readonly onclick="openNumPad('dia_bp1', 'ความดันตัวล่าง DIA1')" placeholder="0">
+                                <input type="text" name="dia_bp1" id="dia_bp1" class="input-large" readonly onclick="openNumPad('dia_bp1', 'ความดันตัวล่าง DIA1')" value="<?= $isDemo ? '76' : '' ?>" placeholder="0">
                             </div>
                         </div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                             <div>
                                 <label style="font-size: 13px; color: var(--text-secondary);">ครั้งที่ 2 ตัวบน (SYS)</label>
-                                <input type="text" name="sys_bp2" id="sys_bp2" class="input-large" readonly onclick="openNumPad('sys_bp2', 'ความดันตัวบน SYS2')" placeholder="0">
+                                <input type="text" name="sys_bp2" id="sys_bp2" class="input-large" readonly onclick="openNumPad('sys_bp2', 'ความดันตัวบน SYS2')" value="<?= $isDemo ? '116' : '' ?>" placeholder="0">
                             </div>
                             <div>
                                 <label style="font-size: 13px; color: var(--text-secondary);">ครั้งที่ 2 ตัวล่าง (DIA)</label>
-                                <input type="text" name="dia_bp2" id="dia_bp2" class="input-large" readonly onclick="openNumPad('dia_bp2', 'ความดันตัวล่าง DIA2')" placeholder="0">
+                                <input type="text" name="dia_bp2" id="dia_bp2" class="input-large" readonly onclick="openNumPad('dia_bp2', 'ความดันตัวล่าง DIA2')" value="<?= $isDemo ? '74' : '' ?>" placeholder="0">
                             </div>
                         </div>
                     </div>
 
                     <!-- Blood Sugar DTX section -->
-                    <div id="section-dtx" style="display: none; margin-bottom: 24px;">
+                    <div id="section-dtx" style="display: <?= $isDemo ? 'block' : 'none' ?>; margin-bottom: 24px;">
                         <span style="color: var(--text-primary); font-size: 18px; font-weight: 800; display: block; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">🩸 วัดระดับน้ำตาลในเลือด (DTX)</span>
                         <div id="last-dtx-info" class="card-dark neumorph-inset" style="padding: 10px 14px; font-size: 13.5px; color: var(--color-accent); font-weight: 700; margin-bottom: 14px; display: none; border-radius: var(--border-radius);"></div>
                         <div style="margin-bottom: 12px;">
@@ -539,7 +543,7 @@ if (DemoDataProvider::isDemoMode()) {
                             </div>
                         </div>
                         <div>
-                            <input type="text" name="dtx_value" id="dtx_value" class="input-large" readonly onclick="openNumPad('dtx_value', 'ระดับน้ำตาล DTX')" placeholder="0">
+                            <input type="text" name="dtx_value" id="dtx_value" class="input-large" readonly onclick="openNumPad('dtx_value', 'ระดับน้ำตาล DTX')" value="<?= $isDemo ? '95' : '' ?>" placeholder="0">
                         </div>
                     </div>
 
@@ -871,8 +875,22 @@ if (DemoDataProvider::isDemoMode()) {
     </div>
 
     <script>
-        const isSandboxMode = <?= (isSandboxMode($hoscode) || DemoDataProvider::isDemoMode()) ? 'true' : 'false' ?>;
-        let selectedResident = null;
+        const isSandboxMode = <?= (isSandboxMode($hoscode) || $isDemo) ? 'true' : 'false' ?>;
+        let selectedResident = <?= ($isDemo && $curResident) ? json_encode([
+            'assignmentId' => $curResident['assignment_id'],
+            'name' => $curResident['first_name'] . ' ' . $curResident['last_name'],
+            'sex' => $curResident['sex'],
+            'age' => $curResident['age'] ?? 58,
+            'needDm' => true,
+            'needHt' => true,
+            'origin' => 'BOTH',
+            'homeLat' => 15.4300,
+            'homeLng' => 104.9800,
+            'lastSbp' => $curResident['last_sbp'] ?? 118,
+            'lastDbp' => $curResident['last_dbp'] ?? 76,
+            'lastDtx' => $curResident['last_dtx'] ?? 95,
+            'lastDtxType' => $curResident['last_dtx_type'] ?? 'fpg'
+        ], JSON_UNESCAPED_UNICODE) : 'null' ?>;
         let activeNumPad = null;
         let currentPickerInputId = null;
         let gpsLocation = { lat: 15.4300, lng: 104.9800 };
