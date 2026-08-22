@@ -1219,12 +1219,16 @@ if (DemoDataProvider::isDemoMode()) {
             // Deselect all
             document.querySelectorAll('.resident-card').forEach(c => {
                 c.classList.remove('selected');
-                c.querySelector('.select-indicator').innerText = '⚪';
+                const ind = c.querySelector('.select-indicator');
+                if (ind) ind.innerText = '⚪';
             });
 
             // Select active
-            card.classList.add('selected');
-            card.querySelector('.select-indicator').innerText = '🟡';
+            if (card && card.classList) {
+                card.classList.add('selected');
+                const ind = card.querySelector ? card.querySelector('.select-indicator') : null;
+                if (ind) ind.innerText = '🟡';
+            }
 
             // Store resident info
             const birthDate = new Date(birth);
