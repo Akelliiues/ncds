@@ -2665,15 +2665,24 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
 
             document.getElementById('summary-next-date').innerText = meta.next_appointment || (data.guidanceResult ? data.guidanceResult.next_visit_thai : '-');
 
-            // Render Clinical Guidance Card
+            // Render Clinical Guidance Card with Voice Coach Speaker
             const guidanceContainer = document.getElementById('summary-guidance-container');
-            if (guidanceContainer) {
-                if (data.guidanceResult && typeof ClinicalGuidance !== 'undefined') {
-                    guidanceContainer.innerHTML = ClinicalGuidance.renderGuidanceCard(data.guidanceResult);
-                    guidanceContainer.style.display = 'block';
-                } else {
-                    guidanceContainer.style.display = 'none';
+            if (guidanceContainer && typeof ClinicalGuidance !== 'undefined') {
+                let gRes = data.guidanceResult;
+                if (!gRes) {
+                    const sleepVal = document.querySelector('input[name="sleep_quality"]:checked')?.value || 'good';
+                    gRes = ClinicalGuidance.analyze({
+                        bp_sys: meta.sbp || parseInt(document.getElementById('sys_bp1')?.value) || 120,
+                        bp_dia: meta.dbp || parseInt(document.getElementById('dia_bp1')?.value) || 80,
+                        fbs: meta.dtx || parseInt(document.getElementById('dtx_value')?.value) || 100,
+                        weight: meta.weight || parseFloat(document.getElementById('weight')?.value) || 60,
+                        height: meta.height || parseFloat(document.getElementById('height')?.value) || 160,
+                        waist: meta.waist || parseFloat(document.getElementById('waist')?.value) || 80,
+                        sleep_quality: sleepVal
+                    });
                 }
+                guidanceContainer.innerHTML = ClinicalGuidance.renderGuidanceCard(gRes);
+                guidanceContainer.style.display = 'block';
             }
 
             document.getElementById('counseling-summary-modal').style.display = 'block';
