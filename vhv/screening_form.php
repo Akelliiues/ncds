@@ -2093,10 +2093,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             
             document.getElementById('summary-resident-name').innerText = resName;
             
-            // Header Strip and Hero Overall Health Card
-            const headerStrip = document.getElementById('summary-header-strip');
-            const headerIconBox = document.getElementById('summary-header-icon-box');
-            const riskPill = document.getElementById('summary-risk-pill');
+            // Hero Overall Health Card
             const heroCard = document.getElementById('summary-hero-card');
             const heroIcon = document.getElementById('summary-hero-icon');
             const heroTitle = document.getElementById('summary-hero-title');
@@ -2105,72 +2102,32 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             const riskLevel = meta.risk_level || 'green';
             if (riskLevel === 'red' || riskLevel === 'critical') {
                 // RED (แดง - วิกฤตด่วน)
-                if (headerStrip) {
-                    headerStrip.style.background = 'rgba(220, 38, 38, 0.14)';
-                    headerStrip.style.borderColor = 'rgba(220, 38, 38, 0.55)';
-                }
-                if (headerIconBox) headerIconBox.style.background = '#DC2626';
-                if (riskPill) {
-                    riskPill.style.background = '#DC2626';
-                    riskPill.innerText = '🔴 ระดับวิกฤต (ฉุกเฉิน)';
-                }
-
                 heroCard.style.background = 'linear-gradient(135deg, #DC2626 0%, #991B1B 100%)';
-                heroCard.style.boxShadow = '0 8px 24px rgba(220, 38, 38, 0.45)';
-                heroIcon.innerText = '🚨 🔴';
-                heroTitle.innerText = meta.risk_title || '🔴 ระดับวิกฤต (สูงรุนแรง - ส่งต่อด่วน)';
-                heroDesc.innerText = meta.status_desc || 'พบค่าสัญญาณชีพสูงวิกฤต เสี่ยงต่อภาวะแทรกซ้อนรุนแรง ต้องส่งต่อ รพ.สต./แพทย์ด่วน!';
+                heroCard.style.boxShadow = '0 10px 25px -5px rgba(220, 38, 38, 0.4)';
+                heroIcon.innerText = '🚨';
+                heroTitle.innerText = 'ระดับวิกฤต (ต้องพบแพทย์ทันที)';
+                heroDesc.innerText = 'พบค่าสัญญาณชีพสูงวิกฤต เสี่ยงภาวะแทรกซ้อน แนะนำส่งต่อแพทย์ รพ.สต. หรือโทร 1669 ด่วน';
             } else if (riskLevel === 'orange' || riskLevel === 'high_risk' || riskLevel === 'suspect') {
                 // ORANGE (ส้ม - เสี่ยงสูง สงสัยป่วย)
-                if (headerStrip) {
-                    headerStrip.style.background = 'rgba(234, 88, 12, 0.14)';
-                    headerStrip.style.borderColor = 'rgba(234, 88, 12, 0.55)';
-                }
-                if (headerIconBox) headerIconBox.style.background = '#EA580C';
-                if (riskPill) {
-                    riskPill.style.background = '#EA580C';
-                    riskPill.innerText = '🟠 เสี่ยงสูง (สงสัยป่วย)';
-                }
-
                 heroCard.style.background = 'linear-gradient(135deg, #EA580C 0%, #C2410C 100%)';
-                heroCard.style.boxShadow = '0 8px 24px rgba(234, 88, 12, 0.45)';
+                heroCard.style.boxShadow = '0 10px 25px -5px rgba(234, 88, 12, 0.4)';
                 heroIcon.innerText = '🟠';
-                heroTitle.innerText = meta.risk_title || '🟠 กลุ่มเสี่ยงสูง (สงสัยป่วย - ควรพบแพทย์)';
-                heroDesc.innerText = meta.status_desc || 'ความดันหรือน้ำตาลสูงเกินเกณฑ์ แนะนำตรวจยืนยันสภาวะโรคที่ รพ.สต.';
+                heroTitle.innerText = 'กลุ่มเสี่ยงสูง (สงสัยป่วย - ควรพบแพทย์)';
+                heroDesc.innerText = 'ความดันหรือน้ำตาลสูงเกินเกณฑ์มาตรฐาน ควรได้รับการตรวจยืนยันสภาวะโรคที่ รพ.สต.';
             } else if (riskLevel === 'yellow' || riskLevel === 'risk') {
                 // YELLOW (เหลือง - กลุ่มเสี่ยง เริ่มสูง)
-                if (headerStrip) {
-                    headerStrip.style.background = 'rgba(245, 158, 11, 0.14)';
-                    headerStrip.style.borderColor = 'rgba(245, 158, 11, 0.55)';
-                }
-                if (headerIconBox) headerIconBox.style.background = '#F59E0B';
-                if (riskPill) {
-                    riskPill.style.background = '#F59E0B';
-                    riskPill.innerText = '🟡 กลุ่มเสี่ยง (เริ่มสูง)';
-                }
-
                 heroCard.style.background = 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)';
-                heroCard.style.boxShadow = '0 8px 24px rgba(245, 158, 11, 0.4)';
+                heroCard.style.boxShadow = '0 10px 25px -5px rgba(245, 158, 11, 0.35)';
                 heroIcon.innerText = '🟡';
-                heroTitle.innerText = meta.risk_title || '🟡 กลุ่มเสี่ยง (เริ่มสูง - ปรับ 3อ. 2ส.)';
-                heroDesc.innerText = meta.status_desc || 'เริ่มมีความเสี่ยง ควรปรับอาหาร ลดเค็ม ลดหวาน และออกกำลังกาย';
+                heroTitle.innerText = 'กลุ่มเสี่ยง (เริ่มสูง - ปรับพฤติกรรม)';
+                heroDesc.innerText = 'ความดันหรือน้ำตาลเริ่มสูงกว่าเกณฑ์เล็กน้อย ควรปรับเปลี่ยนพฤติกรรมตามหลัก 3อ. 2ส.';
             } else {
                 // GREEN (เขียว - สุขภาพปกติ)
-                if (headerStrip) {
-                    headerStrip.style.background = 'rgba(16, 185, 129, 0.14)';
-                    headerStrip.style.borderColor = 'rgba(16, 185, 129, 0.55)';
-                }
-                if (headerIconBox) headerIconBox.style.background = '#10B981';
-                if (riskPill) {
-                    riskPill.style.background = '#10B981';
-                    riskPill.innerText = '🟢 สุขภาพปกติ (เกณฑ์ดี)';
-                }
-
                 heroCard.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
-                heroCard.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.35)';
+                heroCard.style.boxShadow = '0 10px 25px -5px rgba(16, 185, 129, 0.35)';
                 heroIcon.innerText = '🟢';
-                heroTitle.innerText = meta.risk_title || '🟢 สุขภาพปกติ (เกณฑ์ดีเยี่ยม)';
-                heroDesc.innerText = meta.status_desc || 'ค่าความดันโลหิตและระดับน้ำตาลอยู่ในเกณฑ์มาตรฐาน สุขภาพแข็งแรงดี';
+                heroTitle.innerText = 'สุขภาพปกติ (เกณฑ์ดีเยี่ยม)';
+                heroDesc.innerText = 'ค่าความดันโลหิตและระดับน้ำตาลอยู่ในเกณฑ์มาตรฐาน รักษาสุขภาพแข็งแรงต่อเนื่อง';
             }
 
             // 4 Health Cards Grid
@@ -2182,51 +2139,51 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             const waistVal = meta.waist || 0;
 
             // BP Status
-            let bpBadge = '🟢 ปกติ';
-            let bpSub = 'ความดันอยู่ในเกณฑ์ดี';
+            let bpBadge = 'ปกติ';
+            let bpSub = 'อยู่ในเกณฑ์ดี';
             let bpColor = '#10B981';
             let bpBg = 'rgba(16, 185, 129, 0.08)';
-            let bpBorder = 'rgba(16, 185, 129, 0.3)';
+            let bpBorder = 'rgba(16, 185, 129, 0.35)';
             if (sbpVal >= 160 || dbpVal >= 100) {
-                bpBadge = '🔴 สูงมาก';
+                bpBadge = 'สูงมาก';
                 bpSub = 'ควรพบแพทย์ รพ.สต.';
-                bpColor = '#EF4444';
-                bpBg = 'rgba(239, 68, 68, 0.08)';
-                bpBorder = 'rgba(239, 68, 68, 0.3)';
+                bpColor = '#DC2626';
+                bpBg = 'rgba(220, 38, 38, 0.08)';
+                bpBorder = 'rgba(220, 38, 38, 0.35)';
             } else if (sbpVal >= 140 || dbpVal >= 90) {
-                bpBadge = '🟡 เริ่มสูง';
+                bpBadge = 'เริ่มสูง';
                 bpSub = 'กลุ่มเสี่ยงความดัน';
-                bpColor = '#F59E0B';
-                bpBg = 'rgba(245, 158, 11, 0.08)';
-                bpBorder = 'rgba(245, 158, 11, 0.3)';
+                bpColor = '#EA580C';
+                bpBg = 'rgba(234, 88, 12, 0.08)';
+                bpBorder = 'rgba(234, 88, 12, 0.35)';
             } else if (sbpVal >= 120 || dbpVal >= 80) {
-                bpBadge = '🟡 ค่อนข้างสูง';
+                bpBadge = 'ค่อนข้างสูง';
                 bpSub = 'ระวังอาหารเค็ม';
                 bpColor = '#F59E0B';
                 bpBg = 'rgba(245, 158, 11, 0.08)';
-                bpBorder = 'rgba(245, 158, 11, 0.3)';
+                bpBorder = 'rgba(245, 158, 11, 0.35)';
             }
 
             // DTX Status
-            let dtxBadge = '🟢 ปกติ';
+            let dtxBadge = 'ปกติ';
             let dtxSub = 'ระดับน้ำตาลดีเยี่ยม';
             let dtxColor = '#10B981';
             let dtxBg = 'rgba(16, 185, 129, 0.08)';
-            let dtxBorder = 'rgba(16, 185, 129, 0.3)';
+            let dtxBorder = 'rgba(16, 185, 129, 0.35)';
             if (dtxVal >= 126) {
-                dtxBadge = '🔴 สงสัยเบาหวาน';
+                dtxBadge = 'สงสัยเบาหวาน';
                 dtxSub = 'ควรตรวจยืนยันที่ รพ.สต.';
-                dtxColor = '#EF4444';
-                dtxBg = 'rgba(239, 68, 68, 0.08)';
-                dtxBorder = 'rgba(239, 68, 68, 0.3)';
+                dtxColor = '#DC2626';
+                dtxBg = 'rgba(220, 38, 38, 0.08)';
+                dtxBorder = 'rgba(220, 38, 38, 0.35)';
             } else if (dtxVal >= 100) {
-                dtxBadge = '🟡 เริ่มสูง';
+                dtxBadge = 'เริ่มสูง';
                 dtxSub = 'กลุ่มเสี่ยงเบาหวาน';
                 dtxColor = '#F59E0B';
                 dtxBg = 'rgba(245, 158, 11, 0.08)';
-                dtxBorder = 'rgba(245, 158, 11, 0.3)';
+                dtxBorder = 'rgba(245, 158, 11, 0.35)';
             } else if (dtxVal <= 0) {
-                dtxBadge = '⚪ ไม่ได้ตรวจ';
+                dtxBadge = 'ไม่ได้ตรวจ';
                 dtxSub = 'ไม่มีข้อมูลค่าน้ำตาล';
                 dtxColor = '#94A3B8';
                 dtxBg = 'rgba(148, 163, 184, 0.06)';
@@ -2234,25 +2191,25 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             }
 
             // BMI Status
-            let bmiBadge = '🟢 สมส่วน';
+            let bmiBadge = 'สมส่วน';
             let bmiSub = 'น้ำหนักมาตรฐาน';
             let bmiColor = '#10B981';
             let bmiBg = 'rgba(16, 185, 129, 0.08)';
-            let bmiBorder = 'rgba(16, 185, 129, 0.3)';
+            let bmiBorder = 'rgba(16, 185, 129, 0.35)';
             if (bmiVal >= 25) {
-                bmiBadge = '🔴 อ้วน';
+                bmiBadge = 'อ้วน';
                 bmiSub = 'ควรควบคุมอาหาร';
-                bmiColor = '#EF4444';
-                bmiBg = 'rgba(239, 68, 68, 0.08)';
-                bmiBorder = 'rgba(239, 68, 68, 0.3)';
+                bmiColor = '#DC2626';
+                bmiBg = 'rgba(220, 38, 38, 0.08)';
+                bmiBorder = 'rgba(220, 38, 38, 0.35)';
             } else if (bmiVal >= 23) {
-                bmiBadge = '🟡 เริ่มท้วม';
+                bmiBadge = 'เริ่มท้วม';
                 bmiSub = 'น้ำหนักเกินเกณฑ์';
                 bmiColor = '#F59E0B';
                 bmiBg = 'rgba(245, 158, 11, 0.08)';
-                bmiBorder = 'rgba(245, 158, 11, 0.3)';
+                bmiBorder = 'rgba(245, 158, 11, 0.35)';
             } else if (bmiVal <= 0) {
-                bmiBadge = '⚪ ไม่มีข้อมูล';
+                bmiBadge = 'ไม่มีข้อมูล';
                 bmiSub = 'ไม่ได้ระบุน้ำหนัก';
                 bmiColor = '#94A3B8';
                 bmiBg = 'rgba(148, 163, 184, 0.06)';
@@ -2260,19 +2217,19 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             }
 
             // Waist Status
-            let waistBadge = '🟢 ปกติ';
+            let waistBadge = 'ปกติ';
             let waistSub = 'รอบเอวมาตรฐาน';
             let waistColor = '#10B981';
             let waistBg = 'rgba(16, 185, 129, 0.08)';
-            let waistBorder = 'rgba(16, 185, 129, 0.3)';
+            let waistBorder = 'rgba(16, 185, 129, 0.35)';
             if (waistVal >= 36) {
-                waistBadge = '🟡 เสี่ยงลงพุง';
+                waistBadge = 'เสี่ยงลงพุง';
                 waistSub = 'รอบเอวเกินเกณฑ์';
                 waistColor = '#F59E0B';
                 waistBg = 'rgba(245, 158, 11, 0.08)';
-                waistBorder = 'rgba(245, 158, 11, 0.3)';
+                waistBorder = 'rgba(245, 158, 11, 0.35)';
             } else if (waistVal <= 0) {
-                waistBadge = '⚪ ไม่ได้วัด';
+                waistBadge = 'ไม่ได้วัด';
                 waistSub = 'ไม่มีข้อมูลรอบเอว';
                 waistColor = '#94A3B8';
                 waistBg = 'rgba(148, 163, 184, 0.06)';
@@ -2280,25 +2237,25 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             }
 
             grid.innerHTML = `
-                <div style="background: ${bpBg}; border: 1.5px solid ${bpBorder}; border-radius: 14px; padding: 10px 8px; text-align: center;">
-                    <div style="font-size: 11.5px; color: var(--text-secondary); font-weight: 700;">🩺 ความดันโลหิต</div>
-                    <div style="font-size: 19px; font-weight: 900; color: ${bpColor}; margin: 2px 0;">${bpBadge}</div>
-                    <div style="font-size: 10.5px; color: var(--text-muted);">${bpSub}</div>
+                <div style="background: ${bpBg}; border: 1.5px solid ${bpBorder}; border-radius: 16px; padding: 12px 10px; text-align: center;">
+                    <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 2px;">🩺 ความดันโลหิต</div>
+                    <div style="font-size: 20px; font-weight: 900; color: ${bpColor}; line-height: 1.2; letter-spacing: -0.3px;">${bpBadge}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px; font-weight: 500;">${bpSub}</div>
                 </div>
-                <div style="background: ${dtxBg}; border: 1.5px solid ${dtxBorder}; border-radius: 14px; padding: 10px 8px; text-align: center;">
-                    <div style="font-size: 11.5px; color: var(--text-secondary); font-weight: 700;">🩸 น้ำตาลในเลือด</div>
-                    <div style="font-size: 19px; font-weight: 900; color: ${dtxColor}; margin: 2px 0;">${dtxBadge}</div>
-                    <div style="font-size: 10.5px; color: var(--text-muted);">${dtxSub}</div>
+                <div style="background: ${dtxBg}; border: 1.5px solid ${dtxBorder}; border-radius: 16px; padding: 12px 10px; text-align: center;">
+                    <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 2px;">🩸 น้ำตาลในเลือด</div>
+                    <div style="font-size: 20px; font-weight: 900; color: ${dtxColor}; line-height: 1.2; letter-spacing: -0.3px;">${dtxBadge}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px; font-weight: 500;">${dtxSub}</div>
                 </div>
-                <div style="background: ${bmiBg}; border: 1.5px solid ${bmiBorder}; border-radius: 14px; padding: 10px 8px; text-align: center;">
-                    <div style="font-size: 11.5px; color: var(--text-secondary); font-weight: 700;">⚖️ รูปร่าง / BMI</div>
-                    <div style="font-size: 19px; font-weight: 900; color: ${bmiColor}; margin: 2px 0;">${bmiBadge}</div>
-                    <div style="font-size: 10.5px; color: var(--text-muted);">${bmiSub}</div>
+                <div style="background: ${bmiBg}; border: 1.5px solid ${bmiBorder}; border-radius: 16px; padding: 12px 10px; text-align: center;">
+                    <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 2px;">⚖️ รูปร่าง / BMI</div>
+                    <div style="font-size: 20px; font-weight: 900; color: ${bmiColor}; line-height: 1.2; letter-spacing: -0.3px;">${bmiBadge}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px; font-weight: 500;">${bmiSub}</div>
                 </div>
-                <div style="background: ${waistBg}; border: 1.5px solid ${waistBorder}; border-radius: 14px; padding: 10px 8px; text-align: center;">
-                    <div style="font-size: 11.5px; color: var(--text-secondary); font-weight: 700;">📏 สัดส่วนรอบเอว</div>
-                    <div style="font-size: 19px; font-weight: 900; color: ${waistColor}; margin: 2px 0;">${waistBadge}</div>
-                    <div style="font-size: 10.5px; color: var(--text-muted);">${waistSub}</div>
+                <div style="background: ${waistBg}; border: 1.5px solid ${waistBorder}; border-radius: 16px; padding: 12px 10px; text-align: center;">
+                    <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 2px;">📏 สัดส่วนรอบเอว</div>
+                    <div style="font-size: 20px; font-weight: 900; color: ${waistColor}; line-height: 1.2; letter-spacing: -0.3px;">${waistBadge}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px; font-weight: 500;">${waistSub}</div>
                 </div>
             `;
 
@@ -2419,87 +2376,84 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             padding: 16px;
             box-sizing: border-box;
         ">
-            <!-- Dynamic Risk Header Strip (เขียว / เหลือง / ส้ม / แดง) -->
-            <div id="summary-header-strip" style="
+            <!-- Clean Top Bar Header -->
+            <div style="
                 display: flex; 
                 align-items: center; 
                 justify-content: space-between; 
-                margin-bottom: 12px; 
-                padding: 10px 12px; 
-                border-radius: 16px; 
-                background: rgba(16, 185, 129, 0.12); 
-                border: 1.5px solid rgba(16, 185, 129, 0.4); 
-                transition: all 0.3s ease;
+                margin-bottom: 14px; 
+                padding-bottom: 12px; 
+                border-bottom: 1px solid var(--border-color, rgba(148, 163, 184, 0.2));
             ">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <div id="summary-header-icon-box" style="width: 34px; height: 34px; border-radius: 50%; background: #10B981; display: flex; align-items: center; justify-content: center; color: white; font-size: 17px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 36px; height: 36px; border-radius: 12px; background: linear-gradient(135deg, var(--color-accent, #0d2c54), var(--color-primary, #3B82F6)); display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; box-shadow: 0 4px 10px rgba(13, 44, 84, 0.15);">
                         🩺
                     </div>
                     <div>
-                        <div style="font-size: 13px; font-weight: 800; color: var(--color-accent, #0d2c54); line-height: 1.2;">สรุปผลการคัดกรองสุขภาพ</div>
-                        <div id="summary-resident-name" style="font-size: 13.5px; color: var(--text-primary); font-weight: 900;">คุณ...</div>
+                        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.2px;">สรุปผลการคัดกรองสุขภาพ</div>
+                        <div id="summary-resident-name" style="font-size: 15px; color: var(--color-accent, #0d2c54); font-weight: 800; line-height: 1.2;">คุณ...</div>
                     </div>
                 </div>
-                <span id="summary-risk-pill" style="font-size: 11.5px; font-weight: 900; color: #FFFFFF; background: #10B981; padding: 5px 10px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); letter-spacing: -0.2px;">
-                    🟢 ปกติ (สุขภาพดี)
+                <span style="font-size: 11.5px; font-weight: 800; color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 5px 10px; border-radius: 10px; border: 1px solid rgba(16, 185, 129, 0.3);">
+                    บันทึกสำเร็จ ✅
                 </span>
             </div>
 
             <!-- Hero Overall Health Status Banner (Risk-Themed Gradient) -->
             <div id="summary-hero-card" style="
-                border-radius: 16px; 
-                padding: 14px 16px; 
-                margin-bottom: 12px; 
+                border-radius: 18px; 
+                padding: 16px 18px; 
+                margin-bottom: 16px; 
                 color: #FFFFFF; 
                 text-align: center;
                 transition: all 0.3s ease;
-                box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
+                box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.35);
             ">
-                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 4px;">
-                    <span id="summary-hero-icon" style="font-size: 22px;">🟢</span>
-                    <span id="summary-hero-title" style="font-size: 18.5px; font-weight: 900; letter-spacing: -0.3px; text-shadow: 0 1px 3px rgba(0,0,0,0.25);">สุขภาพปกติ (เกณฑ์ดีเยี่ยม)</span>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 5px;">
+                    <span id="summary-hero-icon" style="font-size: 24px;">🟢</span>
+                    <span id="summary-hero-title" style="font-size: 19px; font-weight: 900; letter-spacing: -0.3px; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">สุขภาพปกติ (เกณฑ์ดีเยี่ยม)</span>
                 </div>
-                <div id="summary-hero-desc" style="font-size: 12.5px; opacity: 0.95; line-height: 1.4; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.15);">
+                <div id="summary-hero-desc" style="font-size: 13px; opacity: 0.95; line-height: 1.5; font-weight: 500; text-wrap: balance; word-break: keep-all; text-shadow: 0 1px 2px rgba(0,0,0,0.15);">
                     ค่าความดันและน้ำตาลอยู่ในเกณฑ์มาตรฐาน สุขภาพแข็งแรงดี
                 </div>
             </div>
 
             <!-- 4 Health Cards Grid -->
-            <div style="margin-bottom: 12px;">
-                <div style="font-size: 12px; font-weight: 800; color: var(--text-secondary); display: flex; align-items: center; gap: 5px; margin-bottom: 6px;">
+            <div style="margin-bottom: 16px;">
+                <div style="font-size: 12.5px; font-weight: 800; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
                     <span>📊</span> <span>ผลตรวจสุขภาพ 4 ด้าน</span>
                 </div>
-                <div id="summary-results-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div id="summary-results-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <!-- 4 Metric Cards -->
                 </div>
             </div>
 
             <!-- Comparison with Previous Round -->
-            <div style="background: var(--bg-darker); border-radius: 14px; padding: 10px 12px; margin-bottom: 12px; box-shadow: var(--neumorph-inset); border: 1px solid var(--border-color, transparent);">
-                <div style="font-size: 11.5px; font-weight: 800; color: var(--text-secondary); display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                    <span style="display: flex; align-items: center; gap: 4px;"><span>🔄</span> <span>ผลเปรียบเทียบจากรอบก่อน</span></span>
-                    <span id="summary-trend-badge" style="font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 6px;">📈 ดีขึ้น</span>
+            <div style="background: var(--bg-darker); border-radius: 16px; padding: 12px 14px; margin-bottom: 16px; box-shadow: var(--neumorph-inset); border: 1px solid var(--border-color, transparent);">
+                <div style="font-size: 12px; font-weight: 800; color: var(--text-secondary); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="display: flex; align-items: center; gap: 5px;"><span>🔄</span> <span>ผลเปรียบเทียบจากรอบก่อน</span></span>
+                    <span id="summary-trend-badge" style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 8px;">📈 ดีขึ้น</span>
                 </div>
-                <div id="summary-trend-details" style="display: flex; flex-direction: column; gap: 4px;">
+                <div id="summary-trend-details" style="display: flex; flex-direction: column; gap: 5px;">
                     <!-- Trend Comparison Details -->
                 </div>
             </div>
 
             <!-- Key Lifestyle Actions (3อ. 2ส.) -->
-            <div style="margin-bottom: 14px;">
-                <div style="font-size: 12px; font-weight: 800; color: var(--color-green, #10B981); display: flex; align-items: center; gap: 4px; margin-bottom: 6px;">
+            <div style="margin-bottom: 18px;">
+                <div style="font-size: 12.5px; font-weight: 800; color: var(--color-green, #10B981); display: flex; align-items: center; gap: 5px; margin-bottom: 8px;">
                     <span>💡</span> <span>ข้อแนะนำการดูแลสุขภาพ (3อ. 2ส.)</span>
                 </div>
-                <div id="summary-advice-container" style="display: flex; flex-direction: column; gap: 2px;">
+                <div id="summary-advice-container" style="display: flex; flex-direction: column; gap: 6px;">
                     <!-- Advice Items -->
                 </div>
-                <div style="margin-top: 8px; font-size: 12px; color: var(--text-secondary); text-align: center; border-top: 1px dashed var(--border-color, rgba(148, 163, 184, 0.25)); padding-top: 6px; font-weight: 600;">
+                <div style="margin-top: 10px; font-size: 12px; color: var(--text-secondary); text-align: center; border-top: 1px dashed var(--border-color, rgba(148, 163, 184, 0.25)); padding-top: 8px; font-weight: 600;">
                     📅 นัดติดตามผลครั้งถัดไป: <strong id="summary-next-date" style="color: var(--color-accent, #0d2c54); font-weight: 800;">-</strong>
                 </div>
             </div>
 
             <!-- CTA Finish Button -->
-            <button type="button" onclick="closeCounselingSummaryAndFinish()" class="btn-giant btn-giant-primary" style="margin: 0; padding: 13px; font-size: 15px; border-radius: 14px; width: 100%; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">
+            <button type="button" onclick="closeCounselingSummaryAndFinish()" class="btn-giant btn-giant-primary" style="margin: 0; padding: 14px; font-size: 15.5px; border-radius: 16px; width: 100%; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35); font-weight: 800;">
                 ✅ รับทราบผลตรวจ และเสร็จสิ้นงาน
             </button>
         </div>
