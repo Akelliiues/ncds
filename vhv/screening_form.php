@@ -259,7 +259,124 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             display: none;
         }
 
-        /* Toggle groups grids */
+        /* Modern 3อ. 2ส. Lifestyle Selector Cards */
+        .behavior-grid-2x2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .behavior-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .behavior-grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .behavior-card-item {
+            position: relative;
+            cursor: pointer;
+            user-select: none;
+            display: block;
+        }
+        .behavior-card-item input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .behavior-card-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 12px 6px;
+            min-height: 80px;
+            background-color: var(--bg-card);
+            border: 1.5px solid var(--border-color, rgba(148, 163, 184, 0.2));
+            border-radius: 16px;
+            box-shadow: var(--neumorph-flat);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            box-sizing: border-box;
+        }
+        .behavior-card-icon {
+            font-size: 24px;
+            line-height: 1;
+            margin-bottom: 5px;
+            transition: transform 0.2s ease;
+        }
+        .behavior-card-title {
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1.25;
+            letter-spacing: -0.2px;
+        }
+        .behavior-card-desc {
+            font-size: 10.5px;
+            color: var(--text-muted);
+            margin-top: 2px;
+            line-height: 1.2;
+            font-weight: 600;
+        }
+
+        /* Checked State Styling by Color Tier */
+        .behavior-green input[type="radio"]:checked + .behavior-card-box {
+            background: rgba(16, 185, 129, 0.08) !important;
+            border-color: #10B981 !important;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25), var(--neumorph-inset) !important;
+        }
+        .behavior-green input[type="radio"]:checked + .behavior-card-box .behavior-card-title {
+            color: #10B981 !important;
+        }
+        .behavior-green input[type="radio"]:checked + .behavior-card-box .behavior-card-icon {
+            transform: scale(1.18);
+        }
+
+        .behavior-yellow input[type="radio"]:checked + .behavior-card-box {
+            background: rgba(245, 158, 11, 0.08) !important;
+            border-color: #F59E0B !important;
+            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25), var(--neumorph-inset) !important;
+        }
+        .behavior-yellow input[type="radio"]:checked + .behavior-card-box .behavior-card-title {
+            color: #D97706 !important;
+        }
+        .behavior-yellow input[type="radio"]:checked + .behavior-card-box .behavior-card-icon {
+            transform: scale(1.18);
+        }
+
+        .behavior-orange input[type="radio"]:checked + .behavior-card-box {
+            background: rgba(234, 88, 12, 0.08) !important;
+            border-color: #EA580C !important;
+            box-shadow: 0 4px 14px rgba(234, 88, 12, 0.25), var(--neumorph-inset) !important;
+        }
+        .behavior-orange input[type="radio"]:checked + .behavior-card-box .behavior-card-title {
+            color: #EA580C !important;
+        }
+        .behavior-orange input[type="radio"]:checked + .behavior-card-box .behavior-card-icon {
+            transform: scale(1.18);
+        }
+
+        .behavior-red input[type="radio"]:checked + .behavior-card-box {
+            background: rgba(220, 38, 38, 0.08) !important;
+            border-color: #DC2626 !important;
+            box-shadow: 0 4px 14px rgba(220, 38, 38, 0.25), var(--neumorph-inset) !important;
+        }
+        .behavior-red input[type="radio"]:checked + .behavior-card-box .behavior-card-title {
+            color: #DC2626 !important;
+        }
+        .behavior-red input[type="radio"]:checked + .behavior-card-box .behavior-card-icon {
+            transform: scale(1.18);
+        }
+
+        /* Toggle groups legacy */
         .toggle-group-4 {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -609,92 +726,157 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                     <!-- Behavior Toggles (3อ. 2ส.) -->
                     <span class="form-label-big" style="font-size: 18px; margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 15px;">🥗 พฤติกรรมสุขภาพ (3อ. 2ส.)</span>
 
+                    <!-- 1. อาหาร (Food Behavior - 2x2 Grid) -->
                     <div style="margin-bottom: 20px;">
-                        <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 8px;">🥬 อาหาร (เน้นรสหวาน มัน เค็ม)</label>
-                        <div class="toggle-group-4">
-                            <label class="toggle-item toggle-green">
+                        <label style="color: var(--text-secondary); font-size: 14.5px; font-weight: 700; display: block; margin-bottom: 8px;">🥬 อาหาร (เน้นรสหวาน มัน เค็ม)</label>
+                        <div class="behavior-grid-2x2">
+                            <label class="behavior-card-item behavior-green">
                                 <input type="radio" name="diet_risk" value="green" checked>
-                                <span class="toggle-label"><span class="dot"></span>🟢 ปกติ</span>
+                                <div class="behavior-card-box">
+                                    <span class="behavior-card-icon">🥗</span>
+                                    <div class="behavior-card-title">ทานปกติ</div>
+                                    <div class="behavior-card-desc">ครบ 5 หมู่ / ไม่จัด</div>
+                                </div>
                             </label>
-                            <label class="toggle-item toggle-yellow">
+                            <label class="behavior-card-item behavior-yellow">
                                 <input type="radio" name="diet_risk" value="yellow">
-                                <span class="toggle-label"><span class="dot"></span>🟡 ชอบหวาน</span>
+                                <div class="behavior-card-box">
+                                    <span class="behavior-card-icon">🍰</span>
+                                    <div class="behavior-card-title">ชอบหวาน</div>
+                                    <div class="behavior-card-desc">ขนม / น้ำหวาน / ชา</div>
+                                </div>
                             </label>
-                            <label class="toggle-item toggle-orange">
+                            <label class="behavior-card-item behavior-orange">
                                 <input type="radio" name="diet_risk" value="orange">
-                                <span class="toggle-label"><span class="dot"></span>🟠 ชอบมัน</span>
+                                <div class="behavior-card-box">
+                                    <span class="behavior-card-icon">🍟</span>
+                                    <div class="behavior-card-title">ชอบมัน</div>
+                                    <div class="behavior-card-desc">ของทอด / แกงกะทิ</div>
+                                </div>
                             </label>
-                            <label class="toggle-item toggle-red">
+                            <label class="behavior-card-item behavior-red">
                                 <input type="radio" name="diet_risk" value="red">
-                                <span class="toggle-label"><span class="dot"></span>🔴 ชอบเค็ม/ปลาร้า</span>
+                                <div class="behavior-card-box">
+                                    <span class="behavior-card-icon">🧂</span>
+                                    <div class="behavior-card-title">ชอบเค็ม / ปลาร้า</div>
+                                    <div class="behavior-card-desc">รสจัด / แจ่วบอง / ซดน้ำ</div>
+                                </div>
                             </label>
                         </div>
                     </div>
 
+                    <!-- 2. การออกกำลังกาย (Exercise - 2 Grid) -->
                     <div style="margin-bottom: 20px;">
-                        <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 8px;">🏃‍♂️ การออกกำลังกาย</label>
-                        <div class="toggle-group-2">
-                            <label class="toggle-item toggle-green">
+                        <label style="color: var(--text-secondary); font-size: 14.5px; font-weight: 700; display: block; margin-bottom: 8px;">🏃‍♂️ การออกกำลังกาย</label>
+                        <div class="behavior-grid-2">
+                            <label class="behavior-card-item behavior-green">
                                 <input type="radio" name="exercise_risk" value="green" checked>
-                                <span class="toggle-label"><span class="dot"></span>🟢 ถึง 150 นาที/สัปดาห์</span>
+                                <div class="behavior-card-box">
+                                    <span class="behavior-card-icon">🏃‍♂️</span>
+                                    <div class="behavior-card-title">ออกกำลังสม่ำเสมอ</div>
+                                    <div class="behavior-card-desc">≥ 150 นาที/สัปดาห์</div>
+                                </div>
                             </label>
-                            <label class="toggle-item toggle-red">
+                            <label class="behavior-card-item behavior-red">
                                 <input type="radio" name="exercise_risk" value="red">
-                                <span class="toggle-label"><span class="dot"></span>🔴 ไม่ค่อยได้ออก</span>
+                                <div class="behavior-card-box">
+                                    <span class="behavior-card-icon">🛋️</span>
+                                    <div class="behavior-card-title">ไม่ค่อยได้ออก</div>
+                                    <div class="behavior-card-desc">นั่งนาน / เคลื่อนไหวน้อย</div>
+                                </div>
                             </label>
                         </div>
                     </div>
 
+                    <!-- 3. ระดับความเครียด (Stress - 3 Grid) -->
                     <div style="margin-bottom: 20px;">
-                        <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 8px;">🧠 ระดับความเครียด</label>
-                        <div class="toggle-group-3">
-                            <label class="toggle-item toggle-green">
+                        <label style="color: var(--text-secondary); font-size: 14.5px; font-weight: 700; display: block; margin-bottom: 8px;">🧠 ระดับความเครียด</label>
+                        <div class="behavior-grid-3">
+                            <label class="behavior-card-item behavior-green">
                                 <input type="radio" name="stress_risk" value="green" checked>
-                                <span class="toggle-label"><span class="dot"></span>🟢 น้อย/ไม่มี</span>
+                                <div class="behavior-card-box">
+                                    <span class="behavior-card-icon">😊</span>
+                                    <div class="behavior-card-title">น้อย/ไม่มี</div>
+                                    <div class="behavior-card-desc">ผ่อนคลายดี</div>
+                                </div>
                             </label>
-                            <label class="toggle-item toggle-yellow">
+                            <label class="behavior-card-item behavior-yellow">
                                 <input type="radio" name="stress_risk" value="yellow">
-                                <span class="toggle-label"><span class="dot"></span>🟡 ปานกลาง</span>
+                                <div class="behavior-card-box">
+                                    <span class="behavior-card-icon">😐</span>
+                                    <div class="behavior-card-title">ปานกลาง</div>
+                                    <div class="behavior-card-desc">เครียดบางครั้ง</div>
+                                </div>
                             </label>
-                            <label class="toggle-item toggle-red">
+                            <label class="behavior-card-item behavior-red">
                                 <input type="radio" name="stress_risk" value="red">
-                                <span class="toggle-label"><span class="dot"></span>🔴 เครียดสูง</span>
+                                <div class="behavior-card-box">
+                                    <span class="behavior-card-icon">😫</span>
+                                    <div class="behavior-card-title">เครียดสูง</div>
+                                    <div class="behavior-card-desc">นอนไม่หลับ</div>
+                                </div>
                             </label>
                         </div>
                     </div>
 
+                    <!-- 4. การสูบบุหรี่ (Smoking - 3 Grid) -->
                     <div style="margin-bottom: 20px;">
-                        <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 8px;">🚬 การสูบบุหรี่</label>
-                        <div class="toggle-group-3">
-                            <label class="toggle-item toggle-green">
+                        <label style="color: var(--text-secondary); font-size: 14.5px; font-weight: 700; display: block; margin-bottom: 8px;">🚬 การสูบบุหรี่</label>
+                        <div class="behavior-grid-3">
+                            <label class="behavior-card-item behavior-green">
                                 <input type="radio" name="smoking_risk" value="green" checked>
-                                <span class="toggle-label"><span class="dot"></span>🟢 ไม่สูบ</span>
+                                <div class="behavior-card-box">
+                                    <span class="behavior-card-icon">🚭</span>
+                                    <div class="behavior-card-title">ไม่สูบ</div>
+                                    <div class="behavior-card-desc">ไม่เคยสูบ</div>
+                                </div>
                             </label>
-                            <label class="toggle-item toggle-yellow">
+                            <label class="behavior-card-item behavior-yellow">
                                 <input type="radio" name="smoking_risk" value="yellow">
-                                <span class="toggle-label"><span class="dot"></span>🟡 เคยสูบแต่เลิกแล้ว</span>
+                                <div class="behavior-card-box">
+                                    <span class="behavior-card-icon">🌿</span>
+                                    <div class="behavior-card-title">เลิกแล้ว</div>
+                                    <div class="behavior-card-desc">หยุดสูบแล้ว</div>
+                                </div>
                             </label>
-                            <label class="toggle-item toggle-red">
+                            <label class="behavior-card-item behavior-red">
                                 <input type="radio" name="smoking_risk" value="red">
-                                <span class="toggle-label"><span class="dot"></span>🔴 ยังสูบอยู่</span>
+                                <div class="behavior-card-box">
+                                    <span class="behavior-card-icon">🚬</span>
+                                    <div class="behavior-card-title">ยังสูบอยู่</div>
+                                    <div class="behavior-card-desc">สูบเป็นประจำ</div>
+                                </div>
                             </label>
                         </div>
                     </div>
 
+                    <!-- 5. การดื่มแอลกอฮอล์ (Alcohol - 3 Grid) -->
                     <div style="margin-bottom: 20px;">
-                        <label style="color: var(--text-secondary); font-size: 15px; font-weight: 600; display: block; margin-bottom: 8px;">🍺 การดื่มแอลกอฮอล์</label>
-                        <div class="toggle-group-3">
-                            <label class="toggle-item toggle-green">
+                        <label style="color: var(--text-secondary); font-size: 14.5px; font-weight: 700; display: block; margin-bottom: 8px;">🍺 การดื่มแอลกอฮอล์</label>
+                        <div class="behavior-grid-3">
+                            <label class="behavior-card-item behavior-green">
                                 <input type="radio" name="alcohol_risk" value="green" checked>
-                                <span class="toggle-label"><span class="dot"></span>🟢 ไม่ดื่ม</span>
+                                <div class="behavior-card-box">
+                                    <span class="behavior-card-icon">🥛</span>
+                                    <div class="behavior-card-title">ไม่ดื่ม</div>
+                                    <div class="behavior-card-desc">งดของมึนเมา</div>
+                                </div>
                             </label>
-                            <label class="toggle-item toggle-yellow">
+                            <label class="behavior-card-item behavior-yellow">
                                 <input type="radio" name="alcohol_risk" value="yellow">
-                                <span class="toggle-label"><span class="dot"></span>🟡 ดื่มนานๆ ครั้ง</span>
+                                <div class="behavior-card-box">
+                                    <span class="behavior-card-icon">🥂</span>
+                                    <div class="behavior-card-title">นานๆ ครั้ง</div>
+                                    <div class="behavior-card-desc">เฉพาะงานเลี้ยง</div>
+                                </div>
                             </label>
-                            <label class="toggle-item toggle-red">
+                            <label class="behavior-card-item behavior-red">
                                 <input type="radio" name="alcohol_risk" value="red">
-                                <span class="toggle-label"><span class="dot"></span>🔴 ดื่มประจำ</span>
+                                <div class="behavior-card-box">
+                                    <span class="behavior-card-icon">🍺</span>
+                                    <div class="behavior-card-title">ดื่มประจำ</div>
+                                    <div class="behavior-card-desc">ดื่มบ่อย/ติดสุรา</div>
+                                </div>
                             </label>
                         </div>
                     </div>
@@ -1754,6 +1936,11 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
 
         // Submit Screening Data
         function applyDemoPreset(type) {
+            function setRadio(name, val) {
+                const el = document.querySelector(`input[name="${name}"][value="${val}"]`);
+                if (el) { el.checked = true; }
+            }
+
             if (type === 'normal') {
                 const w = document.getElementById('weight'); if (w) w.value = '58.0';
                 const h = document.getElementById('height'); if (h) h.value = '165.0';
@@ -1763,6 +1950,11 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 const s2 = document.getElementById('sys_bp2'); if (s2) s2.value = '116';
                 const d2 = document.getElementById('dia_bp2'); if (d2) d2.value = '74';
                 const dtx = document.getElementById('dtx_value'); if (dtx) dtx.value = '92';
+                setRadio('diet_risk', 'green');
+                setRadio('exercise_risk', 'green');
+                setRadio('stress_risk', 'green');
+                setRadio('smoking_risk', 'green');
+                setRadio('alcohol_risk', 'green');
             } else if (type === 'risk') {
                 const w = document.getElementById('weight'); if (w) w.value = '72.0';
                 const h = document.getElementById('height'); if (h) h.value = '160.0';
@@ -1772,6 +1964,11 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 const s2 = document.getElementById('sys_bp2'); if (s2) s2.value = '132';
                 const d2 = document.getElementById('dia_bp2'); if (d2) d2.value = '84';
                 const dtx = document.getElementById('dtx_value'); if (dtx) dtx.value = '115';
+                setRadio('diet_risk', 'yellow');
+                setRadio('exercise_risk', 'red');
+                setRadio('stress_risk', 'yellow');
+                setRadio('smoking_risk', 'green');
+                setRadio('alcohol_risk', 'yellow');
             } else if (type === 'high_risk') {
                 const w = document.getElementById('weight'); if (w) w.value = '80.0';
                 const h = document.getElementById('height'); if (h) h.value = '158.0';
@@ -1781,6 +1978,11 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 const s2 = document.getElementById('sys_bp2'); if (s2) s2.value = '155';
                 const d2 = document.getElementById('dia_bp2'); if (d2) d2.value = '94';
                 const dtx = document.getElementById('dtx_value'); if (dtx) dtx.value = '175';
+                setRadio('diet_risk', 'orange');
+                setRadio('exercise_risk', 'red');
+                setRadio('stress_risk', 'red');
+                setRadio('smoking_risk', 'yellow');
+                setRadio('alcohol_risk', 'yellow');
             } else if (type === 'critical') {
                 const w = document.getElementById('weight'); if (w) w.value = '85.0';
                 const h = document.getElementById('height'); if (h) h.value = '155.0';
@@ -1790,6 +1992,11 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 const s2 = document.getElementById('sys_bp2'); if (s2) s2.value = '182';
                 const d2 = document.getElementById('dia_bp2'); if (d2) d2.value = '110';
                 const dtx = document.getElementById('dtx_value'); if (dtx) dtx.value = '310';
+                setRadio('diet_risk', 'red');
+                setRadio('exercise_risk', 'red');
+                setRadio('stress_risk', 'red');
+                setRadio('smoking_risk', 'red');
+                setRadio('alcohol_risk', 'red');
             } else if (type === 'round2_improved') {
                 const w = document.getElementById('weight'); if (w) w.value = '65.0';
                 const h = document.getElementById('height'); if (h) h.value = '165.0';
@@ -1799,6 +2006,11 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 const s2 = document.getElementById('sys_bp2'); if (s2) s2.value = '120';
                 const d2 = document.getElementById('dia_bp2'); if (d2) d2.value = '76';
                 const dtx = document.getElementById('dtx_value'); if (dtx) dtx.value = '102';
+                setRadio('diet_risk', 'green');
+                setRadio('exercise_risk', 'green');
+                setRadio('stress_risk', 'green');
+                setRadio('smoking_risk', 'green');
+                setRadio('alcohol_risk', 'green');
             } else if (type === 'round2_worsened') {
                 const w = document.getElementById('weight'); if (w) w.value = '82.0';
                 const h = document.getElementById('height'); if (h) h.value = '165.0';
@@ -1808,6 +2020,11 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 const s2 = document.getElementById('sys_bp2'); if (s2) s2.value = '165';
                 const d2 = document.getElementById('dia_bp2'); if (d2) d2.value = '100';
                 const dtx = document.getElementById('dtx_value'); if (dtx) dtx.value = '215';
+                setRadio('diet_risk', 'red');
+                setRadio('exercise_risk', 'red');
+                setRadio('stress_risk', 'red');
+                setRadio('smoking_risk', 'red');
+                setRadio('alcohol_risk', 'red');
             }
             if (typeof calculateBmi === 'function') calculateBmi();
             if (typeof calculateCvRisk === 'function') calculateCvRisk();
