@@ -453,7 +453,7 @@ if (DemoDataProvider::isDemoMode()) {
     $metricsStmt = $pdo->prepare("
         SELECT 
             (SELECT COUNT(*) FROM target_population WHERE hoscode IN ($inPlaceholdersSa) AND (need_screen_dm = 1 OR need_screen_ht = 1)) as total_targets,
-            (SELECT COUNT(DISTINCT p.cid) FROM target_population p LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed' AND a.is_sandbox = ? LEFT JOIN screening_results s ON (p.cid = s.target_cid OR a.assignment_id = s.assignment_id) AND s.is_sandbox = ? WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND (a.assignment_id IS NOT NULL OR s.screening_id IS NOT NULL)) as screened_count,
+            (SELECT COUNT(DISTINCT p.cid) FROM target_population p LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed' AND COALESCE(a.is_sandbox, 0) = ? LEFT JOIN screening_results s ON (p.cid = s.target_cid OR a.assignment_id = s.assignment_id) AND COALESCE(s.is_sandbox, 0) = ? WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND (a.assignment_id IS NOT NULL OR s.screening_id IS NOT NULL)) as screened_count,
             (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'pending' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as pending_count,
             (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as skipped_count,
             (SELECT SUM(r.points_earned) FROM vhv_rewards r JOIN vhv_users v ON r.vhv_id = v.vhv_id LEFT JOIN task_assignments ta ON r.assignment_id = ta.assignment_id LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id WHERE v.hoscode IN ($inPlaceholdersSa) AND v.approved = 1 AND r.approval_status IN ('approved', 'waiting') AND ((r.followup_id IS NULL AND r.assignment_id IS NULL) OR (r.followup_id IS NULL AND ta.assignment_id IS NOT NULL) OR (r.followup_id IS NOT NULL AND f.followup_id IS NOT NULL))) as total_points,
@@ -651,8 +651,8 @@ if (DemoDataProvider::isDemoMode()) {
                COUNT(DISTINCT p.cid) as total_targets,
                COUNT(DISTINCT CASE WHEN a.assignment_id IS NOT NULL OR s.screening_id IS NOT NULL THEN p.cid END) as screened
         FROM target_population p
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed' AND a.is_sandbox = ?
-        LEFT JOIN screening_results s ON (p.cid = s.target_cid OR a.assignment_id = s.assignment_id) AND s.is_sandbox = ?
+        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed' AND COALESCE(a.is_sandbox, 0) = ?
+        LEFT JOIN screening_results s ON (p.cid = s.target_cid OR a.assignment_id = s.assignment_id) AND COALESCE(s.is_sandbox, 0) = ?
         WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY p.hoscode
         ORDER BY p.hoscode
@@ -754,17 +754,14 @@ if (DemoDataProvider::isDemoMode()) {
         SELECT 
             p.hoscode,
             COUNT(DISTINCT p.cid) as total_targets,
-            COUNT(DISTINCT CASE WHEN (
-                (ta.round_number = 1 OR ta.round_number IS NULL OR ta.round_number = 0) AND ta.assignment_status = 'completed'
-                OR (sr.round_number = 1 OR sr.round_number IS NULL OR sr.round_number = 0)
-            ) THEN p.cid END) as r1_completed,
+            COUNT(DISTINCT CASE WHEN IFNULL(sr.round_number, ta.round_number) = 1 OR (sr.round_number IS NULL AND ta.round_number IS NULL) THEN p.cid END) as r1_completed,
             COUNT(DISTINCT CASE WHEN ta.round_number = 2 AND ta.assignment_status = 'pending' THEN p.cid END) as r2_assigned,
-            COUNT(DISTINCT CASE WHEN (ta.round_number = 2 AND ta.assignment_status = 'completed') OR sr.round_number = 2 THEN p.cid END) as r2_completed,
+            COUNT(DISTINCT CASE WHEN IFNULL(sr.round_number, ta.round_number) = 2 THEN p.cid END) as r2_completed,
             COUNT(DISTINCT CASE WHEN ta.round_number >= 3 AND ta.assignment_status = 'pending' THEN p.cid END) as r3_assigned,
-            COUNT(DISTINCT CASE WHEN (ta.round_number >= 3 AND ta.assignment_status = 'completed') OR sr.round_number >= 3 THEN p.cid END) as r3_completed
+            COUNT(DISTINCT CASE WHEN IFNULL(sr.round_number, ta.round_number) >= 3 THEN p.cid END) as r3_completed
         FROM target_population p
-        LEFT JOIN task_assignments ta ON p.cid = ta.target_cid AND (ta.budget_year = 2026 OR ta.budget_year IS NULL) AND ta.is_sandbox = ?
-        LEFT JOIN screening_results sr ON (p.cid = sr.target_cid OR ta.assignment_id = sr.assignment_id) AND sr.is_sandbox = ?
+        LEFT JOIN task_assignments ta ON p.cid = ta.target_cid AND (ta.budget_year = 2026 OR ta.budget_year IS NULL) AND COALESCE(ta.is_sandbox, 0) = ?
+        LEFT JOIN screening_results sr ON (sr.target_cid = p.cid OR sr.assignment_id = ta.assignment_id) AND COALESCE(sr.is_sandbox, 0) = ?
         WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY p.hoscode
         ORDER BY p.hoscode
