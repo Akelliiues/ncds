@@ -672,14 +672,31 @@ try {
         $pdo->exec("ALTER TABLE `dpac_followups` ADD COLUMN `skipped_reason` VARCHAR(255) DEFAULT NULL AFTER `skip_count`");
     }
 
-    // Retroactively backfill missing rewards for completed screenings
+    // Retroactively backfill missing rewards for completed screenings (Round 1 = 1 pt, Round 2+ = 2 pts)
     $pdo->exec("
         INSERT INTO vhv_rewards (vhv_id, screening_id, assignment_id, points_earned, approval_status, approved_at, created_at)
-        SELECT a.vhv_id, s.screening_id, s.assignment_id, 1, 'approved', s.created_at, s.created_at
+        SELECT a.vhv_id, s.screening_id, s.assignment_id, 
+               CASE WHEN a.round_number >= 2 OR s.round_number >= 2 THEN 2.00 ELSE 1.00 END, 
+               'approved', s.created_at, s.created_at
         FROM screening_results s
         JOIN task_assignments a ON s.assignment_id = a.assignment_id
         LEFT JOIN vhv_rewards r ON s.screening_id = r.screening_id
         WHERE r.reward_id IS NULL
+    ");
+
+    // Retroactively update 2x points (2.00) for all past Round 2+ screenings
+    $pdo->exec("
+        UPDATE vhv_rewards r
+        JOIN task_assignments a ON r.assignment_id = a.assignment_id
+        SET r.points_earned = 2.00
+        WHERE a.round_number >= 2 AND r.points_earned < 2.00
+    ");
+
+    $pdo->exec("
+        UPDATE vhv_rewards r
+        JOIN screening_results s ON r.screening_id = s.screening_id
+        SET r.points_earned = 2.00
+        WHERE s.round_number >= 2 AND r.points_earned < 2.00
     ");
 
     // Retroactively backfill missing rewards for completed DPAC followups
