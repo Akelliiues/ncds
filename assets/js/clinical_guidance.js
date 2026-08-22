@@ -19,16 +19,44 @@
         poor:     { label: 'นอนไม่ค่อยหลับ', icon: '😫', desc: 'นอนหลับยาก' }
     };
 
+    let currentAudio = null;
+    let availableVoices = [];
+
+    function loadVoices() {
+        if ('speechSynthesis' in window) {
+            availableVoices = window.speechSynthesis.getVoices();
+        }
+    }
+    loadVoices();
+    if ('speechSynthesis' in window && window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    function findNativeThaiVoice() {
+        const voices = ('speechSynthesis' in window) ? (availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices()) : [];
+        return voices.find(v => (v.lang === 'th-TH' || v.lang === 'th_TH' || v.lang.startsWith('th')) && 
+            (v.name.includes('Premwadee') || v.name.includes('Google') || v.name.includes('Thai') || v.name.includes('ภาษาไทย') || v.name.includes('Narisa') || v.name.includes('Kanya') || v.name.includes('Achara')));
+    }
+
     /**
-     * ระบบอ่านออกเสียงบทสนทนาพลังบวก (Text-to-Speech Voice Coach)
+     * ระบบอ่านออกเสียงสำเนียงไทยแท้ (Natural Native Thai Female Voice Coach)
      */
     function speak(text, btnElement) {
-        if (!('speechSynthesis' in window)) {
-            alert('อุปกรณ์นี้ยังไม่รองรับระบบเสียงพูดในตัว');
+        const cleanText = text.replace(/["'“”✨🌿🟢🟡🔴🚨💡💬]/g, '').trim();
+
+        // 1. ถ้ากำลังเล่นเสียงอยู่ ให้กดเพื่อหยุด (Toggle Stop)
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+            currentAudio = null;
+            if (btnElement) {
+                btnElement.innerHTML = '<span>🔊</span> <span>เปิดเสียงพูด</span>';
+                btnElement.style.background = '#10B981';
+            }
             return;
         }
 
-        if (window.speechSynthesis.speaking) {
+        if (window.speechSynthesis && window.speechSynthesis.speaking) {
             window.speechSynthesis.cancel();
             if (btnElement) {
                 btnElement.innerHTML = '<span>🔊</span> <span>เปิดเสียงพูด</span>';
@@ -37,39 +65,62 @@
             return;
         }
 
-        const cleanText = text.replace(/["'“”✨🌿🟢🟡🔴🚨💡💬]/g, '').trim();
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.lang = 'th-TH';
-        utterance.rate = 0.92; // ความเร็วพอดี นุ่มนวล ชัดถ้อยชัดคำสำหรับผู้สูงอายุ
-        utterance.pitch = 1.05; // โทนเสียงอบอุ่น เป็นมิตร
-
-        // ค้นหาเสียงภาษาไทยถ้ามี
-        const voices = window.speechSynthesis.getVoices();
-        const thaiVoice = voices.find(v => (v.lang && v.lang.toLowerCase().includes('th')) || (v.name && v.name.includes('Thai')));
-        if (thaiVoice) {
-            utterance.voice = thaiVoice;
-        }
-
         if (btnElement) {
             btnElement.innerHTML = '<span>⏹️</span> <span>กำลังพูด... (กดหยุด)</span>';
             btnElement.style.background = '#EF4444';
         }
 
-        utterance.onend = function() {
+        // 2. ลำดับแรก: ใช้ Natural High-Definition Thai Voice (สำเนียงไทยแท้ อ่อนหวาน เป็นธรรมชาติ 100%)
+        const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=th&client=tw-ob&q=${encodeURIComponent(cleanText)}`;
+        const audio = new Audio(ttsUrl);
+        currentAudio = audio;
+
+        audio.onended = function() {
+            currentAudio = null;
             if (btnElement) {
                 btnElement.innerHTML = '<span>🔊</span> <span>ฟังอีกครั้ง</span>';
                 btnElement.style.background = '#10B981';
             }
         };
 
-        utterance.onerror = function() {
-            if (btnElement) {
-                btnElement.innerHTML = '<span>🔊</span> <span>เปิดเสียงพูด</span>';
-                btnElement.style.background = '#10B981';
+        // 3. Fallback: ถ้าไม่มีเน็ตหรือไม่สามารถโหลดออนไลน์ได้ ให้ใช้ SpeechSynthesis ภาษาไทยเฉพาะ
+        audio.onerror = function() {
+            currentAudio = null;
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(cleanText);
+                utterance.lang = 'th-TH';
+                utterance.rate = 0.92;
+                utterance.pitch = 1.05;
+
+                const thaiVoice = findNativeThaiVoice();
+                if (thaiVoice) {
+                    utterance.voice = thaiVoice;
+                }
+
+                utterance.onend = function() {
+                    if (btnElement) {
+                        btnElement.innerHTML = '<span>🔊</span> <span>ฟังอีกครั้ง</span>';
+                        btnElement.style.background = '#10B981';
+                    }
+                };
+                utterance.onerror = function() {
+                    if (btnElement) {
+                        btnElement.innerHTML = '<span>🔊</span> <span>เปิดเสียงพูด</span>';
+                        btnElement.style.background = '#10B981';
+                    }
+                };
+                window.speechSynthesis.speak(utterance);
+            } else {
+                if (btnElement) {
+                    btnElement.innerHTML = '<span>🔊</span> <span>เปิดเสียงพูด</span>';
+                    btnElement.style.background = '#10B981';
+                }
             }
         };
 
-        window.speechSynthesis.speak(utterance);
+        audio.play().catch(e => {
+            audio.onerror();
+        });
     }
 
     /**
@@ -249,7 +300,7 @@
                             <span>💬</span> <span>บทพูดชวนคุยกับชาวบ้าน:</span>
                         </span>
                         <button type="button" onclick="ClinicalGuidance.speak('${safeScript}', this)" style="background: #10B981; color: white; border: none; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35); transition: all 0.2s;">
-                            <span>🔊</span> <span>เปิดเสียงพูด</span>
+                            <span>🔊</span> <span>เปิดเสียงพูด (สำเนียงไทย)</span>
                         </button>
                     </div>
                     <div style="font-style: italic; font-weight: 600; color: var(--text-primary); font-size: 14px;">"${result.what_to_say}"</div>
