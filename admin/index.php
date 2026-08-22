@@ -934,58 +934,86 @@ if (DemoDataProvider::isDemoMode()) {
         <!-- Metrics Grid -->
         <div class="grid-cols-4" style="margin-bottom: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 16px;">
             <!-- Card 1: ผลงานคัดกรองรอบที่ 1 -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-green);" onclick="showCardModal('screened')">
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">✅ คัดกรองรอบที่ 1 (Baseline)</span>
-                    <span style="font-size: 11px; background: rgba(34, 197, 94, 0.15); color: var(--color-green); padding: 2px 8px; border-radius: 9999px; font-weight: bold;">รอบหลัก HDC</span>
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-green); position: relative; overflow: hidden;" onclick="showCardModal('screened')">
+                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
+                    <span style="font-size: 20px; line-height: 1;">✅</span>
+                    <div>
+                        <div style="color: var(--text-secondary); font-size: 14px; font-weight: bold; line-height: 1.3;">คัดกรองรอบที่ 1</div>
+                        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.2;">รอบหลักประจำปี (Baseline)</div>
+                    </div>
                 </div>
-                <div class="stat-val" style="color: var(--color-green); margin-top: 6px;">
+                <div class="stat-val" style="color: var(--color-green); margin-top: 4px;">
                     <?= number_format($metrics['r1_completed'] ?? $metrics['screened_count']) ?> <span
                         style="font-size: 16px; color: var(--text-secondary);">ราย</span>
                 </div>
-                <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);">
-                    คิดเป็น <strong><?= $metrics['total_targets'] > 0 ? round((($metrics['r1_completed'] ?? $metrics['screened_count']) / $metrics['total_targets']) * 100, 1) : 0 ?>%</strong> ของเป้าหมาย <?= number_format($metrics['total_targets']) ?> ราย
+                <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                    คิดเป็น <strong style="color: var(--color-green);"><?= $metrics['total_targets'] > 0 ? round((($metrics['r1_completed'] ?? $metrics['screened_count']) / $metrics['total_targets']) * 100, 1) : 0 ?>%</strong> ของเป้าหมาย <?= number_format($metrics['total_targets']) ?> ราย
+                </div>
+                <div style="margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+                    (คลิกดูสถิติแยกตามระดับความเสี่ยง)
                 </div>
             </div>
 
             <!-- Card 2: ผลงานคัดกรองติดตามซ้ำรอบที่ 2 -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #3b82f6;" onclick="showCardModal('rescreen_r2')">
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">🔄 คัดกรองรอบที่ 2 (ติดตามซ้ำ)</span>
-                    <span style="font-size: 11px; background: rgba(59, 130, 246, 0.15); color: #3b82f6; padding: 2px 8px; border-radius: 9999px; font-weight: bold;">ติดตามซ้ำ</span>
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #3b82f6; position: relative; overflow: hidden;" onclick="showCardModal('rescreen_r2')">
+                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
+                    <span style="font-size: 20px; line-height: 1;">🔄</span>
+                    <div>
+                        <div style="color: var(--text-secondary); font-size: 14px; font-weight: bold; line-height: 1.3;">คัดกรองรอบที่ 2</div>
+                        <div style="font-size: 12px; color: #3b82f6; line-height: 1.2;">ติดตามซ้ำกลุ่มเสี่ยง (Re-screening)</div>
+                    </div>
                 </div>
-                <div class="stat-val" style="color: #3b82f6; margin-top: 6px;">
+                <div class="stat-val" style="color: #3b82f6; margin-top: 4px;">
                     <?= number_format($metrics['r2_completed'] ?? 0) ?> <span
                         style="font-size: 16px; color: var(--text-secondary);">ราย</span>
                 </div>
-                <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);">
-                    ติดตามซ้ำแล้ว <strong><?= ($metrics['r1_completed'] ?? 1) > 0 ? round((($metrics['r2_completed'] ?? 0) / max($metrics['r1_completed'] ?? 1, 1)) * 100, 1) : 0 ?>%</strong> จากรอบแรก (คลิกดูรายละเอียด)
+                <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                    ติดตามซ้ำแล้ว <strong style="color: #3b82f6;"><?= ($metrics['r1_completed'] ?? 1) > 0 ? round((($metrics['r2_completed'] ?? 0) / max($metrics['r1_completed'] ?? 1, 1)) * 100, 1) : 0 ?>%</strong> จากรอบแรก
+                </div>
+                <div style="margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+                    (คลิกดูสถิติจำแนกรายพื้นที่)
                 </div>
             </div>
 
             <!-- Card 3: รอดำเนินการ -->
-            <div class="card-dark" style="cursor: pointer;" onclick="showCardModal('pending')">
-                <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">⏳ รอดำเนินการ
-                    (Pending)</span>
-                <div class="stat-val" style="color: var(--color-primary); margin-top: 6px;">
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-primary); position: relative; overflow: hidden;" onclick="showCardModal('pending')">
+                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
+                    <span style="font-size: 20px; line-height: 1;">⏳</span>
+                    <div>
+                        <div style="color: var(--text-secondary); font-size: 14px; font-weight: bold; line-height: 1.3;">รอดำเนินการ</div>
+                        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.2;">งานมอบหมายค้างตรวจ (Pending)</div>
+                    </div>
+                </div>
+                <div class="stat-val" style="color: var(--color-primary); margin-top: 4px;">
                     <?= number_format($metrics['pending_count']) ?> <span
                         style="font-size: 16px; color: var(--text-secondary);">ราย</span>
                 </div>
-                <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);">
-                    มอบหมายแล้ว รอ อสม. ดำเนินการ
+                <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                    มอบหมายแล้ว รอ อสม. ลงพื้นที่
+                </div>
+                <div style="margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+                    (คลิกดูรายละเอียดแยกรายพื้นที่)
                 </div>
             </div>
 
             <!-- Card 4: แต้มรางวัลสะสม อสม. -->
-            <div class="card-dark" style="cursor: pointer;" onclick="showCardModal('rewards')">
-                <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">🏆 แต้มรางวัลสะสม
-                    อสม.</span>
-                <div class="stat-val" style="color: #eab308; margin-top: 6px;">
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #eab308; position: relative; overflow: hidden;" onclick="showCardModal('rewards')">
+                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
+                    <span style="font-size: 20px; line-height: 1;">🏆</span>
+                    <div>
+                        <div style="color: var(--text-secondary); font-size: 14px; font-weight: bold; line-height: 1.3;">แต้มรางวัลสะสม อสม.</div>
+                        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.2;">คะแนนปฏิบัติงานสะสม (Rewards)</div>
+                    </div>
+                </div>
+                <div class="stat-val" style="color: #eab308; margin-top: 4px;">
                     <?= ((float)($metrics['total_points'] ?? 0) == (int)($metrics['total_points'] ?? 0) ? number_format($metrics['total_points'] ?? 0) : number_format($metrics['total_points'] ?? 0, 2)) ?> <span
                         style="font-size: 16px; color: var(--text-secondary);">แต้ม</span>
                 </div>
-                <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);">
-                    จาก อสม. ผู้ปฏิบัติงานทั้งหมด <?= $metrics['total_vhvs'] ?> คน (คลิกดูบอร์ด)
+                <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                    จาก อสม. ปฏิบัติงานทั้งหมด <?= $metrics['total_vhvs'] ?> คน
+                </div>
+                <div style="margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+                    (คลิกดูกระดานคะแนน Top 10)
                 </div>
             </div>
         </div>
