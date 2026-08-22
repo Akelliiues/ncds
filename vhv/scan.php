@@ -742,7 +742,9 @@ function simulateScan(mockHid) {
 }
 
 function showQrModal(mockHid, title) {
-    const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(mockHid);
+    const baseUrl = window.location.origin + window.location.pathname.replace(/\/vhv\/.*$/, '');
+    const targetUrl = baseUrl + '/qr.php?code=' + encodeURIComponent(mockHid);
+    const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(targetUrl);
     document.getElementById('demo-qr-title').textContent = title;
     document.getElementById('demo-qr-img').src = qrUrl;
     document.getElementById('demo-qr-code-txt').textContent = mockHid;

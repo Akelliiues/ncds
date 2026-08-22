@@ -5,14 +5,15 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/demo_banner.php';
 require_once __DIR__ . '/../config/demo_data.php';
 
-if (!isset($_SESSION['vhv_id'])) {
-    header("Location: ../index.php");
-    exit();
-}
-
-$isShell = isset($_GET['shell']) && $_GET['shell'] === 'true';
 $hid = $_GET['hid'] ?? '';
 $cid = $_GET['cid'] ?? '';
+$code = !empty($hid) ? $hid : $cid;
+
+if (!isset($_SESSION['vhv_id'])) {
+    $redirectUrl = '../qr.php' . (!empty($code) ? '?code=' . urlencode($code) : '');
+    header("Location: " . $redirectUrl);
+    exit();
+}
 
 if (!$isShell && empty($hid) && empty($cid)) {
     header("Location: scan.php");

@@ -481,12 +481,17 @@ function maskName($firstName, $lastName)
                 populateMooSelect([], initialMoo, true);
             }
 
-            // Generate QR Codes
+            // Generate Secure PDPA Protected QR Codes
             <?php if ($filter_hoscode && count($people) > 0): ?>
+                <?php 
+                $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+                $appBaseUrl = $scheme . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname(dirname($_SERVER['PHP_SELF'])), '/\\');
+                ?>
                 <?php foreach ($people as $person): ?>
                     <?php
                     // Fallback to CID if JHCIS HID is empty or placeholder (000000000000000)
-                    $qrText = (!empty($person['hid']) && $person['hid'] !== '000000000000000') ? $person['hid'] : $person['cid'];
+                    $rawCode = (!empty($person['hid']) && $person['hid'] !== '000000000000000') ? $person['hid'] : $person['cid'];
+                    $qrText = $appBaseUrl . '/qr.php?code=' . urlencode($rawCode);
                     ?>
                     new QRCode(document.getElementById("qr-<?= $person['cid'] ?>"), {
                         text: "<?= $qrText ?>",
