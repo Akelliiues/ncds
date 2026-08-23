@@ -38,6 +38,7 @@ $province = defined('PROVINCE_NAME') ? PROVINCE_NAME : 'อุบลราชธ
     <link rel="stylesheet" href="<?= $path_prefix ?>assets/css/style.css">
     <link rel="apple-touch-icon" href="<?= $path_prefix ?>assets/icon.png">
     <link rel="manifest" href="manifest.json">
+    <script src="<?= $path_prefix ?>assets/js/app.js"></script>
     <style>
         body {
             background-color: var(--bg-main);

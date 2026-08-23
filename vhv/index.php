@@ -333,8 +333,9 @@ if (DemoDataProvider::isDemoMode()) {
                 </button>
             <?php endif; ?>
 
-            <a href="../about.php" onclick="openDevModal(event)" title="เกี่ยวกับระบบและผู้พัฒนา" style="flex-shrink: 0;">
-                <img src="../assets/icon.png" alt="NCDs Portal Logo" style="width: 60px; height: 60px; border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
+            <a href="javascript:void(0)" onclick="openAppInstallModal(event)" title="แตะเพื่อติดตั้งแอปพลิเคชันลงเครื่อง หรือดูข้อมูลระบบ" style="flex-shrink: 0; position: relative; display: inline-block; text-decoration: none;">
+                <img src="../assets/icon.png" alt="NCDs Portal Logo" style="width: 60px; height: 60px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
+                <span style="position: absolute; bottom: -3px; right: -3px; background: #10b981; color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; border: 2px solid var(--bg-card); box-shadow: 0 2px 6px rgba(0,0,0,0.25);" title="ติดตั้งแอป">📲</span>
             </a>
             <div style="flex-grow: 1; min-width: 200px;">
                 <h3 style="color: var(--color-accent); margin: 0; font-size: 14px; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; text-size-adjust: none; -webkit-text-size-adjust: none;">

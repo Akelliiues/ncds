@@ -166,6 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="assets/css/style.css">
     <link rel="apple-touch-icon" href="assets/icon.png">
     <link rel="manifest" href="manifest.json">
+    <script src="assets/js/app.js"></script>
     <style>
         html, body {
             overflow: hidden;
@@ -227,7 +228,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="login-container">
         <div class="login-brand"
             style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 12px;">
-            <img src="assets/icon.png" alt="NCDs Portal Logo" class="brand-logo">
+            <a href="javascript:void(0)" onclick="openAppInstallModal(event)" title="แตะเพื่อติดตั้งแอปพลิเคชันลงเครื่อง" style="position: relative; display: inline-block; text-decoration: none;">
+                <img src="assets/icon.png" alt="NCDs Portal Logo" class="brand-logo" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.06)'" onmouseout="this.style.transform='scale(1)'">
+                <span style="position: absolute; bottom: 6px; right: -2px; background: #10b981; color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; border: 2px solid var(--bg-main); box-shadow: 0 2px 6px rgba(0,0,0,0.25);" title="ติดตั้งแอป">📲</span>
+            </a>
             <span>สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?></span>
             <h1>ระบบคัดกรอง NCDs Portal</h1>
         </div>

@@ -98,6 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="apple-touch-icon" href="../assets/icon.png">
     <link rel="manifest" href="manifest.json">
+    <script src="../assets/js/app.js"></script>
     <style>
         .form-group {
             margin-bottom: 20px;
