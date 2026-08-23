@@ -1860,6 +1860,11 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
                                     stroke="currentColor" viewBox="0 0 24 24">
                                     <path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
                                 </svg>10. เสียงโค้ชสุขภาพ</a></li>
+
+                        <li><a href="#vhv-emergency" onclick="handleMenuClick(this)"><svg fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>11. ระบบแจ้งเหตุวิกฤต Fast-Track</a></li>
                     </ul>
 
                 </div>
@@ -1976,6 +1981,15 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
                                     <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
                                 </svg>14. การอัปเดตระบบ (OTA Update)</a></li>
 
+                        <li><a href="#admin-critical-referrals" onclick="handleMenuClick(this)"><svg fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>15. จัดการเคสวิกฤต & ส่งต่อ รพ.</a></li>
+
+                        <li><a href="#admin-citizen-analytics" onclick="handleMenuClick(this)"><svg fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>16. แดชบอร์ดสุขภาพประชาชน</a></li>
                     </ul>
 
                 </div>
@@ -2801,9 +2815,60 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
                                 </p>
                             </div>
                         </div>
+                    <!-- Section: vhv-emergency -->
+                    <section id="vhv-emergency">
+                        <h2 class="section-title">
+                            <span class="title-icon-container">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                            </span>
+                            <span class="title-text">11. ระบบแจ้งเหตุวิกฤต Fast-Track รพ.สต. และส่งต่อโรงพยาบาล</span>
+                            <span class="number">VHV-11</span>
+                        </h2>
+                        <p>เมื่อ อสม. ลงพื้นที่คัดกรองแล้วพบชาวบ้านที่มีค่าสัญญาณชีพสูงวิกฤต ระบบจะแสดงระบบแจ้งเตือนและยิงสัญญาณ Fast-Track ไปยัง รพ.สต. ทันที:</p>
+
+                        <div class="alert-box alert-box-danger">
+                            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                            <div>
+                                <div class="alert-title">🚨 สัญญาณชีพวิกฤตที่ระบบจะเปิดการแจ้งเตือนอัตโนมัติ</div>
+                                <p class="alert-desc">
+                                    • ความดันโลหิตสูงวิกฤต: <strong>SYS ≥ 180 mmHg</strong> หรือ <strong>DIA ≥ 110 mmHg</strong><br>
+                                    • น้ำตาลในเลือดสูงวิกฤต: <strong>DTX ≥ 300 mg/dL</strong> หรือน้ำตาลต่ำวิกฤต <strong>DTX &lt; 70 mg/dL</strong>
+                                </p>
+                            </div>
+                        </div>
+
+                        <ul class="step-list">
+                            <li class="step-item">
+                                <span class="step-number">1</span>
+                                <div class="step-content">
+                                    <h4>กดยิงสัญญาณฉุกเฉิน (SOS Button):</h4>
+                                    <p>แตะปุ่มสีแดง <strong>"🆘 ส่งสัญญาณฉุกเฉินแจ้งไปยัง รพ.สต. ทันที"</strong> สัญญาณไซเรนจะเด้งเปิดขึ้นบนหน้าจอคอมพิวเตอร์โต๊ะพยาบาล รพ.สต. ทันที พร้อมส่งเสียงไซเรนเตือน 2 รอบ</p>
+                                </div>
+                            </li>
+                            <li class="step-item">
+                                <span class="step-number">2</span>
+                                <div class="step-content">
+                                    <h4>ระบบ Live Tracking 3 ขั้นตอน & สั่นเตือนมือถือ:</h4>
+                                    <p>
+                                        • <strong>สเต็ป 1 (ส่งสัญญาณ):</strong> บันทึกเข้าระบบ รพ.สต. เรียบร้อย<br>
+                                        • <strong>สเต็ป 2 (รพ.สต. รับเรื่อง):</strong> เมื่อเจ้าหน้าที่ รพ.สต. เปิดรับเคส มือถือ อสม. จะ <strong>สั่นเตือน</strong> และแสดงชื่อเจ้าหน้าที่ผู้รับเรื่องทันที<br>
+                                        • <strong>สเต็ป 3 (พร้อมส่งต่อ):</strong> เมื่อเจ้าหน้าที่สั่งส่งต่อ มือถือ อสม. จะแสดง <strong>เลขที่ใบส่งต่อ (Refer No.)</strong> ปลายทาง <strong>โรงพยาบาลตาลสุม (10957)</strong> อย่างชัดเจน
+                                    </p>
+                                </div>
+                            </li>
+                            <li class="step-item">
+                                <span class="step-number">3</span>
+                                <div class="step-content">
+                                    <h4>โทรประสานงานด่วน 1669 หรือ รพ.สต.:</h4>
+                                    <p>มีปุ่มโทรออก <strong>"📞 โทร 1669 ด่วน"</strong> และปุ่ม <strong>"🏥 โทร รพ.สต."</strong> ให้แตะโทรติดต่อได้ในคลิกเดียว</p>
+                                </div>
+                            </li>
+                        </ul>
                     </section>
-
-
 
                 </div>
 
@@ -3644,9 +3709,75 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
                                 </p>
                             </div>
                         </div>
+                    <!-- Section: admin-critical-referrals -->
+                    <section id="admin-critical-referrals">
+                        <h2 class="section-title">
+                            <span class="title-icon-container">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                            </span>
+                            <span class="title-text">15. ระบบจัดการเคสวิกฤต & ส่งต่อโรงพยาบาล (Red Alert & Critical Referral Hub)</span>
+                            <span class="number">ADM-15</span>
+                        </h2>
+
+                        <p>ศูนย์บัญชาการรับเหตุวิกฤตและส่งต่อผู้ป่วย Fast-Track แบบ Real-time เชื่อมโยงระหว่าง อสม. ในชุมชน โต๊ะพยาบาล รพ.สต. และห้องฉุกเฉิน โรงพยาบาลตาลสุม:</p>
+
+                        <div class="alert-box alert-box-danger">
+                            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                            <div>
+                                <div class="alert-title">🚨 เมนูระบบเคสวิกฤต (<a href="admin/critical_referrals.php" class="hl-text">Critical Referrals Hub</a>)</div>
+                                <p class="alert-desc">
+                                    • <strong>1. การรับเรื่อง (Acknowledge):</strong> เมื่อ อสม. ยิงสัญญาณฉุกเฉินเข้ามา เจ้าหน้าที่คลิกปุ่ม <strong>"รับเรื่อง"</strong> ระบบจะส่งสัญญาณตอบกลับไปยังมือถือของ อสม. ทันที พร้อมสั่นเตือนและระบุชื่อเจ้าหน้าที่ผู้รับเรื่อง<br>
+                                    • <strong>2. การส่งต่อโรงพยาบาล (Dispatch Refer):</strong> เมื่อประเมินความจำเป็นแล้ว เจ้าหน้าที่คลิกปุ่ม <strong>"สั่งส่งต่อโรงพยาบาล"</strong> ระบบจะสร้างรหัสใบส่งต่อ (เช่น <span class="hl-code">REF-6901-0001</span>) ปลายทาง <strong>โรงพยาบาลตาลสุม (10957)</strong> และส่งรหัสไปยังมือถือของ อสม. ทันที<br>
+                                    • <strong>3. แผนที่นำทาง GPS:</strong> สามารถคลิกปุ่ม <strong>"นำทาง GPS"</strong> เพื่อเปิด Google Maps นำทางรถพยาบาลฉุกเฉินหรือทีมกู้ชีพไปยังพิกัดบ้านของผู้ป่วยได้อย่างแม่นยำ
+                                </p>
+                            </div>
+                        </div>
+
+                        <ul class="step-list">
+                            <li class="step-item">
+                                <span class="step-number">★</span>
+                                <div class="step-content">
+                                    <h4>โปรแกรมสถานีไซเรนเตือนประจำโต๊ะพยาบาล (NCDs Red Alert Station Desktop App):</h4>
+                                    <p>
+                                        ซอฟต์แวร์สำหรับติดตั้งบนคอมพิวเตอร์ประจำโต๊ะพยาบาล รพ.สต. หรือจุดคัดกรอง ทำงานอยู่เบื้องหลังใน System Tray เฝ้าระวังตลอด 24 ชั่วโมง เมื่อมีสัญญาณเตือนจาก อสม. หน้าต่างขนาดใหญ่จะเด้งเปิดขึ้นมากลางหน้าจออัตโนมัติ พร้อมส่งเสียงไซเรนฉุกเฉินเตือน 2 รอบ และมีปุ่มเปิดรับเรื่องได้ทันที
+                                    </p>
+                                </div>
+                            </li>
+                        </ul>
                     </section>
 
+                    <!-- Section: admin-citizen-analytics -->
+                    <section id="admin-citizen-analytics">
+                        <h2 class="section-title">
+                            <span class="title-icon-container">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                            </span>
+                            <span class="title-text">16. แดชบอร์ดวิเคราะห์สุขภาพประชาชน (Citizen Health Analytics)</span>
+                            <span class="number">ADM-16</span>
+                        </h2>
 
+                        <p>ศูนย์ข้อมูลสรุปสถิติและสถานการณ์สุขภาพของประชาชนในอำเภอ<?= htmlspecialchars($district) ?> ที่เข้าทำแบบประเมินสุขภาพตนเองออนไลน์:</p>
+
+                        <div class="alert-box alert-box-info">
+                            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div>
+                                <div class="alert-title">📊 หน้าจอวิเคราะห์ผลสุขภาพ (<a href="admin/citizen_health_dashboard.php" class="hl-text">Citizen Health Dashboard</a>)</div>
+                                <p class="alert-desc">
+                                    • <strong>การวิเคราะห์ 4 มิติ:</strong> จำแนกกลุ่มความเสี่ยงความดันโลหิต, น้ำตาลในเลือด, ดัชนีมวลกาย (BMI), และสัดส่วนรอบเอว<br>
+                                    • <strong>แผนภูมิสถานการณ์รายตำบล:</strong> แสดงสัดส่วนกลุ่มสุขภาพปกติ กลุ่มเสี่ยง และกลุ่มสงสัยป่วยในแต่ละพื้นที่<br>
+                                    • <strong>การวางแผนเชิงรุก:</strong> ช่วยให้ผู้บริหาร สสอ. และทีมสาธารณสุขใช้เป็นข้อมูลชี้เป้าจัดกิจกรรมตรวจสุขภาพสัญจรและมอบหมาย อสม. ลงพื้นที่ดูแลเฉพาะกลุ่มได้อย่างตรงเป้าหมาย
+                                </p>
+                            </div>
+                        </div>
+                    </section>
 
                 </div>
 

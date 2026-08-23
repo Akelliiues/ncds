@@ -452,6 +452,7 @@ $province = defined('PROVINCE_NAME') ? PROVINCE_NAME : 'อุบลราชธ
         <!-- Category Filter Pills -->
         <div class="filter-scroll">
             <button type="button" class="filter-pill active" onclick="setCategory('all', this)">📌 ทั้งหมด</button>
+            <button type="button" class="filter-pill" onclick="setCategory('emergency-alert', this)">🚨 แจ้งเหตุวิกฤต</button>
             <button type="button" class="filter-pill" onclick="setCategory('vhv-screen', this)">🩺 คัดกรอง อสม.</button>
             <button type="button" class="filter-pill" onclick="setCategory('citizen-screen', this)">🌱 ประเมินตนเอง</button>
             <button type="button" class="filter-pill" onclick="setCategory('voice-coach', this)">🎙️ โค้ชเสียงพูด</button>
@@ -801,6 +802,109 @@ $province = defined('PROVINCE_NAME') ? PROVINCE_NAME : 'อุบลราชธ
                 <div class="accordion-content">
                     <div class="accordion-body">
                         <p>อสม. สามารถเปิดดูเมนู <strong>"กระดานคะแนน"</strong> จากแถบเมนูด้านล่าง เพื่อดูอันดับการบันทึกคัดกรองสะสม การลงพื้นที่เชิงรุก และรับเหรียญรางวัลเกียรติยศประจำปีงบประมาณครับ</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 9. ระบบแจ้งเหตุวิกฤต Fast-Track รพ.สต. และส่งต่อโรงพยาบาล -->
+            <div class="accordion-item" data-category="emergency-alert">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <div class="accordion-title-wrap">
+                        <div class="accordion-icon-badge">🚨</div>
+                        <div>
+                            <h3 class="accordion-title">9. ระบบแจ้งเหตุวิกฤต Fast-Track รพ.สต. & ส่งต่อ รพ.</h3>
+                            <span class="accordion-tag">ยิงสัญญาณไซเรนด่วน • ติดตามสถานะสด 3 สเต็ป • สั่นเตือนมือถือ</span>
+                        </div>
+                    </div>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>เมื่อ อสม. ลงพื้นที่คัดกรองแล้วพบชาวบ้านที่มี <strong>สัญญาณชีพวิกฤต</strong> ระบบจะเปิดระบบส่งสัญญาณด่วนไปยัง รพ.สต. โดยอัตโนมัติ:</p>
+
+                        <div class="alert-box alert-box-danger">
+                            <div>
+                                <div class="alert-title">🚨 เกณฑ์สัญญาณชีพวิกฤต (Red Flag Alert)</div>
+                                <p class="alert-desc">
+                                    • ความดันโลหิตสูงวิกฤต: <strong>SYS ≥ 180 mmHg</strong> หรือ <strong>DIA ≥ 110 mmHg</strong><br>
+                                    • น้ำตาลในเลือดสูงวิกฤต: <strong>DTX ≥ 300 mg/dL</strong> หรือน้ำตาลต่ำวิกฤต <strong>DTX &lt; 70 mg/dL</strong>
+                                </p>
+                            </div>
+                        </div>
+
+                        <ul class="step-list">
+                            <li class="step-item">
+                                <span class="step-number">1</span>
+                                <div class="step-content">
+                                    <h4>กดยิงสัญญาณฉุกเฉินด่วน:</h4>
+                                    <p>ในหน้าต่างสรุปผล ให้แตะปุ่มสีแดง <strong>"🆘 ส่งสัญญาณฉุกเฉินแจ้งไปยัง รพ.สต. ทันที"</strong> ระบบจะส่งสัญญาณไซเรนเด้งขึ้นหน้าจอคอมพิวเตอร์โต๊ะพยาบาล รพ.สต. พร้อมเสียงเตือนทันที</p>
+                                </div>
+                            </li>
+                            <li class="step-item">
+                                <span class="step-number">2</span>
+                                <div class="step-content">
+                                    <h4>ติดตามสถานะสด 3 ขั้นตอน (Live Tracking):</h4>
+                                    <p>
+                                        • <strong>สเต็ป 1 (ส่งสัญญาณ):</strong> แสดงป้ายสีเขียวว่าส่งถึง รพ.สต. สำเร็จ<br>
+                                        • <strong>สเต็ป 2 (รพ.สต. รับเรื่อง):</strong> เมื่อเจ้าหน้าที่ รพ.สต. เปิดดูเคส มือถือ อสม. จะ <strong>สั่นเตือน</strong> และขึ้นป้ายสีเขียวพร้อมแสดงชื่อเจ้าหน้าที่ผู้รับเรื่องทันที<br>
+                                        • <strong>สเต็ป 3 (พร้อมส่งต่อ):</strong> เมื่อเจ้าหน้าที่สั่งส่งต่อ มือถือ อสม. จะแสดง <strong>เลขที่ใบส่งต่อ (Refer No.)</strong> ปลายทาง <strong>โรงพยาบาลตาลสุม (10957)</strong> อย่างชัดเจน
+                                    </p>
+                                </div>
+                            </li>
+                            <li class="step-item">
+                                <span class="step-number">3</span>
+                                <div class="step-content">
+                                    <h4>ปุ่มโทรฉุกเฉินด่วน:</h4>
+                                    <p>มีปุ่ม <strong>"📞 โทร 1669 ด่วน"</strong> และปุ่ม <strong>"🏥 โทร รพ.สต."</strong> เพื่อประสานงานทางโทรศัพท์ควบคู่ได้ทันที</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 10. หน้าต่างสรุปผลตรวจแบบ Soft Neumorphism & เสียงพูดคุณหมอ -->
+            <div class="accordion-item" data-category="vhv-screen">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <div class="accordion-title-wrap">
+                        <div class="accordion-icon-badge">✨</div>
+                        <div>
+                            <h3 class="accordion-title">10. หน้าสรุปผลตรวจสุขภาพ & เสียงคุณหมอ</h3>
+                            <span class="accordion-tag">ดีไซน์ Soft Neumorphism • สรุปผล 4 ด้าน • ลูกศรหนาบอกแนวโน้ม</span>
+                        </div>
+                    </div>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>หลังบันทึกคัดกรองเสร็จสิ้น ระบบจะแสดงหน้าต่างสรุปผลสุขภาพสไตล์ <strong>Soft Neumorphism</strong> ที่สวยงามและเข้าใจง่าย:</p>
+
+                        <ul class="step-list">
+                            <li class="step-item">
+                                <span class="step-number">1</span>
+                                <div class="step-content">
+                                    <h4>ผลตรวจสุขภาพ 4 ด้าน (Raised Cards):</h4>
+                                    <p>แสดงการ์ดนูนลอย 4 ใบ ได้แก่ ความดันโลหิต, น้ำตาลในเลือด, รูปร่าง/BMI, และสัดส่วนรอบเอว พร้อมระดับสีชัดเจน</p>
+                                </div>
+                            </li>
+                            <li class="step-item">
+                                <span class="step-number">2</span>
+                                <div class="step-content">
+                                    <h4>ปุ่มเปิดเสียงคุณหมอสรุปผล (Voice Button):</h4>
+                                    <p>มีปุ่มสีเขียวมรกตขนาดใหญ่พร้อมไอคอนคนพูดออกเสียงทรงกลม <strong>"เปิดเสียงคุณหมอสรุปผล"</strong> แตะเพื่อให้ระบบอ่านคำพูดสรุปผลตรวจและคำแนะนำการดูแลสุขภาพให้ชาวบ้านฟัง</p>
+                                </div>
+                            </li>
+                            <li class="step-item">
+                                <span class="step-number">3</span>
+                                <div class="step-content">
+                                    <h4>ลายน้ำลูกศรหนาบอกแนวโน้มสุขภาพ:</h4>
+                                    <p>
+                                        • <strong>ลูกศรสีแดงชี้ขึ้น (↗):</strong> เมื่อค่าตรวจรอบนี้สูงขึ้นกว่ารอบก่อน (ต้องเฝ้าระวัง)<br>
+                                        • <strong>ลูกศรสีเขียวชี้ลง (↘):</strong> เมื่อสุขภาพดีขึ้นหรือค่าตรวจลดลงสู่เกณฑ์มาตรฐาน
+                                    </p>
+                                </div>
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>

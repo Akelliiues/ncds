@@ -3,20 +3,20 @@
  * รพ.สต. และ อสม. หมอคนที่ 1 — สสอ.ตาลสุม
  */
 
-(function(window) {
+(function (window) {
     'use strict';
 
     const CARE_LEVEL_CONFIG = {
-        good:     { label: 'ดูแลปกติ', badgeClass: 'bg-success text-white', color: '#10B981', icon: '🟢', days: 90 },
-        fair:     { label: 'ดูแลใส่ใจ', badgeClass: 'bg-warning text-dark', color: '#F59E0B', icon: '🟡', days: 30 },
-        poor:     { label: 'เฝ้าระวังพิเศษ', badgeClass: 'bg-orange text-white', color: '#F97316', icon: '🟠', days: 14 },
+        good: { label: 'ดูแลปกติ', badgeClass: 'bg-success text-white', color: '#10B981', icon: '🟢', days: 90 },
+        fair: { label: 'ดูแลใส่ใจ', badgeClass: 'bg-warning text-dark', color: '#F59E0B', icon: '🟡', days: 30 },
+        poor: { label: 'เฝ้าระวังพิเศษ', badgeClass: 'bg-orange text-white', color: '#F97316', icon: '🟠', days: 14 },
         critical: { label: 'ดูแลเร่งด่วน', badgeClass: 'bg-danger text-white', color: '#EF4444', icon: '🔴', days: 7 }
     };
 
     const SLEEP_CONFIG = {
-        good:     { label: 'หลับสนิทดี', icon: '🌙', desc: 'พักผ่อนเพียงพอ หลับสนิท' },
+        good: { label: 'หลับสนิทดี', icon: '🌙', desc: 'พักผ่อนเพียงพอ หลับสนิท' },
         restless: { label: 'หลับๆ ตื่นๆ', icon: '🥱', desc: 'ตื่นกลางดึกบ่อย' },
-        poor:     { label: 'นอนไม่ค่อยหลับ', icon: '😫', desc: 'นอนหลับยาก' }
+        poor: { label: 'นอนไม่ค่อยหลับ', icon: '😫', desc: 'นอนหลับยาก' }
     };
 
     let currentAudio = null;
@@ -45,7 +45,7 @@
                     </svg>
                 </span>
                 <div style="text-align: left; line-height: 1.25;">
-                    <div style="font-size: 15.5px; font-weight: 900; letter-spacing: -0.2px;">🔊 เปิดเสียงคุณหมอพูดสรุปผล</div>
+                    <div style="font-size: 15.5px; font-weight: 900; letter-spacing: -0.2px;">เปิดเสียงคุณหมอสรุปผล</div>
                     <div style="font-size: 11.5px; opacity: 0.92; font-weight: 600;">(แตะเพื่อให้ระบบอ่านให้ชาวบ้านฟัง)</div>
                 </div>
             </div>
@@ -92,7 +92,7 @@
         const audio = new Audio(soundFile);
         currentAudio = audio;
 
-        audio.onended = function() {
+        audio.onended = function () {
             currentAudio = null;
             if (btnElement) {
                 btnElement.innerHTML = defaultBtnHtml;
@@ -100,7 +100,7 @@
             }
         };
 
-        audio.onerror = function() {
+        audio.onerror = function () {
             currentAudio = null;
             // Fallback: ใช้ Web Speech API ถ้าหาไฟล์ไม่พบ
             if ('speechSynthesis' in window && fallbackText) {
@@ -110,13 +110,13 @@
                 utterance.rate = 0.92;
                 utterance.pitch = 1.05;
 
-                utterance.onend = function() {
+                utterance.onend = function () {
                     if (btnElement) {
                         btnElement.innerHTML = defaultBtnHtml;
                         btnElement.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
                     }
                 };
-                utterance.onerror = function() {
+                utterance.onerror = function () {
                     if (btnElement) {
                         btnElement.innerHTML = defaultBtnHtml;
                         btnElement.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
@@ -387,7 +387,7 @@
                                     </svg>
                                 </span>
                                 <div style="text-align: left; line-height: 1.25;">
-                                    <div style="font-size: 15.5px; font-weight: 900; letter-spacing: -0.2px;">🔊 เปิดเสียงคุณหมอพูดสรุปผล</div>
+                                    <div style="font-size: 15.5px; font-weight: 900; letter-spacing: -0.2px;">เปิดเสียงคุณหมอสรุปผล</div>
                                     <div style="font-size: 11.5px; opacity: 0.92; font-weight: 600;">(แตะเพื่อให้ระบบอ่านให้ชาวบ้านฟัง)</div>
                                 </div>
                             </div>
