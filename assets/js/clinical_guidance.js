@@ -284,16 +284,91 @@
                     </span>
                 </div>
 
-                <!-- Positive Doctor Speech Script with Big Prominent Voice Button -->
-                <div style="background: var(--bg-darker); border-radius: 18px; padding: 14px; margin-bottom: 12px; box-shadow: var(--neumorph-inset);">
-                    <!-- Big Prominent Audio Button -->
-                    <button type="button" onclick="ClinicalGuidance.speak('${safeAudioKey}', '${safeScript}', this)" style="width: 100%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; border: none; padding: 12px 16px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); margin-bottom: 10px; transition: transform 0.15s ease;">
-                        <span style="font-size: 18px;">🔊</span> <span>เปิดเสียงคุณหมอให้ฟัง</span>
-                    </button>
+                <!-- Positive Doctor Speech Script with Big Prominent Voice Button & Watermark Graphic -->
+                <div style="
+                    background: var(--bg-darker); 
+                    border-radius: 20px; 
+                    padding: 16px 14px; 
+                    margin-bottom: 14px; 
+                    box-shadow: var(--neumorph-inset);
+                    position: relative;
+                    overflow: hidden;
+                ">
+                    <!-- Large Watermark Graphic: Doctor / Person Speaking with Sound Waves -->
+                    <div style="
+                        position: absolute;
+                        right: 4px;
+                        bottom: -6px;
+                        width: 95px;
+                        height: 95px;
+                        pointer-events: none;
+                        user-select: none;
+                        opacity: 0.14;
+                        color: #10B981;
+                        z-index: 0;
+                    ">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%">
+                            <!-- Doctor / Person speaking silhouette with acoustic waves -->
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                            <path d="M16.5 7.5c1.2 1.2 1.2 3.1 0 4.3l1.4 1.4c2-2 2-5.1 0-7.1l-1.4 1.4zm2.8-2.8c2.7 2.7 2.7 7.1 0 9.9l1.4 1.4c3.5-3.5 3.5-9.2 0-12.7l-1.4 1.4z"/>
+                        </svg>
+                    </div>
 
-                    <!-- Speech Quote Bubble (Neumorphic Inset Well) -->
-                    <div style="background: var(--bg-card); border-radius: 14px; padding: 12px 14px; font-size: 13.5px; color: var(--text-primary); line-height: 1.55; font-weight: 600; box-shadow: var(--neumorph-flat);">
-                        <span style="color: #10B981; font-size: 16px; font-weight: 900; margin-right: 4px;">“</span>${result.what_to_say}<span style="color: #10B981; font-size: 16px; font-weight: 900; margin-left: 4px;">”</span>
+                    <div style="position: relative; z-index: 1;">
+                        <!-- Big Prominent Audio Button with Glowing Speaker Badge -->
+                        <button type="button" onclick="ClinicalGuidance.speak('${safeAudioKey}', '${safeScript}', this)" style="
+                            width: 100%; 
+                            background: linear-gradient(135deg, #10B981 0%, #059669 100%); 
+                            color: white; 
+                            border: none; 
+                            padding: 13px 18px; 
+                            border-radius: 18px; 
+                            font-size: 15.5px; 
+                            font-weight: 900; 
+                            cursor: pointer; 
+                            display: flex; 
+                            align-items: center; 
+                            justify-content: center; 
+                            gap: 10px; 
+                            box-shadow: 0 6px 22px rgba(16, 185, 129, 0.45); 
+                            margin-bottom: 12px; 
+                            transition: transform 0.15s ease, box-shadow 0.15s ease;
+                        ">
+                            <!-- Glowing Speaker Icon Badge -->
+                            <span style="
+                                width: 36px; 
+                                height: 36px; 
+                                border-radius: 12px; 
+                                background: rgba(255, 255, 255, 0.25); 
+                                display: flex; 
+                                align-items: center; 
+                                justify-content: center; 
+                                font-size: 20px; 
+                                box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.5), 0 2px 6px rgba(0, 0, 0, 0.15);
+                                flex-shrink: 0;
+                            ">
+                                🔊
+                            </span>
+                            <span style="letter-spacing: -0.2px;">เปิดเสียงคุณหมอให้ฟัง (สรุปผลตรวจ)</span>
+                        </button>
+
+                        <!-- Speech Quote Bubble (Neumorphic Inset Well) -->
+                        <div style="
+                            background: var(--bg-card); 
+                            border-radius: 16px; 
+                            padding: 12px 14px; 
+                            font-size: 13.5px; 
+                            color: var(--text-primary); 
+                            line-height: 1.55; 
+                            font-weight: 600; 
+                            box-shadow: var(--neumorph-flat);
+                            border: 1px solid var(--border-color, transparent);
+                        ">
+                            <div style="font-size: 11.5px; font-weight: 800; color: #10B981; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
+                                <span>👨‍⚕️</span> <span>คำพูดสรุปผลตรวจ:</span>
+                            </div>
+                            <span style="color: #10B981; font-size: 16px; font-weight: 900; margin-right: 4px;">“</span>${result.what_to_say}<span style="color: #10B981; font-size: 16px; font-weight: 900; margin-left: 4px;">”</span>
+                        </div>
                     </div>
                 </div>
 
