@@ -110,111 +110,72 @@ try {
             flex-shrink: 0;
         }
 
-        /* 3D Neumorphic Pill Toggle Switch */
-        .neu-switch-outer {
-            background: #EBECF0;
-            padding: 8px 10px;
-            border-radius: 60px;
-            box-shadow: 6px 6px 14px rgba(166, 171, 189, 0.5), -6px -6px 14px rgba(255, 255, 255, 0.8);
+        /* Clean Modern Toggle Switch */
+        .clean-toggle-wrapper {
             display: inline-flex;
             align-items: center;
-            cursor: pointer;
-            user-select: none;
-            transition: all 0.3s ease;
-            border: 2px solid rgba(255, 255, 255, 0.7);
-        }
-
-        [data-theme="dark"] .neu-switch-outer {
-            background: #1E293B;
-            box-shadow: 6px 6px 14px rgba(0, 0, 0, 0.5), -6px -6px 14px rgba(255, 255, 255, 0.05);
-            border-color: rgba(255, 255, 255, 0.08);
-        }
-
-        .neu-switch-outer:hover {
-            transform: scale(1.03);
-        }
-
-        .neu-switch-track {
-            position: relative;
-            width: 230px;
-            height: 58px;
+            gap: 12px;
+            background: var(--bg-main);
+            padding: 8px 16px;
             border-radius: 50px;
-            display: flex;
-            align-items: center;
-            padding: 5px;
-            box-sizing: border-box;
+            box-shadow: var(--neumorph-inset);
+            border: 1px solid var(--border-color);
+        }
+
+        .clean-switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 28px;
             cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.25), inset -3px -3px 6px rgba(255, 255, 255, 0.2);
-            overflow: hidden;
+            flex-shrink: 0;
+            margin: 0;
         }
 
-        .neu-switch-track.active {
-            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-            justify-content: flex-end;
-        }
-
-        .neu-switch-track.closed {
-            background: linear-gradient(135deg, #475569 0%, #1E293B 100%);
-            justify-content: flex-start;
-        }
-
-        .neu-switch-label {
-            font-size: 14.5px;
-            font-weight: 800;
-            color: #FFFFFF;
-            letter-spacing: 0.5px;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s ease;
-            z-index: 2;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .neu-switch-track.active .neu-switch-label {
-            padding-right: 18px;
-        }
-
-        .neu-switch-track.closed .neu-switch-label {
-            padding-left: 18px;
-        }
-
-        .neu-switch-thumb {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: #FFFFFF;
+        .clean-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
             position: absolute;
-            top: 5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.35), -2px -2px 6px rgba(255, 255, 255, 0.7);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            z-index: 3;
         }
 
-        .neu-switch-track.active .neu-switch-thumb {
-            left: 5px;
-            background: #FFFFFF;
+        .clean-slider {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #94A3B8;
+            border-radius: 34px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
-        .neu-switch-track.closed .neu-switch-thumb {
-            left: calc(100% - 53px);
-            background: #E2E8F0;
+        .clean-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #FFFFFF;
+            border-radius: 50%;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
         }
 
-        .neu-switch-icon {
-            font-size: 22px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.4s ease;
+        .clean-switch input:checked + .clean-slider {
+            background-color: #10B981;
         }
 
-        .neu-switch-outer:hover .neu-switch-icon {
-            transform: scale(1.15) rotate(10deg);
+        .clean-switch input:checked + .clean-slider:before {
+            transform: translateX(24px);
+        }
+
+        .clean-switch-label {
+            font-size: 13.5px;
+            font-weight: 800;
+            user-select: none;
         }
 
         /* Tabs */
@@ -466,21 +427,15 @@ try {
                 </p>
             </div>
             <div>
-                <!-- 3D Neumorphic Pill Toggle Button -->
-                <div class="neu-switch-outer" id="neuSwitchOuter" onclick="toggleSystem(<?= $systemEnabled ? 0 : 1 ?>)" title="คลิกเพื่อสลับสถานะเปิด/ปิดระบบแลกของรางวัล">
-                    <div class="neu-switch-track <?= $systemEnabled ? 'active' : 'closed' ?>" id="neuSwitchTrack">
-                        <?php if ($systemEnabled): ?>
-                            <div class="neu-switch-thumb" id="neuSwitchThumb">
-                                <span class="neu-switch-icon">🎁</span>
-                            </div>
-                            <span class="neu-switch-label" id="neuSwitchLabel">เปิดให้แลก</span>
-                        <?php else: ?>
-                            <span class="neu-switch-label" id="neuSwitchLabel">ปิดระบบ</span>
-                            <div class="neu-switch-thumb" id="neuSwitchThumb">
-                                <span class="neu-switch-icon">🔒</span>
-                            </div>
-                        <?php endif; ?>
-                    </div>
+                <!-- Clean Modern Toggle Switch -->
+                <div class="clean-toggle-wrapper" title="เลื่อนสลับเพื่อเปิด/ปิดระบบแลกของรางวัล">
+                    <span class="clean-switch-label" id="toggleStatusLabel" style="color: <?= $systemEnabled ? '#10B981' : '#64748B' ?>;">
+                        <?= $systemEnabled ? '🟢 เปิดใช้งาน' : '🔒 ปิดระบบ' ?>
+                    </span>
+                    <label class="clean-switch">
+                        <input type="checkbox" id="systemToggleCheckbox" <?= $systemEnabled ? 'checked' : '' ?> onchange="toggleSystem(this.checked ? 1 : 0)">
+                        <span class="clean-slider"></span>
+                    </label>
                 </div>
             </div>
         </div>
@@ -809,11 +764,9 @@ try {
         }
 
         function toggleSystem(newVal) {
-            const outer = document.getElementById('neuSwitchOuter');
-            const track = document.getElementById('neuSwitchTrack');
-            
-            if (outer) outer.style.pointerEvents = 'none';
-            if (track) track.style.opacity = '0.6';
+            const chk = document.getElementById('systemToggleCheckbox');
+            const lbl = document.getElementById('toggleStatusLabel');
+            if (chk) chk.disabled = true;
 
             fetch('../api/rewards.php', {
                 method: 'POST',
@@ -826,14 +779,18 @@ try {
                     window.location.reload();
                 } else {
                     alert('เกิดข้อผิดพลาด: ' + (data.message || 'ไม่สามารถเปลี่ยนสถานะได้'));
-                    if (outer) outer.style.pointerEvents = 'auto';
-                    if (track) track.style.opacity = '1';
+                    if (chk) {
+                        chk.disabled = false;
+                        chk.checked = !chk.checked;
+                    }
                 }
             })
             .catch(err => {
                 alert('เชื่อมต่อล้มเหลว: ' + err);
-                if (outer) outer.style.pointerEvents = 'auto';
-                if (track) track.style.opacity = '1';
+                if (chk) {
+                    chk.disabled = false;
+                    chk.checked = !chk.checked;
+                }
             });
         }
 

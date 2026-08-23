@@ -779,11 +779,7 @@ try {
                     </div>
                 <?php endif; ?>
 
-                <div style="margin-top: 14px; text-align: center;">
-                    <button type="button" onclick="switchMainTab('rewards')" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: linear-gradient(135deg, #0D2C54, #1A3E6D); color: #ffffff; border: none; border-radius: 50px; font-size: 13px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(13, 44, 84, 0.25);">
-                        🎁 ไปที่ศูนย์แลกของรางวัล อสม.
-                    </button>
-                </div>
+  
             </div>
 
             <!-- Tab Bar for Mobile Responsiveness (Icon-only to prevent horizontal scrolling) -->
