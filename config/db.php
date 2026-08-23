@@ -2168,6 +2168,141 @@ try {
             try {
                 $pdo->exec("ALTER TABLE `citizen_self_screenings` ADD COLUMN `sub_district_code` VARCHAR(10) NULL AFTER `risk_level`;");
             } catch (\PDOException $e) {}
+
+            // 8. Reward & Redemption System Tables
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `system_settings` (
+                `setting_key` VARCHAR(100) PRIMARY KEY,
+                `setting_value` TEXT NOT NULL,
+                `description` VARCHAR(255) NULL,
+                `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+            // Seed default reward_system_enabled = '0' (disabled by default)
+            $pdo->exec("INSERT IGNORE INTO `system_settings` (`setting_key`, `setting_value`, `description`) 
+                        VALUES ('reward_system_enabled', '0', 'สถานะเปิด/ปิดระบบแลกของรางวัล อสม.');");
+
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `reward_items` (
+                `item_id` INT AUTO_INCREMENT PRIMARY KEY,
+                `title` VARCHAR(200) NOT NULL,
+                `description` TEXT NULL,
+                `points_required` INT NOT NULL DEFAULT 10,
+                `category` VARCHAR(50) NOT NULL DEFAULT 'equipment',
+                `icon_emoji` VARCHAR(20) NOT NULL DEFAULT '🎁',
+                `image_url` VARCHAR(255) NULL,
+                `stock_quantity` INT NOT NULL DEFAULT -1,
+                `redeemed_count` INT NOT NULL DEFAULT 0,
+                `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+                `sort_order` INT NOT NULL DEFAULT 0,
+                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX `idx_category` (`category`),
+                INDEX `idx_active` (`is_active`),
+                INDEX `idx_points` (`points_required`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `reward_redemptions` (
+                `redemption_id` INT AUTO_INCREMENT PRIMARY KEY,
+                `redemption_code` VARCHAR(20) NOT NULL,
+                `vhv_id` INT NOT NULL,
+                `item_id` INT NOT NULL,
+                `points_spent` INT NOT NULL,
+                `status` ENUM('pending', 'fulfilled', 'cancelled') NOT NULL DEFAULT 'pending',
+                `fulfilled_by` VARCHAR(100) NULL,
+                `fulfilled_at` DATETIME NULL,
+                `note` TEXT NULL,
+                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX `idx_vhv_id` (`vhv_id`),
+                INDEX `idx_item_id` (`item_id`),
+                INDEX `idx_status` (`status`),
+                INDEX `idx_code` (`redemption_code`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+            // Seed default catalog items if empty
+            $itemCount = $pdo->query("SELECT COUNT(*) FROM `reward_items`")->fetchColumn();
+            if ($itemCount == 0) {
+                $seedItems = [
+                    [
+                        'title' => 'สเปรย์แอลกอฮอล์พกพา + ยาดมสมุนไพร',
+                        'description' => 'ชุดเซ็ตพกพาสำหรับ อสม. ลงพื้นที่ พร้อมซองใส่และสายคล้องคอ',
+                        'points_required' => 15,
+                        'category' => 'equipment',
+                        'icon_emoji' => '🧴',
+                        'stock_quantity' => 100,
+                        'sort_order' => 1
+                    ],
+                    [
+                        'title' => 'ร่มพับกันแดด/กันฝน สกรีน อสม.ตาลสุม',
+                        'description' => 'ร่มพับยูวี 3 ตอน แข็งแรง ทนทาน สกรีนตราสัญลักษณ์อำเภอตาลสุม',
+                        'points_required' => 30,
+                        'category' => 'souvenir',
+                        'icon_emoji' => '☂️',
+                        'stock_quantity' => 50,
+                        'sort_order' => 2
+                    ],
+                    [
+                        'title' => 'หมวกแก๊ป อสม. จิตอาสา นวัตกรรมสุขภาพ',
+                        'description' => 'หมวกแก๊ปผ้าคอนตอนเนื้อดี ระบายอากาศ ปักตราสัญลักษณ์ อสม.',
+                        'points_required' => 30,
+                        'category' => 'equipment',
+                        'icon_emoji' => '🧢',
+                        'stock_quantity' => 50,
+                        'sort_order' => 3
+                    ],
+                    [
+                        'title' => 'กระบอกน้ำสแตนเลสเก็บความเย็น 500ml',
+                        'description' => 'กระบอกน้ำเก็บอุณหภูมิร้อน-เย็น พกพาสะดวกสำหรับลงพื้นที่',
+                        'points_required' => 35,
+                        'category' => 'souvenir',
+                        'icon_emoji' => '🥤',
+                        'stock_quantity' => 30,
+                        'sort_order' => 4
+                    ],
+                    [
+                        'title' => 'เครื่องวัดความดันโลหิตดิจิทัลพกพา (ข้อมือ/ต้นแขน)',
+                        'description' => 'เครื่องวัดความดันระบบอัตโนมัติ แม่นยำ อ่านค่าง่าย พกพาสะดวก',
+                        'points_required' => 50,
+                        'category' => 'medical',
+                        'icon_emoji' => '🩺',
+                        'stock_quantity' => 20,
+                        'sort_order' => 5
+                    ],
+                    [
+                        'title' => 'ชุดแถบตรวจน้ำตาลในเลือด (Strip Test 25 ชิ้น)',
+                        'description' => 'ชุดแถบตรวจน้ำตาลปลายนิ้ว พร้อมเข็มเจาะ สำหรับติดตามกลุ่มเสี่ยง',
+                        'points_required' => 60,
+                        'category' => 'medical',
+                        'icon_emoji' => '🩸',
+                        'stock_quantity' => 20,
+                        'sort_order' => 6
+                    ],
+                    [
+                        'title' => 'โล่เกียรติยศ อสม. ดีเด่นระดับอำเภอตาลสุม',
+                        'description' => 'โล่เกียรติยศคริสตัล พร้อมสลักชื่อเชิดชูเกียรติ มอบในงานประชุมประจำปี',
+                        'points_required' => 100,
+                        'category' => 'honorary',
+                        'icon_emoji' => '🏆',
+                        'stock_quantity' => 10,
+                        'sort_order' => 7
+                    ]
+                ];
+
+                $stmtSeed = $pdo->prepare("
+                    INSERT INTO `reward_items` (`title`, `description`, `points_required`, `category`, `icon_emoji`, `stock_quantity`, `sort_order`)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ");
+
+                foreach ($seedItems as $si) {
+                    $stmtSeed->execute([
+                        $si['title'],
+                        $si['description'],
+                        $si['points_required'],
+                        $si['category'],
+                        $si['icon_emoji'],
+                        $si['stock_quantity'],
+                        $si['sort_order']
+                    ]);
+                }
+            }
         } catch (\PDOException $e) {}
     }
 } catch (\Exception $e) {

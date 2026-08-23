@@ -24,7 +24,7 @@ $is_super_admin = (!isset($admin_hoscode) || empty($admin_hoscode)) && (isset($_
 
 $is_core_active = in_array($current_page, ['index.php', 'profile.php', 'leaderboard.php']);
 $is_targets_active = in_array($current_page, ['target_manager.php', 'dpac_manager.php']);
-$is_work_active = in_array($current_page, ['assignment.php', 'vhv_approval.php', 'print_qr.php', 'vhv_tasks.php', 'critical_referrals.php']);
+$is_work_active = in_array($current_page, ['assignment.php', 'vhv_approval.php', 'print_qr.php', 'vhv_tasks.php', 'critical_referrals.php', 'rewards_management.php']);
 $is_reports_active = in_array($current_page, ['analytics.php', 'citizen_health_dashboard.php', 'reports.php', 'security_log.php', 'surveillance_reports.php']);
 $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php', 'db_manager.php', 'user_manager.php', 'unit_house_manager.php', 'update.php', 'messages.php', 'jhcis_sync.php', 'emergency_receiver.php']);
 
@@ -448,6 +448,12 @@ try {
                             <?= $pendingAlertsCount ?>
                         </span>
                     <?php endif; ?>
+                </a>
+                <a href="rewards_management.php" class="<?= $current_page == 'rewards_management.php' ? 'active' : '' ?>">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V6a2 2 0 10-2 2h2zm0 13a7 7 0 100-14 7 7 0 000 14z"></path>
+                    </svg>
+                    จัดการของรางวัล อสม.
                 </a>
             </div>
         </div>

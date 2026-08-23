@@ -399,6 +399,12 @@ $hcNames = get_health_units();
                     🎯 ฉายาของคุณ: <?= $myTitle ?>
                 </div>
             <?php endif; ?>
+
+            <div style="margin-top: 14px; text-align: center;">
+                <a href="rewards.php" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: linear-gradient(135deg, #0D2C54, #1A3E6D); color: #ffffff; border-radius: 50px; text-decoration: none; font-size: 13px; font-weight: 800; box-shadow: 0 4px 12px rgba(13, 44, 84, 0.25);">
+                    🎁 ไปที่ศูนย์แลกของรางวัล อสม.
+                </a>
+            </div>
         </div>
 
         <!-- Tab Bar for Mobile Responsiveness (Icon-only to prevent horizontal scrolling) -->
@@ -669,6 +675,12 @@ $hcNames = get_health_units();
                     </path>
                 </svg>
                 <span>สแกนบ้าน</span>
+            </a>
+            <a href="rewards.php" class="nav-link">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V6a2 2 0 10-2 2h2zm0 13a7 7 0 100-14 7 7 0 000 14z"></path>
+                </svg>
+                แลกรางวัล
             </a>
             <a href="leaderboard.php" class="nav-link active">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
