@@ -296,7 +296,7 @@ $availablePoints = max(0.0, $totalEarned - $pointsSpent);
 $rewardCategories = [];
 $categoryMap = [];
 try {
-    $catStmt = $pdo->query("SELECT * FROM `reward_categories` WHERE `is_active` = 1 ORDER BY `sort_order` ASC, `category_id` ASC");
+    $catStmt = $pdo->query("SELECT * FROM `reward_categories` WHERE `is_active` = 1 ORDER BY `sort_order` ASC, `category_name` ASC");
     $rewardCategories = $catStmt->fetchAll(PDO::FETCH_ASSOC);
     foreach ($rewardCategories as $rc) {
         $categoryMap[$rc['category_code']] = $rc['category_name'];

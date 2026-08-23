@@ -15,15 +15,62 @@ $is_super_admin = !empty($_SESSION['is_super_admin']);
 
 $systemEnabled = (int)get_system_setting('reward_system_enabled', 0);
 
-// Fetch Dynamic Categories
+// Auto-sync & Ensure Reward Categories Table Exists with Default Categories
 $categories = [];
 $categoryList = [];
 try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `reward_categories` (
+        `category_code` VARCHAR(50) PRIMARY KEY,
+        `category_name` VARCHAR(100) NOT NULL,
+        `icon_emoji` VARCHAR(20) NOT NULL DEFAULT '📦',
+        `sort_order` INT NOT NULL DEFAULT 0,
+        `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+    // Seed default categories if empty
+    $checkCount = (int)$pdo->query("SELECT COUNT(*) FROM `reward_categories`")->fetchColumn();
+    if ($checkCount === 0) {
+        $defaultSeeds = [
+            ['equipment', 'อุปกรณ์ลงพื้นที่', '🧴', 1],
+            ['souvenir', 'ของที่ระลึก อสม.', '☂️', 2],
+            ['medical', 'เครื่องมือแพทย์', '🩺', 3],
+            ['honorary', 'เชิดชูเกียรติ', '🏆', 4]
+        ];
+        $stmtIns = $pdo->prepare("INSERT IGNORE INTO `reward_categories` (`category_code`, `category_name`, `icon_emoji`, `sort_order`, `is_active`) VALUES (?, ?, ?, ?, 1)");
+        foreach ($defaultSeeds as $ds) {
+            $stmtIns->execute($ds);
+        }
+    }
+
+    // Auto-sync any existing category codes from reward_items into reward_categories
+    $pdo->exec("
+        INSERT IGNORE INTO `reward_categories` (`category_code`, `category_name`, `icon_emoji`, `sort_order`, `is_active`)
+        SELECT DISTINCT `category`, 
+               CASE 
+                   WHEN `category` = 'equipment' THEN 'อุปกรณ์ลงพื้นที่'
+                   WHEN `category` = 'souvenir' THEN 'ของที่ระลึก อสม.'
+                   WHEN `category` = 'medical' THEN 'เครื่องมือแพทย์'
+                   WHEN `category` = 'honorary' THEN 'เชิดชูเกียรติ'
+                   ELSE `category`
+               END,
+               CASE 
+                   WHEN `category` = 'equipment' THEN '🧴'
+                   WHEN `category` = 'souvenir' THEN '☂️'
+                   WHEN `category` = 'medical' THEN '🩺'
+                   WHEN `category` = 'honorary' THEN '🏆'
+                   ELSE '📦'
+               END,
+               99, 1
+        FROM `reward_items`
+        WHERE `category` IS NOT NULL AND `category` != ''
+    ");
+
+    // Query categories with item counts
     $stmtCats = $pdo->query("
-        SELECT c.*, COUNT(i.item_id) AS item_count
+        SELECT c.category_code, c.category_name, c.icon_emoji, c.sort_order, c.is_active,
+               (SELECT COUNT(*) FROM `reward_items` i WHERE i.category = c.category_code) AS item_count
         FROM `reward_categories` c
-        LEFT JOIN `reward_items` i ON c.category_code = i.category
-        GROUP BY c.category_code
         ORDER BY c.sort_order ASC, c.category_name ASC
     ");
     $categoryList = $stmtCats->fetchAll(PDO::FETCH_ASSOC);
@@ -31,6 +78,13 @@ try {
         $categories[$c['category_code']] = $c['category_name'];
     }
 } catch (\Exception $e) {
+    // Fallback if DB is offline or mock mode
+    $categoryList = [
+        ['category_code' => 'equipment', 'category_name' => 'อุปกรณ์ลงพื้นที่', 'icon_emoji' => '🧴', 'sort_order' => 1, 'is_active' => 1, 'item_count' => 0],
+        ['category_code' => 'souvenir', 'category_name' => 'ของที่ระลึก อสม.', 'icon_emoji' => '☂️', 'sort_order' => 2, 'is_active' => 1, 'item_count' => 0],
+        ['category_code' => 'medical', 'category_name' => 'เครื่องมือแพทย์', 'icon_emoji' => '🩺', 'sort_order' => 3, 'is_active' => 1, 'item_count' => 0],
+        ['category_code' => 'honorary', 'category_name' => 'เชิดชูเกียรติ', 'icon_emoji' => '🏆', 'sort_order' => 4, 'is_active' => 1, 'item_count' => 0]
+    ];
     $categories = [
         'equipment' => 'อุปกรณ์ลงพื้นที่',
         'souvenir' => 'ของที่ระลึก อสม.',
@@ -402,7 +456,7 @@ try {
                 </p>
             </div>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button type="button" onclick="openCategoryModal()" class="btn-dash-action" style="background: var(--bg-card); color: var(--color-primary); border: 1.5px solid var(--border-color); padding: 10px 16px; border-radius: 14px; font-size: 13.5px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--neumorph-flat);">
+                <button type="button" onclick="switchRewardTab('categories')" class="btn-dash-action" style="background: var(--bg-card); color: var(--color-primary); border: 1.5px solid var(--border-color); padding: 10px 16px; border-radius: 14px; font-size: 13.5px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--neumorph-flat);">
                     🗂️ จัดการหมวดหมู่
                 </button>
                 <button type="button" onclick="openItemModal()" class="btn-dash-action" style="background: var(--color-primary); color: #ffffff; padding: 10px 18px; border-radius: 14px; font-size: 13.5px; font-weight: 800; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--neumorph-flat);">
@@ -422,8 +476,8 @@ try {
                 </div>
                 <p style="margin: 0; font-size: 13.5px; color: var(--text-secondary); line-height: 1.5;">
                     <?= $systemEnabled 
-                        ? '🟢 <strong>โหมดเปิด:</strong> อสม. เห็นเกณฑ์คะแนนและสามารถกดแลกของรางวัลในแอปได้ตามปกติ' 
-                        : '🔒 <strong>โหมดปิด (Preview):</strong> อสม. เห็นเฉพาะรายการของรางวัลที่มีให้แลก โดยยังไม่แสดงเกณฑ์คะแนนและยังกดแลกไม่ได้' ?>
+                        ? '🟢 <strong>โหมดเปิด :</strong> อสม. เห็นเกณฑ์คะแนนและสามารถกดแลกของรางวัลในแอปได้ตามปกติ' 
+                        : '🔒 <strong>โหมดปิด :</strong> อสม. เห็นเฉพาะรายการของรางวัลที่มีให้แลก โดยยังไม่แสดงเกณฑ์คะแนนและยังกดแลกไม่ได้' ?>
                 </p>
             </div>
             <div>

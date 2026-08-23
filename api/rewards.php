@@ -567,14 +567,45 @@ try {
             exit();
         }
 
-        $stmt = $pdo->query("
-            SELECT c.*, COUNT(i.item_id) AS item_count
-            FROM `reward_categories` c
-            LEFT JOIN `reward_items` i ON c.category_code = i.category AND i.is_active = 1
-            GROUP BY c.category_code
-            ORDER BY c.sort_order ASC, c.category_name ASC
-        ");
-        $cats = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `reward_categories` (
+                `category_code` VARCHAR(50) PRIMARY KEY,
+                `category_name` VARCHAR(100) NOT NULL,
+                `icon_emoji` VARCHAR(20) NOT NULL DEFAULT '📦',
+                `sort_order` INT NOT NULL DEFAULT 0,
+                `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+            $catCount = (int)$pdo->query("SELECT COUNT(*) FROM `reward_categories`")->fetchColumn();
+            if ($catCount === 0) {
+                $defaultSeeds = [
+                    ['equipment', 'อุปกรณ์ลงพื้นที่', '🧴', 1],
+                    ['souvenir', 'ของที่ระลึก อสม.', '☂️', 2],
+                    ['medical', 'เครื่องมือแพทย์', '🩺', 3],
+                    ['honorary', 'เชิดชูเกียรติ', '🏆', 4]
+                ];
+                $stmtIns = $pdo->prepare("INSERT IGNORE INTO `reward_categories` (`category_code`, `category_name`, `icon_emoji`, `sort_order`, `is_active`) VALUES (?, ?, ?, ?, 1)");
+                foreach ($defaultSeeds as $ds) {
+                    $stmtIns->execute($ds);
+                }
+            }
+
+            $stmt = $pdo->query("
+                SELECT c.category_code, c.category_name, c.icon_emoji, c.sort_order, c.is_active,
+                       (SELECT COUNT(*) FROM `reward_items` i WHERE i.category = c.category_code) AS item_count
+                FROM `reward_categories` c
+                ORDER BY c.sort_order ASC, c.category_name ASC
+            ");
+            $cats = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            $cats = [
+                ['category_code' => 'equipment', 'category_name' => 'อุปกรณ์ลงพื้นที่', 'icon_emoji' => '🧴', 'sort_order' => 1, 'is_active' => 1, 'item_count' => 0],
+                ['category_code' => 'souvenir', 'category_name' => 'ของที่ระลึก อสม.', 'icon_emoji' => '☂️', 'sort_order' => 2, 'is_active' => 1, 'item_count' => 0],
+                ['category_code' => 'medical', 'category_name' => 'เครื่องมือแพทย์', 'icon_emoji' => '🩺', 'sort_order' => 3, 'is_active' => 1, 'item_count' => 0],
+                ['category_code' => 'honorary', 'category_name' => 'เชิดชูเกียรติ', 'icon_emoji' => '🏆', 'sort_order' => 4, 'is_active' => 1, 'item_count' => 0]
+            ];
+        }
 
         echo json_encode(['status' => 'success', 'categories' => $cats], JSON_UNESCAPED_UNICODE);
         exit();
