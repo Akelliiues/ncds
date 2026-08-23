@@ -18,34 +18,11 @@ $activeBudgetYear = isset($_GET['budget_year']) && is_numeric($_GET['budget_year
     ? (int)$_GET['budget_year']
     : (isset($_SESSION['active_budget_year']) ? (int)$_SESSION['active_budget_year'] : (function_exists('get_current_budget_year') ? get_current_budget_year() : 2026));
 
-$selected_subdistrict = $_GET['sub_district_code'] ?? '';
 $date_filter = $_GET['date_filter'] ?? 'all'; // all, 30d, 90d, ytd
-
-$subdistricts = [
-    '341801' => 'ตำบลตาลสุม',
-    '341802' => 'ตำบลสำโรง',
-    '341803' => 'ตำบลจิกเทิง',
-    '341804' => 'ตำบลหนองกุง',
-    '341805' => 'ตำบลนาคาย',
-    '341806' => 'ตำบลคำหว้า'
-];
-
-try {
-    $stmt = $pdo->query("SELECT sub_district_code, CONCAT('ตำบล', sub_district_name) FROM sub_districts ORDER BY sub_district_code ASC");
-    $fetched = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-    if (!empty($fetched)) {
-        $subdistricts = $fetched;
-    }
-} catch (\Exception $e) {}
 
 // Build SQL where clause
 $whereClauses = ["budget_year = ?"];
 $params = [$activeBudgetYear];
-
-if (!empty($selected_subdistrict)) {
-    $whereClauses[] = "sub_district_code = ?";
-    $params[] = $selected_subdistrict;
-}
 
 if ($date_filter === '30d') {
     $whereClauses[] = "created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
@@ -552,15 +529,6 @@ $poorVeggiePct = round((($habits['veggie']['poor'] ?? 0) / $tot) * 100, 1);
                 <select name="budget_year" class="dash-select" onchange="this.form.submit()">
                     <option value="2026" <?= $activeBudgetYear == 2026 ? 'selected' : '' ?>>ปีงบประมาณ 2569 (2026)</option>
                     <option value="2025" <?= $activeBudgetYear == 2025 ? 'selected' : '' ?>>ปีงบประมาณ 2568 (2025)</option>
-                </select>
-
-                <select name="sub_district_code" class="dash-select" onchange="this.form.submit()">
-                    <option value="">ทุกตำบล (ภาพรวมอำเภอ)</option>
-                    <?php foreach ($subdistricts as $sCode => $sName): ?>
-                        <option value="<?= htmlspecialchars($sCode) ?>" <?= $selected_subdistrict == $sCode ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($sName) ?>
-                        </option>
-                    <?php endforeach; ?>
                 </select>
 
                 <select name="date_filter" class="dash-select" onchange="this.form.submit()">

@@ -890,7 +890,7 @@ function get_time_diff_display($timestamp) {
                     <div class="feature-icon-box" style="color: #EC4899;">📢</div>
                     <div class="feature-tile-content">
                         <h4>ศูนย์ข้อความ & แจ้งเตือนประกาศ</h4>
-                        <p>สื่อสารข่าวสารสุขภาพ นโยบายเร่งด่วน และประกาศสำคัญถึง อสม. และเจ้าหน้าที่แบบเรียลไทม์</p>
+                        <p>สื่อสารข่าวสารสุขภาพ นโยบายเร่งด่วน และประกาศสำคัญถึง อสม. และเจ้าหน้าที่ทันที</p>
                     </div>
                 </div>
             </div>
