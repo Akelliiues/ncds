@@ -1,5 +1,5 @@
 <?php
-// vhv/manual.php (Mobile-Optimized VHV Manual)
+// vhv/manual.php (Mobile-Optimized VHV & Citizen Manual with Claymorphism & Neumorphism)
 require_once __DIR__ . '/../config/session.php';
 
 if (!isset($_SESSION['vhv_id']) && !defined('ALLOW_GUEST_MANUAL')) {
@@ -21,7 +21,6 @@ $province = defined('PROVINCE_NAME') ? PROVINCE_NAME : 'อุบลราชธ
 <html lang="th">
 <head>
     <script>
-        // Immediately apply theme before rendering
         (function() {
             const theme = localStorage.getItem('theme') || 'light';
             document.documentElement.setAttribute('data-theme', theme);
@@ -35,320 +34,474 @@ $province = defined('PROVINCE_NAME') ? PROVINCE_NAME : 'อุบลราชธ
     <meta name="apple-mobile-web-app-title" content="NCDs Portal">
     <meta name="application-name" content="NCDs Portal">
     <meta name="theme-color" content="#0d2c54">
-    <title>คู่มือ อสม. อำเภอ<?= htmlspecialchars($district) ?> - NCDs Portal</title>
+    <title>คู่มือการใช้งานระบบ NCDs Portal - อำเภอ<?= htmlspecialchars($district) ?></title>
     <link rel="stylesheet" href="<?= $path_prefix ?>assets/css/style.css">
     <link rel="apple-touch-icon" href="<?= $path_prefix ?>assets/icon.png">
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="<?= $path_prefix ?>manifest.json">
     <script src="<?= $path_prefix ?>assets/js/app.js"></script>
+
     <style>
         body {
             background-color: var(--bg-main);
             color: var(--text-primary);
             font-family: var(--font-base);
+            min-height: 100vh;
+            padding-bottom: 40px;
         }
 
-        .header-section {
+        .mobile-wrapper {
+            max-width: 540px;
+            margin: 0 auto;
+            padding: 14px 16px 40px 16px;
+        }
+
+        /* Top Bar */
+        .manual-top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .btn-back-pill {
+            color: var(--color-accent);
+            text-decoration: none;
+            font-size: 13.5px;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-card);
+            padding: 8px 16px;
+            border-radius: 50px;
+            box-shadow: var(--neumorph-flat);
+            transition: transform 0.2s;
+        }
+        .btn-back-pill:active {
+            transform: scale(0.95);
+            box-shadow: var(--neumorph-inset);
+        }
+
+        /* Hero Banner */
+        .manual-hero {
             text-align: center;
-            margin-bottom: 25px;
-            padding: 20px 15px;
-            border-radius: var(--border-radius);
+            padding: 22px 18px;
+            border-radius: 24px;
             background: var(--bg-card);
             box-shadow: var(--neumorph-flat);
-        }
-
-        .header-section img {
-            width: 70px;
-            height: auto;
-            margin-bottom: 12px;
-        }
-
-        .header-section h1 {
-            font-size: 22px;
-            margin: 5px 0;
-            font-weight: 800;
-        }
-
-        .header-section p {
-            color: var(--text-secondary);
-            font-size: 13.5px;
-            margin: 4px 0 0 0;
-        }
-
-        /* Collapsible Accordion Styling */
-        .manual-accordion {
             margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+        [data-theme="dark"] .manual-hero {
+            border-color: rgba(255,255,255,0.05);
+        }
+        .manual-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #3b82f6, #10b981, #f59e0b);
+        }
+        .manual-hero-logo {
+            width: 72px;
+            height: 72px;
+            border-radius: 18px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+            margin-bottom: 10px;
+        }
+        .manual-hero h1 {
+            font-size: 21px;
+            font-weight: 900;
+            margin: 0 0 4px 0;
+            color: var(--text-primary);
+        }
+        .manual-hero p {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin: 0;
+            line-height: 1.45;
         }
 
+        /* Search Box */
+        .search-container {
+            margin-bottom: 16px;
+            position: relative;
+        }
+        .search-input {
+            width: 100%;
+            padding: 12px 16px 12px 42px;
+            border-radius: 50px;
+            border: none;
+            background: var(--bg-card);
+            box-shadow: var(--neumorph-inset);
+            font-size: 14px;
+            color: var(--text-primary);
+            box-sizing: border-box;
+            outline: none;
+            font-family: inherit;
+        }
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            color: var(--text-muted);
+        }
+
+        /* Filter Pills */
+        .filter-scroll {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            margin-bottom: 16px;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        .filter-scroll::-webkit-scrollbar {
+            display: none;
+        }
+        .filter-pill {
+            background: var(--bg-card);
+            border: none;
+            color: var(--text-secondary);
+            padding: 7px 14px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 800;
+            white-space: nowrap;
+            cursor: pointer;
+            box-shadow: var(--neumorph-flat);
+            transition: all 0.2s;
+        }
+        .filter-pill.active {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+        }
+
+        /* Accordion Items */
+        .manual-accordion {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
         .accordion-item {
             background-color: var(--bg-card);
             border-radius: 20px;
-            margin-bottom: 14px;
             box-shadow: var(--neumorph-flat);
             overflow: hidden;
-            transition: all var(--transition-speed);
+            transition: all 0.25s ease;
+            border: 1.5px solid transparent;
         }
-
+        .accordion-item.open {
+            border-color: rgba(59, 130, 246, 0.3);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
         .accordion-header {
-            padding: 16px 20px;
+            padding: 14px 18px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             cursor: pointer;
             user-select: none;
-            transition: background-color var(--transition-speed);
+            -webkit-tap-highlight-color: transparent;
         }
-
         .accordion-header:active {
-            background-color: var(--bg-darker);
+            background: var(--bg-darker);
         }
-
-        .accordion-title {
-            font-size: 15px;
-            font-weight: 800;
-            color: var(--color-primary);
+        .accordion-title-wrap {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding-right: 10px;
-            line-height: 1.4;
+            text-align: left;
         }
-
-        .accordion-title svg {
-            width: 20px;
-            height: 20px;
-            stroke-width: 2.2;
+        .accordion-icon-badge {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: rgba(59, 130, 246, 0.1);
+            color: #2563eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
             flex-shrink: 0;
+            box-shadow: var(--neumorph-flat);
         }
-
-        .accordion-arrow {
-            font-size: 12px;
+        [data-theme="dark"] .accordion-icon-badge {
+            background: rgba(56, 189, 248, 0.15);
+            color: #38bdf8;
+        }
+        .accordion-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin: 0;
+            line-height: 1.3;
+        }
+        .accordion-tag {
+            font-size: 11px;
             color: var(--text-muted);
-            transition: transform var(--transition-speed);
+            font-weight: 600;
+        }
+        .accordion-arrow {
+            font-size: 13px;
+            color: var(--text-muted);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            flex-shrink: 0;
+            margin-left: 8px;
+        }
+        .accordion-item.open .accordion-arrow {
+            transform: rotate(180deg);
+            color: #2563eb;
         }
 
         .accordion-content {
             max-height: 0;
             overflow: hidden;
-            transition: max-height 0.35s ease-out;
+            transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
         .accordion-body {
-            padding: 0 20px 20px 20px;
-            font-size: 14.5px;
+            padding: 0 18px 18px 18px;
+            font-size: 13.5px;
             line-height: 1.6;
             color: var(--text-secondary);
-            border-top: 1px solid rgba(13, 44, 84, 0.05);
-            padding-top: 16px;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            padding-top: 14px;
+        }
+        [data-theme="dark"] .accordion-body {
+            border-top-color: rgba(255, 255, 255, 0.05);
         }
 
-        /* Active/Open State */
-        .accordion-item.open .accordion-arrow {
-            transform: rotate(180deg);
-        }
-
-        .accordion-item.open {
-            box-shadow: var(--neumorph-inset);
-        }
-
-        /* Inside content adjustments */
+        /* Step List */
         .step-list {
-            margin: 15px 0 0 0;
+            margin: 12px 0 0 0;
             padding-left: 0;
             list-style: none;
         }
-
         .step-item {
             position: relative;
-            padding-left: 42px;
-            margin-bottom: 20px;
+            padding-left: 36px;
+            margin-bottom: 16px;
         }
-
         .step-item::before {
             content: '';
             position: absolute;
-            left: 15px;
-            top: 32px;
-            bottom: -16px;
+            left: 13px;
+            top: 26px;
+            bottom: -12px;
             width: 2px;
             background-color: var(--bg-darker);
         }
-
         .step-item:last-child::before {
             display: none;
         }
-
         .step-number {
             position: absolute;
             left: 0;
-            top: 2px;
-            width: 30px;
-            height: 30px;
+            top: 0;
+            width: 26px;
+            height: 26px;
             border-radius: 50%;
-            background-color: var(--bg-card);
-            box-shadow: var(--neumorph-flat);
+            background-color: #3b82f6;
+            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 800;
-            font-size: 13px;
-            color: var(--color-primary);
-            border: 2px solid var(--color-primary);
+            font-size: 12px;
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
         }
-
         .step-content h4 {
-            margin: 0 0 4px 0;
-            font-size: 14.5px;
+            margin: 0 0 2px 0;
+            font-size: 14px;
             font-weight: 800;
             color: var(--text-primary);
         }
-
         .step-content p {
             margin: 0;
-            font-size: 13.5px;
+            font-size: 13px;
             color: var(--text-secondary);
         }
 
+        /* Alert Boxes */
         .alert-box {
-            padding: 16px;
-            border-radius: 16px;
-            margin: 15px 0;
+            padding: 12px 14px;
+            border-radius: 14px;
+            margin: 12px 0;
             display: flex;
-            gap: 12px;
-            box-shadow: var(--neumorph-flat);
+            gap: 10px;
             align-items: flex-start;
-        }
-
-        .alert-box-info {
-            background-color: rgba(13, 44, 84, 0.03);
-            border-left: 5px solid var(--color-primary);
-        }
-
-        .alert-box-success {
-            background-color: rgba(16, 185, 129, 0.03);
-            border-left: 5px solid var(--color-green);
-        }
-
-        .alert-box-warning {
-            background-color: rgba(245, 158, 11, 0.03);
-            border-left: 5px solid var(--color-yellow);
-        }
-
-        .alert-title {
-            font-weight: 800;
-            font-size: 14px;
-            margin-bottom: 4px;
-            color: var(--text-primary);
-        }
-
-        .alert-desc {
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin: 0;
-            line-height: 1.5;
-        }
-
-        .alert-box svg {
-            width: 22px;
-            height: 22px;
-            flex-shrink: 0;
-        }
-
-        table.manual-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        table.manual-table th,
-        table.manual-table td {
-            padding: 10px 12px;
-            font-size: 13px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
             text-align: left;
         }
-
-        table.manual-table th {
-            background-color: var(--bg-darker);
-            color: var(--color-primary);
+        .alert-box-info {
+            background-color: rgba(59, 130, 246, 0.08);
+            border-left: 4px solid #3b82f6;
+        }
+        .alert-box-success {
+            background-color: rgba(16, 185, 129, 0.08);
+            border-left: 4px solid #10b981;
+        }
+        .alert-box-warning {
+            background-color: rgba(245, 158, 11, 0.08);
+            border-left: 4px solid #f59e0b;
+        }
+        .alert-box-danger {
+            background-color: rgba(239, 68, 68, 0.08);
+            border-left: 4px solid #ef4444;
+        }
+        .alert-title {
             font-weight: 800;
-            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 2px;
+            color: var(--text-primary);
+        }
+        .alert-desc {
+            font-size: 12.5px;
+            color: var(--text-secondary);
+            margin: 0;
+            line-height: 1.45;
         }
 
-        .hl-text {
-            background-color: rgba(13, 44, 84, 0.06);
-            color: var(--color-primary);
-            padding: 2px 5px;
-            border-radius: 4px;
-            font-weight: bold;
+        /* Clay Visual Cards */
+        .clay-feature-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(241, 245, 249, 0.9));
+            border-radius: 16px;
+            padding: 12px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        [data-theme="dark"] .clay-feature-card {
+            background: rgba(30, 41, 59, 0.7);
+            border-color: rgba(51, 65, 85, 0.8);
+        }
+        .clay-feature-img {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            overflow: hidden;
+            flex-shrink: 0;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+        }
+        .clay-feature-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .clay-feature-text {
+            font-size: 12.5px;
+            line-height: 1.4;
+            color: var(--text-secondary);
+        }
+        .clay-feature-text strong {
+            color: var(--text-primary);
+            display: block;
+            font-size: 13.5px;
+            margin-bottom: 2px;
+        }
+
+        .hl-code {
+            background-color: rgba(59, 130, 246, 0.12);
+            color: #2563eb;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-weight: 800;
             font-family: monospace;
+        }
+        [data-theme="dark"] .hl-code {
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.15);
         }
     </style>
 </head>
-<body>
+<body class="vhv-accessibility">
     <div class="mobile-wrapper">
-        <!-- Navigation Header -->
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-            <a href="<?= htmlspecialchars($back_url) ?>" style="color: var(--color-accent); text-decoration: none; font-size: 14px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; background: rgba(13, 44, 84, 0.08); padding: 8px 16px; border-radius: 50px;">
-                ⬅️ ย้อนกลับ
+
+        <!-- Top Navigation -->
+        <div class="manual-top-bar">
+            <a href="<?= htmlspecialchars($back_url) ?>" class="btn-back-pill">
+                ← ย้อนกลับ
             </a>
-            <span style="font-weight: 800; color: var(--text-primary); font-size: 14px;">คู่มือการใช้งาน อสม.</span>
+            <span style="font-weight: 800; color: var(--color-accent); font-size: 13.5px;">
+                NCDs Portal
+            </span>
         </div>
 
-        <!-- Header Section -->
-        <div class="header-section">
-            <img src="<?= $path_prefix ?>assets/icon.png" alt="NCDs Portal Logo">
-            <h1>📖 คู่มือการใช้งานระบบ</h1>
-            <p>สำหรับ อสม. ในการลงพื้นที่คัดกรองเชิงรุก</p>
+        <!-- Hero Section -->
+        <div class="manual-hero">
+            <img src="<?= $path_prefix ?>assets/icon.png" alt="NCDs Portal Logo" class="manual-hero-logo">
+            <h1>📖 คู่มือการใช้งานระบบ NCDs</h1>
+            <p>ระบบบันทึกคัดกรอง ดูแลสุขภาพ และประเมินความเสี่ยงโรคเรื้อรัง<br>อำเภอ<?= htmlspecialchars($district) ?> จังหวัด<?= htmlspecialchars($province) ?></p>
         </div>
 
-        <!-- Accordion Container -->
-        <div class="manual-accordion">
+        <!-- Search Bar -->
+        <div class="search-container">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="manual-search" class="search-input" placeholder="พิมพ์ค้นหาหัวข้อ เช่น คัดกรอง, DPAC, เสียงโค้ช, รหัสผ่าน..." oninput="filterManual()">
+        </div>
 
-            <!-- Item 1 -->
-            <div class="accordion-item">
+        <!-- Category Filter Pills -->
+        <div class="filter-scroll">
+            <button type="button" class="filter-pill active" onclick="setCategory('all', this)">📌 ทั้งหมด</button>
+            <button type="button" class="filter-pill" onclick="setCategory('vhv-screen', this)">🩺 คัดกรอง อสม.</button>
+            <button type="button" class="filter-pill" onclick="setCategory('citizen-screen', this)">🌱 ประเมินตนเอง</button>
+            <button type="button" class="filter-pill" onclick="setCategory('voice-coach', this)">🎙️ โค้ชเสียงพูด</button>
+            <button type="button" class="filter-pill" onclick="setCategory('dpac', this)">❤️ งาน DPAC</button>
+            <button type="button" class="filter-pill" onclick="setCategory('pwa-install', this)">📲 ติดตั้งแอป</button>
+            <button type="button" class="filter-pill" onclick="setCategory('leader', this)">👑 สิทธิ์ประธาน</button>
+        </div>
+
+        <!-- Accordion Guide List -->
+        <div class="manual-accordion" id="manual-list">
+
+            <!-- 1. การติดตั้งแอปพลิเคชัน NCDs Portal ลงมือถือ -->
+            <div class="accordion-item" data-category="pwa-install">
                 <div class="accordion-header" onclick="toggleAccordion(this)">
-                    <span class="accordion-title">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
-                        </svg>
-                        1. การลงทะเบียน & เข้าสู่ระบบ
-                    </span>
+                    <div class="accordion-title-wrap">
+                        <div class="accordion-icon-badge">📲</div>
+                        <div>
+                            <h3 class="accordion-title">1. การติดตั้งแอป "NCDs Portal" ลงมือถือ</h3>
+                            <span class="accordion-tag">ไม่ต้องโหลดผ่าน App Store / Play Store</span>
+                        </div>
+                    </div>
                     <span class="accordion-arrow">▼</span>
                 </div>
                 <div class="accordion-content">
                     <div class="accordion-body">
-                        <p>การเข้าสู่ระบบ อสม. มีความปลอดภัยและตรวจสอบความเป็นบุคคลจริง เพื่อป้องกันข้อมูลสุขภาพที่ละเอียดอ่อนของผู้รับการคัดกรองในตำบลและหมู่บ้านต่างๆ</p>
-                        
-                        <div class="alert-box alert-box-info">
-                            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                                <path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
-                            </svg>
-                            <div>
-                                <div class="alert-title">รหัสผ่านเริ่มต้น</div>
-                                <p class="alert-desc">อสม. ทุกคนที่สมัครใหม่ จะได้รับรหัสผ่านเริ่มต้นคือ <span class="hl-text">1234</span> แนะนำให้เปลี่ยนทันทีหลังเข้าระบบครั้งแรก</p>
+                        <p>แอปพลิเคชัน NCDs Portal เป็นระบบ Progressive Web App (PWA) ติดตั้งได้ฟรี ทันที ไม่มีไฟล์หนัก และเปิดใช้งานได้เต็มหน้าจอเหมือนแอปพลิเคชันมือถือ:</p>
+
+                        <div class="clay-feature-card">
+                            <div class="clay-feature-img">
+                                <img src="<?= $path_prefix ?>assets/icon.png" alt="โลโก้แอป">
+                            </div>
+                            <div class="clay-feature-text">
+                                <strong>ติดตั้งง่ายเพียงแตะที่โลโก้</strong>
+                                ในหน้าหลัก อสม. ให้แตะที่รูปโลโก้ที่มีไอคอน 📲 ระบบจะเปิดหน้าต่างติดตั้งขึ้นมาทันที
                             </div>
                         </div>
 
                         <ul class="step-list">
                             <li class="step-item">
-                                <span class="step-number">1</span>
+                                <span class="step-number">A</span>
                                 <div class="step-content">
-                                    <h4>ลงทะเบียน อสม. ใหม่</h4>
-                                    <p>กดปุ่ม "ลงทะเบียน อสม. ใหม่" ในหน้าแรก กรอกชื่อ นามสกุล และเบอร์โทรศัพท์ (ซึ่งใช้เป็นรหัสผู้ใช้)</p>
+                                    <h4>สำหรับมือถือ Android (Google Chrome):</h4>
+                                    <p>แตะที่โลโก้ในหน้าหลัก หรือกดปุ่ม 3 จุดมุมขวาบนของ Chrome แล้วเลือก <strong>"ติดตั้งแอป" (Install App)</strong> หรือ <strong>"เพิ่มลงในหน้าจอหลัก"</strong></p>
                                 </div>
                             </li>
                             <li class="step-item">
-                                <span class="step-number">2</span>
+                                <span class="step-number">B</span>
                                 <div class="step-content">
-                                    <h4>ระบุเขตรับผิดชอบ</h4>
-                                    <p>เลือก ตำบล, หมู่บ้าน และ หน่วยบริการ (รพ.สต.) ต้นสังกัดของท่านให้ถูกต้อง</p>
-                                </div>
-                            </li>
-                            <li class="step-item">
-                                <span class="step-number">3</span>
-                                <div class="step-content">
-                                    <h4>รอเจ้าหน้าที่อนุมัติ</h4>
-                                    <p>เมื่อลงชื่อสำเร็จ บัญชีจะรอเจ้าหน้าที่ รพ.สต. กดยืนยันตัวตน จึงจะเข้าใช้งานระบบได้</p>
+                                    <h4>สำหรับ iPhone / iPad (Safari):</h4>
+                                    <p>กดปุ่ม <strong>แชร์ (Share ⎋)</strong> ด้านล่างจอ แล้วเลื่อนลงมาเลือก <strong>"เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen ⊞)</strong></p>
                                 </div>
                             </li>
                         </ul>
@@ -356,213 +509,298 @@ $province = defined('PROVINCE_NAME') ? PROVINCE_NAME : 'อุบลราชธ
                 </div>
             </div>
 
-            <!-- Item 2 -->
-            <div class="accordion-item">
+            <!-- 2. การประเมินสุขภาพตนเองสำหรับประชาชน (Claymorphism Self-Screening) -->
+            <div class="accordion-item" data-category="citizen-screen">
                 <div class="accordion-header" onclick="toggleAccordion(this)">
-                    <span class="accordion-title">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                        </svg>
-                        2. แดชบอร์ด & การแยกประเภทงาน
-                    </span>
-                    <span class="accordion-arrow">▼</span>
-                </div>
-                <div class="accordion-content">
-                    <div class="accordion-body">
-                        <p>เมื่อล็อกอินแล้ว จะพบกับแดชบอร์ดสรุปงาน ซึ่งแยกออกเป็น 3 แท็บงาน เพื่อป้องกันความสับสน:</p>
-                        <table class="manual-table">
-                            <thead>
-                                <tr>
-                                    <th>แท็บงาน</th>
-                                    <th>คำอธิบาย</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><strong class="hl-text">งานค้าง</strong></td>
-                                    <td>รายชื่อเป้าหมายในเขตของท่านที่ยังไม่ได้รับคัดกรองในปีงบประมาณปัจจุบัน</td>
-                                </tr>
-                                <tr>
-                                    <td><strong class="hl-text" style="color: #b91c1c;">DPAC</strong></td>
-                                    <td>รายชื่อกลุ่มเสี่ยงที่ถูกส่งเข้ามาติดตามพฤติกรรมสุขภาพรอบปัจจุบัน</td>
-                                </tr>
-                                <tr>
-                                    <td><strong class="hl-text" style="color: #10b981;">เสร็จสิ้น</strong></td>
-                                    <td>ประวัติที่บันทึกแล้ว ทั้งที่ส่งสำเร็จและผู้รับบริการที่ถูกข้ามเคส</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Item 3 -->
-            <div class="accordion-item">
-                <div class="accordion-header" onclick="toggleAccordion(this)">
-                    <span class="accordion-title">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
-                        </svg>
-                        3. การสแกนคิวอาร์โค้ด (QR Scan)
-                    </span>
-                    <span class="accordion-arrow">▼</span>
-                </div>
-                <div class="accordion-content">
-                    <div class="accordion-body">
-                        <p>เพื่อการสแกนและบันทึกคัดกรองอย่างรวดเร็ว ระบบมีปุ่ม <strong>"สแกนบ้าน"</strong> เป็นรูปวงกลมสีน้ำเงินพร้อมไฟกะพริบอยู่ตรงกลางแถบเมนูด้านล่าง</p>
-                        
-                        <div class="alert-box alert-box-success">
-                            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <div>
-                                <div class="alert-title">คลิกเดียวเพื่อเปิดฟอร์ม</div>
-                                <p class="alert-desc">อสม. สามารถถือเครื่องไปสแกนคิวอาร์โค้ดที่ติดหน้าบ้าน หรือคิวอาร์โค้ดประจำตัวบุคคล ระบบจะนำทางเข้าสู่ฟอร์มบันทึกคัดกรองของบุคคลนั้นทันทีโดยไม่ต้องค้นหาชื่อ</p>
-                            </div>
+                    <div class="accordion-title-wrap">
+                        <div class="accordion-icon-badge">🌱</div>
+                        <div>
+                            <h3 class="accordion-title">2. แบบประเมินสุขภาพตนเอง (สำหรับประชาชน)</h3>
+                            <span class="accordion-tag">เข้าทำได้ฟรี ไม่ต้องล็อกอิน • 10 ข้อจบใน 30 วิ</span>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Item 4 -->
-            <div class="accordion-item">
-                <div class="accordion-header" onclick="toggleAccordion(this)">
-                    <span class="accordion-title">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                        </svg>
-                        4. ขั้นตอนคัดกรอง 2 ขั้นตอน
-                    </span>
                     <span class="accordion-arrow">▼</span>
                 </div>
                 <div class="accordion-content">
                     <div class="accordion-body">
-                        <p>ฟอร์มคัดกรองเบาหวาน/ความดันโลหิต ออกแบบมาเน้นการใช้นิ้วแตะปุ่มเพื่อความรวดเร็วโดยมีขั้นตอนดังนี้:</p>
-                        
+                        <p>ประชาชนทั่วไปในอำเภอ<?= htmlspecialchars($district) ?> สามารถเข้าตรวจเช็คพฤติกรรมเสี่ยงความดันโลหิตสูงและเบาหวานได้ด้วยตนเองผ่านเมนูหน้าแรก:</p>
+
+                        <div class="clay-feature-card">
+                            <div class="clay-feature-img">
+                                <img src="<?= $path_prefix ?>assets/img/clay/sprout.jpg" alt="ประเมินตนเอง">
+                            </div>
+                            <div class="clay-feature-text">
+                                <strong>ดีไซน์ 3D ดินน้ำมัน (Claymorphism)</strong>
+                                สวยงาม ตัวหนังสือใหญ่เด่นชัด 1 คำถามต่อ 1 สไลด์ พอดีหน้าจอมือถือโดยไม่ต้องเลื่อนจอ
+                            </div>
+                        </div>
+
                         <ul class="step-list">
                             <li class="step-item">
                                 <span class="step-number">1</span>
                                 <div class="step-content">
-                                    <h4>ขั้นตอนที่ 1: ตรวจสอบรายชื่อ</h4>
-                                    <p>ยืนยันชื่อ-นามสกุล อายุ และบ้านเลขที่ของผู้รับการคัดกรองว่าถูกต้อง</p>
+                                    <h4>แตะปุ๊บ ไปต่อปั๊บ (Auto-Advance):</h4>
+                                    <p>เมื่อแตะเลือกคำตอบ ระบบจะบันทึกและสไลด์ไปคำถามถัดไปให้อัตโนมัติทันที</p>
                                 </div>
                             </li>
                             <li class="step-item">
                                 <span class="step-number">2</span>
                                 <div class="step-content">
-                                    <h4>ขั้นตอนที่ 2: บันทึกข้อมูลและพฤติกรรม</h4>
-                                    <p>กรอก น้ำหนัก, ส่วนสูง, รอบเอว (ระบบจะคำนวณ BMI ให้อัตโนมัติ), ค่าความดันโลหิต (SYS/DIA), ค่าเจาะน้ำตาลปลายนิ้ว (DTX) และเลือกการประเมินพฤติกรรมเสี่ยง 5 อ.</p>
+                                    <h4>ปุ่มควบคุมลอยชิดขอบล่าง (‹ และ ›):</h4>
+                                    <p>สามารถกดย้อนกลับหรือข้ามคำถามได้สะดวกด้วยนิ้วโป้ง โดยปุ่มอยู่ตำแหน่งที่ปลอดภัย ไม่บังคำตอบ</p>
                                 </div>
                             </li>
                             <li class="step-item">
                                 <span class="step-number">3</span>
                                 <div class="step-content">
-                                    <h4>ขั้นตอนที่ 3: เลือกไอคอนแนะนำตามรูปภาพ</h4>
-                                    <p>ระบบจะแปรผลสุขภาพอัตโนมัติ อสม. สามารถแตะเลือก <strong>รูปไอคอนคำแนะนำสุขภาพ 9 แบบ</strong> (เช่น ลดเค็ม, ออกกำลังกาย, เลี่ยงของทอด) ได้เลยโดยไม่ต้องเสียเวลาคีย์พิมพ์เอง</p>
+                                    <h4>สรุปผลและแนวทางปฏิบัติเฉพาะบุคคล:</h4>
+                                    <p>บอกชัดเจนว่า <strong>"ถ้าอยากลดความดันต้องทำอย่างไร?"</strong> และ <strong>"ถ้าอยากลดค่าน้ำตาลต้องทำอย่างไร?"</strong> พร้อมปุ่มส่งต่อให้ อสม. หรือ รพ.สต. ตรวจวัดค่าจริง</p>
                                 </div>
                             </li>
                         </ul>
+                    </div>
+                </div>
+            </div>
 
-                        <div class="alert-box alert-box-success">
-                            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                                <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                            </svg>
-                            <div>
-                                <div class="alert-title">📍 บันทึกพิกัด GPS อัตโนมัติ</div>
-                                <p class="alert-desc">เมื่อกดบันทึกส่งงาน ระบบจะเก็บพิกัด GPS ของบ้านเพื่อนำไปวิเคราะห์ในแผนที่ความร้อน (Health Heatmap) ของ รพ.สต. โดยอัตโนมัติ</p>
-                            </div>
+            <!-- 3. ระบบเสียงโค้ชสุขภาพอัจฉริยะ (Clinical Voice Guidance Coach) -->
+            <div class="accordion-item" data-category="voice-coach">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <div class="accordion-title-wrap">
+                        <div class="accordion-icon-badge">🎙️</div>
+                        <div>
+                            <h3 class="accordion-title">3. ระบบเสียงโค้ชสุขภาพ (Voice Coach)</h3>
+                            <span class="accordion-tag">สรุปผลวิเคราะห์สุขภาพด้วยเสียงภาษาไทยเป็นธรรมชาติ</span>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Item 5 -->
-            <div class="accordion-item">
-                <div class="accordion-header" onclick="toggleAccordion(this)">
-                    <span class="accordion-title">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                        </svg>
-                        5. การติดตามงาน DPAC
-                    </span>
                     <span class="accordion-arrow">▼</span>
                 </div>
                 <div class="accordion-content">
                     <div class="accordion-body">
-                        <p>สำหรับบุคคลที่ตรวจรอบแรกแล้วจัดเป็น "กลุ่มเสี่ยงโรคเรื้อรัง" เจ้าหน้าที่จะลงทะเบียนเข้าโครงการ DPAC และส่งงานมอบหมายให้ อสม. ลงไปติดตามการปรับเปลี่ยนพฤติกรรม</p>
-                        <p>อสม. สามารถเข้าไปกดยืนยันและกรอกข้อมูลติดตามรอบ 1-3 ได้ที่แท็บงาน <strong style="color:#b91c1c;">DPAC</strong> โดยบันทึกการประเมินอาหาร การออกกำลังกาย อารมณ์ และชั่งน้ำหนัก/วัดความดันตามรอบครับ</p>
-                    </div>
-                </div>
-            </div>
+                        <p>ระบบช่วยอ่านสรุปผลการคัดกรองและให้คำแนะนำสุขภาพแก่ผู้รับบริการ ด้วยเสียงภาษาไทยที่เป็นมิตรและเข้าใจง่าย:</p>
 
-            <!-- Item 6 -->
-            <div class="accordion-item">
-                <div class="accordion-header" onclick="toggleAccordion(this)">
-                    <span class="accordion-title">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-3.536 4.978 4.978 0 011.414-3.536m0 0L5.636 5.636m3.536 9.9L6.343 18.364m0 0L3 21"></path>
-                        </svg>
-                        6. การใช้งานออฟไลน์ (ไม่มีเน็ต)
-                    </span>
-                    <span class="accordion-arrow">▼</span>
-                </div>
-                <div class="accordion-content">
-                    <div class="accordion-body">
-                        <p>เพื่อตอบสนองการลงพื้นที่จุดอับสัญญาณเน็ตในอำเภอ<?= htmlspecialchars($district) ?> ระบบติดตั้ง PWA ออฟไลน์โหมดอัตโนมัติ:</p>
                         <div class="alert-box alert-box-success">
-                            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                                <path d="M5 13l4 4L19 7"></path>
-                            </svg>
                             <div>
-                                <div class="alert-title">Offline Auto-Sync</div>
-                                <p class="alert-desc">หากบริเวณบ้านที่คัดกรองไม่มีคลื่นเน็ต อสม. ยังสามารถคีย์บันทึกงานได้ตามปกติ ระบบจะเซฟงานไว้ในเครื่องชั่วคราว และเมื่อจับสัญญาณเน็ตได้อีกครั้ง งานจะถูกส่งขึ้นเซิร์ฟเวอร์หลังบ้านอัตโนมัติ</p>
+                                <div class="alert-title">🔊 สำเนียงธรรมชาติ & ออกเสียงคำย่อถูกต้อง</div>
+                                <p class="alert-desc">ระบบออกเสียง <strong>"ออ-สอ-มอ"</strong> สำหรับคำว่า อสม. และ <strong>"รอ-พอ-สอ-ตอ"</strong> สำหรับ รพ.สต. ด้วยจังหวะที่นุ่มนวล ไม่เร็วเกินไป</p>
                             </div>
                         </div>
+
+                        <p><strong>วิธีเปิดฟังเสียง:</strong></p>
+                        <ul class="step-list">
+                            <li class="step-item">
+                                <span class="step-number">1</span>
+                                <div class="step-content">
+                                    <h4>ในฟอร์มคัดกรอง อสม. & ติดตาม DPAC:</h4>
+                                    <p>เมื่อกรอกค่าความดันหรือน้ำตาล จะมีแถบวิเคราะห์ผลสุขภาพสีเขียว/เหลือง/แดง พร้อมปุ่ม <strong>"🔊 เปิดเสียงคำแนะนำ"</strong> แตะเพื่อให้ระบบพูดให้ผู้รับบริการฟังได้ทันที</p>
+                                </div>
+                            </li>
+                            <li class="step-item">
+                                <span class="step-number">2</span>
+                                <div class="step-content">
+                                    <h4>ในหน้าประเมินสุขภาพตนเอง:</h4>
+                                    <p>หน้าสรุปผลจะมีปุ่ม <strong>"🔊 เปิดเสียงพูด"</strong> สำหรับฟังคำแนะนำสรุปพฤติกรรมการกิน การนอน และการออกกำลังกาย</p>
+                                </div>
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>
 
-            <!-- Item 7 -->
-            <div class="accordion-item">
+            <!-- 4. ขั้นตอนการลงพื้นที่คัดกรองของ อสม. & กฎความถูกต้องของข้อมูล -->
+            <div class="accordion-item" data-category="vhv-screen">
                 <div class="accordion-header" onclick="toggleAccordion(this)">
-                    <span class="accordion-title">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
-                        </svg>
-                        7. สิทธิ์ประธาน อสม. (กู้รหัสผ่าน)
-                    </span>
+                    <div class="accordion-title-wrap">
+                        <div class="accordion-icon-badge">🩺</div>
+                        <div>
+                            <h3 class="accordion-title">4. การคัดกรอง อสม. & กฎความถูกต้อง</h3>
+                            <span class="accordion-tag">บังคับเลือกคำแนะนำอย่างน้อย 1 ข้อ และกรอกข้อมูลครบถ้วน</span>
+                        </div>
+                    </div>
                     <span class="accordion-arrow">▼</span>
                 </div>
                 <div class="accordion-content">
                     <div class="accordion-body">
-                        <p>สำหรับ อสม. ที่เป็น <strong>"ประธาน อสม. ประจำหมู่บ้าน"</strong> จะมีเครื่องมือพิเศษที่ด้านบนของแดชบอร์ด เพื่อช่วยแก้ปัญหาเวลาสมาชิกในทีมลืมรหัสผ่าน:</p>
+                        <p>เพื่อรักษามาตรฐานข้อมูลสุขภาพระดับอำเภอ ระบบคัดกรองมีข้อกำหนดความสมบูรณ์ของฟอร์มดังนี้:</p>
+
                         <div class="alert-box alert-box-warning">
-                            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                                <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                            </svg>
                             <div>
-                                <div class="alert-title">ปุ่มรีเซ็ตรหัสผ่านเป็น 1234</div>
-                                <p class="alert-desc">ประธาน อสม. สามารถคลิกเลือกรายชื่อ อสม. ในหมู่บ้านที่รับผิดชอบ แล้วกด "รีเซ็ต 1234" ได้ทันที ไม่ต้องโทรแจ้ง รพ.สต. เพื่อช่วยประหยัดเวลา</p>
+                                <div class="alert-title">⚠️ กฎการตรวจสอบก่อนกดส่งงาน (Strict Validation)</div>
+                                <p class="alert-desc">
+                                    1. ต้องกรอก <strong>น้ำหนัก และ ส่วนสูง</strong> (เพื่อคำนวณ BMI)<br>
+                                    2. ต้องกรอกค่า <strong>ความดันโลหิต (SYS/DIA) หรือ ค่าน้ำตาล (DTX)</strong><br>
+                                    3. <strong>ต้องแตะเลือกคำแนะนำสุขภาพอย่างน้อย 1 รายการ</strong> (แตะที่รูปไอคอนคำแนะนำ 9 แบบ) ระบบจะไม่ยอมให้กดส่งงานหากไม่มีการให้คำแนะนำสุขภาพ
+                                </p>
+                            </div>
+                        </div>
+
+                        <ul class="step-list">
+                            <li class="step-item">
+                                <span class="step-number">1</span>
+                                <div class="step-content">
+                                    <h4>สแกน QR Code หรือเลือกรายชื่อ:</h4>
+                                    <p>แตะปุ่มสแกนตรงกลางเมนูล่าง หรือแตะการ์ดรายชื่อในแท็บ <strong>"งานค้าง"</strong></p>
+                                </div>
+                            </li>
+                            <li class="step-item">
+                                <span class="step-number">2</span>
+                                <div class="step-content">
+                                    <h4>กรอกค่าวัดทางกายภาพ:</h4>
+                                    <p>ชั่งน้ำหนัก วัดส่วนสูง วัดรอบเอว วัดความดัน และเจาะน้ำตาลปลายนิ้ว</p>
+                                </div>
+                            </li>
+                            <li class="step-item">
+                                <span class="step-number">3</span>
+                                <div class="step-content">
+                                    <h4>แตะเลือกไอคอนคำแนะนำสุขภาพ:</h4>
+                                    <p>แตะเลือกคำแนะนำที่ตรงกับพฤติกรรม เช่น <em>ลดเค็ม, ดื่มน้ำเปล่า, เดินเร็ววันละ 30 นาที, นอนก่อน 4 ทุ่ม</em></p>
+                                </div>
+                            </li>
+                            <li class="step-item">
+                                <span class="step-number">4</span>
+                                <div class="step-content">
+                                    <h4>กดบันทึกส่งงาน:</h4>
+                                    <p>ระบบจะบันทึกผลงาน พร้อมเก็บพิกัด GPS บ้านเข้าสู่ระบบแผนที่ GIS ของ รพ.สต. ทันที</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. การติดตามกลุ่มเสี่ยง DPAC -->
+            <div class="accordion-item" data-category="dpac">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <div class="accordion-title-wrap">
+                        <div class="accordion-icon-badge">❤️</div>
+                        <div>
+                            <h3 class="accordion-title">5. การติดตามกลุ่มเสี่ยงโครงการ DPAC</h3>
+                            <span class="accordion-tag">ติดตามพฤติกรรม 3อ. 2ส. 1น. ต่อเนื่อง</span>
+                        </div>
+                    </div>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>ผู้รับบริการที่ตรวจพบว่ามีความเสี่ยงโรคความดันหรือเบาหวาน จะถูกจัดเข้ากลุ่มติดตามพฤติกรรม DPAC โดย รพ.สต.:</p>
+
+                        <div class="clay-feature-card">
+                            <div class="clay-feature-img">
+                                <img src="<?= $path_prefix ?>assets/img/clay/exercise.jpg" alt="DPAC">
+                            </div>
+                            <div class="clay-feature-text">
+                                <strong>แท็บงาน DPAC สีแดง</strong>
+                                อยู่ในแดชบอร์ดหน้าหลัก อสม. แสดงรายชื่อกลุ่มเสี่ยงที่ต้องลงไปติดตามสุขภาพรอบ 1, 2, 3
+                            </div>
+                        </div>
+
+                        <ul class="step-list">
+                            <li class="step-item">
+                                <span class="step-number">1</span>
+                                <div class="step-content">
+                                    <h4>บันทึกการปรับพฤติกรรม:</h4>
+                                    <p>ประเมินเรื่องการลดหวาน ลดเค็ม การออกกำลังกาย และคุณภาพการนอนหลับ</p>
+                                </div>
+                            </li>
+                            <li class="step-item">
+                                <span class="step-number">2</span>
+                                <div class="step-content">
+                                    <h4>วัดผลความเปลี่ยนแปลง:</h4>
+                                    <p>ชั่งน้ำหนักและวัดความดันซ้ำเพื่อดูแนวโน้มว่าสุขภาพดีขึ้นหรือไม่</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. สิทธิ์ผู้นำ อสม. (รีเซ็ตรหัสผ่านสมาชิกในทีม) -->
+            <div class="accordion-item" data-category="leader">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <div class="accordion-title-wrap">
+                        <div class="accordion-icon-badge">👑</div>
+                        <div>
+                            <h3 class="accordion-title">6. สิทธิ์ผู้นำ อสม. (กู้รหัสผ่านสมาชิก)</h3>
+                            <span class="accordion-tag">ประธานหมู่บ้าน • ประธานตำบล • ประธานอำเภอ</span>
+                        </div>
+                    </div>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>เพื่อความสะดวกรวดเร็วในการช่วยเหลือ อสม. ที่ลืมรหัสผ่าน ประธาน อสม. จะมีกล่องเครื่องมือพิเศษบนแดชบอร์ด:</p>
+
+                        <div class="alert-box alert-box-info">
+                            <div>
+                                <div class="alert-title">🔑 วิธีรีเซ็ตรหัสผ่านเป็น "1234"</div>
+                                <p class="alert-desc">
+                                    1. เลือกรายชื่อ อสม. ที่ลืมรหัสผ่านจากกล่องเมนู<br>
+                                    2. กดปุ่ม <strong>"รีเซ็ต 1234"</strong><br>
+                                    3. สมาชิกจะสามารถใช้รหัสผ่าน <span class="hl-code">1234</span> เข้าสู่ระบบได้ทันที
+                                </p>
+                            </div>
+                        </div>
+
+                        <ul class="step-list">
+                            <li class="step-item">
+                                <span class="step-number">•</span>
+                                <div class="step-content">
+                                    <h4>ประธาน อสม. หมู่บ้าน:</h4>
+                                    <p>สามารถช่วยรีเซ็ตรหัสผ่านให้อาสาสมัครทุกคนในหมู่บ้านของตนเองได้</p>
+                                </div>
+                            </li>
+                            <li class="step-item">
+                                <span class="step-number">•</span>
+                                <div class="step-content">
+                                    <h4>ประธาน อสม. ตำบล:</h4>
+                                    <p>สามารถช่วยรีเซ็ตรหัสผ่านให้อาสาสมัครทุกหมู่บ้านในตำบลได้</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. การทำงานแบบออฟไลน์ (เมื่อไม่มีสัญญาณเน็ต) -->
+            <div class="accordion-item" data-category="vhv-screen">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <div class="accordion-title-wrap">
+                        <div class="accordion-icon-badge">📡</div>
+                        <div>
+                            <h3 class="accordion-title">7. การทำงานแบบออฟไลน์ (ไม่มีเน็ต)</h3>
+                            <span class="accordion-tag">เซฟงานลงเครื่องอัตโนมัติ ซิงค์ทันทีเมื่อมีเน็ต</span>
+                        </div>
+                    </div>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>หมดกังวลเรื่องการลงพื้นที่จุดอับสัญญาณ ระบบมีระบบ <strong>Offline Storage</strong> บันทึกข้อมูลปลอดภัย:</p>
+
+                        <div class="alert-box alert-box-success">
+                            <div>
+                                <div class="alert-title">⚡ ซิงค์ข้อมูลอัตโนมัติ (Auto-Sync)</div>
+                                <p class="alert-desc">เมื่อไม่มีเน็ต อสม. ยังสามารถคัดกรองได้ปกติ ระบบจะบันทึกงานไว้ในมือถือ และเมื่อกลับมาจับสัญญาณเน็ตได้ ข้อมูลจะถูกอัปโหลดขึ้นเซิร์ฟเวอร์ให้อัตโนมัติโดยไม่สูญหาย</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Item 8 -->
-            <div class="accordion-item">
+            <!-- 8. กระดานคะแนนผลงาน (Leaderboard) -->
+            <div class="accordion-item" data-category="vhv-screen">
                 <div class="accordion-header" onclick="toggleAccordion(this)">
-                    <span class="accordion-title">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5a2 2 0 10-2 2h2zm-2 4h4M7 14h10"></path>
-                        </svg>
-                        8. ระบบบอร์ดคะแนนผลงาน
-                    </span>
+                    <div class="accordion-title-wrap">
+                        <div class="accordion-icon-badge">🏆</div>
+                        <div>
+                            <h3 class="accordion-title">8. กระดานคะแนนผลงาน (Leaderboard)</h3>
+                            <span class="accordion-tag">จัดอันดับผลงานสะสมระดับหมู่บ้าน ตำบล และอำเภอ</span>
+                        </div>
+                    </div>
                     <span class="accordion-arrow">▼</span>
                 </div>
                 <div class="accordion-content">
                     <div class="accordion-body">
-                        <p>อสม. สามารถเปิดเข้าดูหน้า <strong>"กระดานคะแนน (Leaderboard)"</strong> เพื่อดูอันดับการบันทึกคัดกรองสะสมผลงานเปรียบเทียบในระดับตำบลและอำเภอ เพื่อเป็นเกียรติและสร้างแรงบันดาลใจในการทำงานเชิงรุกเพื่อชุมชนครับ</p>
+                        <p>อสม. สามารถเปิดดูเมนู <strong>"กระดานคะแนน"</strong> จากแถบเมนูด้านล่าง เพื่อดูอันดับการบันทึกคัดกรองสะสม การลงพื้นที่เชิงรุก และรับเหรียญรางวัลเกียรติยศประจำปีงบประมาณครับ</p>
                     </div>
                 </div>
             </div>
@@ -571,29 +809,54 @@ $province = defined('PROVINCE_NAME') ? PROVINCE_NAME : 'อุบลราชธ
 
     </div>
 
-    <!-- Accordion Script -->
+    <!-- Interactive Script -->
     <script>
         function toggleAccordion(header) {
             const item = header.parentElement;
             const content = item.querySelector('.accordion-content');
             
-            // Close other accordions
-            const allItems = document.querySelectorAll('.accordion-item');
-            allItems.forEach(i => {
-                if (i !== item && i.classList.contains('open')) {
-                    i.classList.remove('open');
-                    i.querySelector('.accordion-content').style.maxHeight = '0';
-                }
+            const isOpen = item.classList.contains('open');
+
+            // Close all
+            document.querySelectorAll('.accordion-item').forEach(i => {
+                i.classList.remove('open');
+                const c = i.querySelector('.accordion-content');
+                if (c) c.style.maxHeight = null;
             });
 
-            // Toggle active state
-            if (item.classList.contains('open')) {
-                item.classList.remove('open');
-                content.style.maxHeight = '0';
-            } else {
+            // Toggle selected
+            if (!isOpen) {
                 item.classList.add('open');
                 content.style.maxHeight = content.scrollHeight + "px";
             }
+        }
+
+        function setCategory(cat, btn) {
+            document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+
+            const items = document.querySelectorAll('.accordion-item');
+            items.forEach(item => {
+                if (cat === 'all' || item.getAttribute('data-category') === cat) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function filterManual() {
+            const q = document.getElementById('manual-search').value.toLowerCase().trim();
+            const items = document.querySelectorAll('.accordion-item');
+            
+            items.forEach(item => {
+                const text = item.innerText.toLowerCase();
+                if (text.includes(q)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
         }
     </script>
 </body>

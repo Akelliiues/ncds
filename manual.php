@@ -1839,27 +1839,27 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
                                 </svg>6. การใช้งานออฟไลน์</a></li>
 
                         <li><a href="#vhv-leader" onclick="handleMenuClick(this)"><svg fill="none" stroke="currentColor"
-
                                     viewBox="0 0 24 24">
-
                                     <path
-
                                         d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z">
-
                                     </path>
-
                                 </svg>7. สิทธิ์ประธาน อสม.</a></li>
 
                         <li><a href="#vhv-leaderboard" onclick="handleMenuClick(this)"><svg fill="none"
-
                                     stroke="currentColor" viewBox="0 0 24 24">
-
                                     <path d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5a2 2 0 10-2 2h2zm-2 4h4M7 14h10">
-
                                     </path>
-
                                 </svg>8. ระบบกระดานผลงาน</a></li>
 
+                        <li><a href="#vhv-self-screen" onclick="handleMenuClick(this)"><svg fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>9. ประเมินตนเอง ประชาชน</a></li>
+
+                        <li><a href="#vhv-voice-coach" onclick="handleMenuClick(this)"><svg fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                                </svg>10. เสียงโค้ชสุขภาพ</a></li>
                     </ul>
 
                 </div>
@@ -2769,17 +2769,66 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
                             </span>
 
                             <span class="title-text">8. ระบบกระดานคะแนนและอันดับผลงาน (Leaderboard)</span>
-
                             <span class="number">VHV-08</span>
-
                         </h2>
+                        <p>อสม. สามารถเปิดหน้ากระดานคะแนนเพื่อตรวจสอบลำดับการผลงานคัดกรองของตนเองเปรียบเทียบกับเพื่อนร่วมงานคนอื่นๆ ในพื้นที่ตำบลและอำเภอ เพื่อเป็นเกียรติและสร้างแรงจูงใจในการดำเนินงานเชิงรุกเพื่อชุมชน</p>
+                    </section>
 
-                        <p>อสม.
+                    <!-- Section: vhv-self-screen -->
+                    <section id="vhv-self-screen">
+                        <h2 class="section-title">
+                            <span class="title-icon-container">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                            </span>
+                            <span class="title-text">9. ระบบประเมินสุขภาพตนเองสำหรับประชาชน (Citizen Self-Screening)</span>
+                            <span class="number">VHV-09</span>
+                        </h2>
+                        <p>ประชาชนในอำเภอ<?= htmlspecialchars($district) ?> สามารถเข้าทำแบบประเมินความเสี่ยงโรคเบาหวานและความดันโลหิตสูงได้ด้วยตนเองผ่านหน้าแรกโดยไม่ต้องล็อกอิน:</p>
+                        
+                        <div class="alert-box alert-box-success">
+                            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div>
+                                <div class="alert-title">🎨 ดีไซน์ 3D Claymorphism & Zero-Scroll</div>
+                                <p class="alert-desc">
+                                    • ใช้ภาพไอคอน 3D ดินน้ำมันสื่อความหมายตรงประเด็น ไม่ใช้ภาพซ้ำ<br>
+                                    • จัดรูปแบบ 1 คำถามต่อ 1 สไลด์ พอดีหน้าจอมือถือโดยไม่ต้องเลื่อนจอ (Zero-Scroll)<br>
+                                    • แตะเลือกคำตอบแล้วสไลด์ไปข้อถัดไปทันที (Auto-Advance 220ms)<br>
+                                    • ปุ่มนำทางลอยชิดขอบล่าง (‹ และ ›) สะดวกต่อนิ้วโป้งและไม่บังคำตอบ<br>
+                                    • สรุปผลชัดเจน <strong>"ถ้าอยากลดความดันต้องทำอย่างไร"</strong> และ <strong>"ถ้าอยากลดค่าน้ำตาลต้องทำอย่างไร"</strong> พร้อมกล่องส่งต่อไปยัง อสม. ประจำคุ้มบ้าน หรือ รพ.สต.
+                                </p>
+                            </div>
+                        </div>
+                    </section>
 
-                            สามารถเปิดหน้ากระดานคะแนนเพื่อตรวจสอบลำดับการผลงานคัดกรองของตนเองเปรียบเทียบกับเพื่อนร่วมงานคนอื่นๆ
-
-                            ในพื้นที่ตำบลและอำเภอ เพื่อเป็นเกียรติและสร้างแรงจูงใจในการดำเนินงานเชิงรุกเพื่อชุมชน</p>
-
+                    <!-- Section: vhv-voice-coach -->
+                    <section id="vhv-voice-coach">
+                        <h2 class="section-title">
+                            <span class="title-icon-container">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                                </svg>
+                            </span>
+                            <span class="title-text">10. ระบบเสียงโค้ชสุขภาพอัจฉริยะ (Clinical Voice Coach)</span>
+                            <span class="number">VHV-10</span>
+                        </h2>
+                        <p>ระบบช่วยอ่านสรุปผลการคัดกรองและให้คำแนะนำสุขภาพแก่ผู้รับบริการด้วยเสียงภาษาไทยเป็นธรรมชาติ:</p>
+                        
+                        <div class="alert-box alert-box-info">
+                            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div>
+                                <div class="alert-title">🎙️ ออกเสียงคำย่อถูกต้องและเข้าใจง่าย</div>
+                                <p class="alert-desc">
+                                    • อ่านคำว่า อสม. เป็น <strong>"ออ-สอ-มอ"</strong> และ รพ.สต. เป็น <strong>"รอ-พอ-สอ-ตอ"</strong> อย่างถูกต้อง<br>
+                                    • ในฟอร์มคัดกรอง อสม. และ DPAC จะมีปุ่ม <strong>"🔊 เปิดเสียงคำแนะนำ"</strong> ให้อาสาสมัครกดเพื่อให้ระบบพูดสรุปผลสุขภาพและคำแนะนำให้ชาวบ้านฟังได้ทันที
+                                </p>
+                            </div>
+                        </div>
                     </section>
 
 
