@@ -220,7 +220,7 @@ function get_time_diff_display($timestamp) {
 
         .about-container {
             width: 100%;
-            max-width: 640px;
+            max-width: 660px;
             animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
@@ -337,6 +337,93 @@ function get_time_diff_display($timestamp) {
             padding: 4px 10px;
             border-radius: 12px;
             box-shadow: var(--neumorph-inset);
+        }
+
+        /* Standout Emergency Fast-Track Hero Banner */
+        .fasttrack-hero-card {
+            background: linear-gradient(135deg, #fff5f5 0%, #fee2e2 100%);
+            border: 1.5px solid #fca5a5;
+            border-radius: 20px;
+            padding: 18px 20px;
+            margin-bottom: 22px;
+            text-align: left;
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.12);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .fasttrack-hero-card::after {
+            content: "🚨";
+            position: absolute;
+            right: -10px;
+            bottom: -15px;
+            font-size: 80px;
+            opacity: 0.12;
+            pointer-events: none;
+        }
+
+        .fasttrack-hero-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .fasttrack-hero-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #991b1b;
+            margin: 0;
+        }
+
+        .fasttrack-hero-tag {
+            background-color: #ef4444;
+            color: #ffffff;
+            font-size: 10.5px;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+        }
+
+        .fasttrack-hero-desc {
+            font-size: 12.5px;
+            color: #7f1d1d;
+            line-height: 1.5;
+            margin: 0 0 12px 0;
+            font-weight: 500;
+        }
+
+        /* 3-Step Flow Pipeline */
+        .fasttrack-pipeline {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 14px;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .pipeline-step {
+            text-align: center;
+            padding: 4px;
+        }
+
+        .pipeline-step-badge {
+            font-size: 11px;
+            font-weight: 800;
+            color: #b91c1c;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .pipeline-step-text {
+            font-size: 11px;
+            color: #475569;
+            line-height: 1.3;
+            margin: 0;
+            font-weight: 600;
         }
 
         /* Innovation Highlights Grid */
@@ -651,6 +738,11 @@ function get_time_diff_display($timestamp) {
                 padding: 24px 18px;
             }
 
+            .fasttrack-pipeline {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+
             .feature-grid, .specs-grid {
                 grid-template-columns: 1fr;
             }
@@ -688,26 +780,44 @@ function get_time_diff_display($timestamp) {
                     </div>
                     <div class="about-desc">ระบบคัดกรอง ดูแล และจัดการโรคไม่ติดต่อเรื้อรัง</div>
                     <div class="org-badge">
-                        🏥 สสอ.<?= DISTRICT_NAME ?> • จ.<?= PROVINCE_NAME ?>
+                        🏥 สาธารณสุขอำเภอ<?= DISTRICT_NAME ?> • จังหวัด<?= PROVINCE_NAME ?>
                     </div>
                 </div>
             </div>
 
-            <!-- Key Innovations & Feature Highlights -->
+            <!-- Standout Feature Hero: End-to-End Emergency Fast-Track & Referral Hub -->
+            <div class="fasttrack-hero-card">
+                <div class="fasttrack-hero-header">
+                    <span style="font-size: 20px;">🚨</span>
+                    <h3 class="fasttrack-hero-title">ระบบแจ้งเหตุวิกฤต Fast-Track & ส่งต่อโรงพยาบาล 2 ทาง</h3>
+                    <span class="fasttrack-hero-tag">Real-time</span>
+                </div>
+                <p class="fasttrack-hero-desc">
+                    เชื่อมโยงการทำงานแบบไร้รอยต่อระหว่าง <strong>อสม. ในชุมชน</strong>, <strong>โต๊ะพยาบาล รพ.สต.</strong> และ <strong>ห้องฉุกเฉิน รพ.ตาลสุม</strong> เพื่อความปลอดภัยสูงสุดของผู้ป่วยวิกฤต
+                </p>
+                <div class="fasttrack-pipeline">
+                    <div class="pipeline-step">
+                        <span class="pipeline-step-badge">1. ชุมชน (อสม.)</span>
+                        <p class="pipeline-step-text">ยิงสัญญาณฉุกเฉินด่วน เมื่อพบสัญญาณชีพวิกฤต</p>
+                    </div>
+                    <div class="pipeline-step">
+                        <span class="pipeline-step-badge">2. รพ.สต. (ไซเรน)</span>
+                        <p class="pipeline-step-text">โปรแกรมไซเรนเตือนโต๊ะพยาบาล รับเรื่องทันที 24 ชม.</p>
+                    </div>
+                    <div class="pipeline-step">
+                        <span class="pipeline-step-badge">3. รพ.ตาลสุม (Refer)</span>
+                        <p class="pipeline-step-text">สั่งส่งต่อ Fast-Track พร้อมเลข Refer & GPS นำทาง</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Key Innovations & Feature Highlights Grid -->
             <div class="section-label">
-                <span>✨ ไฮไลท์นวัตกรรมเด่นของระบบ</span>
-                <span style="font-size: 11px; color: var(--text-muted);">Smart Healthcare</span>
+                <span>✨ นวัตกรรมดิจิทัลสาธารณสุขครบวงจร</span>
+                <span style="font-size: 11px; color: var(--text-muted);">Innovations</span>
             </div>
 
             <div class="feature-grid">
-                <div class="feature-tile">
-                    <div class="feature-icon-box" style="color: #EF4444;">🚨</div>
-                    <div class="feature-tile-content">
-                        <h4>Red Alert Fast-Track</h4>
-                        <p>ส่งสัญญาณฉุกเฉินด่วน & ไซเรนเตือนโต๊ะพยาบาล รพ.สต. เชื่อมโยง รพ.ตาลสุม</p>
-                    </div>
-                </div>
-
                 <div class="feature-tile">
                     <div class="feature-icon-box" style="color: #00A878;">🎙️</div>
                     <div class="feature-tile-content">
@@ -729,6 +839,14 @@ function get_time_diff_display($timestamp) {
                     <div class="feature-tile-content">
                         <h4>Multi-Dimension Analytics</h4>
                         <p>แดชบอร์ดสุขภาพ 6 มิติ วิเคราะห์ความเสี่ยงรายพื้นที่ และชุดข้อมูลวิจัย R2R</p>
+                    </div>
+                </div>
+
+                <div class="feature-tile">
+                    <div class="feature-icon-box" style="color: #F59E0B;">📲</div>
+                    <div class="feature-tile-content">
+                        <h4>PWA & Offline-First</h4>
+                        <p>ติดตั้งลงมือถือได้ทันที บันทึกงานคัดกรองได้แม้ในพื้นที่ไม่มีสัญญาณเน็ต</p>
                     </div>
                 </div>
             </div>
