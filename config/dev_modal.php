@@ -292,7 +292,7 @@ if (file_exists('assets/aboutus.png')) {
         </div>
 
         <div class="dev-footer-info">
-            <span class="dev-version-tag">v2.6.0 (Build <?= htmlspecialchars($build_number) ?>)</span>
+            <span class="dev-version-tag">v2.0 (Stable Version 2 - Build <?= htmlspecialchars($build_number) ?>)</span>
             <span class="dev-dismiss-hint">⏱️ หายไปเองใน 5 วินาที (หรือแตะที่ใดก็ได้เพื่อปิด)</span>
         </div>
     </div>

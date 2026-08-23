@@ -780,7 +780,7 @@ function get_time_diff_display($timestamp) {
                 <div class="about-header-text">
                     <div class="about-title-row">
                         <h1 class="about-title">NCDs Portal</h1>
-                        <span class="version-badge">v2.6.0</span>
+                        <span class="version-badge">v2.0 Stable</span>
                     </div>
                     <div class="about-desc">ระบบคัดกรอง ดูแล และจัดการโรคไม่ติดต่อเรื้อรัง</div>
                     <div class="org-badge">
