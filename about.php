@@ -194,6 +194,7 @@ function get_time_diff_display($timestamp) {
             --color-amber: #F59E0B;
             --color-blue: #3B82F6;
             --color-purple: #8B5CF6;
+            --color-pink: #EC4899;
             --bg-main: #F0F4F8;
             --bg-card: #FFFFFF;
             --bg-darker: #F4F7FB;
@@ -884,12 +885,12 @@ function get_time_diff_display($timestamp) {
                     </div>
                 </div>
 
-                <!-- 8. Multi-Round Engine -->
+                <!-- 8. Broadcast Hub & Notifications -->
                 <div class="feature-tile">
-                    <div class="feature-icon-box" style="color: #06B6D4;">🔄</div>
+                    <div class="feature-icon-box" style="color: #EC4899;">📢</div>
                     <div class="feature-tile-content">
-                        <h4>Multi-Round Fiscal Year Engine</h4>
-                        <p>รองรับการมอบหมายและติดตามสุขภาพต่อเนื่องสูงสุด 10 รอบต่อปีงบประมาณ</p>
+                        <h4>ศูนย์ข้อความ & แจ้งเตือนประกาศ</h4>
+                        <p>สื่อสารข่าวสารสุขภาพ นโยบายเร่งด่วน และประกาศสำคัญถึง อสม. และเจ้าหน้าที่แบบเรียลไทม์</p>
                     </div>
                 </div>
             </div>
