@@ -16,7 +16,7 @@ require_once __DIR__ . '/config/db.php';
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="ประเมินสุขภาพตนเอง">
+    <meta name="apple-mobile-web-app-title" content="ตรวจสุขภาพตนเอง">
     <meta name="theme-color" content="#0d2c54">
     <title>ตรวจเช็คสุขภาพเบื้องต้น - อำเภอ<?= DISTRICT_NAME ?></title>
     <link rel="stylesheet" href="assets/css/style.css">
@@ -32,13 +32,14 @@ require_once __DIR__ . '/config/db.php';
             justify-content: flex-start;
             position: relative;
             overflow-x: hidden;
+            background: var(--bg-main);
         }
 
         .screen-container {
-            max-width: 520px;
+            max-width: 500px;
             margin: 0 auto;
             width: 100%;
-            padding: 12px 16px 40px 16px;
+            padding: 10px 16px 36px 16px;
             box-sizing: border-box;
             position: relative;
         }
@@ -52,37 +53,42 @@ require_once __DIR__ . '/config/db.php';
             display: block;
         }
         @keyframes slideInRight {
-            from { opacity: 0; transform: translateX(24px) scale(0.98); }
+            from { opacity: 0; transform: translateX(20px) scale(0.98); }
             to { opacity: 1; transform: translateX(0) scale(1); }
         }
 
-        /* Progress Bar */
+        /* Top Progress Bar & Motivational Badge */
         .top-nav-bar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
         .progress-pill {
-            background: rgba(59, 130, 246, 0.12);
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(16, 185, 129, 0.12));
             color: #2563eb;
-            padding: 4px 12px;
+            padding: 5px 14px;
             border-radius: 9999px;
             font-size: 13px;
             font-weight: 800;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
         [data-theme="dark"] .progress-pill {
             background: rgba(56, 189, 248, 0.18);
             color: #38bdf8;
+            border-color: rgba(56, 189, 248, 0.3);
         }
 
         .progress-container {
             width: 100%;
-            height: 7px;
+            height: 6px;
             background: var(--bg-darker);
             border-radius: 9999px;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
             overflow: hidden;
             box-shadow: var(--neumorph-inset);
         }
@@ -97,17 +103,17 @@ require_once __DIR__ . '/config/db.php';
         /* Big Question Header */
         .q-header {
             text-align: center;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
         .q-title {
             font-size: 20px;
             font-weight: 900;
             color: var(--text-primary);
-            margin: 0 0 4px 0;
-            line-height: 1.35;
+            margin: 0 0 3px 0;
+            line-height: 1.3;
         }
         .q-subtitle {
-            font-size: 13.5px;
+            font-size: 13px;
             color: var(--text-secondary);
             margin: 0;
         }
@@ -116,21 +122,22 @@ require_once __DIR__ . '/config/db.php';
         .clay-options-list {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
+            margin-bottom: 14px;
         }
 
         .clay-opt-card {
             position: relative;
             background: var(--bg-card);
-            border-radius: 22px;
-            padding: 14px 18px;
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05), inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.8), inset -1.5px -1.5px 3px rgba(0, 0, 0, 0.03);
+            border-radius: 20px;
+            padding: 12px 16px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05), inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.8), inset -1.5px -1.5px 3px rgba(0, 0, 0, 0.03);
             cursor: pointer;
             transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
             border: 2.5px solid transparent;
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 14px;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
@@ -143,8 +150,8 @@ require_once __DIR__ . '/config/db.php';
         .clay-opt-card.selected {
             background: rgba(59, 130, 246, 0.08);
             border-color: #3b82f6;
-            box-shadow: 0 8px 22px rgba(59, 130, 246, 0.22), inset 2px 2px 4px rgba(59, 130, 246, 0.1);
-            transform: scale(1.02);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.2), inset 2px 2px 4px rgba(59, 130, 246, 0.1);
+            transform: scale(1.015);
         }
         [data-theme="dark"] .clay-opt-card.selected {
             background: rgba(56, 189, 248, 0.15);
@@ -153,15 +160,15 @@ require_once __DIR__ . '/config/db.php';
 
         /* Prominent Clay Icon Container */
         .clay-icon-large {
-            width: 64px;
-            height: 64px;
-            border-radius: 18px;
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1), inset 1px 1px 2px rgba(255, 255, 255, 0.6);
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08), inset 1px 1px 2px rgba(255, 255, 255, 0.6);
             background: #e2e8f0;
             border: 2px solid rgba(255, 255, 255, 0.7);
         }
@@ -182,28 +189,28 @@ require_once __DIR__ . '/config/db.php';
             text-align: left;
         }
         .opt-content h4 {
-            margin: 0 0 3px 0;
-            font-size: 17.5px;
+            margin: 0 0 2px 0;
+            font-size: 17px;
             font-weight: 800;
             color: var(--text-primary);
             line-height: 1.25;
         }
         .opt-content p {
             margin: 0;
-            font-size: 13px;
+            font-size: 12.5px;
             color: var(--text-secondary);
             line-height: 1.35;
         }
 
         .opt-check-badge {
-            width: 26px;
-            height: 26px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             border: 2px solid var(--border-color, #cbd5e1);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 13px;
             color: transparent;
             transition: all 0.2s ease;
             flex-shrink: 0;
@@ -215,13 +222,52 @@ require_once __DIR__ . '/config/db.php';
             box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
         }
 
+        /* Bottom Clay Tip Banner */
+        .clay-tip-banner {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(241, 245, 249, 0.8));
+            border: 1.5px solid rgba(226, 232, 240, 0.8);
+            border-radius: 18px;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        }
+        [data-theme="dark"] .clay-tip-banner {
+            background: rgba(30, 41, 59, 0.6);
+            border-color: rgba(51, 65, 85, 0.8);
+        }
+        .clay-tip-thumb {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            overflow: hidden;
+            flex-shrink: 0;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+            background: #e2e8f0;
+        }
+        .clay-tip-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .clay-tip-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.35;
+            text-align: left;
+        }
+        .clay-tip-text strong {
+            color: var(--text-primary);
+        }
+
         /* Side Overlay Navigation Buttons */
         .side-overlay-btn {
             position: fixed;
             top: 50%;
             transform: translateY(-50%);
-            width: 48px;
-            height: 48px;
+            width: 46px;
+            height: 46px;
             border-radius: 50%;
             background: var(--bg-card);
             border: 2px solid rgba(255, 255, 255, 0.7);
@@ -259,14 +305,13 @@ require_once __DIR__ . '/config/db.php';
             color: white;
         }
 
-        /* Hide side button when inactive */
         .side-overlay-btn.disabled {
             opacity: 0;
             pointer-events: none;
             transform: translateY(-50%) scale(0.6);
         }
 
-        /* Results & Solution Box */
+        /* Results Box */
         .solution-box {
             background: var(--bg-card);
             border-radius: 20px;
@@ -293,7 +338,7 @@ require_once __DIR__ . '/config/db.php';
         .solution-list {
             margin: 0;
             padding-left: 18px;
-            font-size: 14px;
+            font-size: 13.5px;
             line-height: 1.6;
             color: var(--text-primary);
         }
@@ -301,7 +346,6 @@ require_once __DIR__ . '/config/db.php';
             margin-bottom: 5px;
         }
 
-        /* Voice Coach Trigger */
         .voice-coach-bar {
             background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(16, 185, 129, 0.12));
             border: 1.5px solid rgba(59, 130, 246, 0.3);
@@ -333,7 +377,7 @@ require_once __DIR__ . '/config/db.php';
                 <a href="index.php" style="color: var(--text-secondary); text-decoration: none; font-size: 13.5px; font-weight: 700; display: flex; align-items: center; gap: 4px;">
                     ✕ ออก
                 </a>
-                <span id="step-badge" class="progress-pill">ข้อ 1 จาก 10</span>
+                <span id="step-badge" class="progress-pill">🌱 เริ่มต้นง่ายๆ</span>
                 <span style="font-size: 12.5px; color: var(--color-accent); font-weight: 800;">
                     NCDs ตาลสุม
                 </span>
@@ -348,7 +392,7 @@ require_once __DIR__ . '/config/db.php';
             <!-- QUESTION 1: เพศ -->
             <div id="q-1" class="question-slide active">
                 <div class="q-header">
-                    <h2 class="q-title">1. เพศของท่าน</h2>
+                    <h2 class="q-title">เพศของท่าน</h2>
                     <p class="q-subtitle">แตะเลือกเพศเพื่อเริ่มตรวจเช็ค</p>
                 </div>
                 <div class="clay-options-list">
@@ -375,20 +419,29 @@ require_once __DIR__ . '/config/db.php';
                         <div class="opt-check-badge">✓</div>
                     </label>
                 </div>
+                <!-- Bottom Decorative Clay Tip -->
+                <div class="clay-tip-banner">
+                    <div class="clay-tip-thumb">
+                        <img src="assets/img/clay/heart_red.png" alt="เกร็ดสุขภาพ">
+                    </div>
+                    <div class="clay-tip-text">
+                        <strong>รู้หรือไม่:</strong> เพศและฮอร์โมนมีผลต่อการกระจายตัวของไขมันสะสมในร่างกาย
+                    </div>
+                </div>
             </div>
 
 
-            <!-- QUESTION 2: อายุ -->
+            <!-- QUESTION 2: ช่วงวัย -->
             <div id="q-2" class="question-slide">
                 <div class="q-header">
-                    <h2 class="q-title">2. ท่านอายุเท่าไหร่?</h2>
-                    <p class="q-subtitle">ช่วงวัยที่ตรงกับท่านในปัจจุบัน</p>
+                    <h2 class="q-title">ช่วงวัยในปัจจุบัน</h2>
+                    <p class="q-subtitle">ช่วงอายุที่ตรงกับท่านมากที่สุด</p>
                 </div>
                 <div class="clay-options-list">
                     <label class="clay-opt-card selected" onclick="pickOption(this, 'age_group', 2)">
                         <input type="radio" name="age_group" value="young" checked>
                         <div class="clay-icon-large">
-                            <img src="assets/img/clay/exercise.jpg" alt="น้อยกว่า 35 ปี">
+                            <img src="assets/img/clay/sprout.jpg" alt="น้อยกว่า 35 ปี">
                         </div>
                         <div class="opt-content">
                             <h4>น้อยกว่า 35 ปี</h4>
@@ -399,7 +452,7 @@ require_once __DIR__ . '/config/db.php';
                     <label class="clay-opt-card" onclick="pickOption(this, 'age_group', 2)">
                         <input type="radio" name="age_group" value="middle">
                         <div class="clay-icon-large">
-                            <img src="assets/img/clay/shield.jpg" alt="อายุ 35-59 ปี">
+                            <img src="assets/img/clay/briefcase.jpg" alt="อายุ 35-59 ปี">
                         </div>
                         <div class="opt-content">
                             <h4>อายุ 35 - 59 ปี</h4>
@@ -410,7 +463,7 @@ require_once __DIR__ . '/config/db.php';
                     <label class="clay-opt-card" onclick="pickOption(this, 'age_group', 2)">
                         <input type="radio" name="age_group" value="senior">
                         <div class="clay-icon-large">
-                            <img src="assets/img/clay/sleep.jpg" alt="อายุ 60 ปีขึ้นไป">
+                            <img src="assets/img/clay/elder_glasses.jpg" alt="อายุ 60 ปีขึ้นไป">
                         </div>
                         <div class="opt-content">
                             <h4>อายุ 60 ปีขึ้นไป</h4>
@@ -419,13 +472,22 @@ require_once __DIR__ . '/config/db.php';
                         <div class="opt-check-badge">✓</div>
                     </label>
                 </div>
+                <!-- Bottom Decorative Clay Tip -->
+                <div class="clay-tip-banner">
+                    <div class="clay-tip-thumb">
+                        <img src="assets/img/clay/sun_yellow.png" alt="เกร็ดสุขภาพ">
+                    </div>
+                    <div class="clay-tip-text">
+                        <strong>คำแนะนำ:</strong> วัย 35 ปีขึ้นไปควรตรวจคัดกรองความดันและเบาหวานปีละ 1 ครั้ง
+                    </div>
+                </div>
             </div>
 
 
             <!-- QUESTION 3: รูปร่าง & รอบเอว -->
             <div id="q-3" class="question-slide">
                 <div class="q-header">
-                    <h2 class="q-title">3. รูปร่างและรอบเอว</h2>
+                    <h2 class="q-title">รูปร่างและรอบเอว</h2>
                     <p class="q-subtitle">สัดส่วนหน้าท้องและรูปร่างของท่าน</p>
                 </div>
                 <div class="clay-options-list">
@@ -443,7 +505,7 @@ require_once __DIR__ . '/config/db.php';
                     <label class="clay-opt-card" onclick="pickOption(this, 'body_shape', 3)">
                         <input type="radio" name="body_shape" value="chubby">
                         <div class="clay-icon-large">
-                            <img src="assets/img/clay/sweet.jpg" alt="เริ่มมีพุง">
+                            <img src="assets/img/clay/donut_pink.png" alt="เริ่มมีพุง">
                         </div>
                         <div class="opt-content">
                             <h4>เริ่มมีพุง / ท้วม</h4>
@@ -454,7 +516,7 @@ require_once __DIR__ . '/config/db.php';
                     <label class="clay-opt-card" onclick="pickOption(this, 'body_shape', 3)">
                         <input type="radio" name="body_shape" value="obese">
                         <div class="clay-icon-large">
-                            <img src="assets/img/clay/fried.jpg" alt="อ้วนลงพุงชัดเจน">
+                            <img src="assets/img/clay/pizza.png" alt="อ้วนลงพุงชัดเจน">
                         </div>
                         <div class="opt-content">
                             <h4>อ้วนลงพุงชัดเจน</h4>
@@ -463,20 +525,29 @@ require_once __DIR__ . '/config/db.php';
                         <div class="opt-check-badge">✓</div>
                     </label>
                 </div>
+                <!-- Bottom Decorative Clay Tip -->
+                <div class="clay-tip-banner">
+                    <div class="clay-tip-thumb">
+                        <img src="assets/img/clay/waist.jpg" alt="เกร็ดสุขภาพ">
+                    </div>
+                    <div class="clay-tip-text">
+                        <strong>เกณฑ์รอบเอวมาตรฐาน:</strong> ชายไม่เกิน 36 นิ้ว, หญิงไม่เกิน 32 นิ้ว
+                    </div>
+                </div>
             </div>
 
 
             <!-- QUESTION 4: ของหวาน & น้ำหวาน -->
             <div id="q-4" class="question-slide">
                 <div class="q-header">
-                    <h2 class="q-title">4. ดื่มน้ำหวานหรือขนมหวานบ่อยไหม?</h2>
-                    <p class="q-subtitle">ชา ชานม กาแฟใส่นมข้น น้ำอัดลม</p>
+                    <h2 class="q-title">เรื่องเครื่องดื่ม & ของหวาน</h2>
+                    <p class="q-subtitle">ชา ชานม กาแฟใส่นมข้น น้ำอัดลม ขนมหวาน</p>
                 </div>
                 <div class="clay-options-list">
                     <label class="clay-opt-card selected" onclick="pickOption(this, 'sweet_habit', 4)">
                         <input type="radio" name="sweet_habit" value="low" checked>
                         <div class="clay-icon-large">
-                            <img src="assets/img/clay/water.jpg" alt="ดื่มน้ำเปล่าเป็นหลัก">
+                            <img src="assets/img/clay/water_drop.png" alt="ดื่มน้ำเปล่าเป็นหลัก">
                         </div>
                         <div class="opt-content">
                             <h4>ดื่มน้ำเปล่าเป็นหลัก</h4>
@@ -487,7 +558,7 @@ require_once __DIR__ . '/config/db.php';
                     <label class="clay-opt-card" onclick="pickOption(this, 'sweet_habit', 4)">
                         <input type="radio" name="sweet_habit" value="med">
                         <div class="clay-icon-large">
-                            <img src="assets/img/clay/sweet.jpg" alt="ดื่มบ้างบางวัน">
+                            <img src="assets/img/clay/coffee_cup.png" alt="ดื่มบ้างบางวัน">
                         </div>
                         <div class="opt-content">
                             <h4>ดื่มบ้างบางวัน</h4>
@@ -507,20 +578,29 @@ require_once __DIR__ . '/config/db.php';
                         <div class="opt-check-badge">✓</div>
                     </label>
                 </div>
+                <!-- Bottom Decorative Clay Tip -->
+                <div class="clay-tip-banner">
+                    <div class="clay-tip-thumb">
+                        <img src="assets/img/clay/water.jpg" alt="เกร็ดสุขภาพ">
+                    </div>
+                    <div class="clay-tip-text">
+                        <strong>เกร็ดลดน้ำตาล:</strong> การสั่ง "หวานน้อย" ช่วยลดพลังงานส่วนเกินได้ถึง 100 แคลอรีต่อแก้ว
+                    </div>
+                </div>
             </div>
 
 
             <!-- QUESTION 5: ของเค็ม & ของทอด -->
             <div id="q-5" class="question-slide">
                 <div class="q-header">
-                    <h2 class="q-title">5. ชอบกินเค็ม ผงชูรส หรือของทอดไหม?</h2>
-                    <p class="q-subtitle">น้ำปลา ซอสปรุงรส ปลาร้าเข้มข้น</p>
+                    <h2 class="q-title">เรื่องของเค็ม & ของทอด</h2>
+                    <p class="q-subtitle">น้ำปลา ผงชูรส ปลาร้าเข้มข้น ไก่ทอด</p>
                 </div>
                 <div class="clay-options-list">
                     <label class="clay-opt-card selected" onclick="pickOption(this, 'salt_habit', 5)">
                         <input type="radio" name="salt_habit" value="low" checked>
                         <div class="clay-icon-large">
-                            <img src="assets/img/clay/veggie.jpg" alt="กินรสจืดๆ">
+                            <img src="assets/img/clay/avocado.png" alt="กินรสจืดๆ">
                         </div>
                         <div class="opt-content">
                             <h4>กินรสจืดๆ ไม่ปรุงเพิ่ม</h4>
@@ -531,7 +611,7 @@ require_once __DIR__ . '/config/db.php';
                     <label class="clay-opt-card" onclick="pickOption(this, 'salt_habit', 5)">
                         <input type="radio" name="salt_habit" value="med">
                         <div class="clay-icon-large">
-                            <img src="assets/img/clay/fried.jpg" alt="กินรสจัดบ้าง">
+                            <img src="assets/img/clay/mushroom_purple.png" alt="กินรสจัดบ้าง">
                         </div>
                         <div class="opt-content">
                             <h4>กินรสจัดบ้างบางมื้อ</h4>
@@ -551,14 +631,23 @@ require_once __DIR__ . '/config/db.php';
                         <div class="opt-check-badge">✓</div>
                     </label>
                 </div>
+                <!-- Bottom Decorative Clay Tip -->
+                <div class="clay-tip-banner">
+                    <div class="clay-tip-thumb">
+                        <img src="assets/img/clay/bell_blue.png" alt="เกร็ดสุขภาพ">
+                    </div>
+                    <div class="clay-tip-text">
+                        <strong>เกร็ดลดความดัน:</strong> ลดการซดน้ำแกงจนหมดถ้วย ช่วยลดโซเดียมลงได้มากกว่า 50%
+                    </div>
+                </div>
             </div>
 
 
             <!-- QUESTION 6: การกินผัก -->
             <div id="q-6" class="question-slide">
                 <div class="q-header">
-                    <h2 class="q-title">6. กินผักในมื้ออาหารบ่อยแค่ไหน?</h2>
-                    <p class="q-subtitle">ผักสด ผักลวก ผักต้มในแต่ละมื้อ</p>
+                    <h2 class="q-title">การกินผักในแต่ละมื้อ</h2>
+                    <p class="q-subtitle">ผักสด ผักลวก ผักต้มในจานอาหาร</p>
                 </div>
                 <div class="clay-options-list">
                     <label class="clay-opt-card selected" onclick="pickOption(this, 'veggie_habit', 6)">
@@ -575,7 +664,7 @@ require_once __DIR__ . '/config/db.php';
                     <label class="clay-opt-card" onclick="pickOption(this, 'veggie_habit', 6)">
                         <input type="radio" name="veggie_habit" value="poor">
                         <div class="clay-icon-large">
-                            <img src="assets/img/clay/fried.jpg" alt="ไม่ค่อยกินผัก">
+                            <img src="assets/img/clay/donut_choco.png" alt="ไม่ค่อยกินผัก">
                         </div>
                         <div class="opt-content">
                             <h4>ไม่ค่อยกินผัก / กินน้อยมาก</h4>
@@ -584,13 +673,22 @@ require_once __DIR__ . '/config/db.php';
                         <div class="opt-check-badge">✓</div>
                     </label>
                 </div>
+                <!-- Bottom Decorative Clay Tip -->
+                <div class="clay-tip-banner">
+                    <div class="clay-tip-thumb">
+                        <img src="assets/img/clay/leaf_green.png" alt="เกร็ดสุขภาพ">
+                    </div>
+                    <div class="clay-tip-text">
+                        <strong>ประโยชน์ของผัก:</strong> ใยอาหารช่วยดักจับไขมันและชะลอน้ำตาลไม่ให้พุ่งสูงหลังมื้ออาหาร
+                    </div>
+                </div>
             </div>
 
 
             <!-- QUESTION 7: การออกกำลังกาย -->
             <div id="q-7" class="question-slide">
                 <div class="q-header">
-                    <h2 class="q-title">7. ได้ออกกำลังกายหรือออกแรงไหม?</h2>
+                    <h2 class="q-title">การขยับร่างกาย & ออกกำลังกาย</h2>
                     <p class="q-subtitle">กิจกรรมขยับตัวต่อเนื่อง 20-30 นาที</p>
                 </div>
                 <div class="clay-options-list">
@@ -608,7 +706,7 @@ require_once __DIR__ . '/config/db.php';
                     <label class="clay-opt-card" onclick="pickOption(this, 'exercise_habit', 7)">
                         <input type="radio" name="exercise_habit" value="some">
                         <div class="clay-icon-large">
-                            <img src="assets/img/clay/waist.jpg" alt="มีเดินขยับตัวบ้าง">
+                            <img src="assets/img/clay/sun_yellow.png" alt="มีเดินขยับตัวบ้าง">
                         </div>
                         <div class="opt-content">
                             <h4>มีเดินขยับตัวบ้าง (1-2 วัน/สัปดาห์)</h4>
@@ -619,7 +717,7 @@ require_once __DIR__ . '/config/db.php';
                     <label class="clay-opt-card" onclick="pickOption(this, 'exercise_habit', 7)">
                         <input type="radio" name="exercise_habit" value="sedentary">
                         <div class="clay-icon-large">
-                            <img src="assets/img/clay/sleep.jpg" alt="แทบไม่ได้ออก">
+                            <img src="assets/img/clay/tree_green.png" alt="แทบไม่ได้ออก">
                         </div>
                         <div class="opt-content">
                             <h4>แทบไม่ได้ออก / นั่งนานทั้งวัน</h4>
@@ -628,14 +726,23 @@ require_once __DIR__ . '/config/db.php';
                         <div class="opt-check-badge">✓</div>
                     </label>
                 </div>
+                <!-- Bottom Decorative Clay Tip -->
+                <div class="clay-tip-banner">
+                    <div class="clay-tip-thumb">
+                        <img src="assets/img/clay/exercise.jpg" alt="เกร็ดสุขภาพ">
+                    </div>
+                    <div class="clay-tip-text">
+                        <strong>การขยับร่างกาย:</strong> แค่เดินเร็ววันละ 30 นาที ช่วยลดความดันตัวบนได้ทันที 5-10 mmHg
+                    </div>
+                </div>
             </div>
 
 
             <!-- QUESTION 8: การนอนหลับ -->
             <div id="q-8" class="question-slide">
                 <div class="q-header">
-                    <h2 class="q-title">8. ท่านนอนหลับดีไหม?</h2>
-                    <p class="q-subtitle">คุณภาพการนอนหลับและการพักผ่อน</p>
+                    <h2 class="q-title">คุณภาพการนอนหลับ</h2>
+                    <p class="q-subtitle">การนอนหลับและการพักผ่อนของร่างกาย</p>
                 </div>
                 <div class="clay-options-list">
                     <label class="clay-opt-card selected" onclick="pickOption(this, 'sleep_habit', 8)">
@@ -652,7 +759,7 @@ require_once __DIR__ . '/config/db.php';
                     <label class="clay-opt-card" onclick="pickOption(this, 'sleep_habit', 8)">
                         <input type="radio" name="sleep_habit" value="poor">
                         <div class="clay-icon-large">
-                            <img src="assets/img/clay/sweet.jpg" alt="หลับยาก">
+                            <img src="assets/img/clay/bell_blue.png" alt="หลับยาก">
                         </div>
                         <div class="opt-content">
                             <h4>หลับๆ ตื่นๆ / หลับยาก</h4>
@@ -661,20 +768,29 @@ require_once __DIR__ . '/config/db.php';
                         <div class="opt-check-badge">✓</div>
                     </label>
                 </div>
+                <!-- Bottom Decorative Clay Tip -->
+                <div class="clay-tip-banner">
+                    <div class="clay-tip-thumb">
+                        <img src="assets/img/clay/sleep.jpg" alt="เกร็ดสุขภาพ">
+                    </div>
+                    <div class="clay-tip-text">
+                        <strong>เกร็ดการนอน:</strong> เข้านอนก่อน 4 ทุ่ม ช่วยให้หลอดเลือดและหัวใจได้ฟื้นฟูเต็มประสิทธิภาพ
+                    </div>
+                </div>
             </div>
 
 
             <!-- QUESTION 9: บุหรี่ & สุรา -->
             <div id="q-9" class="question-slide">
                 <div class="q-header">
-                    <h2 class="q-title">9. สูบบุหรี่หรือดื่มเหล้าไหม?</h2>
-                    <p class="q-subtitle">ความถี่ในการสูบหรือดื่มในปัจจุบัน</p>
+                    <h2 class="q-title">เรื่องบุหรี่ & สุรา</h2>
+                    <p class="q-subtitle">การสูบหรือดื่มในชีวิตประจำวัน</p>
                 </div>
                 <div class="clay-options-list">
                     <label class="clay-opt-card selected" onclick="pickOption(this, 'substance_habit', 9)">
                         <input type="radio" name="substance_habit" value="none" checked>
                         <div class="clay-icon-large">
-                            <img src="assets/img/clay/shield.jpg" alt="ไม่สูบและไม่ดื่ม">
+                            <img src="assets/img/clay/leaf_green.png" alt="ไม่สูบและไม่ดื่ม">
                         </div>
                         <div class="opt-content">
                             <h4>ไม่สูบ และ ไม่ดื่ม</h4>
@@ -685,7 +801,7 @@ require_once __DIR__ . '/config/db.php';
                     <label class="clay-opt-card" onclick="pickOption(this, 'substance_habit', 9)">
                         <input type="radio" name="substance_habit" value="some">
                         <div class="clay-icon-large">
-                            <img src="assets/img/clay/water.jpg" alt="ดื่มเฉพาะงาน">
+                            <img src="assets/img/clay/flower_green.png" alt="ดื่มเฉพาะงาน">
                         </div>
                         <div class="opt-content">
                             <h4>ดื่มเฉพาะงานสังสรรค์</h4>
@@ -696,7 +812,7 @@ require_once __DIR__ . '/config/db.php';
                     <label class="clay-opt-card" onclick="pickOption(this, 'substance_habit', 9)">
                         <input type="radio" name="substance_habit" value="regular">
                         <div class="clay-icon-large">
-                            <img src="assets/img/clay/fried.jpg" alt="สูบหรือดื่มประจำ">
+                            <img src="assets/img/clay/burger.png" alt="สูบหรือดื่มประจำ">
                         </div>
                         <div class="opt-content">
                             <h4>สูบหรือดื่มเป็นประจำ</h4>
@@ -705,14 +821,23 @@ require_once __DIR__ . '/config/db.php';
                         <div class="opt-check-badge">✓</div>
                     </label>
                 </div>
+                <!-- Bottom Decorative Clay Tip -->
+                <div class="clay-tip-banner">
+                    <div class="clay-tip-thumb">
+                        <img src="assets/img/clay/shield.jpg" alt="เกร็ดสุขภาพ">
+                    </div>
+                    <div class="clay-tip-text">
+                        <strong>การปกป้องหลอดเลือด:</strong> เลี่ยงบุหรี่และสุรา ช่วยให้หลอดเลือดนุ่ม ยืดหยุ่น ไม่แข็งตัว
+                    </div>
+                </div>
             </div>
 
 
             <!-- QUESTION 10: ประวัติครอบครัว -->
             <div id="q-10" class="question-slide">
                 <div class="q-header">
-                    <h2 class="q-title">10. พ่อแม่หรือพี่น้อง มีใครเป็นเบาหวาน-ความดันไหม?</h2>
-                    <p class="q-subtitle">ประวัติพันธุกรรมสายตรง</p>
+                    <h2 class="q-title">ประวัติสุขภาพในครอบครัว</h2>
+                    <p class="q-subtitle">พ่อ แม่ หรือพี่น้องสายตรง</p>
                 </div>
                 <div class="clay-options-list">
                     <label class="clay-opt-card selected" onclick="pickOption(this, 'family_history', 10, true)">
@@ -722,14 +847,14 @@ require_once __DIR__ . '/config/db.php';
                         </div>
                         <div class="opt-content">
                             <h4>ไม่มีใครเป็น</h4>
-                            <p>ไม่มีประวัติในครอบครัวสายตรง</p>
+                            <p>ไม่มีประวัติเบาหวานหรือความดัน</p>
                         </div>
                         <div class="opt-check-badge">✓</div>
                     </label>
                     <label class="clay-opt-card" onclick="pickOption(this, 'family_history', 10, true)">
                         <input type="radio" name="family_history" value="yes">
                         <div class="clay-icon-large">
-                            <img src="assets/img/clay/waist.jpg" alt="มีคนเป็น">
+                            <img src="assets/img/clay/heart_red.png" alt="มีคนเป็น">
                         </div>
                         <div class="opt-content">
                             <h4>มีคนเป็นเบาหวานหรือความดัน</h4>
@@ -737,6 +862,15 @@ require_once __DIR__ . '/config/db.php';
                         </div>
                         <div class="opt-check-badge">✓</div>
                     </label>
+                </div>
+                <!-- Bottom Decorative Clay Tip -->
+                <div class="clay-tip-banner">
+                    <div class="clay-tip-thumb">
+                        <img src="assets/img/clay/house.png" alt="เกร็ดสุขภาพ">
+                    </div>
+                    <div class="clay-tip-text">
+                        <strong>ข้อคิดสุขภาพ:</strong> แม้มีพันธุกรรม แต่ถ้ากินอยู่ถูกต้อง ก็ชนะโรค NCDs ได้สบายๆ ครับ!
+                    </div>
                 </div>
             </div>
 
@@ -825,8 +959,20 @@ require_once __DIR__ . '/config/db.php';
         let currentVoiceText = '';
         let isNavigating = false;
 
+        const motivationalBadges = [
+            '🌱 เริ่มต้นง่ายๆ',
+            '✨ สบายๆ อีกนิดเดียว',
+            '🏃‍♂️ ทำได้ดีมาก',
+            '🥗 ไปต่อกันเลย',
+            '🎉 ครึ่งทางแล้ว!',
+            '🥦 สุขภาพสดใส',
+            '💪 เกือบเสร็จแล้ว',
+            '🌙 ใกล้ถึงผลตรวจแล้ว',
+            '⚡ อีกคำถามเดียว',
+            '🎯 ข้อสุดท้ายแล้ว!'
+        ];
+
         function updateUIState() {
-            // Update question visibility
             document.querySelectorAll('.question-slide').forEach(q => q.classList.remove('active'));
             
             const prevBtn = document.getElementById('btn-side-prev');
@@ -837,8 +983,9 @@ require_once __DIR__ . '/config/db.php';
                 const targetQ = document.getElementById('q-' + currentQ);
                 if (targetQ) targetQ.classList.add('active');
 
-                // Update Progress Pill & Bar
-                document.getElementById('step-badge').innerText = `ข้อ ${currentQ} จาก ${totalQ}`;
+                // Dynamic Motivational Badge & Smooth Progress
+                const badgeText = motivationalBadges[currentQ - 1] || `กำลังประเมิน`;
+                document.getElementById('step-badge').innerText = badgeText;
                 document.getElementById('self-progress').style.width = (currentQ * 10) + '%';
                 topNav.style.display = 'block';
 
