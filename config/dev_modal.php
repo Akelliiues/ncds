@@ -283,7 +283,7 @@ if (file_exists('assets/aboutus.png')) {
         <div class="dev-profile-section">
             <img src="<?= $path_prefix ?>assets/developer.jpg" alt="Developer Avatar" class="dev-avatar">
             <div class="dev-profile-info">
-                <span class="dev-badge">ผู้พัฒนาระบบ</span>
+                <span class="dev-badge">🚀 Solo Developer • ผู้พัฒนาระบบ</span>
                 <h4 class="dev-name">นายบุญธรรม พันธ์ใหญ่</h4>
                 <p class="dev-title">นักวิชาการคอมพิวเตอร์ </p>
                 <p class="dev-title">สำนักงานสาธารณสุขอำเภอตาลสุม</p>

@@ -916,8 +916,8 @@ function get_time_diff_display($timestamp) {
                         <span class="verified-badge" title="ผู้พัฒนาระบบที่ได้รับการรับรอง">✓</span>
                     </div>
                     <div class="dev-role">
-                        นักวิชาการคอมพิวเตอร์<br>
-                        สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?>
+                        <span style="display: inline-block; background: rgba(13, 44, 84, 0.08); color: var(--color-primary); padding: 2px 8px; border-radius: 6px; font-weight: 800; font-size: 11.5px; margin-bottom: 4px;">🚀 Solo Developer</span><br>
+                        นักวิชาการคอมพิวเตอร์ • สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?>
                     </div>
                 </div>
             </div>
