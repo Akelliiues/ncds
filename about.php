@@ -220,7 +220,7 @@ function get_time_diff_display($timestamp) {
 
         .about-container {
             width: 100%;
-            max-width: 660px;
+            max-width: 680px;
             animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
@@ -345,7 +345,7 @@ function get_time_diff_display($timestamp) {
             border: 1.5px solid #fca5a5;
             border-radius: 20px;
             padding: 18px 20px;
-            margin-bottom: 22px;
+            margin-bottom: 24px;
             text-align: left;
             box-shadow: 0 6px 16px rgba(239, 68, 68, 0.12);
             position: relative;
@@ -399,7 +399,7 @@ function get_time_diff_display($timestamp) {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 8px;
-            background: rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.75);
             padding: 10px;
             border-radius: 14px;
             border: 1px solid rgba(239, 68, 68, 0.2);
@@ -426,7 +426,7 @@ function get_time_diff_display($timestamp) {
             font-weight: 600;
         }
 
-        /* Innovation Highlights Grid */
+        /* Section Headings */
         .section-label {
             display: flex;
             align-items: center;
@@ -436,14 +436,15 @@ function get_time_diff_display($timestamp) {
             color: var(--color-primary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin: 20px 0 12px 0;
+            margin: 24px 0 14px 0;
         }
 
+        /* Innovation Highlights Grid (8 Items) */
         .feature-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 12px;
-            margin-bottom: 22px;
+            margin-bottom: 24px;
             text-align: left;
         }
 
@@ -454,23 +455,25 @@ function get_time_diff_display($timestamp) {
             box-shadow: var(--neumorph-inset);
             display: flex;
             align-items: flex-start;
-            gap: 10px;
+            gap: 12px;
             border: 1px solid rgba(255, 255, 255, 0.7);
             transition: all 0.2s ease;
         }
 
         .feature-tile:hover {
             transform: translateY(-2px);
+            background-color: #ffffff;
+            box-shadow: 0 6px 14px rgba(13, 44, 84, 0.06);
         }
 
         .feature-icon-box {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: 20px;
             flex-shrink: 0;
             background: #ffffff;
             box-shadow: 2px 2px 6px rgba(13, 44, 84, 0.08);
@@ -488,10 +491,10 @@ function get_time_diff_display($timestamp) {
             margin: 0;
             font-size: 11.5px;
             color: var(--text-secondary);
-            line-height: 1.35;
+            line-height: 1.4;
         }
 
-        /* Developer & Specs Unified Box */
+        /* Specs Grid */
         .specs-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -530,7 +533,7 @@ function get_time_diff_display($timestamp) {
             display: flex;
             align-items: center;
             gap: 14px;
-            margin-bottom: 22px;
+            margin-bottom: 24px;
             box-shadow: var(--neumorph-flat);
             text-align: left;
             border: 1px solid rgba(255, 255, 255, 0.9);
@@ -733,7 +736,7 @@ function get_time_diff_display($timestamp) {
             outline: none;
         }
 
-        @media (max-width: 540px) {
+        @media (max-width: 560px) {
             .about-card {
                 padding: 24px 18px;
             }
@@ -811,42 +814,82 @@ function get_time_diff_display($timestamp) {
                 </div>
             </div>
 
-            <!-- Key Innovations & Feature Highlights Grid -->
+            <!-- 8 Key Innovations Suite Grid -->
             <div class="section-label">
-                <span>✨ นวัตกรรมดิจิทัลสาธารณสุขครบวงจร</span>
-                <span style="font-size: 11px; color: var(--text-muted);">Innovations</span>
+                <span>✨ 8 นวัตกรรมดิจิทัลสาธารณสุขครบวงจร</span>
+                <span style="font-size: 11px; color: var(--color-accent); font-weight: 800;">Smart NCDs Suite</span>
             </div>
 
             <div class="feature-grid">
+                <!-- 1. Voice Coach -->
                 <div class="feature-tile">
                     <div class="feature-icon-box" style="color: #00A878;">🎙️</div>
                     <div class="feature-tile-content">
                         <h4>Clinical Voice Coach</h4>
-                        <p>ระบบเสียงคุณหมอพากย์ไทย สรุปผลตรวจและให้คำแนะนำดูแลสุขภาพ</p>
+                        <p>ระบบเสียงคุณหมอพากย์ไทย สรุปผลตรวจ 4 ด้านและคำแนะนำดูแลสุขภาพ</p>
                     </div>
                 </div>
 
+                <!-- 2. 3D Claymorphism -->
                 <div class="feature-tile">
                     <div class="feature-icon-box" style="color: #3B82F6;">🌱</div>
                     <div class="feature-tile-content">
-                        <h4>3D Claymorphism</h4>
-                        <p>ประเมินสุขภาพตนเอง 1 นาที ไร้การเลื่อนจอ พร้อมวิธีลดความดัน-น้ำตาล</p>
+                        <h4>3D Claymorphism Self-Screening</h4>
+                        <p>ประเมินสุขภาพ 1 นาที ไร้การเลื่อนจอ พร้อมสรุปวิธีลดความดัน-น้ำตาล & แชร์ LINE</p>
                     </div>
                 </div>
 
+                <!-- 3. Advanced Analytics & R2R -->
                 <div class="feature-tile">
                     <div class="feature-icon-box" style="color: #8B5CF6;">📊</div>
                     <div class="feature-tile-content">
-                        <h4>Multi-Dimension Analytics</h4>
-                        <p>แดชบอร์ดสุขภาพ 6 มิติ วิเคราะห์ความเสี่ยงรายพื้นที่ และชุดข้อมูลวิจัย R2R</p>
+                        <h4>6-Dimension Analytics & R2R</h4>
+                        <p>แดชบอร์ดสุขภาพ 6 มิติ วิเคราะห์ความชุกรายพื้นที่ โมเดลพยากรณ์ และชุดข้อมูลวิจัย</p>
                     </div>
                 </div>
 
+                <!-- 4. PWA Offline -->
                 <div class="feature-tile">
                     <div class="feature-icon-box" style="color: #F59E0B;">📲</div>
                     <div class="feature-tile-content">
-                        <h4>PWA & Offline-First</h4>
-                        <p>ติดตั้งลงมือถือได้ทันที บันทึกงานคัดกรองได้แม้ในพื้นที่ไม่มีสัญญาณเน็ต</p>
+                        <h4>PWA & Offline-First Ready</h4>
+                        <p>ติดตั้งลงมือถือ คัดกรองและบันทึกงานได้ 100% แม้ไม่มีเน็ต พร้อม Auto-Sync</p>
+                    </div>
+                </div>
+
+                <!-- 5. QR Code Wallet Cards -->
+                <div class="feature-tile">
+                    <div class="feature-icon-box" style="color: #0D2C54;">📷</div>
+                    <div class="feature-tile-content">
+                        <h4>QR Code Wallet Card & Scanner</h4>
+                        <p>สแกนกล้องดึงข้อมูลกลุ่มเป้าหมายใน 0.5 วินาที พร้อมระบบพิมพ์การ์ด 12 ใบ/A4</p>
+                    </div>
+                </div>
+
+                <!-- 6. DPAC Tracking & Retention -->
+                <div class="feature-tile">
+                    <div class="feature-icon-box" style="color: #EF4444;">❤️</div>
+                    <div class="feature-tile-content">
+                        <h4>Smart DPAC & Dropout Alarm</h4>
+                        <p>ติดตามกลุ่มเสี่ยงปรับพฤติกรรม 3อ. 2ส. 1น. ต่อเนื่อง พร้อมระบบเตือนเคสหลุดติดตาม</p>
+                    </div>
+                </div>
+
+                <!-- 7. Gamification Leaderboard -->
+                <div class="feature-tile">
+                    <div class="feature-icon-box" style="color: #EAB308;">🏆</div>
+                    <div class="feature-tile-content">
+                        <h4>Gamification & Leaderboards</h4>
+                        <p>กระดานจัดอันดับผลงาน อสม. ระดับหมู่บ้าน ตำบล อำเภอ และเหรียญรางวัลเกียรติยศ</p>
+                    </div>
+                </div>
+
+                <!-- 8. Multi-Round Engine -->
+                <div class="feature-tile">
+                    <div class="feature-icon-box" style="color: #06B6D4;">🔄</div>
+                    <div class="feature-tile-content">
+                        <h4>Multi-Round Fiscal Year Engine</h4>
+                        <p>รองรับการมอบหมายและติดตามสุขภาพต่อเนื่องสูงสุด 10 รอบต่อปีงบประมาณ</p>
                     </div>
                 </div>
             </div>
