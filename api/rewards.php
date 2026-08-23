@@ -344,7 +344,7 @@ try {
 
     // 3. Admin Toggle Feature Flag
     } elseif ($action === 'admin_toggle_system') {
-        if (empty($_SESSION['admin_username'])) {
+        if (empty($_SESSION['admin_logged_in']) && empty($_SESSION['admin_username'])) {
             echo json_encode(['status' => 'error', 'message' => 'ไม่มีสิทธิ์เข้าถึง'], JSON_UNESCAPED_UNICODE);
             exit();
         }
@@ -366,7 +366,7 @@ try {
 
     // 4. Admin Save Item (Create / Edit)
     } elseif ($action === 'admin_save_item') {
-        if (empty($_SESSION['admin_username'])) {
+        if (empty($_SESSION['admin_logged_in']) && empty($_SESSION['admin_username'])) {
             echo json_encode(['status' => 'error', 'message' => 'ไม่มีสิทธิ์เข้าถึง'], JSON_UNESCAPED_UNICODE);
             exit();
         }
@@ -409,7 +409,7 @@ try {
 
     // 5. Admin Delete Item
     } elseif ($action === 'admin_delete_item') {
-        if (empty($_SESSION['admin_username'])) {
+        if (empty($_SESSION['admin_logged_in']) && empty($_SESSION['admin_username'])) {
             echo json_encode(['status' => 'error', 'message' => 'ไม่มีสิทธิ์เข้าถึง'], JSON_UNESCAPED_UNICODE);
             exit();
         }
@@ -434,7 +434,7 @@ try {
 
     // 6. Admin Get Redemptions Queue
     } elseif ($action === 'admin_get_redemptions') {
-        if (empty($_SESSION['admin_username'])) {
+        if (empty($_SESSION['admin_logged_in']) && empty($_SESSION['admin_username'])) {
             echo json_encode(['status' => 'error', 'message' => 'ไม่มีสิทธิ์เข้าถึง'], JSON_UNESCAPED_UNICODE);
             exit();
         }
@@ -473,7 +473,7 @@ try {
 
     // 7. Admin Fulfill or Cancel Redemption
     } elseif ($action === 'admin_fulfill_redemption') {
-        if (empty($_SESSION['admin_username'])) {
+        if (empty($_SESSION['admin_logged_in']) && empty($_SESSION['admin_username'])) {
             echo json_encode(['status' => 'error', 'message' => 'ไม่มีสิทธิ์เข้าถึง'], JSON_UNESCAPED_UNICODE);
             exit();
         }

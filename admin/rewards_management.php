@@ -115,13 +115,13 @@ try {
         }
 
         .neu-switch-outer:hover {
-            transform: scale(1.02);
+            transform: scale(1.03);
         }
 
         .neu-switch-track {
             position: relative;
             width: 230px;
-            height: 60px;
+            height: 58px;
             border-radius: 50px;
             display: flex;
             align-items: center;
@@ -134,20 +134,20 @@ try {
         }
 
         .neu-switch-track.active {
-            background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 50%, #D97706 100%);
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
             justify-content: flex-end;
         }
 
         .neu-switch-track.closed {
-            background: linear-gradient(135deg, #2D3748 0%, #1A202C 100%);
+            background: linear-gradient(135deg, #475569 0%, #1E293B 100%);
             justify-content: flex-start;
         }
 
         .neu-switch-label {
-            font-size: 16px;
-            font-weight: 900;
+            font-size: 14.5px;
+            font-weight: 800;
             color: #FFFFFF;
-            letter-spacing: 1.5px;
+            letter-spacing: 0.5px;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
             transition: all 0.3s ease;
             z-index: 2;
@@ -157,18 +157,18 @@ try {
         }
 
         .neu-switch-track.active .neu-switch-label {
-            padding-right: 22px;
+            padding-right: 18px;
         }
 
         .neu-switch-track.closed .neu-switch-label {
-            padding-left: 22px;
+            padding-left: 18px;
         }
 
         .neu-switch-thumb {
-            width: 50px;
-            height: 50px;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
-            background: #E2E8F0;
+            background: #FFFFFF;
             position: absolute;
             top: 5px;
             display: flex;
@@ -181,16 +181,16 @@ try {
 
         .neu-switch-track.active .neu-switch-thumb {
             left: 5px;
-            background: #E2E8F0;
+            background: #FFFFFF;
         }
 
         .neu-switch-track.closed .neu-switch-thumb {
-            left: calc(100% - 55px);
+            left: calc(100% - 53px);
             background: #E2E8F0;
         }
 
         .neu-switch-icon {
-            font-size: 24px;
+            font-size: 22px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -198,7 +198,7 @@ try {
         }
 
         .neu-switch-outer:hover .neu-switch-icon {
-            transform: scale(1.15) rotate(12deg);
+            transform: scale(1.15) rotate(10deg);
         }
 
         /* Tabs */
@@ -402,30 +402,30 @@ try {
         <div style="background: var(--bg-card); border-radius: 24px; padding: 22px 26px; box-shadow: var(--neumorph-flat); border: 1.5px solid var(--border-color); margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
             <div style="max-width: 600px;">
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-                    <span style="font-size: 24px;"><?= $systemEnabled ? '☀️' : '🌙' ?></span>
+                    <span style="font-size: 24px;"><?= $systemEnabled ? '🎁' : '🔒' ?></span>
                     <strong style="font-size: 17px; color: var(--text-primary);">
-                        สถานะระบบแลกของรางวัล: <span id="systemStatusText" style="color: <?= $systemEnabled ? '#F59E0B' : '#64748B' ?>;"><?= $systemEnabled ? 'เปิดให้บริการ (Active Mode)' : 'ปิดระบบ (Preview Mode)' ?></span>
+                        สถานะระบบแลกของรางวัล: <span id="systemStatusText" style="color: <?= $systemEnabled ? '#10B981' : '#64748B' ?>;"><?= $systemEnabled ? 'เปิดให้แลกของรางวัล (Active)' : 'ปิดระบบ (โหมดพรีวิว / Preview)' ?></span>
                     </strong>
                 </div>
                 <p style="margin: 0; font-size: 13.5px; color: var(--text-secondary); line-height: 1.5;">
                     <?= $systemEnabled 
-                        ? '🟢 <strong>โหมดเปิดแลก:</strong> อสม. เห็นเกณฑ์คะแนนและสามารถกดแลกของรางวัลในแอปได้ตามปกติ' 
+                        ? '🟢 <strong>โหมดเปิด:</strong> อสม. เห็นเกณฑ์คะแนนและสามารถกดแลกของรางวัลในแอปได้ตามปกติ' 
                         : '🔒 <strong>โหมดปิด (Preview):</strong> อสม. เห็นเฉพาะรายการของรางวัลที่มีให้แลก โดยยังไม่แสดงเกณฑ์คะแนนและยังกดแลกไม่ได้' ?>
                 </p>
             </div>
             <div>
                 <!-- 3D Neumorphic Pill Toggle Button -->
-                <div class="neu-switch-outer" onclick="toggleSystem(<?= $systemEnabled ? 0 : 1 ?>)" title="คลิกเพื่อสลับสถานะเปิด/ปิดระบบแลกของรางวัล">
+                <div class="neu-switch-outer" id="neuSwitchOuter" onclick="toggleSystem(<?= $systemEnabled ? 0 : 1 ?>)" title="คลิกเพื่อสลับสถานะเปิด/ปิดระบบแลกของรางวัล">
                     <div class="neu-switch-track <?= $systemEnabled ? 'active' : 'closed' ?>" id="neuSwitchTrack">
                         <?php if ($systemEnabled): ?>
-                            <div class="neu-switch-thumb">
-                                <span class="neu-switch-icon" style="color: #F59E0B;">☀️</span>
+                            <div class="neu-switch-thumb" id="neuSwitchThumb">
+                                <span class="neu-switch-icon">🎁</span>
                             </div>
-                            <span class="neu-switch-label">DAYMODE</span>
+                            <span class="neu-switch-label" id="neuSwitchLabel">เปิดให้แลก</span>
                         <?php else: ?>
-                            <span class="neu-switch-label">NIGHTMODE</span>
-                            <div class="neu-switch-thumb">
-                                <span class="neu-switch-icon" style="color: #64748B;">🌙</span>
+                            <span class="neu-switch-label" id="neuSwitchLabel">ปิดระบบ</span>
+                            <div class="neu-switch-thumb" id="neuSwitchThumb">
+                                <span class="neu-switch-icon">🔒</span>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -644,9 +644,11 @@ try {
         }
 
         function toggleSystem(newVal) {
-            const btn = document.getElementById('toggleSystemBtn');
-            btn.disabled = true;
-            btn.innerText = 'กำลังปรับเปลี่ยนสถานะ... ⌛';
+            const outer = document.getElementById('neuSwitchOuter');
+            const track = document.getElementById('neuSwitchTrack');
+            
+            if (outer) outer.style.pointerEvents = 'none';
+            if (track) track.style.opacity = '0.6';
 
             fetch('../api/rewards.php', {
                 method: 'POST',
@@ -658,13 +660,15 @@ try {
                 if (data.status === 'success') {
                     window.location.reload();
                 } else {
-                    alert('เกิดข้อผิดพลาด: ' + data.message);
-                    btn.disabled = false;
+                    alert('เกิดข้อผิดพลาด: ' + (data.message || 'ไม่สามารถเปลี่ยนสถานะได้'));
+                    if (outer) outer.style.pointerEvents = 'auto';
+                    if (track) track.style.opacity = '1';
                 }
             })
             .catch(err => {
                 alert('เชื่อมต่อล้มเหลว: ' + err);
-                btn.disabled = false;
+                if (outer) outer.style.pointerEvents = 'auto';
+                if (track) track.style.opacity = '1';
             });
         }
 
