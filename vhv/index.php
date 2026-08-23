@@ -325,40 +325,47 @@ if (DemoDataProvider::isDemoMode()) {
             </div>
         <?php endif; ?>
 
-        <!-- VHV Info Header -->
-        <div class="vhv-header" style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 20px 16px; position: relative;">
+        <!-- VHV Info Header (Compact Layout, Large Logo, Reduced Height) -->
+        <div class="vhv-header" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; margin-bottom: 12px; border-radius: var(--border-radius); position: relative; background: var(--bg-card); box-shadow: var(--neumorph-flat);">
             <?php if (!$hasSubmittedSurvey): ?>
-                <button id="survey-banner" onclick="openSurveyModal()" style="position: absolute; top: 16px; right: 16px; background: none; border: none; cursor: pointer; z-index: 10; font-size: 28px; animation: float-bubble 2s ease-in-out infinite; padding: 0; outline: none; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" title="ทำแบบประเมินรับโบนัส 5 แต้ม! 🎁">
+                <button id="survey-banner" onclick="openSurveyModal()" style="position: absolute; top: 8px; right: 10px; background: none; border: none; cursor: pointer; z-index: 10; font-size: 24px; animation: float-bubble 2s ease-in-out infinite; padding: 0; outline: none; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" title="ทำแบบประเมินรับโบนัส 5 แต้ม! 🎁">
                     🎁
                 </button>
             <?php endif; ?>
 
+            <!-- Large Prominent Logo with Install Badge -->
             <a href="javascript:void(0)" onclick="openAppInstallModal(event)" title="แตะเพื่อติดตั้งแอปพลิเคชันลงเครื่อง หรือดูข้อมูลระบบ" style="flex-shrink: 0; position: relative; display: inline-block; text-decoration: none;">
-                <img src="../assets/icon.png" alt="NCDs Portal Logo" style="width: 60px; height: 60px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
-                <span style="position: absolute; bottom: -3px; right: -3px; background: #10b981; color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; border: 2px solid var(--bg-card); box-shadow: 0 2px 6px rgba(0,0,0,0.25);" title="ติดตั้งแอป">📲</span>
+                <img src="../assets/icon.png" alt="NCDs Portal Logo" style="width: 68px; height: 68px; border-radius: 18px; box-shadow: 0 6px 14px rgba(0,0,0,0.12); display: block; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.06)'" onmouseout="this.style.transform='scale(1)'">
+                <span style="position: absolute; bottom: -2px; right: -2px; background: #10b981; color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; border: 2px solid var(--bg-card); box-shadow: 0 2px 6px rgba(0,0,0,0.25);" title="ติดตั้งแอป">📲</span>
             </a>
-            <div style="flex-grow: 1; min-width: 200px;">
-                <h3 style="color: var(--color-accent); margin: 0; font-size: 14px; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; text-size-adjust: none; -webkit-text-size-adjust: none;">
-                    <span style="white-space: nowrap;">อสม. ประจำบ้าน<?= DISTRICT_NAME ?></span>
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <button type="button" id="btn-notification-bell" onclick="openMessagesModal()" style="position: relative; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 50%; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-primary); font-size: 16px; padding: 0;" title="การแจ้งเตือนและข่าวสาร">
+
+            <!-- Compact VHV Info Column -->
+            <div style="flex-grow: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 2px;">
+                    <span style="color: var(--color-accent); font-size: 12.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        อสม. ประจำบ้าน<?= DISTRICT_NAME ?>
+                    </span>
+                    <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                        <button type="button" id="btn-notification-bell" onclick="openMessagesModal()" style="position: relative; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 50%; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-primary); font-size: 14px; padding: 0;" title="การแจ้งเตือนและข่าวสาร">
                             🔔
-                            <span id="unread-msg-badge" style="display:none; position:absolute; top:-4px; right:-4px; background:#EF4444; color:white; font-size:10px; font-weight:800; border-radius:50%; width:18px; height:18px; line-height:18px; text-align:center;">0</span>
+                            <span id="unread-msg-badge" style="display:none; position:absolute; top:-4px; right:-4px; background:#EF4444; color:white; font-size:9px; font-weight:800; border-radius:50%; width:16px; height:16px; line-height:16px; text-align:center;">0</span>
                         </button>
-                        <a href="manual.php" style="color: var(--color-accent); text-decoration: none; font-size: 13px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; background: rgba(30, 64, 175, 0.08); padding: 4px 10px; border-radius: 50px; white-space: nowrap; text-size-adjust: none; -webkit-text-size-adjust: none;">
+                        <a href="manual.php" style="color: var(--color-accent); text-decoration: none; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px; background: rgba(30, 64, 175, 0.08); padding: 3px 8px; border-radius: 50px; white-space: nowrap;">
                             📖 คู่มือ
                         </a>
                     </div>
-                </h3>
-                <h2 style="color: var(--text-primary); margin: 4px 0; font-size: 20px; font-weight: 800; word-break: break-word;"><?= htmlspecialchars($vhvName) ?></h2>
-                <p style="color: var(--text-secondary); margin: 0; font-size: 13px; text-size-adjust: none; -webkit-text-size-adjust: none; line-height: 1.4;">
-                    หมู่ที่ <?= $vhvMoo ?> • สังกัดรพ.สต. [<?= htmlspecialchars($hoscode) ?>]
+                </div>
+
+                <h2 style="color: var(--text-primary); margin: 0 0 2px 0; font-size: 19px; font-weight: 800; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?= htmlspecialchars($vhvName) ?></h2>
+
+                <p style="color: var(--text-secondary); margin: 0; font-size: 12px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    หมู่ <?= $vhvMoo ?> • รพ.สต. [<?= htmlspecialchars($hoscode) ?>]
                     <?php if ($isLeader == 1): ?>
-                        • <span style="color: var(--color-accent); font-weight: bold;">ประธาน อสม. หมู่บ้าน</span>
+                        • <span style="color: var(--color-accent); font-weight: bold;">ประธานหมู่บ้าน</span>
                     <?php elseif ($isLeader == 2): ?>
-                        • <span style="color: #a855f7; font-weight: bold; background: rgba(168,85,247,0.1); padding: 2px 6px; border-radius: 4px;">🏆 ประธาน อสม. ตำบล</span>
+                        • <span style="color: #a855f7; font-weight: bold; background: rgba(168,85,247,0.1); padding: 1px 4px; border-radius: 4px;">🏆 ประธานตำบล</span>
                     <?php elseif ($isLeader >= 3): ?>
-                        • <span style="color: #ec4899; font-weight: bold; background: rgba(236,72,153,0.1); padding: 2px 6px; border-radius: 4px;">👑 ประธาน อสม. อำเภอ</span>
+                        • <span style="color: #ec4899; font-weight: bold; background: rgba(236,72,153,0.1); padding: 1px 4px; border-radius: 4px;">👑 ประธานอำเภอ</span>
                     <?php endif; ?>
                 </p>
             </div>
