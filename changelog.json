@@ -1,5 +1,10 @@
 [
   {
+    "title": "อัปเดตคู่มือการใช้งานระบบ NCDs Portal ครบทุกมิติ (Mobile & Admin Manuals) ครอบคลุมระบบแจ้งเหตุวิกฤต Fast-Track, แดชบอร์ดสุขภาพประชาชน, และโปรแกรมสถานีไซเรนบนคอมฯ พร้อมปรับแต่งไอคอนคนพูดออกเสียงทรงกลม (Speaking Face Silhouette Vector) สไตล์ Soft Neumorphism และระบบป้องกันแคชเบราว์เซอร์อัตโนมัติ (Auto Cache-Busting)",
+    "date": "2026-08-23",
+    "type": "docs"
+  },
+  {
     "title": "ระบบแจ้งเตือนเหตุวิกฤต Fast-Track รพ.สต. และส่งต่อโรงพยาบาล 2 ทาง (Red Alert & Hospital Referral System), โปรแกรมสถานีเฝ้าระวังไซเรนฉุกเฉิน (NCDs Red Alert Station Desktop App), ปรับดีไซน์หน้าต่างสรุปผล อสม. เป็น Soft Neumorphism 100% พร้อมปุ่มเปิดเสียงคุณหมอให้ฟังและลูกศรหนาบอกแนวโน้มสุขภาพ, และแดชบอร์ดวิเคราะห์ผลประเมินสุขภาพตนเองของประชาชน (Citizen Health Analytics Dashboard)",
     "date": "2026-08-23",
     "type": "feature"
