@@ -1889,120 +1889,92 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
                     <ul class="sidebar-menu">
 
                         <li><a href="#admin-roles" class="active" onclick="handleMenuClick(this)"><svg fill="none"
-
                                     stroke="currentColor" viewBox="0 0 24 24">
-
                                     <path
-
                                         d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
-
                                     </path>
-
                                 </svg>1. สิทธิ์บัญชีผู้ใช้</a></li>
 
                         <li><a href="#admin-vhv-approval" onclick="handleMenuClick(this)"><svg fill="none"
-
                                     stroke="currentColor" viewBox="0 0 24 24">
-
                                     <path
-
                                         d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
-
                                     </path>
-
                                 </svg>2. การอนุมัติสิทธิ์ อสม.</a></li>
 
                         <li><a href="#admin-targets" onclick="handleMenuClick(this)"><svg fill="none"
-
                                     stroke="currentColor" viewBox="0 0 24 24">
-
                                     <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-
-                                </svg>3. นำเข้าข้อมูล HDC</a></li>
+                                </svg>3. นำเข้าข้อมูล HDC & ETL</a></li>
 
                         <li><a href="#admin-assignment" onclick="handleMenuClick(this)"><svg fill="none"
-
                                     stroke="currentColor" viewBox="0 0 24 24">
-
                                     <path
-
                                         d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z">
-
                                     </path>
-
                                 </svg>4. จัดการเป้าหมาย & มอบงาน</a></li>
 
-                        <li><a href="#admin-qr-print" onclick="handleMenuClick(this)"><svg fill="none"
-
+                        <li><a href="#admin-fiscal-year" onclick="handleMenuClick(this)"><svg fill="none"
                                     stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>5. จัดการปีงบ & หลายรอบ</a></li>
 
+                        <li><a href="#admin-qr-print" onclick="handleMenuClick(this)"><svg fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
                                     <path
-
                                         d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z">
-
                                     </path>
-
-                                </svg>5. การพิมพ์ QR Code</a></li>
+                                </svg>6. การพิมพ์ QR Code</a></li>
 
                         <li><a href="#admin-dpac-mg" onclick="handleMenuClick(this)"><svg fill="none"
-
                                     stroke="currentColor" viewBox="0 0 24 24">
-
                                     <path
-
                                         d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
-
                                     </path>
+                                </svg>7. การจัดการโครงการ DPAC</a></li>
 
-                                </svg>6. การจัดการโครงการ DPAC</a></li>
-
-                        <li><a href="#admin-analytics" onclick="handleMenuClick(this)"><svg fill="none"
-
+                        <li><a href="#admin-surveillance" onclick="handleMenuClick(this)"><svg fill="none"
                                     stroke="currentColor" viewBox="0 0 24 24">
-
                                     <path
-
                                         d="M16 8v8m-4-5v5m-4-2v2M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12z">
-
                                     </path>
+                                </svg>8. เฝ้าระวัง 6 มิติ & รายงาน</a></li>
 
-                                </svg>7. วิเคราะห์เชิงลึก & รายงาน</a></li>
+                        <li><a href="#admin-broadcast" onclick="handleMenuClick(this)"><svg fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path>
+                                </svg>9. ศูนย์ประกาศ & ข่าวสาร</a></li>
+
+                        <li><a href="#admin-jhcis-sync" onclick="handleMenuClick(this)"><svg fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>10. ซิงค์ฐานข้อมูล JHCIS</a></li>
 
                         <li><a href="#admin-db-maintenance" onclick="handleMenuClick(this)"><svg fill="none"
-
                                     stroke="currentColor" viewBox="0 0 24 24">
-
                                     <path
-
                                         d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4">
-
                                     </path>
-
-                                </svg>8. จัดการฐานข้อมูล & Sandbox</a></li>
+                                </svg>11. จัดการฐานข้อมูล & Sandbox</a></li>
 
                         <li><a href="#admin-user-manager" onclick="handleMenuClick(this)"><svg fill="none"
-
                                     stroke="currentColor" viewBox="0 0 24 24">
-
                                     <path
-
                                         d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z">
-
                                     </path>
-
-                                </svg>9. การจัดการผู้ใช้งานระบบ</a></li>
+                                </svg>12. จัดการผู้ใช้งานระบบ</a></li>
 
                         <li><a href="#admin-unit-house" onclick="handleMenuClick(this)"><svg fill="none"
-
                                     stroke="currentColor" viewBox="0 0 24 24">
-
                                     <path
-
                                         d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
-
                                     </path>
+                                </svg>13. จัดการหน่วยบริการ & บ้าน</a></li>
 
-                                </svg>10. จัดการหน่วยบริการ & บ้าน</a></li>
+                        <li><a href="#admin-system-update" onclick="handleMenuClick(this)"><svg fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                                </svg>14. การอัปเดตระบบ (OTA Update)</a></li>
 
                     </ul>
 
@@ -3234,553 +3206,444 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
 
 
-                    <!-- Section: admin-qr-print -->
-
-                    <section id="admin-qr-print">
-
+                    <!-- Section: admin-fiscal-year -->
+                    <section id="admin-fiscal-year">
                         <h2 class="section-title">
-
                             <span class="title-icon-container">
-
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-
-                                    <path
-
-                                        d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z">
-
-                                    </path>
-
+                                    <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                 </svg>
-
                             </span>
-
-                            <span class="title-text">5. การพิมพ์ QR Code ประจำตัวผู้ป่วยและติดหน้าบ้าน</span>
-
+                            <span class="title-text">5. การจัดการปีงบประมาณและรอบการคัดกรอง (Fiscal Year & Multi-Round)</span>
                             <span class="number">ADM-05</span>
-
                         </h2>
+                        <p>ระบบรองรับการปฏิบัติงานต่อเนื่องข้ามปีงบประมาณและการคัดกรองซ้ำหลายรอบ (Multi-Round Surveillance) เพื่อการติดตามสุขภาพระยะยาว:</p>
 
-                        <p>ระบบสร้างภาพคิวอาร์โค้ดเฉพาะบุคคลและหลังคาเรือนของอำเภอตาลสุม เพื่อให้ อสม.
+                        <div class="alert-box alert-box-info">
+                            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div>
+                                <div class="alert-title">📅 สวิตช์เลือกปีงบประมาณบนแถบเมนูด้านบน (Fiscal Year Switcher)</div>
+                                <p class="alert-desc">
+                                    • เจ้าหน้าที่สามารถคลิกเปลี่ยนปีงบประมาณ (เช่น <strong>2568, 2569, 2570...</strong>) ที่มุมบนขวาของระบบได้ตลอดเวลา<br>
+                                    • แดชบอร์ด รายการงานคัดกรอง และสถิติต่างๆ จะถูกฟิลเตอร์ให้แสดงเฉพาะข้อมูลของปีงบประมาณที่เลือกทันที<br>
+                                    • <strong>รักษาประวัติเดิม 100%:</strong> การขึ้นปีงบประมาณใหม่จะไม่มีการล้างประวัติการคัดกรองของปีก่อนหน้า ทำให้สามารถดูประวัติสุขภาพย้อนหลังได้ตลอดเวลา
+                                </p>
+                            </div>
+                        </div>
 
-                            นำไปใช้งานคัดกรองแบบรวดเร็ว</p>
-
-                        <p>แอดมินสามารถเปิดเมนู <a href="admin/print_qr.php" class="hl-text">พิมพ์ QR Code บ้าน</a>
-
-                            จากนั้นเลือกรุ่นรหัสหน่วยบริการ/หมู่บ้าน
-
-                            แล้วกดคำสั่งสร้างเพื่อดาวน์โหลดหรือสั่งพิมพ์สติกเกอร์/แผ่นพับนำไปแจกจ่าย อสม.
-
-                            ในการนำไปติดที่หน้าบ้านแต่ละหลังคาเรือนในชุมชน</p>
-
+                        <ul class="step-list">
+                            <li class="step-item">
+                                <span class="step-number">1</span>
+                                <div class="step-content">
+                                    <h4>การคัดกรองหลายรอบในปีงบประมาณเดียวกัน (Multi-Round Screening)</h4>
+                                    <p>ระบบรองรับการมอบหมายงานรอบที่ 1, 2, 3, 4 ขึ้นไป โดยระบบจะคำนวณเลขรอบสูงสุดอัตโนมัติ เพื่อให้ อสม. ลงติดตามเคสกลุ่มสงสัยป่วยหรือกลุ่มเสี่ยงได้อย่างต่อเนื่องโดยไม่เกิดปัญหาเลขรอบซ้ำ</p>
+                                </div>
+                            </li>
+                            <li class="step-item">
+                                <span class="step-number">2</span>
+                                <div class="step-content">
+                                    <h4>การแยกสถิติและการประเมินผลสัมฤทธิ์รายรอบ</h4>
+                                    <p>ในหน้าแดชบอร์ดและการออกรายงาน เจ้าหน้าที่สามารถเลือกดูผลงานแยกตาม <em>"ทุกรอบ", "รอบที่ 1 (ตั้งต้น)", "รอบที่ 2 (ยืนยัน/ติดตาม)", "รอบที่ 3+"</em> เพื่อประเมินความครอบคลุมและอัตราการควบคุมโรคได้อย่างแม่นยำ</p>
+                                </div>
+                            </li>
+                        </ul>
                     </section>
 
-
+                    <!-- Section: admin-qr-print -->
+                    <section id="admin-qr-print">
+                        <h2 class="section-title">
+                            <span class="title-icon-container">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
+                                </svg>
+                            </span>
+                            <span class="title-text">6. การพิมพ์ QR Code ประจำตัวผู้ป่วยและติดหน้าบ้าน</span>
+                            <span class="number">ADM-06</span>
+                        </h2>
+                        <p>ระบบสร้างภาพคิวอาร์โค้ดเฉพาะบุคคลและหลังคาเรือนของอำเภอ<?= htmlspecialchars($district) ?> เพื่อให้ อสม. นำไปใช้งานคัดกรองแบบรวดเร็ว</p>
+                        <p>แอดมินสามารถเปิดเมนู <a href="admin/print_qr.php" class="hl-text">พิมพ์ QR Code บ้าน</a> จากนั้นเลือกรหัสหน่วยบริการ/หมู่บ้าน แล้วกดคำสั่งสร้างเพื่อดาวน์โหลดหรือสั่งพิมพ์สติกเกอร์/แผ่นพับนำไปแจกจ่าย อสม. ในการนำไปติดที่หน้าบ้านแต่ละหลังคาเรือนในชุมชน</p>
+                    </section>
 
                     <!-- Section: admin-dpac-mg -->
-
                     <section id="admin-dpac-mg">
-
                         <h2 class="section-title">
-
                             <span class="title-icon-container">
-
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-
-                                    <path
-
-                                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
-
-                                    </path>
-
+                                    <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                                 </svg>
-
                             </span>
-
-                            <span class="title-text">6. การจัดการและติดตามโครงการ DPAC (Diet & Activity Clinic)</span>
-
-                            <span class="number">ADM-06</span>
-
+                            <span class="title-text">7. การจัดการและติดตามโครงการ DPAC (Diet & Physical Activity Clinic)</span>
+                            <span class="number">ADM-07</span>
                         </h2>
-
-                        <p>ผู้ที่มีผลประเมินร่างกายตกเกณฑ์เสี่ยง หรือมีความดันและระดับน้ำตาลสูงปานกลาง
-
-                            แอดมินสามารถลงทะเบียนคนเหล่านั้นเข้าระบบเพื่อเปิดโครงการปรับเปลี่ยนพฤติกรรม โดยเข้าไปที่ <a
-
-                                href="admin/dpac_manager.php" class="hl-text">จัดการโครงการ DPAC</a>
-
-                            เพื่อดูสถิติการส่งงานติดตามพฤติกรรมรายรอบ (รอบที่ 1, 2, 3) ของ อสม.
-
-                            และเปรียบเทียบกราฟการลดน้ำหนัก ลดพุง และความดันโลหิตของผู้เข้าร่วมโครงการทั้งหมด</p>
-
+                        <p>ผู้ที่มีผลประเมินร่างกายตกเกณฑ์เสี่ยง หรือมีความดันและระดับน้ำตาลสูงปานกลาง แอดมินสามารถลงทะเบียนคนเหล่านั้นเข้าระบบเพื่อเปิดโครงการปรับเปลี่ยนพฤติกรรม โดยเข้าไปที่ <a href="admin/dpac_manager.php" class="hl-text">จัดการโครงการ DPAC</a> เพื่อดูสถิติการส่งงานติดตามพฤติกรรมรายรอบ (รอบที่ 1, 2, 3) ของ อสม. และเปรียบเทียบกราฟการลดน้ำหนัก ลดพุง และความดันโลหิตของผู้เข้าร่วมโครงการทั้งหมด</p>
                     </section>
 
-
-
-                    <!-- Section: admin-analytics -->
-                    <section id="admin-analytics">
+                    <!-- Section: admin-surveillance -->
+                    <section id="admin-surveillance">
                         <h2 class="section-title">
                             <span class="title-icon-container">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path d="M16 8v8m-4-5v5m-4-2v2M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12z"></path>
                                 </svg>
                             </span>
-                            <span class="title-text">7. วิเคราะห์ข้อมูลเชิงลึก (Advanced Analytics Suite) แผนที่สุขภาพ และรายงานสรุป</span>
-                            <span class="number">ADM-07</span>
+                            <span class="title-text">8. รายงานและระบบเฝ้าระวังสุขภาพ 6 มิติ (Surveillance & Advanced Analytics)</span>
+                            <span class="number">ADM-08</span>
                         </h2>
 
-                        <p>แอดมินสาธารณสุขและผู้อำนวยการ รพ.สต. สามารถใช้ประโยชน์จากหน้าแสดงผลข้อมูลอัจฉริยะ (Advanced Analytics Suite) ในการวิเคราะห์ข้อมูลสาธารณสุขเชิงลึกครบทั้ง 5 มิติ:</p>
+                        <p>ระบบรายงานและการวิเคราะห์เชิงลึกระดับสาธารณสุข ออกแบบมาเพื่อสนับสนุนแพทย์ ผอ.รพ.สต. และผู้รับผิดชอบงาน NCD ในการเฝ้าระวังสุขภาพเชิงรุกครบทั้ง 6 มิติ:</p>
+
+                        <div class="alert-box alert-box-success">
+                            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div>
+                                <div class="alert-title">🔍 รายงานและระบบเฝ้าระวังสุขภาพเชิงรุก 6 มิติ (<a href="admin/surveillance_reports.php" class="hl-text">Surveillance Reports</a>)</div>
+                                <p class="alert-desc">
+                                    <strong>มิติที่ 1: ทะเบียนติดตามกลุ่มเสี่ยง / เยี่ยมบ้าน (Risk Registry):</strong> รวมรายชื่อผู้มีความดันโลหิต SYS ≥ 130 หรือค่าน้ำตาล DTX ≥ 100 หรือระดับการดูแล (Care Level) ตกเกณฑ์ เพื่อวางแผนลงเยี่ยมบ้าน<br>
+                                    <strong>มิติที่ 2: กลุ่มที่ควรตรวจซ้ำรอบที่ 2 (Retest Due):</strong> ตรวจจับผู้ที่มีผลความดัน/น้ำตาลปริ่มเสี่ยงในรอบที่ 1 แต่ยังไม่มีผลตรวจยืนยันในรอบที่ 2 ให้ อสม. ลงตรวจซ้ำ<br>
+                                    <strong>มิติที่ 3: กลุ่มที่ขาดการติดตามในรอบเดือน (Overdue Followup):</strong> แจ้งเตือนรายชื่อผู้ที่เลยกำหนดนัดตรวจ (Overdue Days) พร้อมชื่อ อสม. สังกัด เพื่อส่งสัญญาณเยี่ยมบ้านทันที<br>
+                                    <strong>มิติที่ 4: กลุ่มประชากรเป้าหมายที่ไม่เคยได้รับการคัดกรอง (Unscreened Population):</strong> เจาะจงประชากรอายุ 35 ปีขึ้นไปที่ยังตกสำรวจในรอบปีงบประมาณ เพื่อลงคัดกรองเชิงรุก<br>
+                                    <strong>มิติที่ 5: ผลสัมฤทธิ์โครงการ & สุขภาพการนอนหลับ (Outcome Progress & Sleep Hygiene):</strong> ประเมินสัดส่วนผู้ที่มีสุขภาพดีขึ้น/ทรงตัว/แย่ลง และความสัมพันธ์กับคุณภาพการนอนหลับ<br>
+                                    <strong>มิติที่ 6: การตรวจสอบคุณภาพข้อมูลและความผิดปกติ (Data Quality Audit):</strong> ตรวจจับความผิดปกติของตัวเลข เช่น BMI ผิดปกติ, Pulse Pressure แคบ/กว้างผิดมนุษย์ เพื่อความถูกต้องของเวชระเบียน
+                                </p>
+                            </div>
+                        </div>
 
                         <ul class="step-list">
                             <li class="step-item">
                                 <span class="step-number">1</span>
                                 <div class="step-content">
                                     <h4>ระบบทำนายความเสี่ยงการเกิดโรครายใหม่ (Predictive Conversion Risk Model)</h4>
-                                    <p>ประมวลผลคำนวณโอกาสป่วย % Conversion Risk สำหรับกลุ่มประชากรเสี่ยงปานกลาง (Pre-hypertension / Pre-diabetes) โดยคำนวณปัจจัยเสี่ยงผสม (ค่า BP/DTX โซนบน, ดัชนีมวลกาย BMI ≥ 25, ประวัติ NCD ครอบครัว และอายุ 45+) พร้อมตาราง Top 10 รายชื่อเฝ้าระวังสูงสุด เพื่อส่ง อสม. ลงพื้นที่ป้องกันก่อนป่วยจริง 6-12 เดือน</p>
+                                    <p>ที่หน้า <a href="admin/analytics.php" class="hl-text">วิเคราะห์ข้อมูลเชิงลึก</a> ระบบประมวลผลคำนวณโอกาสป่วย % Conversion Risk สำหรับกลุ่มเสี่ยงปานกลาง (Pre-HT / Pre-DM) โดยคำนวณปัจจัยผสม (ค่า BP/DTX โซนบน, BMI ≥ 25, ประวัติครอบครัว และอายุ 45+) พร้อมตาราง Top 10 รายชื่อเฝ้าระวังสูงสุด เพื่อส่ง อสม. ลงพื้นที่ป้องกันก่อนป่วยจริง 6-12 เดือน</p>
                                 </div>
                             </li>
 
                             <li class="step-item">
                                 <span class="step-number">2</span>
                                 <div class="step-content">
-                                    <h4>การวิเคราะห์ประสิทธิผลและคุณภาพงาน อสม. (VHV Quality & Health Impact)</h4>
-                                    <p>ประเมินคุณภาพการคัดกรองผ่าน <strong>Screening Yield Rate (%)</strong> อัตราส่วนการสแกนพบเสี่ยงจริง พร้อมจัดอันดับ <strong>5 อันดับ อสม. ดีเด่นด้านผลสัมฤทธิ์สุขภาพ (Health Impact Champion VHVs)</strong> ที่ลงติดตามลูกบ้านในคลินิก DPAC แล้วมีผลความดันและน้ำตาลในเลือดลดลงมากที่สุด</p>
+                                    <h4>การวิเคราะห์ประสิทธิผล อสม. และปิรามิดประชากร (VHV Quality & Demographics)</h4>
+                                    <p>ประเมินอัตรา <strong>Screening Yield Rate (%)</strong> อัตราส่วนการสแกนพบกลุ่มเสี่ยงจริง พร้อมจัดอันดับ <strong>Health Impact Champion VHVs</strong> ที่ลงติดตามลูกบ้านแล้วมีผลความดันและน้ำตาลลดลงมากที่สุด พร้อมแผนภูมิปิรามิดอายุ-เพศ (Demographic Equity Pyramid) เพื่อชี้เป้ากลุ่มที่ตกสำรวจ</p>
                                 </div>
                             </li>
 
                             <li class="step-item">
                                 <span class="step-number">3</span>
                                 <div class="step-content">
-                                    <h4>ปิรามิดครอบคลุมการคัดกรองตามช่วงอายุและเพศ (Demographic Equity Pyramid)</h4>
-                                    <p>แผนภูมิ ApexCharts เปรียบเทียบสัดส่วนประชากรเป้าหมายกับกลุ่มที่สแกนแล้ว แยกตามช่วงอายุ (35-44, 45-54, 55-64, 65+) และเพศ (ชาย/หญิง) ช่วยชี้เป้ากลุ่มวัยที่ตกสำรวจ (เช่น กลุ่มชายวัยทำงาน 35-44 ปี) เพื่อจัดรอบลงสแกนคัดกรองสเปเชียลคลินิกนอกเวลาราชการ</p>
+                                    <h4>การส่งออกชุดข้อมูลวิจัย R2R (CSV Export) & สรุปผู้บริหาร 1 หน้า (Print Brief)</h4>
+                                    <p>รองรับการกดปุ่ม <strong>"ดาวน์โหลดชุดข้อมูล R2R (CSV)"</strong> เพื่อสกัดข้อมูล Paired Statistics สำหรับนำไปวิเคราะห์ใน SPSS/Excel และปุ่ม <strong>"พิมพ์สรุปภาพรวมผู้บริหาร (Print Brief)"</strong> จัดฟอร์แมต 1 หน้ากระดาษเพื่อนำเสนอที่ประชุม คปสอ./สสอ.</p>
                                 </div>
                             </li>
 
                             <li class="step-item">
                                 <span class="step-number">4</span>
                                 <div class="step-content">
-                                    <h4>ระบบติดตามการคงอยู่ในระบบและการหลุดติดตาม (DPAC Retention Funnel & Dropout Alarm)</h4>
-                                    <p>กราฟ Funnel ติดตามการคงอยู่ของผู้เข้าร่วมคลินิกปรับเปลี่ยนพฤติกรรม DPAC (รอบ 1 ➔ 2 ➔ 3 ➔ 4) พร้อมตารางแจ้งเตือนผู้ขาดนัดเกิน 30 วัน (Dropout Alarm List) พร้อมชื่อ อสม. สังกัด เพื่อส่งสัญญาณเยี่ยมบ้าน (Home Visit Signal)</p>
+                                    <h4>แผนที่ระบาดวิทยาเชิงพื้นที่และเวลา (Temporal GIS Health Heatmap)</h4>
+                                    <p>ประมวลผลพิกัดดาวเทียมจริงที่ อสม. ส่งเข้ามาขณะลงพื้นที่ แปลงเป็น <strong>แผนที่ความร้อน (Heatmap Grid)</strong> แสดงจุดความหนาแน่นของกลุ่มเสี่ยงเบาหวานและความดัน พร้อมปุ่มเล่นวิดีโออนิเมชันพัฒนาการสุขภาพรายไตรมาส</p>
                                 </div>
                             </li>
 
                             <li class="step-item">
                                 <span class="step-number">5</span>
                                 <div class="step-content">
-                                    <h4>ชุดข้อมูลงานวิจัย R2R (CSV Export) & สรุปภาพรวมผู้บริหาร (Print Brief)</h4>
-                                    <p>รองรับการกดปุ่ม <strong>"ดาวน์โหลดชุดข้อมูล R2R (CSV)"</strong> สกัดข้อมูล Paired Stat สำหรับนำไปเข้าโปรแกรมวิเคราะห์สถิติ (SPSS/Excel) และปุ่ม <strong>"พิมพ์สรุปภาพรวมผู้บริหาร (Print Brief)"</strong> จัดฟอร์แมตหน้าพิมพ์สรุป 1 หน้ากระดาษ (Executive Brief) เสนอที่ประชุม สสอ./คปสอ.</p>
-                                </div>
-                            </li>
-
-                            <li class="step-item">
-                                <span class="step-number">6</span>
-                                <div class="step-content">
-                                    <h4>แผนที่ระบุระดับพิกัดความเสี่ยงรายไตรมาส (Temporal GIS Risk Heatmap)</h4>
-                                    <p>เรียกดู <strong>แผนที่ความร้อนเชิงระบาดวิทยา (Heatmap GIS Grid)</strong> ซึ่งประมวลผลข้อมูลเชิงพื้นที่จากพิกัดตำแหน่งจริงที่ อสม. ส่งเข้ามาอัตโนมัติขณะบันทึกข้อมูล ทำให้ได้ตำแหน่งหลังคาเรือนจริงในอำเภอ<?= htmlspecialchars($district) ?> ที่ชัดเจนและแม่นยำสูง พร้อมปุ่มเล่นวิดีโออนิเมชันพัฒนาการสุขภาพรายไตรมาส</p>
-                                </div>
-                            </li>
-
-                            <li class="step-item">
-                                <span class="step-number">7</span>
-                                <div class="step-content">
-                                    <h4>ระบบรายงานและข้อมูลพิมพ์เสนอผู้บริหาร</h4>
-                                    <p>ไปที่หน้า <a href="admin/reports.php" class="hl-text">รายงานและการพิมพ์</a> เพื่อสร้างตารางรายงานข้อมูลแยกรายตำบล รายหมู่บ้าน สรุปอัตราความครอบคลุมการคัดกรอง และอัตราการเจ็บป่วย สำหรับเซฟเป็นไฟล์ PDF/Excel หรือสั่งพิมพ์เพื่อเป็นหลักฐานเชิงสถิติต่อไป</p>
-                                </div>
-                            </li>
-
-                            <li class="step-item">
-                                <span class="step-number">8</span>
-                                <div class="step-content">
-                                    <h4>ระบบบันทึกความปลอดภัย (Secure Log)</h4>
-                                    <p>ไปที่เมนู <a href="admin/security_log.php" class="hl-text">บันทึกความปลอดภัย (Secure Log)</a> เพื่อเฝ้าระวังและตรวจสอบความปลอดภัยการทำงานของระบบ โดยจะทำการบันทึกข้อมูลเหตุการณ์ที่ผิดปกติหรือน่าสงสัย เช่น การสแกนเข้าถึงข้อมูลโดย อสม. ที่ไม่ได้สังกัดเขตบริการ หรือพิกัดสแกนที่ผิดปกติจากสถานที่จริง โดยผู้ดูแลระบบสูงสุด (Super Admin) สามารถเข้าไปดูรายละเอียดเหตุการณ์ IP Address ของผู้ใช้งาน และระบบยังรองรับการล้าง/ลบประวัติ Log ที่เก่าเพื่อบำรุงรักษาพื้นที่จัดเก็บข้อมูลได้อีกด้วย</p>
+                                    <h4>ระบบบันทึกความปลอดภัยและตรวจสอบการเข้าถึง (Security Log & Access Monitor)</h4>
+                                    <p>ไปที่เมนู <a href="admin/security_log.php" class="hl-text">บันทึกความปลอดภัย</a> เพื่อเฝ้าระวังเหตุการณ์ที่น่าสงสัย เช่น การสแกนข้ามเขตบริการ พิกัด GPS ที่ผิดปกติ และ IP Address ของผู้ใช้งาน พร้อมระบบจัดการล้างประวัติ Log เพื่อดูแลพื้นที่จัดเก็บข้อมูล</p>
                                 </div>
                             </li>
                         </ul>
                     </section>
 
-
-
-                    <!-- Section: admin-db-maintenance -->
-
-                    <section id="admin-db-maintenance">
-
+                    <!-- Section: admin-broadcast -->
+                    <section id="admin-broadcast">
                         <h2 class="section-title">
-
                             <span class="title-icon-container">
-
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-
-                                    <path
-
-                                        d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4">
-
-                                    </path>
-
+                                    <path d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path>
                                 </svg>
-
                             </span>
-
-                            <span class="title-text">8. การดูแลฐานข้อมูล โหมดจำลองระบบ (Sandbox) และการเคลียร์ข้อมูล</span>
-
-                            <span class="number">ADM-08</span>
-
+                            <span class="title-text">9. ศูนย์ประกาศและสื่อสารข้อความ (Broadcast Announcements & Messaging Hub)</span>
+                            <span class="number">ADM-09</span>
                         </h2>
 
-                        <p>เพื่อความยั่งยืนและความสมบูรณ์ของฐานข้อมูลระบบ ผู้ดูแลสูงสุดสามารถเข้าเมนู <a
+                        <p>ช่องทางสื่อสารนโยบายสุขภาพ ข่าวสารด่วน และการแจ้งเตือนจากสำนักงานสาธารณสุขอำเภอ/รพ.สต. ตรงสู่หน้าจอสมาร์ทโฟนของ อสม. และเจ้าหน้าที่ทุกคน:</p>
 
-                                href="admin/db_manager.php" class="hl-text">จัดการฐานข้อมูลระบบ</a> เพื่อสำรองข้อมูล บุกเบิกดูแลระบบการจำลองทดสอบ และทำความสะอาดฐานข้อมูลดังต่อไปนี้:</p>
-
-
-
-                        <div class="alert-box alert-box-warning">
-
+                        <div class="alert-box alert-box-info">
                             <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-
-                                <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-
+                                <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                             </svg>
-
                             <div>
-
-                                <div class="alert-title">ขอบเขตความปลอดภัยและสิทธิ์การเข้าถึง</div>
-
-                                <p class="alert-desc">เมนูนี้และไฟล์หลังบ้านทั้งหมดได้รับการคุ้มครองด้วยการตรวจสอบสิทธิ์ความปลอดภัยสูงสุด โดยเปิดให้ใช้งานเฉพาะสิทธิ์ <strong>Super Admin</strong> เท่านั้น หากเป็นบัญชี Area Admin หรือบัญชีผู้มาเยือน (Visitor) จะไม่สามารถแก้ไขค่า คัดลอก หรือลบข้อมูลใดๆ ได้</p>
-
+                                <div class="alert-title">📢 ฟังก์ชันการทำงานของศูนย์ประกาศ (<a href="admin/messages.php" class="hl-text">Broadcast Hub</a>)</div>
+                                <p class="alert-desc">
+                                    • <strong>ระดับความสำคัญ 3 ระดับ:</strong> ทั่วไป (Normal), ด่วน (Urgent - แถบสีส้ม), และด่วนฉุกเฉิน (Emergency - แถบสีแดงพร้อมป๊อปอัปบังคับเปิดอ่าน)<br>
+                                    • <strong>การเจาะจงกลุ่มเป้าหมาย (Target Audience):</strong> เลือกส่งถึง <em>อสม. ทุกคนทั่วทั้งอำเภอ (All VHVs)</em>, <em>เฉพาะเจ้าหน้าที่ รพ.สต. (All Staff)</em>, หรือ <em>เฉพาะ อสม. รายหมู่บ้าน/ตำบล</em><br>
+                                    • <strong>ระบบติดตามการเปิดอ่าน (Read Tracking):</strong> แสดงตัวเลขสถิติว่ามี อสม. หรือเจ้าหน้าที่เปิดอ่านข้อความแล้วกี่คนแบบ Real-time<br>
+                                    • <strong>การแจ้งเตือนบนมือถือ อสม.:</strong> แสดงตัวเลขแบดจ์สีแดงบนไอคอนกระดิ่ง 🔔 ที่หน้าจอหลักของ อสม. เมื่อมีข้อความใหม่
+                                </p>
                             </div>
-
                         </div>
-
-
-
-                        <ul class="step-list">
-
-                            <li class="step-item">
-
-                                <span class="step-number">1</span>
-
-                                <div class="step-content">
-
-                                    <h4>โหมดการทดสอบระบบ (Sandbox Mode)</h4>
-
-                                    <p>
-
-                                        แอดมินสามารถเปิด/ปิด โหมดจำลองผ่านสวิตช์ Toggle ที่หน้าจอได้:<br>
-
-                                        • <strong>เมื่อเปิดใช้งาน (Sandbox Mode - ON)</strong>: ระบบจะอนุญาตให้ใช้รหัสบัญชี อสม. ทดลอง (เช่น 1001, 1002, 1003) ในการเข้าสู่ระบบเพื่อทดสอบการบันทึกได้ รวมถึงเปิดให้แสดงเครื่องมือจำลองพิกัดแผนที่ (GPS Mock) ในหน้าคัดกรอง อสม. เพื่ออำนวยความสะดวกในการจัดแสดงหรืออบรมผู้ใช้งาน<br>
-
-                                        • <strong>เมื่อปิดใช้งาน (Production Mode - OFF / ใช้งานจริง)</strong>: ระบบจะปิดกั้นรหัส อสม. ทดลองทั้งหมดเพื่อป้องกันการบันทึกข้อมูลเท็จ และซ่อนปุ่มรวมถึงเครื่องมือ Mock GPS ออกจากหน้าบันทึกคัดกรอง อสม. โดยสิ้นเชิงเพื่อบังคับให้รับตำแหน่งพิกัดตำแหน่งจริงผ่านดาวเทียม (Real GPS coordinates)
-
-                                    </p>
-
-                                </div>
-
-                            </li>
-
-                            <li class="step-item">
-
-                                <span class="step-number">2</span>
-
-                                <div class="step-content">
-
-                                    <h4>การล้างข้อมูลทดสอบจำลอง (Mock Data Cleanup)</h4>
-
-                                    <p>เมื่อเตรียมนำระบบขึ้นใช้งานจริงในตำบลต่างๆ และต้องการเอาข้อมูลและบัญชีขยะออก แอดมินสามารถใช้ปุ่ม <strong>"ล้างข้อมูลจำลองและบัญชีทดสอบทั้งหมด"</strong> ในหน้า DB Manager ระบบจะทำการกวาดล้างข้อมูลเป้าหมายจำลอง 4 เคสหลัก บัญชี อสม. ทดลองทั้ง 3 บัญชี รวมถึงผลคัดกรองและใบงานของพวกเขาออกจากระบบทั้งหมดอย่างหมดจดในคลิกเดียว</p>
-
-                                </div>
-
-                            </li>
-
-                            <li class="step-item">
-
-                                <span class="step-number">3</span>
-
-                                <div class="step-content">
-
-                                    <h4>การล้างข้อมูลแยกตามรหัสหน่วยบริการ (HOSCODE Cleaning)</h4>
-
-                                    <p>กรณีต้องการเตรียมความพร้อมเพื่อการอัปโหลดเป้าหมายใหม่แยกราย รพ.สต. แอดมินสามารถคลิกปุ่ม <strong>"ล้างข้อมูล รพ.สต."</strong> แยกรายแห่งได้ โดยระบบมีระบบยืนยันความปลอดภัยซ้ำสอง (Double Confirmation) บังคับให้ป้อนรหัส รพ.สต. 5 หลักให้ถูกต้องตรงกันก่อนลบข้อมูลเสมอ เพื่อป้องกันความผิดพลาดของเจ้าหน้าที่</p>
-
-                                </div>
-
-                            </li>
-
-                        </ul>
-
                     </section>
 
+                    <!-- Section: admin-jhcis-sync -->
+                    <section id="admin-jhcis-sync">
+                        <h2 class="section-title">
+                            <span class="title-icon-container">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                            </span>
+                            <span class="title-text">10. ระบบเชื่อมต่อและซิงค์ฐานข้อมูล JHCIS (JHCIS Sync Engine)</span>
+                            <span class="number">ADM-10</span>
+                        </h2>
 
+                        <p>นวัตกรรมการเชื่อมต่อข้อมูลแบบ Two-Way Data Pipeline ระหว่างระบบ NCDs Portal กับฐานข้อมูลโปรแกรม <strong>JHCIS (MySQL Port 3333)</strong> ของ รพ.สต.:</p>
+
+                        <div class="alert-box alert-box-success">
+                            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div>
+                                <div class="alert-title">⚡ การเชื่อมโยงข้อมูลกับ JHCIS (<a href="admin/jhcis_sync.php" class="hl-text">JHCIS Sync</a>)</div>
+                                <p class="alert-desc">
+                                    • <strong>1. การตั้งค่าการเชื่อมต่อ (Connection Setup):</strong> ระบุ Host IP, พอร์ต MySQL (มาตรฐานพอร์ต <code>3333</code>), ฐานข้อมูล <code>jhcisdb</code>, Username (<code>root</code>) และ Password พร้อมปุ่ม <strong>"ทดสอบการเชื่อมต่อ"</strong> เพื่อตรวจสอบสถานะทันที<br>
+                                    • <strong>2. การดึงข้อมูลประชากร & บ้าน (Pull Data):</strong> ดึงข้อมูลทะเบียนราษฎร์และพิกัดบ้านจาก JHCIS เข้าสู่ Staging Table ของระบบ เพื่อเตรียมจัดทำ QR Code และมอบหมายงาน อสม.<br>
+                                    • <strong>3. การส่งผลคัดกรองกลับเข้า JHCIS (Push Results):</strong> ส่งผลคัดกรองที่ อสม. บันทึก (ความดัน SYS/DIA, ค่าน้ำตาล DTX, น้ำหนัก, ส่วนสูง, BMI, วันที่ตรวจ) กลับเข้าไปบันทึกในตาราง NCD ของระบบ JHCIS โดยอัตโนมัติ ช่วยลดภาระเจ้าหน้าที่ไม่ต้องคีย์ข้อมูลซ้ำซ้อน<br>
+                                    • <strong>4. บันทึกประวัติการซิงค์ (Sync Logs):</strong> บันทึกประวัติ วันที่ เวลา จำนวนเคสที่ซิงค์สำเร็จ และแจ้งเตือนหากพบคิวงานขัดข้อง
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Section: admin-db-maintenance -->
+                    <section id="admin-db-maintenance">
+                        <h2 class="section-title">
+                            <span class="title-icon-container">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path>
+                                </svg>
+                            </span>
+                            <span class="title-text">11. การดูแลฐานข้อมูล โหมดจำลองระบบ (Sandbox) และการเคลียร์ข้อมูล</span>
+                            <span class="number">ADM-11</span>
+                        </h2>
+
+                        <p>เพื่อความยั่งยืนและความสมบูรณ์ของฐานข้อมูลระบบ ผู้ดูแลสูงสุดสามารถเข้าเมนู <a href="admin/db_manager.php" class="hl-text">จัดการฐานข้อมูลระบบ</a> เพื่อสำรองข้อมูล บุกเบิกดูแลระบบการจำลองทดสอบ และทำความสะอาดฐานข้อมูลดังต่อไปนี้:</p>
+
+                        <div class="alert-box alert-box-warning">
+                            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                            <div>
+                                <div class="alert-title">ขอบเขตความปลอดภัยและสิทธิ์การเข้าถึง</div>
+                                <p class="alert-desc">เมนูนี้และไฟล์หลังบ้านทั้งหมดได้รับการคุ้มครองด้วยการตรวจสอบสิทธิ์ความปลอดภัยสูงสุด โดยเปิดให้ใช้งานเฉพาะสิทธิ์ <strong>Super Admin</strong> เท่านั้น หากเป็นบัญชี Area Admin หรือบัญชีผู้มาเยือน (Visitor) จะไม่สามารถแก้ไขค่า คัดลอก หรือลบข้อมูลใดๆ ได้</p>
+                            </div>
+                        </div>
+
+                        <ul class="step-list">
+                            <li class="step-item">
+                                <span class="step-number">1</span>
+                                <div class="step-content">
+                                    <h4>โหมดการทดสอบระบบ (Sandbox Mode)</h4>
+                                    <p>
+                                        แอดมินสามารถเปิด/ปิด โหมดจำลองผ่านสวิตช์ Toggle ที่หน้าจอได้:<br>
+                                        • <strong>เมื่อเปิดใช้งาน (Sandbox Mode - ON)</strong>: ระบบจะอนุญาตให้ใช้รหัสบัญชี อสม. ทดลอง (เช่น 1001, 1002, 1003) ในการเข้าสู่ระบบเพื่อทดสอบการบันทึกได้ รวมถึงเปิดให้แสดงเครื่องมือจำลองพิกัดแผนที่ (GPS Mock) ในหน้าคัดกรอง อสม. เพื่ออำนวยความสะดวกในการจัดแสดงหรืออบรมผู้ใช้งาน<br>
+                                        • <strong>เมื่อปิดใช้งาน (Production Mode - OFF / ใช้งานจริง)</strong>: ระบบจะปิดกั้นรหัส อสม. ทดลองทั้งหมดเพื่อป้องกันการบันทึกข้อมูลเท็จ และซ่อนปุ่มรวมถึงเครื่องมือ Mock GPS ออกจากหน้าบันทึกคัดกรอง อสม. โดยสิ้นเชิงเพื่อบังคับให้รับตำแหน่งพิกัดตำแหน่งจริงผ่านดาวเทียม (Real GPS coordinates)
+                                    </p>
+                                </div>
+                            </li>
+
+                            <li class="step-item">
+                                <span class="step-number">2</span>
+                                <div class="step-content">
+                                    <h4>การล้างข้อมูลทดสอบจำลอง (Mock Data Cleanup)</h4>
+                                    <p>เมื่อเตรียมนำระบบขึ้นใช้งานจริงในตำบลต่างๆ และต้องการเอาข้อมูลและบัญชีขยะออก แอดมินสามารถใช้ปุ่ม <strong>"ล้างข้อมูลจำลองและบัญชีทดสอบทั้งหมด"</strong> ในหน้า DB Manager ระบบจะทำการกวาดล้างข้อมูลเป้าหมายจำลอง 4 เคสหลัก บัญชี อสม. ทดลองทั้ง 3 บัญชี รวมถึงผลคัดกรองและใบงานของพวกเขาออกจากระบบทั้งหมดอย่างหมดจดในคลิกเดียว</p>
+                                </div>
+                            </li>
+
+                            <li class="step-item">
+                                <span class="step-number">3</span>
+                                <div class="step-content">
+                                    <h4>การล้างข้อมูลแยกตามรหัสหน่วยบริการ (HOSCODE Cleaning)</h4>
+                                    <p>กรณีต้องการเตรียมความพร้อมเพื่อการอัปโหลดเป้าหมายใหม่แยกราย รพ.สต. แอดมินสามารถคลิกปุ่ม <strong>"ล้างข้อมูล รพ.สต."</strong> แยกรายแห่งได้ โดยระบบมีระบบยืนยันความปลอดภัยซ้ำสอง (Double Confirmation) บังคับให้ป้อนรหัส รพ.สต. 5 หลักให้ถูกต้องตรงกันก่อนลบข้อมูลเสมอ เพื่อป้องกันความผิดพลาดของเจ้าหน้าที่</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </section>
 
                     <!-- Section: admin-user-manager -->
-
                     <section id="admin-user-manager">
-
                         <h2 class="section-title">
-
                             <span class="title-icon-container">
-
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-
                                     <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-
                                 </svg>
-
                             </span>
-
-                            <span class="title-text">9. การจัดการผู้ใช้งานระบบ (User Management)</span>
-
-                            <span class="number">ADM-09</span>
-
+                            <span class="title-text">12. การจัดการผู้ใช้งานระบบ (User Management)</span>
+                            <span class="number">ADM-12</span>
                         </h2>
 
                         <p>เพื่อให้ผู้ดูแลระบบสูงสุดสามารถจัดการบัญชีรายชื่อผู้ใช้ระดับเจ้าหน้าที่ (Admin/Staff) ทั้งระบบได้อย่างสะดวกรวดเร็ว โดยแยกส่วนออกจากการจัดการบัญชีของ อสม. โดยตรง</p>
 
-
-
                         <div class="alert-box alert-box-warning">
-
                             <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-
                                 <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-
                             </svg>
-
                             <div>
-
                                 <div class="alert-title">ขอบเขตสิทธิ์การเข้าถึงเมนู</div>
-
                                 <p class="alert-desc">เมนูนี้เปิดให้ใช้งานเฉพาะสิทธิ์ <strong>Super Admin</strong> เท่านั้น (บัญชีที่ไม่ใช่ adminsso และไม่มีรหัสหน่วยบริการผูกอยู่) ส่วนบัญชี Area Admin (รพ.สต.) และบัญชีผู้มาเยือน (Visitor) จะไม่เห็นเมนูนี้และไม่สามารถเข้าถึงหน้าเว็บได้</p>
-
                             </div>
-
                         </div>
-
-
 
                         <ul class="step-list">
-
                             <li class="step-item">
-
                                 <span class="step-number">1</span>
-
                                 <div class="step-content">
-
                                     <h4>เข้าสู่เมนูจัดการผู้ใช้งาน</h4>
-
                                     <p>ไปที่เมนู <strong>จัดการระบบ</strong> > <a href="admin/user_manager.php" class="hl-text">จัดการผู้ใช้งานระบบ</a> เพื่อเข้าสู่แผงควบคุมหลักสำหรับการบริหารจัดการบัญชีเจ้าหน้าที่</p>
-
                                 </div>
-
                             </li>
 
                             <li class="step-item">
-
                                 <span class="step-number">2</span>
-
                                 <div class="step-content">
-
                                     <h4>เพิ่มบัญชีผู้ใช้งานระบบรายใหม่</h4>
-
                                     <p>กรอกชื่อผู้ใช้ (Username ภาษาอังกฤษ/ตัวเลข), ชื่อ-นามสกุลจริง, เลือกสังกัดหน่วยบริการสาธารณสุข (หากต้องการให้บัญชีนั้นมีสิทธิ์ Super Admin ให้เลือก <em>"ไม่มีสังกัดหน่วยบริการ (Super Admin)"</em>) และกำหนดรหัสผ่านเพื่อบันทึกสร้างบัญชี</p>
-
                                 </div>
-
                             </li>
 
                             <li class="step-item">
-
                                 <span class="step-number">3</span>
-
                                 <div class="step-content">
-
                                     <h4>แก้ไขข้อมูล หรือเปลี่ยนรหัสผ่าน</h4>
-
                                     <p>สามารถกดปุ่ม <span class="hl-text">แก้ไข</span> ในรายการตารางเพื่อปรับปรุงชื่อ-นามสกุล หรือสังกัดโรงพยาบาล/รพ.สต. และสามารถรีเซ็ตรหัสผ่านใหม่ได้ทันที (หากต้องการใช้รหัสผ่านเดิม ให้ปล่อยช่องรหัสผ่านว่างไว้ขณะบันทึก)</p>
-
                                 </div>
-
                             </li>
 
                             <li class="step-item">
-
                                 <span class="step-number">4</span>
-
                                 <div class="step-content">
-
                                     <h4>ระงับสิทธิ์ชั่วคราว หรือลบบัญชีถาวร</h4>
-
                                     <p>
-
                                         • <strong>ระงับสิทธิ์ (Suspend)</strong>: กดปุ่มระงับสิทธิ์ บัญชีผู้ใช้นั้นจะไม่สามารถล็อกอินเข้าสู่ระบบได้ชั่วคราว จนกว่าจะกดเปิดสิทธิ์กลับมาใหม่ (<span class="hl-green">เปิดสิทธิ์</span>)<br>
-
                                         • <strong>ลบผู้ใช้ (Delete)</strong>: ลบบัญชีผู้ใช้งานที่ไม่มีการใช้งานแล้วออกจากระบบโดยถาวร
-
                                     </p>
-
                                 </div>
-
                             </li>
-
                         </ul>
 
-
-
                         <div class="alert-box alert-box-success">
-
                             <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-
                                 <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-
                             </svg>
-
                             <div>
-
                                 <div class="alert-title">กลไกความปลอดภัยและระบบล็อกป้องกันข้อผิดพลาด</div>
-
                                 <p class="alert-desc">
-
                                     1. <strong>ป้องกันการล็อกตัวเองนอกระบบ (Self-lockout prevention)</strong>: ระบบจะไม่อนุญาตให้บัญชีที่กำลังล็อกอินทำงานอยู่กดลบหรือระงับสิทธิ์บัญชีของตนเองโดยเด็ดขาด<br>
-
                                     2. <strong>ปกป้องบัญชีผู้ดูแลระบบหลัก</strong>: ระบบไม่อนุญาตให้ระงับสิทธิ์หรือลบบัญชีหลักชื่อ <span class="hl-text">admin</span> เพื่อรักษาสิทธิ์สูงสุดคงไว้ในระบบเสมอ
-
                                 </p>
-
                             </div>
-
                         </div>
-
                     </section>
 
-
-
                     <!-- Section: admin-unit-house -->
-
                     <section id="admin-unit-house">
-
                         <h2 class="section-title">
-
                             <span class="title-icon-container">
-
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-
                                     <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-
                                 </svg>
-
                             </span>
-
-                            <span class="title-text">10. การจัดการหน่วยบริการ, ตำบล, หมู่บ้าน และบ้านเรือน</span>
-
-                            <span class="number">ADM-10</span>
-
+                            <span class="title-text">13. การจัดการหน่วยบริการ, ตำบล, หมู่บ้าน และบ้านเรือน</span>
+                            <span class="number">ADM-13</span>
                         </h2>
 
                         <p>แผงควบคุมศูนย์กลางในการบริหารจัดการข้อมูลโครงสร้างทางภูมิศาสตร์ของระบบคัดกรอง ประกอบด้วยการจัดการหน่วยบริการ (รพ.สต.), ข้อมูลตำบล, หมู่บ้าน และเลขที่บ้าน เพื่อให้สอดรับกันทั้งอำเภอ<?= htmlspecialchars($district) ?></p>
 
-
-
                         <div class="alert-box alert-box-warning">
-
                             <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-
                                 <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-
                             </svg>
-
                             <div>
-
                                 <div class="alert-title">เข้าถึงโดย Super Admin เท่านั้น</div>
-
                                 <p class="alert-desc">การเพิ่ม ลบ หรือแก้ไขข้อมูลโครงสร้างหลักเหล่านี้ส่งผลกระทบต่อประชากรเป้าหมายและการทำงานของ อสม. ทั่วทั้งระบบ จึงอนุญาตให้สิทธิ์ <strong>Super Admin</strong> ดำเนินการเท่านั้น</p>
-
                             </div>
-
                         </div>
 
-
-
                         <ul class="step-list">
-
                             <li class="step-item">
-
                                 <span class="step-number">1</span>
-
                                 <div class="step-content">
-
                                     <h4>เข้าสู่ระบบการจัดการโครงสร้าง</h4>
-
                                     <p>ไปที่เมนู <strong>จัดการระบบ</strong> > <a href="admin/unit_house_manager.php" class="hl-text">จัดการหน่วยบริการ & บ้าน</a> ระบบจะแสดงส่วนการทำงาน 4 แท็บให้เลือกใช้งานตามวัตถุประสงค์</p>
-
                                 </div>
-
                             </li>
 
                             <li class="step-item">
-
                                 <span class="step-number">2</span>
-
                                 <div class="step-content">
-
                                     <h4>แท็บ 1: จัดการหน่วยบริการ (Health Units)</h4>
-
                                     <p>ใช้สำหรับเพิ่ม แก้ไข และลบหน่วยบริการสังกัด เช่น โรงพยาบาล หรือ รพ.สต. ในพื้นที่ โดยใช้รหัสหน่วยบริการ 5 หลัก (HOSCODE) และระบุชื่อหน่วยงาน (ระบบจะล็อกป้องกันไม่ให้ลบหน่วยบริการที่มีข้อมูลหมู่บ้านเชื่อมโยงอยู่)</p>
-
                                 </div>
-
                             </li>
 
                             <li class="step-item">
-
                                 <span class="step-number">3</span>
-
                                 <div class="step-content">
-
                                     <h4>แท็บ 2: จัดการตำบล (Sub-districts)</h4>
-
                                     <p>ใช้สำหรับลงทะเบียนรหัสตำบล 6 หลัก และชื่อตำบลในอำเภอ<?= htmlspecialchars($district) ?> (เช่น รหัส 340602 ชื่อตำบล สำโรง) เพื่อเป็นข้อมูลรากฐานในการคำนวณรหัสหมู่บ้านและรหัสบัตรคิวอาร์โค้ด</p>
-
                                 </div>
-
                             </li>
 
                             <li class="step-item">
-
                                 <span class="step-number">4</span>
-
                                 <div class="step-content">
-
                                     <h4>แท็บ 3: จัดการหมู่บ้าน (Villages)</h4>
-
                                     <p>ระบุชื่อหมู่บ้าน เลือกว่าอยู่ภายใต้ <strong>ตำบล</strong> ใด, เป็น <strong>หมู่ที่</strong> เท่าไร และอยู่ภายใต้ความรับผิดชอบของ <strong>หน่วยบริการ</strong> ใด<br>
-
                                         💡 <strong>ระบบคำนวณรหัสหมู่บ้านอัตโนมัติ (VHID)</strong>: ระบบจะนำรหัสตำบลมารวมกับลำดับหมู่ที่ให้อย่างถูกต้อง (เช่น ตำบลจิกเทิง 340603 หมู่ที่ 1 จะได้รหัสหมู่บ้านเป็น 34060301) โดยระบบจะช่วยตรวจสอบป้องกันปัญหารหัสซ้ำซ้อนให้เอง</p>
-
                                 </div>
-
                             </li>
 
                             <li class="step-item">
-
                                 <span class="step-number">5</span>
-
                                 <div class="step-content">
-
                                     <h4>แท็บ 4: จัดการบ้านเรือน/หลังคาเรือน (Houses)</h4>
-
                                     <p>
-
                                         • <strong>ระบบตัวกรองแบบลำดับขั้น (Cascading Dropdowns)</strong>: เมื่อเลือกหน่วยบริการ ระบบจะกรองรายชื่อหมู่บ้านเฉพาะที่ขึ้นตรงกับหน่วยบริการนั้นๆ มาให้เลือกทันที ช่วยให้การค้นหา ค้นเลขที่บ้าน และเพิ่มบ้านใหม่ทำได้รวดเร็ว แม่นยำ และเป็นสัดส่วน<br>
-
                                         • <strong>การเพิ่ม/แก้ไขแมนนวล</strong>: สามารถกำหนดรหัสบ้าน (HID), บ้านเลขที่, และป้อนพิกัดตำแหน่งภูมิศาสตร์ ละติจูด/ลองจิจูด เพื่อใช้ในการคำนวณแผนที่ความร้อน GIS<br>
-
                                         • <strong>ระบบตรวจสอบความปลอดภัยของข้อมูล</strong>: ระบบจะปฏิเสธการลบข้อมูลบ้านเรือน หรือปฏิเสธการเปลี่ยนรหัสบ้าน หากหลังคาเรือนนั้นๆ มีประชากรเป้าหมายเชื่อมโยงอาศัยอยู่ เพื่อรักษาความสมบูรณ์และถูกต้องของฐานข้อมูล
-
                                     </p>
-
                                 </div>
-
                             </li>
-
                         </ul>
+                    </section>
 
+                    <!-- Section: admin-system-update -->
+                    <section id="admin-system-update">
+                        <h2 class="section-title">
+                            <span class="title-icon-container">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                                </svg>
+                            </span>
+                            <span class="title-text">14. ระบบอัปเดตระบบอัตโนมัติ (OTA System Update & GitHub Sync Engine)</span>
+                            <span class="number">ADM-14</span>
+                        </h2>
+
+                        <p>ระบบอัปเกรดซอฟต์แวร์แบบไร้สาย (Over-The-Air Update Engine) ช่วยให้ผู้ดูแลระบบสามารถอัปเกรดเวอร์ชันใหม่ล่าสุดได้ในคลิกเดียวโดยตรงจาก GitHub Repository:</p>
+
+                        <div class="alert-box alert-box-success">
+                            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div>
+                                <div class="alert-title">🚀 ขั้นตอนการอัปเดตระบบ (<a href="admin/update.php" class="hl-text">System Update</a>)</div>
+                                <p class="alert-desc">
+                                    • <strong>1. ตรวจสอบเวอร์ชันอัตโนมัติ:</strong> เมื่อเข้าหน้าอัปเดต ระบบจะเทียบเวอร์ชันปัจจุบันกับ Remote Changelog บน GitHub หากมีเวอร์ชันใหม่จะแสดงกล่องแจ้งเตือน <em>"🎉 มีระบบเวอร์ชันใหม่อัปเดต!"</em> พร้อมสรุปรายการฟีเจอร์ใหม่<br>
+                                    • <strong>2. ปุ่มอัปเกรดในคลิกเดียว:</strong> แอดมินกดปุ่ม <strong>"🚀 อัปเกรดระบบทันที"</strong> ระบบจะทำการดาวน์โหลดไฟล์แพตช์ล่าสุดมาติดตั้งบนเซิร์ฟเวอร์โดยอัตโนมัติ<br>
+                                    • <strong>3. ปรับโครงสร้างฐานข้อมูลอัตโนมัติ (Auto-Migration):</strong> รันสคริปต์ปรับตารางและฟิลด์ใหม่ให้พร้อมใช้งานทันทีโดยไม่สูญเสียข้อมูลเวชระเบียนเดิม<br>
+                                    • <strong>4. รีเซ็ต Cache & ซิงค์มือถือ อสม.:</strong> ระบบจะส่งสัญญาณอัปเดตไปยัง Service Worker บนสมาร์ทโฟนของ อสม. ทุกเครื่อง เพื่อให้เปลี่ยนไปใช้หน้าจอเวอร์ชันใหม่ล่าสุดโดยอัตโนมัติ
+                                </p>
+                            </div>
+                        </div>
                     </section>
 
 
