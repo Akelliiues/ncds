@@ -141,7 +141,10 @@ foreach ($messages as $m) {
                     ส่งข่าวสาร ประกาศรณรงค์ และแจ้งเตือนด่วนไปยัง อสม. และเจ้าหน้าที่ รพ.สต. ทั่วอำเภอ
                 </p>
             </div>
-            <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <button type="button" onclick="markAllAdminRead()" class="btn-dash-action" style="background: var(--bg-card); border: 1px solid var(--border-color); color: var(--color-primary); padding: 7px 14px; border-radius: 12px; font-size: 13px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--neumorph-flat);">
+                    ✅ อ่านแล้วทั้งหมด
+                </button>
                 <span class="badge" style="background: rgba(59, 130, 246, 0.1); color: var(--color-primary); border: 1px solid rgba(59, 130, 246, 0.3); padding: 6px 14px; font-size: 13px;">
                     ผู้ส่ง: <?= htmlspecialchars($admin_title) ?>
                 </span>
@@ -431,6 +434,25 @@ foreach ($messages as $m) {
             })
             .catch(err => alert('เชื่อมต่อล้มเหลว: ' + err));
         }
+
+        function markAllAdminRead() {
+            fetch('../api/messages.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ action: 'mark_all_read' })
+            })
+            .then(r => r.json())
+            .then(() => {
+                const badge = document.getElementById('admin-unread-badge');
+                if (badge) badge.style.display = 'none';
+            })
+            .catch(() => {});
+        }
+
+        // Auto mark all incoming messages as read when admin enters messages.php
+        document.addEventListener('DOMContentLoaded', () => {
+            markAllAdminRead();
+        });
     </script>
 </body>
 </html>

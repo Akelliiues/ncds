@@ -691,11 +691,13 @@ try {
         fetch('../api/messages.php?action=get_messages')
             .then(r => r.json())
             .then(d => {
-                if (d.status === 'success' && d.unread_count > 0) {
-                    const b = document.getElementById('admin-unread-badge');
-                    if (b) {
+                const b = document.getElementById('admin-unread-badge');
+                if (b) {
+                    if (d.status === 'success' && d.unread_count > 0) {
                         b.innerText = d.unread_count > 99 ? '99+' : d.unread_count;
                         b.style.display = 'block';
+                    } else {
+                        b.style.display = 'none';
                     }
                 }
             })
