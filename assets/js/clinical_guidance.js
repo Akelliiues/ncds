@@ -32,14 +32,43 @@
      * ระบบเล่นเสียงพากย์พยาบาลธรรมชาติ HD (Studio-Quality Natural Thai Voice)
      */
     function speak(audioKey, fallbackText, btnElement) {
+        const defaultBtnHtml = `
+            <div style="display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%;">
+                <span style="width: 38px; height: 38px; border-radius: 50%; background: rgba(255, 255, 255, 0.25); display: flex; align-items: center; justify-content: center; padding: 6px; box-sizing: border-box; box-shadow: inset 0 1px 2px rgba(255,255,255,0.5), 0 2px 6px rgba(0,0,0,0.15); flex-shrink: 0;">
+                    <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="100%" height="100%">
+                        <circle cx="50" cy="50" r="44" stroke-width="6.5" />
+                        <circle cx="43" cy="37" r="4.5" fill="currentColor" stroke="none" />
+                        <path d="M 47 28 L 57 44 L 49 44 C 49 49 45 53 39 56 L 39 68" stroke-width="6.5" />
+                        <path d="M 59 47 C 62.5 50 62.5 54 59 57" stroke-width="5.5" />
+                        <path d="M 66 41 C 72.5 47 72.5 57 66 63" stroke-width="5.5" />
+                        <path d="M 73 35 C 82.5 44 82.5 64 73 73" stroke-width="5.5" />
+                    </svg>
+                </span>
+                <div style="text-align: left; line-height: 1.25;">
+                    <div style="font-size: 15.5px; font-weight: 900; letter-spacing: -0.2px;">🔊 เปิดเสียงคุณหมอพูดสรุปผล</div>
+                    <div style="font-size: 11.5px; opacity: 0.92; font-weight: 600;">(แตะเพื่อให้ระบบอ่านให้ชาวบ้านฟัง)</div>
+                </div>
+            </div>
+        `;
+
+        const playingBtnHtml = `
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;">
+                <span style="font-size: 22px; animation: pulse 1s infinite;">⏹️</span>
+                <div style="text-align: left; line-height: 1.25;">
+                    <div style="font-size: 15px; font-weight: 900;">กำลังอ่านออกเสียง...</div>
+                    <div style="font-size: 11.5px; opacity: 0.95; font-weight: 600;">(แตะเพื่อหยุดเสียง)</div>
+                </div>
+            </div>
+        `;
+
         // 1. ถ้ากำลังเล่นเสียงอยู่ ให้กดเพื่อหยุด (Toggle Stop)
         if (currentAudio) {
             currentAudio.pause();
             currentAudio.currentTime = 0;
             currentAudio = null;
             if (btnElement) {
-                btnElement.innerHTML = '<span>🔊</span> <span>เปิดเสียงพูด</span>';
-                btnElement.style.background = '#10B981';
+                btnElement.innerHTML = defaultBtnHtml;
+                btnElement.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
             }
             return;
         }
@@ -47,15 +76,15 @@
         if (window.speechSynthesis && window.speechSynthesis.speaking) {
             window.speechSynthesis.cancel();
             if (btnElement) {
-                btnElement.innerHTML = '<span>🔊</span> <span>เปิดเสียงพูด</span>';
-                btnElement.style.background = '#10B981';
+                btnElement.innerHTML = defaultBtnHtml;
+                btnElement.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
             }
             return;
         }
 
         if (btnElement) {
-            btnElement.innerHTML = '<span>⏹️</span> <span>กำลังพูด... (กดหยุด)</span>';
-            btnElement.style.background = '#EF4444';
+            btnElement.innerHTML = playingBtnHtml;
+            btnElement.style.background = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)';
         }
 
         // 2. เล่นไฟล์เสียง HD Studio Voice (เสียงพากย์ธรรมชาติแท้ 100%)
@@ -66,8 +95,8 @@
         audio.onended = function() {
             currentAudio = null;
             if (btnElement) {
-                btnElement.innerHTML = '<span>🔊</span> <span>ฟังอีกครั้ง</span>';
-                btnElement.style.background = '#10B981';
+                btnElement.innerHTML = defaultBtnHtml;
+                btnElement.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
             }
         };
 
@@ -83,21 +112,21 @@
 
                 utterance.onend = function() {
                     if (btnElement) {
-                        btnElement.innerHTML = '<span>🔊</span> <span>ฟังอีกครั้ง</span>';
-                        btnElement.style.background = '#10B981';
+                        btnElement.innerHTML = defaultBtnHtml;
+                        btnElement.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
                     }
                 };
                 utterance.onerror = function() {
                     if (btnElement) {
-                        btnElement.innerHTML = '<span>🔊</span> <span>เปิดเสียงพูด</span>';
-                        btnElement.style.background = '#10B981';
+                        btnElement.innerHTML = defaultBtnHtml;
+                        btnElement.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
                     }
                 };
                 window.speechSynthesis.speak(utterance);
             } else {
                 if (btnElement) {
-                    btnElement.innerHTML = '<span>🔊</span> <span>เปิดเสียงพูด</span>';
-                    btnElement.style.background = '#10B981';
+                    btnElement.innerHTML = defaultBtnHtml;
+                    btnElement.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
                 }
             }
         };
@@ -287,72 +316,84 @@
                 <!-- Positive Doctor Speech Script with Big Prominent Voice Button & Watermark Graphic -->
                 <div style="
                     background: var(--bg-darker); 
-                    border-radius: 20px; 
+                    border-radius: 22px; 
                     padding: 16px 14px; 
-                    margin-bottom: 14px; 
+                    margin-bottom: 16px; 
                     box-shadow: var(--neumorph-inset);
                     position: relative;
                     overflow: hidden;
                 ">
-                    <!-- Large Watermark Graphic: Doctor / Person Speaking with Sound Waves -->
+                    <!-- Large Watermark Graphic: Exact Circular Speaking Face Profile with 3 Sound Waves -->
                     <div style="
                         position: absolute;
-                        right: 4px;
-                        bottom: -6px;
-                        width: 95px;
-                        height: 95px;
+                        right: 2px;
+                        bottom: -10px;
+                        width: 105px;
+                        height: 105px;
                         pointer-events: none;
                         user-select: none;
-                        opacity: 0.14;
+                        opacity: 0.12;
                         color: #10B981;
                         z-index: 0;
                     ">
-                        <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%">
-                            <!-- Doctor / Person speaking silhouette with acoustic waves -->
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
-                            <path d="M16.5 7.5c1.2 1.2 1.2 3.1 0 4.3l1.4 1.4c2-2 2-5.1 0-7.1l-1.4 1.4zm2.8-2.8c2.7 2.7 2.7 7.1 0 9.9l1.4 1.4c3.5-3.5 3.5-9.2 0-12.7l-1.4 1.4z"/>
+                        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="100%" height="100%">
+                            <circle cx="50" cy="50" r="44" stroke-width="6.5" />
+                            <circle cx="43" cy="37" r="4.5" fill="currentColor" stroke="none" />
+                            <path d="M 47 28 L 57 44 L 49 44 C 49 49 45 53 39 56 L 39 68" stroke-width="6.5" />
+                            <path d="M 59 47 C 62.5 50 62.5 54 59 57" stroke-width="5.5" />
+                            <path d="M 66 41 C 72.5 47 72.5 57 66 63" stroke-width="5.5" />
+                            <path d="M 73 35 C 82.5 44 82.5 64 73 73" stroke-width="5.5" />
                         </svg>
                     </div>
 
                     <div style="position: relative; z-index: 1;">
-                        <!-- Big Prominent Audio Button with Glowing Speaker Badge -->
+                        <!-- Big Prominent Audio Button with Glowing Speaking Face Badge -->
                         <button type="button" onclick="ClinicalGuidance.speak('${safeAudioKey}', '${safeScript}', this)" style="
                             width: 100%; 
                             background: linear-gradient(135deg, #10B981 0%, #059669 100%); 
                             color: white; 
                             border: none; 
-                            padding: 13px 18px; 
+                            padding: 13px 16px; 
                             border-radius: 18px; 
                             font-size: 15.5px; 
                             font-weight: 900; 
                             cursor: pointer; 
-                            display: flex; 
-                            align-items: center; 
-                            justify-content: center; 
-                            gap: 10px; 
-                            box-shadow: 0 6px 22px rgba(16, 185, 129, 0.45); 
+                            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.42); 
                             margin-bottom: 12px; 
                             transition: transform 0.15s ease, box-shadow 0.15s ease;
                         ">
-                            <!-- Glowing Speaker Icon Badge -->
-                            <span style="
-                                width: 36px; 
-                                height: 36px; 
-                                border-radius: 12px; 
-                                background: rgba(255, 255, 255, 0.25); 
-                                display: flex; 
-                                align-items: center; 
-                                justify-content: center; 
-                                font-size: 20px; 
-                                box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.5), 0 2px 6px rgba(0, 0, 0, 0.15);
-                                flex-shrink: 0;
-                            ">
-                                🔊
-                            </span>
-                            <span style="letter-spacing: -0.2px;">เปิดเสียงคุณหมอให้ฟัง (สรุปผลตรวจ)</span>
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%;">
+                                <!-- Speaking Head Circular Icon Badge matching user reference -->
+                                <span style="
+                                    width: 40px; 
+                                    height: 40px; 
+                                    border-radius: 50%; 
+                                    background: rgba(255, 255, 255, 0.25); 
+                                    display: flex; 
+                                    align-items: center; 
+                                    justify-content: center; 
+                                    padding: 6px; 
+                                    box-sizing: border-box; 
+                                    box-shadow: inset 0 1px 2px rgba(255,255,255,0.5), 0 2px 8px rgba(0,0,0,0.18); 
+                                    flex-shrink: 0;
+                                ">
+                                    <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="100%" height="100%">
+                                        <circle cx="50" cy="50" r="44" stroke-width="6.5" />
+                                        <circle cx="43" cy="37" r="4.5" fill="currentColor" stroke="none" />
+                                        <path d="M 47 28 L 57 44 L 49 44 C 49 49 45 53 39 56 L 39 68" stroke-width="6.5" />
+                                        <path d="M 59 47 C 62.5 50 62.5 54 59 57" stroke-width="5.5" />
+                                        <path d="M 66 41 C 72.5 47 72.5 57 66 63" stroke-width="5.5" />
+                                        <path d="M 73 35 C 82.5 44 82.5 64 73 73" stroke-width="5.5" />
+                                    </svg>
+                                </span>
+                                <div style="text-align: left; line-height: 1.25;">
+                                    <div style="font-size: 15.5px; font-weight: 900; letter-spacing: -0.2px;">🔊 เปิดเสียงคุณหมอพูดสรุปผล</div>
+                                    <div style="font-size: 11.5px; opacity: 0.92; font-weight: 600;">(แตะเพื่อให้ระบบอ่านให้ชาวบ้านฟัง)</div>
+                                </div>
+                            </div>
                         </button>
 
-                        <!-- Speech Quote Bubble (Neumorphic Inset Well) -->
+                        <!-- Speech Quote Bubble (Neumorphic Flat/Inset Well) -->
                         <div style="
                             background: var(--bg-card); 
                             border-radius: 16px; 
@@ -364,8 +405,17 @@
                             box-shadow: var(--neumorph-flat);
                             border: 1px solid var(--border-color, transparent);
                         ">
-                            <div style="font-size: 11.5px; font-weight: 800; color: #10B981; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
-                                <span>👨‍⚕️</span> <span>คำพูดสรุปผลตรวจ:</span>
+                            <div style="font-size: 12px; font-weight: 800; color: #10B981; margin-bottom: 5px; display: flex; align-items: center; gap: 6px;">
+                                <span style="width: 20px; height: 20px; display: inline-block;">
+                                    <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="100%" height="100%">
+                                        <circle cx="50" cy="50" r="44" stroke-width="7" />
+                                        <circle cx="43" cy="37" r="5" fill="currentColor" stroke="none" />
+                                        <path d="M 47 28 L 57 44 L 49 44 C 49 49 45 53 39 56 L 39 68" stroke-width="7" />
+                                        <path d="M 59 47 C 62.5 50 62.5 54 59 57" stroke-width="6" />
+                                        <path d="M 66 41 C 72.5 47 72.5 57 66 63" stroke-width="6" />
+                                    </svg>
+                                </span>
+                                <span>คำพูดสรุปผลตรวจจากคุณหมอ:</span>
                             </div>
                             <span style="color: #10B981; font-size: 16px; font-weight: 900; margin-right: 4px;">“</span>${result.what_to_say}<span style="color: #10B981; font-size: 16px; font-weight: 900; margin-left: 4px;">”</span>
                         </div>

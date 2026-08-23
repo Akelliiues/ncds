@@ -228,8 +228,8 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="apple-touch-icon" href="../assets/icon.png">
     <link rel="manifest" href="manifest.json">
-    <script src="../assets/js/app.js"></script>
-    <script src="../assets/js/clinical_guidance.js"></script>
+    <script src="../assets/js/app.js?v=<?= time() ?>"></script>
+    <script src="../assets/js/clinical_guidance.js?v=<?= time() ?>"></script>
     <style>
         .resident-card {
             background-color: var(--bg-card);
