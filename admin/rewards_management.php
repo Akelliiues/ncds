@@ -94,48 +94,111 @@ try {
             flex-shrink: 0;
         }
 
-        /* Toggle Feature Card */
-        .toggle-hero-card {
-            background: var(--bg-card);
-            border-radius: 20px;
-            padding: 22px 24px;
-            box-shadow: var(--neumorph-flat);
-            border: 1.5px solid var(--border-color);
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-
-        .toggle-switch-btn {
+        /* 3D Neumorphic Pill Toggle Switch */
+        .neu-switch-outer {
+            background: #EBECF0;
+            padding: 8px 10px;
+            border-radius: 60px;
+            box-shadow: 6px 6px 14px rgba(166, 171, 189, 0.5), -6px -6px 14px rgba(255, 255, 255, 0.8);
             display: inline-flex;
             align-items: center;
-            gap: 10px;
-            padding: 12px 24px;
-            border-radius: 16px;
-            font-size: 15px;
-            font-weight: 800;
             cursor: pointer;
-            border: none;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: var(--neumorph-flat);
+            user-select: none;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.7);
         }
 
-        .toggle-btn-active {
-            background: linear-gradient(135deg, #10B981, #059669);
-            color: #ffffff;
+        [data-theme="dark"] .neu-switch-outer {
+            background: #1E293B;
+            box-shadow: 6px 6px 14px rgba(0, 0, 0, 0.5), -6px -6px 14px rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.08);
         }
 
-        .toggle-btn-disabled {
-            background: linear-gradient(135deg, #64748B, #475569);
-            color: #ffffff;
+        .neu-switch-outer:hover {
+            transform: scale(1.02);
         }
 
-        .toggle-switch-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        .neu-switch-track {
+            position: relative;
+            width: 230px;
+            height: 60px;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            padding: 5px;
+            box-sizing: border-box;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.25), inset -3px -3px 6px rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+        }
+
+        .neu-switch-track.active {
+            background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 50%, #D97706 100%);
+            justify-content: flex-end;
+        }
+
+        .neu-switch-track.closed {
+            background: linear-gradient(135deg, #2D3748 0%, #1A202C 100%);
+            justify-content: flex-start;
+        }
+
+        .neu-switch-label {
+            font-size: 16px;
+            font-weight: 900;
+            color: #FFFFFF;
+            letter-spacing: 1.5px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .neu-switch-track.active .neu-switch-label {
+            padding-right: 22px;
+        }
+
+        .neu-switch-track.closed .neu-switch-label {
+            padding-left: 22px;
+        }
+
+        .neu-switch-thumb {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #E2E8F0;
+            position: absolute;
+            top: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.35), -2px -2px 6px rgba(255, 255, 255, 0.7);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 3;
+        }
+
+        .neu-switch-track.active .neu-switch-thumb {
+            left: 5px;
+            background: #E2E8F0;
+        }
+
+        .neu-switch-track.closed .neu-switch-thumb {
+            left: calc(100% - 55px);
+            background: #E2E8F0;
+        }
+
+        .neu-switch-icon {
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.4s ease;
+        }
+
+        .neu-switch-outer:hover .neu-switch-icon {
+            transform: scale(1.15) rotate(12deg);
         }
 
         /* Tabs */
@@ -335,25 +398,38 @@ try {
             </div>
         </div>
 
-        <!-- 1. Feature Toggle Hero Card -->
-        <div class="toggle-hero-card">
-            <div>
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                    <span style="font-size: 20px;"><?= $systemEnabled ? '🟢' : '🔒' ?></span>
-                    <strong style="font-size: 16px; color: var(--text-primary);">
-                        สถานะระบบแลกของรางวัล: <span id="systemStatusText" style="color: <?= $systemEnabled ? '#10B981' : '#64748B' ?>;"><?= $systemEnabled ? 'เปิดให้บริการ (Active)' : 'ปิดระบบ (โหมดสะสมแต้ม / Preview)' ?></span>
+        <!-- 1. 3D Neumorphic Feature Toggle Hero Card -->
+        <div style="background: var(--bg-card); border-radius: 24px; padding: 22px 26px; box-shadow: var(--neumorph-flat); border: 1.5px solid var(--border-color); margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+            <div style="max-width: 600px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                    <span style="font-size: 24px;"><?= $systemEnabled ? '☀️' : '🌙' ?></span>
+                    <strong style="font-size: 17px; color: var(--text-primary);">
+                        สถานะระบบแลกของรางวัล: <span id="systemStatusText" style="color: <?= $systemEnabled ? '#F59E0B' : '#64748B' ?>;"><?= $systemEnabled ? 'เปิดให้บริการ (Active Mode)' : 'ปิดระบบ (Preview Mode)' ?></span>
                     </strong>
                 </div>
-                <p style="margin: 0; font-size: 13px; color: var(--text-secondary);">
+                <p style="margin: 0; font-size: 13.5px; color: var(--text-secondary); line-height: 1.5;">
                     <?= $systemEnabled 
-                        ? 'อสม. สามารถนำคะแนนสะสมมาแลกของรางวัลในแอปได้ตามปกติ' 
-                        : 'อสม. จะเห็นรายการของรางวัลเป็นโหมดพรีวิว (Coming Soon) เพื่อสะสมแต้มรอ แต่ยังไม่สามารถกดแลกได้' ?>
+                        ? '🟢 <strong>โหมดเปิดแลก:</strong> อสม. เห็นเกณฑ์คะแนนและสามารถกดแลกของรางวัลในแอปได้ตามปกติ' 
+                        : '🔒 <strong>โหมดปิด (Preview):</strong> อสม. เห็นเฉพาะรายการของรางวัลที่มีให้แลก โดยยังไม่แสดงเกณฑ์คะแนนและยังกดแลกไม่ได้' ?>
                 </p>
             </div>
             <div>
-                <button type="button" id="toggleSystemBtn" onclick="toggleSystem(<?= $systemEnabled ? 0 : 1 ?>)" class="toggle-switch-btn <?= $systemEnabled ? 'toggle-btn-active' : 'toggle-btn-disabled' ?>">
-                    <span><?= $systemEnabled ? '🔘 สลับเป็น: ปิดระบบ (Preview)' : '🔘 สลับเป็น: เปิดให้แลกรางวัล' ?></span>
-                </button>
+                <!-- 3D Neumorphic Pill Toggle Button -->
+                <div class="neu-switch-outer" onclick="toggleSystem(<?= $systemEnabled ? 0 : 1 ?>)" title="คลิกเพื่อสลับสถานะเปิด/ปิดระบบแลกของรางวัล">
+                    <div class="neu-switch-track <?= $systemEnabled ? 'active' : 'closed' ?>" id="neuSwitchTrack">
+                        <?php if ($systemEnabled): ?>
+                            <div class="neu-switch-thumb">
+                                <span class="neu-switch-icon" style="color: #F59E0B;">☀️</span>
+                            </div>
+                            <span class="neu-switch-label">DAYMODE</span>
+                        <?php else: ?>
+                            <span class="neu-switch-label">NIGHTMODE</span>
+                            <div class="neu-switch-thumb">
+                                <span class="neu-switch-icon" style="color: #64748B;">🌙</span>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </div>
         </div>
 
