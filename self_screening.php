@@ -182,8 +182,8 @@ require_once __DIR__ . '/config/db.php';
                 <img src="assets/icon.png" alt="Logo" style="width: 44px; height: 44px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
                 <span style="font-weight: 800; font-size: 16px; color: var(--color-accent);">NCDs Portal อำเภอ<?= DISTRICT_NAME ?></span>
             </div>
-            <h2 style="font-size: 22px; font-weight: 800; margin: 4px 0; color: var(--text-primary);">ประเมินความเสี่ยงสุขภาพด้วยตนเอง</h2>
-            <p style="font-size: 13.5px; color: var(--text-secondary); margin: 0;">เช็คพฤติกรรมง่ายๆ ไม่ต้องใช้ตัวเลข พร้อมคำแนะนำวิธีลดความดันและค่าน้ำตาล</p>
+            <h2 style="font-size: 22px; font-weight: 800; margin: 4px 0; color: var(--text-primary);">ตรวจเช็คสุขภาพเบื้องต้นด้วยตนเอง</h2>
+            <p style="font-size: 13.5px; color: var(--text-secondary); margin: 0;">ตอบคำถามง่ายๆ 1 นาที รู้ทันความเสี่ยง พร้อมวิธีลดความดันและค่าน้ำตาล</p>
         </div>
 
         <!-- Progress Indicator -->
@@ -193,11 +193,11 @@ require_once __DIR__ . '/config/db.php';
 
         <form id="self-screening-form" onsubmit="return false;">
             
-            <!-- STEP 1: ข้อมูลพื้นฐานและรูปร่าง -->
+            <!-- STEP 1: เรื่องตัวเรา & รูปร่าง -->
             <div id="step-1" class="self-step-card active">
                 <div style="margin-bottom: 18px;">
-                    <span style="font-size: 13px; font-weight: 800; color: #3b82f6; text-transform: uppercase;">ขั้นตอนที่ 1 จาก 4</span>
-                    <h3 style="font-size: 18px; font-weight: 800; margin: 4px 0; color: var(--text-primary);">👤 ข้อมูลเบื้องต้นและรูปร่าง</h3>
+                    <span style="font-size: 13px; font-weight: 800; color: #3b82f6; text-transform: uppercase;">ข้อ 1-3 จาก 10</span>
+                    <h3 style="font-size: 18px; font-weight: 800; margin: 4px 0; color: var(--text-primary);">👤 เรื่องตัวเรา & รูปร่าง</h3>
                 </div>
 
                 <!-- Gender -->
@@ -223,14 +223,14 @@ require_once __DIR__ . '/config/db.php';
 
                 <!-- Age Group -->
                 <div style="margin-bottom: 18px;">
-                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">2. ช่วงอายุ</label>
+                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">2. อายุเท่าไหร่?</label>
                     <div class="option-grid">
                         <label class="option-card selected" onclick="selectOption(this, 'age_group')">
                             <input type="radio" name="age_group" value="young" checked>
                             <div class="option-icon">🌱</div>
                             <div class="option-text">
-                                <h4>อายุน้อยกว่า 35 ปี</h4>
-                                <p>วัยรุ่น / วัยทำงานตอนต้น</p>
+                                <h4>น้อยกว่า 35 ปี</h4>
+                                <p>วัยหนุ่มสาว / วัยเริ่มทำงาน</p>
                             </div>
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'age_group')">
@@ -238,7 +238,7 @@ require_once __DIR__ . '/config/db.php';
                             <div class="option-icon">💼</div>
                             <div class="option-text">
                                 <h4>อายุ 35 - 59 ปี</h4>
-                                <p>วัยทำงาน (ควรเริ่มตรวจคัดกรองประจำปี)</p>
+                                <p>วัยทำงาน (ควรเริ่มตรวจสุขภาพประจำปี)</p>
                             </div>
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'age_group')">
@@ -246,7 +246,7 @@ require_once __DIR__ . '/config/db.php';
                             <div class="option-icon">🧓</div>
                             <div class="option-text">
                                 <h4>อายุ 60 ปีขึ้นไป</h4>
-                                <p>วัยผู้สูงอายุ (ควรดูแลสุขภาพอย่างสม่ำเสมอ)</p>
+                                <p>วัยผู้สูงอายุ</p>
                             </div>
                         </label>
                     </div>
@@ -254,57 +254,57 @@ require_once __DIR__ . '/config/db.php';
 
                 <!-- Body / Waist Shape -->
                 <div style="margin-bottom: 24px;">
-                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">3. สัดส่วนรูปร่างและรอบเอว</label>
+                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">3. รูปร่างและรอบเอว</label>
                     <div class="option-grid">
                         <label class="option-card selected" onclick="selectOption(this, 'body_shape')">
                             <input type="radio" name="body_shape" value="slim" checked>
                             <div class="option-icon">✨</div>
                             <div class="option-text">
-                                <h4>รูปร่างสมส่วน / พอดีตัว</h4>
-                                <p>ไม่อึดอัด รอบเอวไม่เกินเกณฑ์ (ชาย < 36 นิ้ว, หญิง < 32 นิ้ว)</p>
+                                <h4>สมส่วน พอดีตัว</h4>
+                                <p>ไม่อึดอัด พุงไม่ยื่น</p>
                             </div>
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'body_shape')">
                             <input type="radio" name="body_shape" value="chubby">
                             <div class="option-icon">👖</div>
                             <div class="option-text">
-                                <h4>ท้วม / เริ่มมีพุงยื่น</h4>
-                                <p>กางเกงเริ่มแน่น มีไขมันสะสมรอบเอวเล็กน้อย</p>
+                                <h4>เริ่มมีพุง / ท้วม</h4>
+                                <p>กางเกงเริ่มแน่น มีพุงเล็กน้อย</p>
                             </div>
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'body_shape')">
                             <input type="radio" name="body_shape" value="obese">
                             <div class="option-icon">⚠️</div>
                             <div class="option-text">
-                                <h4>อ้วนลงพุงชัดเจน / น้ำหนักเกินมาก</h4>
-                                <p>รอบเอวเกินเกณฑ์ เหนื่อยง่าย เคลื่อนไหวช้าลง</p>
+                                <h4>อ้วนลงพุงชัดเจน</h4>
+                                <p>พุงยื่นเยอะ เหนื่อยง่าย</p>
                             </div>
                         </label>
                     </div>
                 </div>
 
                 <button type="button" onclick="goToStep(2)" class="btn-giant btn-giant-primary" style="width: 100%; margin: 0; padding: 14px; font-size: 16px;">
-                    ถัดไป: พฤติกรรมการกินอาหาร →
+                    ถัดไป: เรื่องการกินอาหาร →
                 </button>
             </div>
 
 
-            <!-- STEP 2: พฤติกรรมการกินอาหาร (หวาน มัน เค็ม ผัก) -->
+            <!-- STEP 2: เรื่องการกินอาหาร -->
             <div id="step-2" class="self-step-card">
                 <div style="margin-bottom: 18px;">
-                    <span style="font-size: 13px; font-weight: 800; color: #3b82f6; text-transform: uppercase;">ขั้นตอนที่ 2 จาก 4</span>
-                    <h3 style="font-size: 18px; font-weight: 800; margin: 4px 0; color: var(--text-primary);">🥗 พฤติกรรมการกินอาหาร</h3>
+                    <span style="font-size: 13px; font-weight: 800; color: #3b82f6; text-transform: uppercase;">ข้อ 4-6 จาก 10</span>
+                    <h3 style="font-size: 18px; font-weight: 800; margin: 4px 0; color: var(--text-primary);">🥗 เรื่องการกินอาหาร</h3>
                 </div>
 
                 <!-- Sweetness / Sugar -->
                 <div style="margin-bottom: 18px;">
-                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">4. การดื่มน้ำหวาน ชงหวาน ขนมหวาน</label>
+                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">4. ดื่มน้ำหวาน ชงหวาน หรือกินขนมหวานบ่อยไหม?</label>
                     <div class="option-grid">
                         <label class="option-card selected" onclick="selectOption(this, 'sweet_habit')">
                             <input type="radio" name="sweet_habit" value="low" checked>
                             <div class="option-icon">🥛</div>
                             <div class="option-text">
-                                <h4>ดื่มน้ำเปล่าเป็นหลัก / หวานน้อย</h4>
+                                <h4>ดื่มน้ำเปล่าเป็นหลัก</h4>
                                 <p>แทบไม่แตะน้ำอัดลม ชาหวาน กาแฟใส่นมข้น</p>
                             </div>
                         </label>
@@ -312,16 +312,16 @@ require_once __DIR__ . '/config/db.php';
                             <input type="radio" name="sweet_habit" value="med">
                             <div class="option-icon">🧋</div>
                             <div class="option-text">
-                                <h4>ดื่มบ้าง 1-3 วัน/สัปดาห์</h4>
-                                <p>เฉพาะเวลาเหนื่อย หรือมีสังสรรค์</p>
+                                <h4>ดื่มบ้างบางวัน (สัปดาห์ละ 1-3 ครั้ง)</h4>
+                                <p>ดื่มเฉพาะเวลาเหนื่อย หรือมีสังสรรค์</p>
                             </div>
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'sweet_habit')">
                             <input type="radio" name="sweet_habit" value="high">
                             <div class="option-icon">🥤</div>
                             <div class="option-text">
-                                <h4>ดื่มเกือบทุกวัน / ติดรสหวาน</h4>
-                                <p>ขาดน้ำหวานหรือขนมหวานไม่ได้ ต้องมีทุกวัน</p>
+                                <h4>กินเกือบทุกวัน / ติดรสหวาน</h4>
+                                <p>ต้องมีน้ำหวาน ชา กาแฟ หรือขนมหวานทุกวัน</p>
                             </div>
                         </label>
                     </div>
@@ -329,13 +329,13 @@ require_once __DIR__ . '/config/db.php';
 
                 <!-- Salt / Sodium / Fried -->
                 <div style="margin-bottom: 18px;">
-                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">5. การกินรสเค็ม ปลาร้า ซอสปรุงรส ของทอดมัน</label>
+                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">5. ชอบกินเค็ม เติมผงชูรส/น้ำปลา หรือกินของทอดบ่อยไหม?</label>
                     <div class="option-grid">
                         <label class="option-card selected" onclick="selectOption(this, 'salt_habit')">
                             <input type="radio" name="salt_habit" value="low" checked>
                             <div class="option-icon">🥣</div>
                             <div class="option-text">
-                                <h4>กินรสกลางๆ / ไม่ปรุงเพิ่ม</h4>
+                                <h4>กินรสจืดๆ ไม่ปรุงเพิ่ม</h4>
                                 <p>เลี่ยงของทอดมัน ซดน้ำแกงแต่น้อย</p>
                             </div>
                         </label>
@@ -344,15 +344,15 @@ require_once __DIR__ . '/config/db.php';
                             <div class="option-icon">🍲</div>
                             <div class="option-text">
                                 <h4>กินรสจัดบ้างบางมื้อ</h4>
-                                <p>มีส้มตำ ปลาร้า ของทอด สัปดาห์ละ 2-3 ครั้ง</p>
+                                <p>มีส้มตำ ปลาร้า หรือของทอด สัปดาห์ละ 2-3 ครั้ง</p>
                             </div>
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'salt_habit')">
                             <input type="radio" name="salt_habit" value="high">
                             <div class="option-icon">🧂</div>
                             <div class="option-text">
-                                <h4>ชอบเค็มจัด เติมน้ำปลา/ผงชูรส/ชอบของทอด</h4>
-                                <p>ซดน้ำแกงจนหมด ปลาร้าเข้มข้นทุกวัน ของทอดเป็นประจำ</p>
+                                <h4>ชอบรสเค็มจัด / ปลาร้าเข้ม / ของทอดประจำ</h4>
+                                <p>ชอบเติมน้ำปลา ผงชูรส ซดน้ำแกงจนหมด</p>
                             </div>
                         </label>
                     </div>
@@ -360,13 +360,13 @@ require_once __DIR__ . '/config/db.php';
 
                 <!-- Vegetables -->
                 <div style="margin-bottom: 24px;">
-                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">6. ปริมาณการทานผักใบเขียวและผลไม้</label>
+                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">6. กินผักในมื้ออาหารบ่อยแค่ไหน?</label>
                     <div class="option-grid">
                         <label class="option-card selected" onclick="selectOption(this, 'veggie_habit')">
                             <input type="radio" name="veggie_habit" value="good" checked>
                             <div class="option-icon">🥦</div>
                             <div class="option-text">
-                                <h4>ทานผักทุกมื้อ หรือเกือบทุกมื้อ</h4>
+                                <h4>กินผักทุกมื้อ หรือเกือบทุกมื้อ</h4>
                                 <p>มีผักสด ผักลวก ผักต้มในจานเสมอ</p>
                             </div>
                         </label>
@@ -374,8 +374,8 @@ require_once __DIR__ . '/config/db.php';
                             <input type="radio" name="veggie_habit" value="poor">
                             <div class="option-icon">🥩</div>
                             <div class="option-text">
-                                <h4>ไม่ค่อยทานผัก / ทานน้อยมาก</h4>
-                                <p>เน้นเนื้อสัตว์ ข้าว แป้ง และของทอดเป็นหลัก</p>
+                                <h4>ไม่ค่อยกินผัก / กินน้อยมาก</h4>
+                                <p>เน้นเนื้อสัตว์ ข้าว และของทอด</p>
                             </div>
                         </label>
                     </div>
@@ -392,39 +392,39 @@ require_once __DIR__ . '/config/db.php';
             </div>
 
 
-            <!-- STEP 3: การออกกำลังกาย & การเคลื่อนไหวร่างกาย -->
+            <!-- STEP 3: การขยับร่างกาย & ออกกำลังกาย -->
             <div id="step-3" class="self-step-card">
                 <div style="margin-bottom: 18px;">
-                    <span style="font-size: 13px; font-weight: 800; color: #3b82f6; text-transform: uppercase;">ขั้นตอนที่ 3 จาก 4</span>
-                    <h3 style="font-size: 18px; font-weight: 800; margin: 4px 0; color: var(--text-primary);">🏃 การออกกำลังกายและขยับร่างกาย</h3>
+                    <span style="font-size: 13px; font-weight: 800; color: #3b82f6; text-transform: uppercase;">ข้อ 7 จาก 10</span>
+                    <h3 style="font-size: 18px; font-weight: 800; margin: 4px 0; color: var(--text-primary);">🏃 การขยับร่างกาย & ออกกำลังกาย</h3>
                 </div>
 
                 <!-- Physical Activity -->
                 <div style="margin-bottom: 24px;">
-                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">7. กิจกรรมออกแรง / ออกกำลังกายในแต่ละสัปดาห์</label>
+                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">7. ได้ออกกำลังกายหรือออกแรงทำงานไหม?</label>
                     <div class="option-grid">
                         <label class="option-card selected" onclick="selectOption(this, 'exercise_habit')">
                             <input type="radio" name="exercise_habit" value="regular" checked>
                             <div class="option-icon">🏃‍♂️</div>
                             <div class="option-text">
-                                <h4>ออกกำลังกายเป็นประจำ (3-5 วัน/สัปดาห์)</h4>
-                                <p>เดินเร็ว วิ่ง ปั่นจักรยาน ทำงานสวนเหงื่อออก 30 นาทีขึ้นไป</p>
+                                <h4>ทำเป็นประจำ (3-5 วัน/สัปดาห์)</h4>
+                                <p>เดินเร็ว วิ่ง ปั่นจักรยาน ทำงานสวนเหงื่อออก 20-30 นาที</p>
                             </div>
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'exercise_habit')">
                             <input type="radio" name="exercise_habit" value="some">
                             <div class="option-icon">🚶</div>
                             <div class="option-text">
-                                <h4>ขยับร่างกายบ้าง (1-2 วัน/สัปดาห์)</h4>
-                                <p>เดินทำงานบ้าน กวาดใบไม้ ขยับตัวเป็นระยะ</p>
+                                <h4>มีเดินขยับตัวบ้าง (1-2 วัน/สัปดาห์)</h4>
+                                <p>ทำงานบ้าน กวาดใบไม้ เดินไปมา</p>
                             </div>
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'exercise_habit')">
                             <input type="radio" name="exercise_habit" value="sedentary">
                             <div class="option-icon">🛋️</div>
                             <div class="option-text">
-                                <h4>แทบไม่ได้ออกกำลังกาย / นั่งนานทั้งวัน</h4>
-                                <p>นั่งทำงานหรือนอนดูมือถือ/ทีวี ขยับร่างกายน้อยมาก</p>
+                                <h4>แทบไม่ได้ออก / นั่งนานทั้งวัน</h4>
+                                <p>นั่งทำงานหรือนอนเล่นมือถือนานๆ ขยับตัวน้อย</p>
                             </div>
                         </label>
                     </div>
@@ -435,29 +435,29 @@ require_once __DIR__ . '/config/db.php';
                         ← ย้อนกลับ
                     </button>
                     <button type="button" onclick="goToStep(4)" class="btn-giant btn-giant-primary" style="flex: 1.5; margin: 0; padding: 14px;">
-                        ถัดไป: การนอนและความเครียด →
+                        ถัดไป: การนอน & พักผ่อน →
                     </button>
                 </div>
             </div>
 
 
-            <!-- STEP 4: การนอน ความเครียด บุหรี่ สุรา -->
+            <!-- STEP 4: การนอน & สุขภาพกายใจ -->
             <div id="step-4" class="self-step-card">
                 <div style="margin-bottom: 18px;">
-                    <span style="font-size: 13px; font-weight: 800; color: #3b82f6; text-transform: uppercase;">ขั้นตอนที่ 4 จาก 4</span>
-                    <h3 style="font-size: 18px; font-weight: 800; margin: 4px 0; color: var(--text-primary);">😴 การนอนหลับ ความเครียด และสารเสพติด</h3>
+                    <span style="font-size: 13px; font-weight: 800; color: #3b82f6; text-transform: uppercase;">ข้อ 8-10 จาก 10</span>
+                    <h3 style="font-size: 18px; font-weight: 800; margin: 4px 0; color: var(--text-primary);">😴 การนอน & การพักผ่อน</h3>
                 </div>
 
-                <!-- Sleep (1น.) -->
+                <!-- Sleep -->
                 <div style="margin-bottom: 18px;">
-                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">8. คุณภาพการนอนหลับ</label>
+                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">8. นอนหลับดีไหม?</label>
                     <div class="option-grid">
                         <label class="option-card selected" onclick="selectOption(this, 'sleep_habit')">
                             <input type="radio" name="sleep_habit" value="good" checked>
                             <div class="option-icon">🌙</div>
                             <div class="option-text">
                                 <h4>หลับสนิทดี ตื่นมาสดชื่น</h4>
-                                <p>นอนหลับ 6-8 ชั่วโมงต่อวัน ไม่ค่อยตื่นกลางดึก</p>
+                                <p>นอน 6-8 ชั่วโมง ไม่ค่อยตื่นกลางดึก</p>
                             </div>
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'sleep_habit')">
@@ -465,7 +465,7 @@ require_once __DIR__ . '/config/db.php';
                             <div class="option-icon">🥱</div>
                             <div class="option-text">
                                 <h4>หลับๆ ตื่นๆ / หลับยาก ตื่นไม่สดชื่น</h4>
-                                <p>นอนดึก ตื่นกลางดึกบ่อย พักผ่อนไม่เพียงพอ</p>
+                                <p>ตื่นกลางดึกบ่อย พักผ่อนไม่ค่อยพอ</p>
                             </div>
                         </label>
                     </div>
@@ -473,14 +473,14 @@ require_once __DIR__ . '/config/db.php';
 
                 <!-- Smoking & Alcohol -->
                 <div style="margin-bottom: 18px;">
-                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">9. การสูบบุหรี่และดื่มสุรา</label>
+                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">9. สูบบุหรี่หรือดื่มเหล้าไหม?</label>
                     <div class="option-grid">
                         <label class="option-card selected" onclick="selectOption(this, 'substance_habit')">
                             <input type="radio" name="substance_habit" value="none" checked>
                             <div class="option-icon">🌿</div>
                             <div class="option-text">
-                                <h4>ไม่สูบบุหรี่ และ ไม่ดื่มสุรา</h4>
-                                <p>หรือเลิกเด็ดขาดแล้ว</p>
+                                <h4>ไม่สูบ และ ไม่ดื่ม</h4>
+                                <p>หรือไม่แตะเลย</p>
                             </div>
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'substance_habit')">
@@ -494,7 +494,7 @@ require_once __DIR__ . '/config/db.php';
                             <input type="radio" name="substance_habit" value="regular">
                             <div class="option-icon">🚬</div>
                             <div class="option-text">
-                                <h4>สูบบุหรี่ประจำ หรือ ดื่มสุราเป็นประจำ</h4>
+                                <h4>สูบหรือดื่มเป็นประจำ</h4>
                             </div>
                         </label>
                     </div>
@@ -502,21 +502,21 @@ require_once __DIR__ . '/config/db.php';
 
                 <!-- Family History -->
                 <div style="margin-bottom: 24px;">
-                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">10. ประวัติคนในครอบครัวสายตรง (พ่อ แม่ พี่ น้อง)</label>
+                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">10. พ่อแม่หรือพี่น้อง มีใครเป็นเบาหวานหรือความดันไหม?</label>
                     <div class="option-grid">
                         <label class="option-card selected" onclick="selectOption(this, 'family_history')">
                             <input type="radio" name="family_history" value="no" checked>
                             <div class="option-icon">🛡️</div>
                             <div class="option-text">
-                                <h4>ไม่มีประวัติเป็นโรคความดันหรือเบาหวาน</h4>
+                                <h4>ไม่มีใครเป็น</h4>
                             </div>
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'family_history')">
                             <input type="radio" name="family_history" value="yes">
                             <div class="option-icon">🧬</div>
                             <div class="option-text">
-                                <h4>มีพ่อ แม่ หรือพี่น้องเป็นความดันหรือเบาหวาน</h4>
-                                <p>มีพันธุกรรมเสี่ยง ควรเฝ้าระวังพฤติกรรม</p>
+                                <h4>มีคนเป็นเบาหวานหรือความดัน</h4>
+                                <p>มีประวัติในครอบครัว</p>
                             </div>
                         </label>
                     </div>
@@ -527,7 +527,7 @@ require_once __DIR__ . '/config/db.php';
                         ← ย้อนกลับ
                     </button>
                     <button type="button" onclick="calculateSelfResults()" class="btn-giant btn-giant-success" style="flex: 1.5; margin: 0; padding: 14px; background: linear-gradient(135deg, #10b981, #059669); color: white;">
-                        🎯 ดูผลวิเคราะห์สุขภาพ ✨
+                        🎯 ดูผลตรวจเช็คสุขภาพ ✨
                     </button>
                 </div>
             </div>
@@ -681,26 +681,26 @@ require_once __DIR__ . '/config/db.php';
 
             const bpAdvices = [];
             if (salt === 'high' || salt === 'med') {
-                bpAdvices.push('<strong>ลดเค็ม ลดโซเดียม:</strong> ลดการปรุงน้ำปลา ซีอิ๊ว และผงชูรสลงครึ่งหนึ่ง เลี่ยงการซดน้ำแกงหรือน้ำส้มตำจนหมดถ้วย');
+                bpAdvices.push('<strong>ลดเค็ม:</strong> ตักน้ำปลา/ผงชูรสน้อยลงครึ่งหนึ่ง เลี่ยงซดน้ำส้มตำหรือน้ำแกงจนหมด');
             } else {
-                bpAdvices.push('<strong>รักษาการกินจืด:</strong> ปรุงอาหารรสธรรมชาติ เลี่ยงของหมักดองและอาหารแปรรูป (ไส้กรอก กุนเชียง)');
+                bpAdvices.push('<strong>กินจืดต่อเนื่อง:</strong> ปรุงรสน้อย เลี่ยงของหมักดองและไส้กรอก กุนเชียง');
             }
 
             if (exercise === 'sedentary' || exercise === 'some') {
-                bpAdvices.push('<strong>เพิ่มการขยับร่างกาย:</strong> เริ่มต้นง่ายๆ ด้วยการเดินเร็ว แกว่งแขน หรือปั่นจักรยานวันละ 20-30 นาที จะช่วยให้หลอดเลือดยืดหยุ่นและลดความดันตัวบนได้ 5-10 mmHg');
+                bpAdvices.push('<strong>ขยับตัวบ่อยขึ้น:</strong> เดินเร็ว แกว่งแขน หรือปั่นจักรยานวันละ 20-30 นาที ช่วยให้หลอดเลือดยืดหยุ่นดี');
             } else {
-                bpAdvices.push('<strong>ออกกำลังกายต่อเนื่อง:</strong> ออกกำลังกายแบบแอโรบิกสม่ำเสมอสัปดาห์ละ 150 นาที เพื่อให้หัวใจแข็งแรง');
+                bpAdvices.push('<strong>ออกกำลังกายสม่ำเสมอ:</strong> ทำต่อเนื่อง 3-5 วันต่อสัปดาห์ หัวใจจะแข็งแรง');
             }
 
             if (sleep === 'poor') {
-                bpAdvices.push('<strong>จัดเวลานอนให้มีคุณภาพ:</strong> เข้านอนก่อน 4 ทุ่ม และงดเล่นมือถือ 30 นาทีก่อนนอน เพื่อให้ฮอร์โมนความดันได้พักผ่อนเต็มที่');
+                bpAdvices.push('<strong>นอนหลับให้พอ:</strong> เข้านอนเร็วขึ้น งดเล่นมือถือก่อนนอน ให้ร่างกายได้พักผ่อนเต็มที่');
             }
 
             if (substance === 'regular' || substance === 'some') {
-                bpAdvices.push('<strong>งดหรือลดบุหรี่/สุรา:</strong> สารนิโคตินและแอลกอฮอล์ทำให้หลอดเลือดหดเกร็งทันที การลดลงจะช่วยให้ความดันกลับสู่ระดับปกติได้เร็ว');
+                bpAdvices.push('<strong>ลดหรือเลิกบุหรี่/สุรา:</strong> ช่วยให้หลอดเลือดคลายตัว ความดันจะลดลงสู่เกณฑ์ปกติได้เร็ว');
             }
 
-            bpAdvices.push('<strong>ดื่มน้ำเปล่าสะอาด 6-8 แก้วต่อวัน:</strong> ช่วยให้เลือดไหลเวียนสะดวก ไม่ข้นหนืด');
+            bpAdvices.push('<strong>ดื่มน้ำเปล่า 6-8 แก้วต่อวัน:</strong> ช่วยให้เลือดไหลเวียนดี ไม่ข้นหนืด');
 
             bpAdvices.forEach(adv => {
                 const li = document.createElement('li');
@@ -715,22 +715,22 @@ require_once __DIR__ . '/config/db.php';
 
             const sugarAdvices = [];
             if (sweet === 'high' || sweet === 'med') {
-                sugarAdvices.push('<strong>ลดหวานแบบสั่งได้:</strong> สั่งเครื่องดื่ม "หวานน้อย" (ไม่เกิน 25%) หรืองดน้ำอัดลม ชาหวาน กาแฟใส่นมข้น เปลี่ยนมาดื่มน้ำเปล่าหรือชาชงไม่ใส่น้ำตาล');
+                sugarAdvices.push('<strong>สั่งหวานน้อย:</strong> สั่งเครื่องดื่มหวานน้อย หรือเปลี่ยนมาดื่มน้ำเปล่า งดน้ำอัดลมและชานม');
             } else {
-                sugarAdvices.push('<strong>คงการดื่มน้ำเปล่าเป็นหลัก:</strong> หลีกเลี่ยงน้ำหวานแฝง เช่น น้ำผลไม้กล่อง หรือนมเปรี้ยวรสหวาน');
+                sugarAdvices.push('<strong>ดื่มน้ำเปล่าเป็นหลัก:</strong> เลี่ยงน้ำหวานแฝง เช่น น้ำผลไม้กล่อง นมเปรี้ยวรสหวาน');
             }
 
             if (shape === 'obese' || shape === 'chubby') {
-                sugarAdvices.push('<strong>คุมแป้งและลดรอบเอว:</strong> ลดปริมาณข้าวเหนียว ข้าวขาว เส้นก๋วยเตี๋ยวลง 1 ใน 3 และเปลี่ยนมาทานข้าวกล้องหรือธัญพืช ช่วยลดไขมันสะสมในตับ');
+                sugarAdvices.push('<strong>ลดแป้งและข้าวเหนียว:</strong> ลดข้าวเหนียว/ข้าวขาวลง 1 ใน 3 เพื่อลดไขมันสะสมที่พุง');
             }
 
             if (veggie === 'poor') {
-                sugarAdvices.push('<strong>ทานผักนำมื้ออาหาร:</strong> เพิ่มผักใบเขียว (ผักบุ้ง ผักกาด กะหล่ำปลี ผักก้านจอง) ครึ่งจานในทุกมื้อ เส้นใยอาหารจะช่วยชะลอการดูดซึมน้ำตาลเข้ากระแสเลือด');
+                sugarAdvices.push('<strong>กินผักเพิ่มขึ้น:</strong> เพิ่มผักใบเขียว (ผักบุ้ง ผักกาด กะหล่ำ) ครึ่งจานทุกมื้อ ช่วยชะลอน้ำตาลเข้าเลือด');
             } else {
-                sugarAdvices.push('<strong>ทานผักและผลไม้รสไม่หวาน:</strong> เลือกผลไม้ดัชนีน้ำตาลต่ำ เช่น ฝรั่ง แอปเปิ้ลเขียว ส้มโอ หลีกเลี่ยงทุเรียน ลำไย มะม่วงสุก');
+                sugarAdvices.push('<strong>เลือกผลไม้ไม่หวานจัด:</strong> เช่น ฝรั่ง แอปเปิ้ลเขียว ส้มโอ เลี่ยงทุเรียน ลำไย มะม่วงสุก');
             }
 
-            sugarAdvices.push('<strong>ไม่กินจุบจิบระหว่างมื้อ:</strong> เว้นช่วงให้ร่างกายได้ดึงอินซูลินและน้ำตาลสะสมไปเผาผลาญ');
+            sugarAdvices.push('<strong>ไม่กินจุบจิบระหว่างมื้อ:</strong> ให้ร่างกายได้ดึงน้ำตาลสะสมไปเผาผลาญ');
 
             sugarAdvices.forEach(adv => {
                 const li = document.createElement('li');
@@ -750,25 +750,25 @@ require_once __DIR__ . '/config/db.php';
                 banner.style.borderColor = '#10b981';
                 icon.innerText = '🟢';
                 title.style.color = '#10b981';
-                title.innerText = 'สุขภาพโดยรวมอยู่ในเกณฑ์ดีเยี่ยม (ความเสี่ยงต่ำ)';
-                desc.innerText = 'พฤติกรรมสุขภาพของท่านดีมาก รักษาการกิน การนอน และการขยับร่างกายแบบนี้ต่อเนื่องไปนะครับ';
-                currentVoiceText = 'ผลประเมินสุขภาพโดยรวมอยู่ในเกณฑ์ดีเยี่ยมค่ะ ดูแลสุขภาพได้ดีมาก ทำต่อเนื่องไปนะคะ';
+                title.innerText = 'สุขภาพดีมาก (ความเสี่ยงต่ำ)';
+                desc.innerText = 'ดูแลตัวเองได้ดีมาก ทั้งเรื่องกิน ออกกำลังกาย และการนอน ทำต่อเนื่องไปเรื่อยๆ นะครับ';
+                currentVoiceText = 'ผลตรวจเช็คสุขภาพโดยรวม ดีมากเลยค่ะ ดูแลสุขภาพได้ดีมาก ทำต่อเนื่องไปนะคะ';
             } else if (riskPoints <= 9) {
                 calculatedRiskLevel = 'yellow';
                 banner.style.borderColor = '#f59e0b';
                 icon.innerText = '🟡';
                 title.style.color = '#f59e0b';
-                title.innerText = 'เริ่มมีสัญญาณเสี่ยงโรค NCDs (ระดับปานกลาง)';
-                desc.innerText = 'มีพฤติกรรมบางอย่างที่เริ่มสะสมความเสี่ยงต่อความดันและเบาหวาน หากปรับตามคำแนะนำด้านล่าง สุขภาพจะกลับมาสดชื่นแข็งแรงได้เร็วแน่นอนครับ';
-                currentVoiceText = 'ผลประเมินรอบนี้ เริ่มมีสัญญาณเสี่ยงนิดหน่อยนะคะ ไม่เป็นไรค่ะ ชวนลดหวาน ลดเค็ม แล้วดื่มน้ำเปล่าเพิ่มขึ้นนะคะ';
+                title.innerText = 'เริ่มมีสัญญาณเสี่ยง (ควรปรับตัว)';
+                desc.innerText = 'เริ่มมีบางเรื่องที่สะสมความเสี่ยง ลองปรับตามคำแนะนำด้านล่าง สุขภาพจะดีขึ้นได้เร็วแน่นอนครับ';
+                currentVoiceText = 'ผลตรวจรอบนี้ เริ่มมีสัญญาณเสี่ยงนิดหน่อยนะคะ ไม่เป็นไรค่ะ ชวนลดหวาน ลดเค็ม แล้วดื่มน้ำเปล่าเพิ่มขึ้นนะคะ';
             } else {
                 calculatedRiskLevel = 'red';
                 banner.style.borderColor = '#ef4444';
                 icon.innerText = '🔴';
                 title.style.color = '#ef4444';
-                title.innerText = 'พฤติกรรมมีความเสี่ยงสูงต่อโรคความดันและเบาหวาน';
-                desc.innerText = 'พบพฤติกรรมเสี่ยงสะสมหลายด้าน แนะนำให้เริ่มปรับเปลี่ยนตามคำแนะนำทันที และประสาน อสม. หรือ รพ.สต. เพื่อตรวจวัดค่าเลือดจริงครับ';
-                currentVoiceText = 'พฤติกรรมรอบนี้ ต้องดูแลเป็นพิเศษค่ะ เดี๋ยวให้ ออ สอ มอ ช่วยตรวจเช็คความดันและค่าน้ำตาลให้นะคะ';
+                title.innerText = 'มีความเสี่ยงสูง (ควรตรวจเช็คละเอียด)';
+                desc.innerText = 'มีสัญญาณเสี่ยงหลายด้าน แนะนำให้เริ่มปรับการกินอยู่ทันที และให้ อสม. หรือ รพ.สต. ช่วยตรวจวัดค่าความดันและค่าน้ำตาลจริงครับ';
+                currentVoiceText = 'ผลตรวจรอบนี้ ต้องดูแลเป็นพิเศษค่ะ เดี๋ยวให้ ออ สอ มอ ช่วยตรวจเช็คความดันและค่าน้ำตาลให้นะคะ';
             }
 
             goToStep(5);
