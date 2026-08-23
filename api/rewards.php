@@ -161,13 +161,24 @@ require_once __DIR__ . '/../config/db.php';
 
 $action = $_GET['action'] ?? ($_POST['action'] ?? 'get_catalog');
 
-$categories = [
-    'all' => 'ทั้งหมด',
-    'equipment' => 'อุปกรณ์ลงพื้นที่',
-    'souvenir' => 'ของที่ระลึก อสม.',
-    'medical' => 'เครื่องมือแพทย์',
-    'honorary' => 'เชิดชูเกียรติ'
-];
+// Dynamic categories from database
+$categories = ['all' => 'ทั้งหมด'];
+$categoryList = [];
+try {
+    $stmtCats = $pdo->query("SELECT * FROM `reward_categories` WHERE `is_active` = 1 ORDER BY `sort_order` ASC, `category_name` ASC");
+    $categoryList = $stmtCats->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($categoryList as $c) {
+        $categories[$c['category_code']] = $c['category_name'];
+    }
+} catch (\Exception $e) {
+    $categories = [
+        'all' => 'ทั้งหมด',
+        'equipment' => 'อุปกรณ์ลงพื้นที่',
+        'souvenir' => 'ของที่ระลึก อสม.',
+        'medical' => 'เครื่องมือแพทย์',
+        'honorary' => 'เชิดชูเกียรติ'
+    ];
+}
 
 try {
     // 1. Get Catalog & User Points
@@ -364,7 +375,7 @@ try {
         ], JSON_UNESCAPED_UNICODE);
         exit();
 
-    // 4. Admin Save Item (Create / Edit)
+    // 4. Admin Save Item (Create / Edit + File Upload)
     } elseif ($action === 'admin_save_item') {
         if (empty($_SESSION['admin_logged_in']) && empty($_SESSION['admin_username'])) {
             echo json_encode(['status' => 'error', 'message' => 'ไม่มีสิทธิ์เข้าถึง'], JSON_UNESCAPED_UNICODE);
@@ -375,36 +386,79 @@ try {
         $title = trim($_POST['title'] ?? '');
         $desc = trim($_POST['description'] ?? '');
         $points = max(1, intval($_POST['points_required'] ?? 10));
-        $category = in_array($_POST['category'] ?? '', ['equipment', 'souvenir', 'medical', 'honorary']) ? $_POST['category'] : 'equipment';
+        $category = trim($_POST['category'] ?? 'equipment') ?: 'equipment';
         $emoji = trim($_POST['icon_emoji'] ?? '🎁') ?: '🎁';
         $stock = intval($_POST['stock_quantity'] ?? -1);
         $isActive = isset($_POST['is_active']) ? intval($_POST['is_active']) : 1;
         $sortOrder = intval($_POST['sort_order'] ?? 0);
+        $imageUrl = trim($_POST['image_url'] ?? '');
 
         if (empty($title)) {
             echo json_encode(['status' => 'error', 'message' => 'กรุณากรอกชื่อของรางวัล'], JSON_UNESCAPED_UNICODE);
             exit();
         }
 
+        // Handle File Upload if provided
+        if (isset($_FILES['image_file']) && $_FILES['image_file']['error'] === UPLOAD_ERR_OK) {
+            $file = $_FILES['image_file'];
+            $allowedTypes = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'image/gif' => 'gif'];
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeType = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+
+            if (!isset($allowedTypes[$mimeType])) {
+                echo json_encode(['status' => 'error', 'message' => 'รูปแบบไฟล์รูปภาพไม่ถูกต้อง (รองรับ JPG, PNG, WEBP)'], JSON_UNESCAPED_UNICODE);
+                exit();
+            }
+
+            if ($file['size'] > 5 * 1024 * 1024) {
+                echo json_encode(['status' => 'error', 'message' => 'ขนาดไฟล์รูปภาพเกินกำหนด (ไม่เกิน 5 MB)'], JSON_UNESCAPED_UNICODE);
+                exit();
+            }
+
+            $uploadDir = __DIR__ . '/../uploads/rewards/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            $ext = $allowedTypes[$mimeType];
+            $newFileName = 'rwd_' . time() . '_' . substr(md5(uniqid(mt_rand(), true)), 0, 8) . '.' . $ext;
+            $destPath = $uploadDir . $newFileName;
+
+            if (move_uploaded_file($file['tmp_name'], $destPath)) {
+                $imageUrl = 'uploads/rewards/' . $newFileName;
+            }
+        }
+
         if ($itemId > 0) {
-            $stmt = $pdo->prepare("
-                UPDATE `reward_items`
-                SET `title` = ?, `description` = ?, `points_required` = ?, `category` = ?, `icon_emoji` = ?, `stock_quantity` = ?, `is_active` = ?, `sort_order` = ?
-                WHERE `item_id` = ?
-            ");
-            $stmt->execute([$title, $desc, $points, $category, $emoji, $stock, $isActive, $sortOrder, $itemId]);
+            // If editing and no new image provided, keep existing unless explicitly overwritten
+            if (empty($imageUrl) && !isset($_POST['image_url'])) {
+                $stmt = $pdo->prepare("
+                    UPDATE `reward_items`
+                    SET `title` = ?, `description` = ?, `points_required` = ?, `category` = ?, `icon_emoji` = ?, `stock_quantity` = ?, `is_active` = ?, `sort_order` = ?
+                    WHERE `item_id` = ?
+                ");
+                $stmt->execute([$title, $desc, $points, $category, $emoji, $stock, $isActive, $sortOrder, $itemId]);
+            } else {
+                $stmt = $pdo->prepare("
+                    UPDATE `reward_items`
+                    SET `title` = ?, `description` = ?, `points_required` = ?, `category` = ?, `icon_emoji` = ?, `image_url` = ?, `stock_quantity` = ?, `is_active` = ?, `sort_order` = ?
+                    WHERE `item_id` = ?
+                ");
+                $stmt->execute([$title, $desc, $points, $category, $emoji, $imageUrl, $stock, $isActive, $sortOrder, $itemId]);
+            }
             $msg = 'แก้ไขข้อมูลของรางวัลเรียบร้อยแล้ว';
         } else {
             $stmt = $pdo->prepare("
-                INSERT INTO `reward_items` (`title`, `description`, `points_required`, `category`, `icon_emoji`, `stock_quantity`, `is_active`, `sort_order`)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO `reward_items` (`title`, `description`, `points_required`, `category`, `icon_emoji`, `image_url`, `stock_quantity`, `is_active`, `sort_order`)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
-            $stmt->execute([$title, $desc, $points, $category, $emoji, $stock, $isActive, $sortOrder]);
+            $stmt->execute([$title, $desc, $points, $category, $emoji, $imageUrl, $stock, $isActive, $sortOrder]);
             $itemId = $pdo->lastInsertId();
             $msg = 'เพิ่มของรางวัลใหม่ในแคตตาล็อกเรียบร้อยแล้ว';
         }
 
-        echo json_encode(['status' => 'success', 'item_id' => $itemId, 'message' => $msg], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['status' => 'success', 'item_id' => $itemId, 'image_url' => $imageUrl, 'message' => $msg], JSON_UNESCAPED_UNICODE);
         exit();
 
     // 5. Admin Delete Item
@@ -504,6 +558,94 @@ try {
             'status' => 'success',
             'message' => $newStatus === 'fulfilled' ? 'บันทึกการส่งมอบของรางวัลเรียบร้อยแล้ว' : 'ปรับสถานะคำขอเรียบร้อยแล้ว'
         ], JSON_UNESCAPED_UNICODE);
+        exit();
+
+    // 8. Admin Get Categories (with Item Counts)
+    } elseif ($action === 'admin_get_categories') {
+        if (empty($_SESSION['admin_logged_in']) && empty($_SESSION['admin_username'])) {
+            echo json_encode(['status' => 'error', 'message' => 'ไม่มีสิทธิ์เข้าถึง'], JSON_UNESCAPED_UNICODE);
+            exit();
+        }
+
+        $stmt = $pdo->query("
+            SELECT c.*, COUNT(i.item_id) AS item_count
+            FROM `reward_categories` c
+            LEFT JOIN `reward_items` i ON c.category_code = i.category AND i.is_active = 1
+            GROUP BY c.category_code
+            ORDER BY c.sort_order ASC, c.category_name ASC
+        ");
+        $cats = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode(['status' => 'success', 'categories' => $cats], JSON_UNESCAPED_UNICODE);
+        exit();
+
+    // 9. Admin Save Category (Create / Edit)
+    } elseif ($action === 'admin_save_category') {
+        if (empty($_SESSION['admin_logged_in']) && empty($_SESSION['admin_username'])) {
+            echo json_encode(['status' => 'error', 'message' => 'ไม่มีสิทธิ์เข้าถึง'], JSON_UNESCAPED_UNICODE);
+            exit();
+        }
+
+        $code = trim($_POST['category_code'] ?? '');
+        $name = trim($_POST['category_name'] ?? '');
+        $emoji = trim($_POST['icon_emoji'] ?? '📦') ?: '📦';
+        $sortOrder = intval($_POST['sort_order'] ?? 0);
+        $isActive = isset($_POST['is_active']) ? intval($_POST['is_active']) : 1;
+        $isEdit = !empty($_POST['is_edit']);
+
+        if (empty($code) || empty($name)) {
+            echo json_encode(['status' => 'error', 'message' => 'กรุณากรอกรหัสหมวดหมู่และชื่อหมวดหมู่'], JSON_UNESCAPED_UNICODE);
+            exit();
+        }
+
+        // Sanitize code (a-z, 0-9, _)
+        $code = preg_replace('/[^a-zA-Z0-9_-]/', '', strtolower($code));
+
+        if ($isEdit) {
+            $stmt = $pdo->prepare("
+                UPDATE `reward_categories`
+                SET `category_name` = ?, `icon_emoji` = ?, `sort_order` = ?, `is_active` = ?
+                WHERE `category_code` = ?
+            ");
+            $stmt->execute([$name, $emoji, $sortOrder, $isActive, $code]);
+            $msg = 'แก้ไขหมวดหมู่เรียบร้อยแล้ว';
+        } else {
+            $stmt = $pdo->prepare("
+                INSERT INTO `reward_categories` (`category_code`, `category_name`, `icon_emoji`, `sort_order`, `is_active`)
+                VALUES (?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE `category_name` = VALUES(`category_name`), `icon_emoji` = VALUES(`icon_emoji`), `sort_order` = VALUES(`sort_order`), `is_active` = VALUES(`is_active`)
+            ");
+            $stmt->execute([$code, $name, $emoji, $sortOrder, $isActive]);
+            $msg = 'เพิ่มหมวดหมู่ของรางวัลใหม่เรียบร้อยแล้ว';
+        }
+
+        echo json_encode(['status' => 'success', 'message' => $msg], JSON_UNESCAPED_UNICODE);
+        exit();
+
+    // 10. Admin Delete Category
+    } elseif ($action === 'admin_delete_category') {
+        if (empty($_SESSION['admin_logged_in']) && empty($_SESSION['admin_username'])) {
+            echo json_encode(['status' => 'error', 'message' => 'ไม่มีสิทธิ์เข้าถึง'], JSON_UNESCAPED_UNICODE);
+            exit();
+        }
+
+        $code = trim($_POST['category_code'] ?? '');
+
+        // Check if items use this category
+        $stmtChk = $pdo->prepare("SELECT COUNT(*) FROM `reward_items` WHERE `category` = ?");
+        $stmtChk->execute([$code]);
+        $count = $stmtChk->fetchColumn();
+
+        if ($count > 0) {
+            echo json_encode([
+                'status' => 'error',
+                'message' => "ไม่สามารถลบหมวดหมู่นี้ได้เนื่องจากมีของรางวัลในหมวดนี้อยู่ {$count} รายการ กรุณาย้ายหรือลบของรางวัลก่อน"
+            ], JSON_UNESCAPED_UNICODE);
+            exit();
+        }
+
+        $pdo->prepare("DELETE FROM `reward_categories` WHERE `category_code` = ?")->execute([$code]);
+        echo json_encode(['status' => 'success', 'message' => 'ลบหมวดหมู่เรียบร้อยแล้ว'], JSON_UNESCAPED_UNICODE);
         exit();
     }
 

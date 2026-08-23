@@ -2181,6 +2181,30 @@ try {
             $pdo->exec("INSERT IGNORE INTO `system_settings` (`setting_key`, `setting_value`, `description`) 
                         VALUES ('reward_system_enabled', '0', 'สถานะเปิด/ปิดระบบแลกของรางวัล อสม.');");
 
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `reward_categories` (
+                `category_code` VARCHAR(50) PRIMARY KEY,
+                `category_name` VARCHAR(100) NOT NULL,
+                `icon_emoji` VARCHAR(20) NOT NULL DEFAULT '📦',
+                `sort_order` INT NOT NULL DEFAULT 0,
+                `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+            // Seed default categories if empty
+            $catCount = $pdo->query("SELECT COUNT(*) FROM `reward_categories`")->fetchColumn();
+            if ($catCount == 0) {
+                $seedCats = [
+                    ['equipment', 'อุปกรณ์ลงพื้นที่', '🧴', 1],
+                    ['souvenir', 'ของที่ระลึก อสม.', '☂️', 2],
+                    ['medical', 'เครื่องมือแพทย์', '🩺', 3],
+                    ['honorary', 'เชิดชูเกียรติ', '🏆', 4]
+                ];
+                $stmtCatSeed = $pdo->prepare("INSERT IGNORE INTO `reward_categories` (`category_code`, `category_name`, `icon_emoji`, `sort_order`) VALUES (?, ?, ?, ?)");
+                foreach ($seedCats as $sc) {
+                    $stmtCatSeed->execute($sc);
+                }
+            }
+
             $pdo->exec("CREATE TABLE IF NOT EXISTS `reward_items` (
                 `item_id` INT AUTO_INCREMENT PRIMARY KEY,
                 `title` VARCHAR(200) NOT NULL,

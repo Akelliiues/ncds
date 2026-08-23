@@ -1,5 +1,5 @@
 <?php
-// vhv/leaderboard.php
+// vhv/leaderboard.php - กระดานคะแนนเกียรติยศ & ศูนย์แลกของรางวัล อสม.
 require_once __DIR__ . '/../config/session.php';
 require_once __DIR__ . '/../config/demo_banner.php';
 
@@ -11,7 +11,9 @@ if (!isset($_SESSION['vhv_id'])) {
 require_once __DIR__ . '/../config/db.php';
 
 $currentVhvId = $_SESSION['vhv_id'];
-$vhvName = $_SESSION['vhv_name'];
+$vhvName = $_SESSION['vhv_name'] ?? 'อสม.';
+$isSandboxVal = function_exists('isSandboxMode') && isSandboxMode() ? 1 : 0;
+$currentBudgetYear = function_exists('get_current_budget_year') ? get_current_budget_year() : 2026;
 
 // Positive title mapping for the top 50 ranks (Unique top 5, tiered classes for 6-50)
 function getPositiveTitle($rank)
@@ -69,9 +71,6 @@ if (DemoDataProvider::isDemoMode()) {
     $allLeaders = DemoDataProvider::getDemoLeaderboard();
     $totalVhvs = count($allLeaders);
 } else {
-    $isSandboxVal = isSandboxMode() ? 1 : 0;
-    $currentBudgetYear = function_exists('get_current_budget_year') ? get_current_budget_year() : 2026;
-
     // Query Top 50 VHVs with points breakdown and subqueries for badges calculation
     $leaderboardStmt = $pdo->prepare("
         SELECT 
@@ -203,7 +202,6 @@ function getBadgesList($total_assigned, $completed, $waiting_rewards)
 // 1. Query village (Moo) completion stats under current VHV's hospital (hoscode)
 $hoscode = $_SESSION['hoscode'] ?? '';
 $villageStats = [];
-$currentBudgetYear = function_exists('get_current_budget_year') ? get_current_budget_year() : 2026;
 if (!empty($hoscode)) {
     $villQuery = "
         SELECT 
@@ -265,6 +263,83 @@ try {
     // Fail silently
 }
 $hcNames = get_health_units();
+
+// ==========================================
+// REWARD STORE DATA PREPARATION
+// ==========================================
+$systemEnabled = (int)get_system_setting('reward_system_enabled', 0);
+
+// Calculate user's points for redemption
+$totalEarned = 0.0;
+$pointsSpent = 0.0;
+try {
+    $stmtPts = $pdo->prepare("
+        SELECT COALESCE(SUM(points_earned), 0) 
+        FROM `vhv_rewards` 
+        WHERE `vhv_id` = ? AND `approval_status` IN ('approved', 'waiting') AND `is_sandbox` = ?
+    ");
+    $stmtPts->execute([$currentVhvId, $isSandboxVal]);
+    $totalEarned = (float)$stmtPts->fetchColumn();
+
+    $stmtSpent = $pdo->prepare("
+        SELECT COALESCE(SUM(points_spent), 0) 
+        FROM `reward_redemptions` 
+        WHERE `vhv_id` = ? AND `status` IN ('pending', 'fulfilled')
+    ");
+    $stmtSpent->execute([$currentVhvId]);
+    $pointsSpent = (float)$stmtSpent->fetchColumn();
+} catch (\Exception $e) {}
+
+$availablePoints = max(0.0, $totalEarned - $pointsSpent);
+
+// Fetch categories from DB
+$rewardCategories = [];
+$categoryMap = [];
+try {
+    $catStmt = $pdo->query("SELECT * FROM `reward_categories` WHERE `is_active` = 1 ORDER BY `sort_order` ASC, `category_id` ASC");
+    $rewardCategories = $catStmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($rewardCategories as $rc) {
+        $categoryMap[$rc['category_code']] = $rc['category_name'];
+    }
+} catch (\Exception $e) {
+    $rewardCategories = [
+        ['category_code' => 'equipment', 'category_name' => 'อุปกรณ์ลงพื้นที่', 'icon_emoji' => '🧴'],
+        ['category_code' => 'souvenir', 'category_name' => 'ของที่ระลึก', 'icon_emoji' => '☂️'],
+        ['category_code' => 'medical', 'category_name' => 'เครื่องมือแพทย์', 'icon_emoji' => '🩺'],
+        ['category_code' => 'honorary', 'category_name' => 'เชิดชูเกียรติ', 'icon_emoji' => '🏆']
+    ];
+    $categoryMap = [
+        'equipment' => 'อุปกรณ์ลงพื้นที่',
+        'souvenir' => 'ของที่ระลึก',
+        'medical' => 'เครื่องมือแพทย์',
+        'honorary' => 'เชิดชูเกียรติ'
+    ];
+}
+
+// Fetch active items
+$rewardItems = [];
+try {
+    $rewardItems = $pdo->query("SELECT * FROM `reward_items` WHERE `is_active` = 1 ORDER BY `sort_order` ASC, `points_required` ASC")->fetchAll(PDO::FETCH_ASSOC);
+} catch (\Exception $e) {
+    $rewardItems = [];
+}
+
+// Fetch user redemptions
+$myRedemptions = [];
+try {
+    $stmtMy = $pdo->prepare("
+        SELECT r.*, i.title as item_title, i.category, i.icon_emoji, i.image_url 
+        FROM `reward_redemptions` r
+        JOIN `reward_items` i ON r.item_id = i.item_id
+        WHERE r.vhv_id = ?
+        ORDER BY r.created_at DESC
+        LIMIT 20
+    ");
+    $stmtMy->execute([$currentVhvId]);
+    $myRedemptions = $stmtMy->fetchAll(PDO::FETCH_ASSOC);
+} catch (\Exception $e) {
+    $myRedemptions = [];
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -285,7 +360,7 @@ $hcNames = get_health_units();
     <meta name="apple-mobile-web-app-title" content="NCDs Portal">
     <meta name="application-name" content="NCDs Portal">
     <meta name="theme-color" content="#0d2c54">
-    <title>กระดานคะแนน อสม. - NCDs <?= DISTRICT_NAME ?></title>
+    <title>กระดานคะแนน & แลกรางวัล - NCDs <?= DISTRICT_NAME ?></title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="apple-touch-icon" href="../assets/icon.png">
     <link rel="manifest" href="manifest.json">
@@ -342,6 +417,10 @@ $hcNames = get_health_units();
             animation: fadeIn 0.35s ease-in-out;
         }
 
+        .main-tab-pane {
+            animation: fadeIn 0.35s ease-in-out;
+        }
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -353,312 +432,665 @@ $hcNames = get_health_units();
                 transform: translateY(0);
             }
         }
+
+        /* Category Filter Chips */
+        .category-scroll {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            margin-bottom: 16px;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        .category-scroll::-webkit-scrollbar { display: none; }
+
+        .category-chip {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 7px 14px;
+            border-radius: 50px;
+            font-size: 12.5px;
+            font-weight: 800;
+            white-space: nowrap;
+            cursor: pointer;
+            box-shadow: var(--neumorph-flat);
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .category-chip.active {
+            background: var(--color-primary);
+            color: #ffffff;
+            border-color: var(--color-primary);
+        }
+
+        /* Rewards List Layout */
+        .rewards-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .reward-card {
+            background: var(--bg-card);
+            border-radius: 18px;
+            padding: 16px;
+            box-shadow: var(--neumorph-flat);
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .reward-card:active {
+            transform: scale(0.99);
+        }
+
+        .reward-top-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .reward-icon-box {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: var(--bg-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+            box-shadow: var(--neumorph-inset);
+        }
+
+        .reward-points-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(245, 158, 11, 0.12);
+            color: #D97706;
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        /* Progress Bar */
+        .progress-box {
+            margin: 8px 0 12px 0;
+        }
+
+        .progress-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: var(--text-secondary);
+        }
+
+        .progress-track {
+            height: 6px;
+            background: var(--bg-main);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: var(--neumorph-inset);
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            background: linear-gradient(90deg, #10B981, #059669);
+            transition: width 0.4s ease;
+        }
+
+        .btn-redeem {
+            width: 100%;
+            padding: 11px;
+            border-radius: 12px;
+            font-size: 13.5px;
+            font-weight: 800;
+            cursor: pointer;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-redeem-active {
+            background: linear-gradient(135deg, #00A878, #059669);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 168, 120, 0.3);
+        }
+        .btn-redeem-active:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-redeem-locked {
+            background: var(--bg-main);
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            cursor: not-allowed;
+        }
+
+        /* Modal */
+        .confirm-modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(13, 44, 84, 0.65);
+            backdrop-filter: blur(6px);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .confirm-modal-box {
+            background: var(--bg-card);
+            border-radius: 22px;
+            padding: 22px 20px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
     </style>
 </head>
 
 <body class="vhv-accessibility">
     <div class="mobile-wrapper" style="padding-bottom: 90px;">
+        
         <!-- Header -->
         <div class="vhv-header">
-            <h3 style="color: var(--color-accent); margin: 0; font-size: 16px; font-weight: 800;">🏆 กระดานเกียรติยศ
-                อสม.</h3>
-            <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 14px;">50 อันดับ อสม.
-                ผลงานคัดกรองสูงสุดในพื้นที่<?= DISTRICT_NAME ?></p>
+            <h3 style="color: var(--color-accent); margin: 0; font-size: 16px; font-weight: 800;">
+                🏆 คะแนน & รางวัล อสม.
+            </h3>
+            <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 13px;">
+                จัดอันดับผลงาน & ศูนย์แลกของรางวัลในพื้นที่<?= DISTRICT_NAME ?>
+            </p>
         </div>
 
-        <!-- Current VHV Score Widget -->
-        <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat);">
-            <div
-                style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: center; text-align: center;">
-                <div style="border-right: 1px solid rgba(13, 44, 84, 0.1); padding-right: 8px;">
-                    <span
-                        style="color: var(--text-secondary); font-size: 13px; font-weight: bold; display: block; margin-bottom: 4px;">อันดับของคุณ</span>
-                    <div style="font-size: 32px; font-weight: 800; color: var(--color-accent);">
-                        #<?= $currentVhvRank ?: 'N/A' ?>
-                    </div>
-                </div>
-                <div>
-                    <span
-                        style="color: var(--text-secondary); font-size: 13px; font-weight: bold; display: block; margin-bottom: 4px;">คะแนนผลงานสะสม</span>
-                    <div style="font-size: 32px; font-weight: 800; color: var(--text-primary);">
-                        <?= (float)$currentVhvPoints ?> <span
-                            style="font-size: 16px; color: var(--text-secondary); font-weight: normal;">แต้ม</span>
-                    </div>
-                </div>
-            </div>
-            <div
-                style="margin-top: 16px; font-size: 14px; text-align: center; color: var(--text-primary); border-top: 1px solid rgba(13, 44, 84, 0.1); padding-top: 12px; font-weight: bold; line-height: 1.5;">
-                📊 คุณอยู่อันดับที่ <?= $currentVhvRank ?: 'N/A' ?> จาก อสม. ทั้งหมด <?= $totalVhvs ?> คน ของอำเภอ<?= DISTRICT_NAME ?>
-            </div>
-            <?php
-            $myTitle = getPositiveTitle($currentVhvRank);
-            if ($myTitle):
-            ?>
+        <!-- Main Mode Switcher: Leaderboard vs Rewards -->
+        <div class="main-tab-switcher" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; background: rgba(13,44,84,0.06); padding: 5px; border-radius: 16px; box-shadow: var(--neumorph-inset);">
+            <button type="button" id="main-tab-btn-leaderboard" onclick="switchMainTab('leaderboard')" class="main-tab-pill active" style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 10px; border: none; border-radius: 12px; font-size: 13.5px; font-weight: 800; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); background: var(--bg-card); color: var(--color-accent); box-shadow: var(--neumorph-flat);">
+                <span style="font-size: 17px;">🏆</span> <span>อันดับผลงาน</span>
+            </button>
+            <button type="button" id="main-tab-btn-rewards" onclick="switchMainTab('rewards')" class="main-tab-pill" style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 10px; border: none; border-radius: 12px; font-size: 13.5px; font-weight: 800; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); background: transparent; color: var(--text-secondary); box-shadow: none;">
+                <span style="font-size: 17px;">🎁</span> <span>แลกของรางวัล</span>
+                <?php if (count($rewardItems) > 0): ?>
+                    <span style="background: var(--color-accent); color: #ffffff; font-size: 11px; padding: 1px 7px; border-radius: 50px; font-weight: 800;"><?= count($rewardItems) ?></span>
+                <?php endif; ?>
+            </button>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- TAB 1: LEADERBOARD PANE                                 -->
+        <!-- ======================================================= -->
+        <div id="main-pane-leaderboard" class="main-tab-pane">
+            <!-- Current VHV Score Widget -->
+            <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat);">
                 <div
-                    style="margin-top: 10px; font-size: 14px; text-align: center; color: var(--color-accent); background: rgba(13, 44, 84, 0.05); padding: 8px; border-radius: 12px; font-weight: bold; box-shadow: var(--neumorph-inset);">
-                    🎯 ฉายาของคุณ: <?= $myTitle ?>
-                </div>
-            <?php endif; ?>
-
-            <div style="margin-top: 14px; text-align: center;">
-                <a href="rewards.php" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: linear-gradient(135deg, #0D2C54, #1A3E6D); color: #ffffff; border-radius: 50px; text-decoration: none; font-size: 13px; font-weight: 800; box-shadow: 0 4px 12px rgba(13, 44, 84, 0.25);">
-                    🎁 ไปที่ศูนย์แลกของรางวัล อสม.
-                </a>
-            </div>
-        </div>
-
-        <!-- Tab Bar for Mobile Responsiveness (Icon-only to prevent horizontal scrolling) -->
-        <div class="tab-container" style="display: flex; gap: 8px; margin-top: 20px; margin-bottom: 20px; background: rgba(13,44,84,0.05); padding: 6px; border-radius: 14px; box-shadow: var(--neumorph-inset);">
-            <button onclick="switchTab('leaderboard')" id="btn-leaderboard" class="tab-btn active" style="flex: 1; padding: 12px; border: none; border-radius: 10px; background: transparent; font-size: 20px; cursor: pointer; transition: all 0.3s ease;" title="อันดับ อสม.">🏆</button>
-            <button onclick="switchTab('villages')" id="btn-villages" class="tab-btn" style="flex: 1; padding: 12px; border: none; border-radius: 10px; background: transparent; font-size: 20px; cursor: pointer; transition: all 0.3s ease;" title="ผลงานรายหมู่บ้าน">🏘️</button>
-            <button onclick="switchTab('hospitals')" id="btn-hospitals" class="tab-btn" style="flex: 1; padding: 12px; border: none; border-radius: 10px; background: transparent; font-size: 20px; cursor: pointer; transition: all 0.3s ease;" title="ลีก รพ.สต.">🏥</button>
-            <button onclick="switchTab('badges')" id="btn-badges" class="tab-btn" style="flex: 1; padding: 12px; border: none; border-radius: 10px; background: transparent; font-size: 20px; cursor: pointer; transition: all 0.3s ease;" title="เกณฑ์ตราเกียรติยศ">🛡️</button>
-        </div>
-
-        <!-- Tab 2: Village Progress Board -->
-        <div id="content-villages" class="tab-content" style="display: none;">
-            <?php if (!empty($villageStats)): ?>
-                <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
-                    <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                        🏘️ สมรภูมิคัดกรองรายหมู่บ้าน
-                    </h4>
-                    <p style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 16px 0;">เปรียบเทียบอัตราความสำเร็จในการคัดกรองเป้าหมายในตำบลของคุณ</p>
-                    <div style="display: flex; flex-direction: column; gap: 14px;">
-                        <?php foreach ($villageStats as $vStat):
-                            $total = (int)$vStat['total_targets'];
-                            $done = (int)$vStat['completed_targets'];
-                            $pct = $total > 0 ? round(($done / $total) * 100, 1) : 0;
-
-                            // Select indicator color based on progress
-                            $barColor = 'var(--color-yellow)';
-                            if ($pct >= 100) $barColor = 'var(--color-green)';
-                            elseif ($pct >= 50) $barColor = 'var(--color-accent)';
-                            elseif ($pct < 20) $barColor = 'var(--color-red)';
-                        ?>
-                            <div>
-                                <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-primary);">
-                                    <span>หมู่ที่ <?= htmlspecialchars($vStat['moo']) ?> <?= !empty($vStat['village_name']) ? htmlspecialchars($vStat['village_name']) : '' ?></span>
-                                    <span style="color: <?= $barColor ?>;"><?= $done ?> / <?= $total ?> คน (<?= $pct ?>%)</span>
-                                </div>
-                                <div style="width: 100%; height: 12px; background: rgba(13, 44, 84, 0.08); border-radius: 6px; overflow: hidden; box-shadow: var(--neumorph-inset);">
-                                    <div style="width: <?= $pct ?>%; height: 100%; background: <?= $barColor ?>; border-radius: 6px; transition: width 0.8s ease-in-out;"></div>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            <?php else: ?>
-                <div class="card-dark" style="padding: 30px; text-align: center; color: var(--text-muted); margin-bottom: 20px;">
-                    ไม่พบข้อมูลประชากรเป้าหมายของ รพ.สต. คุณ
-                </div>
-            <?php endif; ?>
-        </div>
-
-        <!-- Tab 3: Hospital / Zone League Standings -->
-        <div id="content-hospitals" class="tab-content" style="display: none;">
-            <?php if (!empty($hospitalStats)): ?>
-                <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
-                    <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                        🏥 ลีกหน่วยบริการ รพ.สต. (ทั้งอำเภอ<?= DISTRICT_NAME ?>)
-                    </h4>
-                    <p style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 16px 0;">อันดับอัตราการคัดกรองสูงสุดแยกตามเขตรับผิดชอบของแต่ละ รพ.สต.</p>
-                    <div style="display: flex; flex-direction: column; gap: 14px;">
-                        <?php
-                        $hRank = 1;
-                        foreach ($hospitalStats as $hStat):
-                            $total = (int)$hStat['total_targets'];
-                            $done = (int)$hStat['completed_targets'];
-                            $pct = $total > 0 ? round(($done / $total) * 100, 1) : 0;
-                            $hName = $hcNames[$hStat['hoscode']] ?? $hStat['hoscode'];
-
-                            $isMyHos = ($hStat['hoscode'] === $hoscode);
-
-                            $barColor = 'var(--color-accent)';
-                            if ($pct >= 100) $barColor = 'var(--color-green)';
-
-                            $rankIcon = '';
-                            if ($hRank === 1) $rankIcon = '🥇';
-                            elseif ($hRank === 2) $rankIcon = '🥈';
-                            elseif ($hRank === 3) $rankIcon = '🥉';
-                            else $rankIcon = '🏅';
-                        ?>
-                            <div style="<?= $isMyHos ? 'background: rgba(13, 44, 84, 0.04); border: 1px dashed var(--color-accent); padding: 8px; border-radius: 12px;' : '' ?>">
-                                <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-primary);">
-                                    <span><?= $rankIcon ?> #<?= $hRank ?> <?= htmlspecialchars($hName) ?> <?= $isMyHos ? '<span style="color:var(--color-accent);font-size:11px;">(รพ.สต. ของคุณ)</span>' : '' ?></span>
-                                    <span><?= $pct ?>%</span>
-                                </div>
-                                <div style="width: 100%; height: 8px; background: rgba(13, 44, 84, 0.08); border-radius: 4px; overflow: hidden;">
-                                    <div style="width: <?= $pct ?>%; height: 100%; background: <?= $barColor ?>; border-radius: 4px; transition: width 0.8s ease-in-out;"></div>
-                                </div>
-                            </div>
-                        <?php
-                            $hRank++;
-                        endforeach;
-                        ?>
-                    </div>
-                </div>
-            <?php endif; ?>
-        </div>
-
-        <!-- Tab 4: VHV Badges Explanations Card -->
-        <div id="content-badges" class="tab-content" style="display: none;">
-            <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
-                <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                    🛡️ ตำนานตราเกียรติยศ (อสม. คัดกรองดีเด่น)
-                </h4>
-                <div style="display: grid; grid-template-columns: 1fr; gap: 12px; font-size: 12px;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <span style="font-size: 20px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: rgba(251, 191, 36, 0.1); border-radius: 50%;">🥇</span>
-                        <div>
-                            <strong>นักคัดกรองทองคำ:</strong>
-                            <span style="color: var(--text-secondary);">คัดกรองเป้าหมายสำเร็จครบ 100%</span>
+                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: center; text-align: center;">
+                    <div style="border-right: 1px solid rgba(13, 44, 84, 0.1); padding-right: 8px;">
+                        <span
+                            style="color: var(--text-secondary); font-size: 13px; font-weight: bold; display: block; margin-bottom: 4px;">อันดับของคุณ</span>
+                        <div style="font-size: 32px; font-weight: 800; color: var(--color-accent);">
+                            #<?= $currentVhvRank ?: 'N/A' ?>
                         </div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <span style="font-size: 20px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: rgba(156, 163, 175, 0.1); border-radius: 50%;">🥈</span>
-                        <div>
-                            <strong>นักคัดกรองเงิน:</strong>
-                            <span style="color: var(--text-secondary);">คัดกรองเป้าหมายสำเร็จ 75% ขึ้นไป</span>
-                        </div>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <span style="font-size: 20px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: rgba(180, 100, 30, 0.1); border-radius: 50%;">🥉</span>
-                        <div>
-                            <strong>นักคัดกรองทองแดง:</strong>
-                            <span style="color: var(--text-secondary);">คัดกรองเป้าหมายสำเร็จ 50% ขึ้นไป</span>
-                        </div>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <span style="font-size: 20px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: rgba(59, 130, 246, 0.1); border-radius: 50%;">📍</span>
-                        <div>
-                            <strong>ผู้พิทักษ์พิกัดจริง:</strong>
-                            <span style="color: var(--text-secondary);">บันทึกข้อมูลหน้าบ้านเป้าหมายในระยะ 100 เมตรสำเร็จครบทุกเคส</span>
-                        </div>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <span style="font-size: 20px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: rgba(16, 185, 129, 0.1); border-radius: 50%;">🚀</span>
-                        <div>
-                            <strong>ประเดิมผลงาน:</strong>
-                            <span style="color: var(--text-secondary);">คัดกรองส่งงานเรียบร้อยแล้วอย่างน้อย 1 เคส</span>
+                    <div>
+                        <span
+                            style="color: var(--text-secondary); font-size: 13px; font-weight: bold; display: block; margin-bottom: 4px;">คะแนนผลงานสะสม</span>
+                        <div style="font-size: 32px; font-weight: 800; color: var(--text-primary);">
+                            <?= (float)$currentVhvPoints ?> <span
+                                style="font-size: 16px; color: var(--text-secondary); font-weight: normal;">แต้ม</span>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Tab 1: Leaderboard List -->
-        <div id="content-leaderboard" class="tab-content">
-            <!-- Leaderboard List -->
-            <div style="margin-top: 20px;">
-                <h4 style="color: var(--text-primary); font-size: 18px; margin-bottom: 12px; font-weight: 800;">50
-                    อันดับสูงสุด</h4>
-
+                <div
+                    style="margin-top: 16px; font-size: 14px; text-align: center; color: var(--text-primary); border-top: 1px solid rgba(13, 44, 84, 0.1); padding-top: 12px; font-weight: bold; line-height: 1.5;">
+                    📊 คุณอยู่อันดับที่ <?= $currentVhvRank ?: 'N/A' ?> จาก อสม. ทั้งหมด <?= $totalVhvs ?> คน ของอำเภอ<?= DISTRICT_NAME ?>
+                </div>
                 <?php
-                $rankNum = 1;
-                foreach ($topFifty as $index => $leader):
-                    $points = $leader['total_points'] ?? 0;
-
-                    // Assign CSS class based on rank
-                    $rankClass = '';
-                    $badgeText = '';
-                    if ($rankNum === 1) {
-                        $rankClass = 'badge-gold';
-                        $badgeText = '🥇';
-                    } elseif ($rankNum === 2) {
-                        $rankClass = 'badge-silver';
-                        $badgeText = '🏆';
-                    } elseif ($rankNum === 3) {
-                        $rankClass = 'badge-bronze';
-                        $badgeText = '🏆';
-                    } else {
-                        $rankClass = 'badge-custom';
-                        $badgeText = '🎖️';
-                    }
-
-                    // Add special shiny badging based on points milestones
-                    $shinyBadge = '';
-                    if ($points >= 50) {
-                        $shinyBadge = '<span class="badge-icon badge-gold" title="ฮีโร่' . DISTRICT_NAME . '">🔥</span>';
-                    } elseif ($points >= 20) {
-                        $shinyBadge = '<span class="badge-icon badge-silver" title="ผู้พิทักษ์หัวใจ">💖</span>';
-                    }
+                $myTitle = getPositiveTitle($currentVhvRank);
+                if ($myTitle):
                 ?>
-                    <?php
-                    // Display trophy or medal or badge in rank area
-                    $trophyHtml = '';
-                    if ($rankNum === 1) {
-                        $trophyHtml = '<span class="trophy-icon" title="อันดับ 1" style="font-size: 32px; filter: drop-shadow(0 4px 8px rgba(251, 191, 36, 0.55));">🏆</span>';
-                    } elseif ($rankNum === 2) {
-                        $trophyHtml = '<span class="trophy-icon silver" title="อันดับ 2" style="font-size: 30px; filter: drop-shadow(0 4px 8px rgba(156, 163, 175, 0.55)) sepia(0.3) hue-rotate(180deg) saturate(0.3) brightness(1.5);">🏆</span>'; // Silver Trophy cup
-                    } elseif ($rankNum === 3) {
-                        $trophyHtml = '<span class="trophy-icon bronze" title="อันดับ 3" style="font-size: 30px; filter: drop-shadow(0 4px 8px rgba(180, 100, 30, 0.55)) sepia(1) saturate(2) hue-rotate(5deg) brightness(0.85);">🏆</span>'; // Bronze Trophy cup
-                    } elseif ($rankNum >= 4 && $rankNum <= 10) {
-                        $trophyHtml = '<span class="trophy-icon medal" title="อันดับ ' . $rankNum . '" style="font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));">🏅</span>'; // Medal
-                    } else {
-                        $trophyHtml = '<span style="font-size: 14px; font-weight: 800; color: var(--text-secondary); background: var(--bg-main); width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; box-shadow: var(--neumorph-inset);">#' . $rankNum . '</span>';
-                    }
-                    ?>
-                    <div class="leaderboard-row"
-                        style="<?= $leader['vhv_id'] === $currentVhvId 
-                            ? 'background: rgba(13, 110, 253, 0.09) !important; border: 2px solid var(--color-accent); box-shadow: var(--neumorph-inset) !important;' 
-                            : 'background: var(--bg-card); box-shadow: var(--neumorph-flat);' ?> display: flex; align-items: center; padding: 18px 16px; border-radius: var(--border-radius); margin-bottom: 16px; position: relative; overflow: hidden;">
+                    <div
+                        style="margin-top: 10px; font-size: 14px; text-align: center; color: var(--color-accent); background: rgba(13, 44, 84, 0.05); padding: 8px; border-radius: 12px; font-weight: bold; box-shadow: var(--neumorph-inset);">
+                        🎯 ฉายาของคุณ: <?= $myTitle ?>
+                    </div>
+                <?php endif; ?>
 
-                        <!-- Faded background watermark rank number -->
-                        <div style="position: absolute; right: 80px; bottom: -20px; font-size: 80px; font-weight: 900; color: rgba(13, 44, 84, 0.18); pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif;">
-                            <?= $rankNum ?>
-                        </div>
+                <div style="margin-top: 14px; text-align: center;">
+                    <button type="button" onclick="switchMainTab('rewards')" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: linear-gradient(135deg, #0D2C54, #1A3E6D); color: #ffffff; border: none; border-radius: 50px; font-size: 13px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(13, 44, 84, 0.25);">
+                        🎁 ไปที่ศูนย์แลกของรางวัล อสม.
+                    </button>
+                </div>
+            </div>
 
-                        <div style="width: 55px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; position: relative; z-index: 2;">
-                            <?= $trophyHtml ?>
-                        </div>
+            <!-- Tab Bar for Mobile Responsiveness (Icon-only to prevent horizontal scrolling) -->
+            <div class="tab-container" style="display: flex; gap: 8px; margin-top: 20px; margin-bottom: 20px; background: rgba(13,44,84,0.05); padding: 6px; border-radius: 14px; box-shadow: var(--neumorph-inset);">
+                <button onclick="switchTab('leaderboard')" id="btn-leaderboard" class="tab-btn active" style="flex: 1; padding: 12px; border: none; border-radius: 10px; background: transparent; font-size: 20px; cursor: pointer; transition: all 0.3s ease;" title="อันดับ อสม.">🏆</button>
+                <button onclick="switchTab('villages')" id="btn-villages" class="tab-btn" style="flex: 1; padding: 12px; border: none; border-radius: 10px; background: transparent; font-size: 20px; cursor: pointer; transition: all 0.3s ease;" title="ผลงานรายหมู่บ้าน">🏘️</button>
+                <button onclick="switchTab('hospitals')" id="btn-hospitals" class="tab-btn" style="flex: 1; padding: 12px; border: none; border-radius: 10px; background: transparent; font-size: 20px; cursor: pointer; transition: all 0.3s ease;" title="ลีก รพ.สต.">🏥</button>
+                <button onclick="switchTab('badges')" id="btn-badges" class="tab-btn" style="flex: 1; padding: 12px; border: none; border-radius: 10px; background: transparent; font-size: 20px; cursor: pointer; transition: all 0.3s ease;" title="เกณฑ์ตราเกียรติยศ">🛡️</button>
+            </div>
 
-                        <?php
-                        $badges = getBadgesList($leader['total_assigned'], $leader['completed'], $leader['waiting_rewards']);
-                        ?>
-                        <div class="leader-info" style="position: relative; z-index: 2;">
-                            <strong
-                                style="color: var(--text-primary); font-size: 16px;">
-                                <?= htmlspecialchars($leader['vhv_name']) ?>
-                                <?php foreach ($badges as $badge): ?>
-                                    <span class="badge-icon" style="background: rgba(13,44,84,0.05); font-size: 14px;" title="<?= htmlspecialchars($badge['title']) ?>: <?= htmlspecialchars($badge['desc']) ?>">
-                                        <?= $badge['icon'] ?>
-                                    </span>
-                                <?php endforeach; ?>
-                            </strong>
-                            <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">
-                                หมู่ที่ <?= $leader['vhv_moo'] ?><?= !empty($leader['village_name']) ? ' ' . htmlspecialchars($leader['village_name']) : '' ?>
-                            </p>
-                            <?php if (!empty($leader['is_hl_coach'])): ?>
-                                <div
-                                    style="margin-top: 6px; font-size: 12px; color: #fbbf24; font-weight: bold; display: inline-block; background-color: rgba(251, 191, 36, 0.1); padding: 4px 8px; border-radius: 8px; border: 1px solid rgba(251,191,36,0.3);">
-                                    ✨ HL-Coach
-                                </div>
-                            <?php endif; ?>
-                            <?php
-                            $rowTitle = getPositiveTitle($rankNum);
-                            if ($rowTitle):
+            <!-- Sub-Tab 2: Village Progress Board -->
+            <div id="content-villages" class="tab-content" style="display: none;">
+                <?php if (!empty($villageStats)): ?>
+                    <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
+                        <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                            🏘️ สมรภูมิคัดกรองรายหมู่บ้าน
+                        </h4>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 16px 0;">เปรียบเทียบอัตราความสำเร็จในการคัดกรองเป้าหมายในตำบลของคุณ</p>
+                        <div style="display: flex; flex-direction: column; gap: 14px;">
+                            <?php foreach ($villageStats as $vStat):
+                                $total = (int)$vStat['total_targets'];
+                                $done = (int)$vStat['completed_targets'];
+                                $pct = $total > 0 ? round(($done / $total) * 100, 1) : 0;
+
+                                // Select indicator color based on progress
+                                $barColor = 'var(--color-yellow)';
+                                if ($pct >= 100) $barColor = 'var(--color-green)';
+                                elseif ($pct >= 50) $barColor = 'var(--color-accent)';
+                                elseif ($pct < 20) $barColor = 'var(--color-red)';
                             ?>
-                                <div
-                                    style="margin-top: 6px; font-size: 12px; color: var(--color-accent); font-weight: bold; display: inline-block; background-color: rgba(13, 44, 84, 0.05); padding: 4px 8px; border-radius: 8px; box-shadow: var(--neumorph-inset);">
-                                    <?= $rowTitle ?>
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-primary);">
+                                        <span>หมู่ที่ <?= htmlspecialchars($vStat['moo']) ?> <?= !empty($vStat['village_name']) ? htmlspecialchars($vStat['village_name']) : '' ?></span>
+                                        <span style="color: <?= $barColor ?>;"><?= $done ?> / <?= $total ?> คน (<?= $pct ?>%)</span>
+                                    </div>
+                                    <div style="width: 100%; height: 12px; background: rgba(13, 44, 84, 0.08); border-radius: 6px; overflow: hidden; box-shadow: var(--neumorph-inset);">
+                                        <div style="width: <?= $pct ?>%; height: 100%; background: <?= $barColor ?>; border-radius: 6px; transition: width 0.8s ease-in-out;"></div>
+                                    </div>
                                 </div>
-                            <?php endif; ?>
-                        </div>
-
-                        <div class="leader-score" style="flex-shrink: 0; position: relative; z-index: 2;">
-                            <div style="font-size: 20px; color: var(--color-accent);"><?= (float)$points ?></div>
-                            <span style="font-size: 12px; color: var(--text-muted);">แต้ม</span>
-                            <?= $shinyBadge ?>
+                            <?php endforeach; ?>
                         </div>
                     </div>
-                <?php
-                    $rankNum++;
-                endforeach;
-                ?>
+                <?php else: ?>
+                    <div class="card-dark" style="padding: 30px; text-align: center; color: var(--text-muted); margin-bottom: 20px;">
+                        ไม่พบข้อมูลประชากรเป้าหมายของ รพ.สต. คุณ
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Sub-Tab 3: Hospital / Zone League Standings -->
+            <div id="content-hospitals" class="tab-content" style="display: none;">
+                <?php if (!empty($hospitalStats)): ?>
+                    <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
+                        <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                            🏥 ลีกหน่วยบริการ รพ.สต. (ทั้งอำเภอ<?= DISTRICT_NAME ?>)
+                        </h4>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 16px 0;">อันดับอัตราการคัดกรองสูงสุดแยกตามเขตรับผิดชอบของแต่ละ รพ.สต.</p>
+                        <div style="display: flex; flex-direction: column; gap: 14px;">
+                            <?php
+                            $hRank = 1;
+                            foreach ($hospitalStats as $hStat):
+                                $total = (int)$hStat['total_targets'];
+                                $done = (int)$hStat['completed_targets'];
+                                $pct = $total > 0 ? round(($done / $total) * 100, 1) : 0;
+                                $hName = $hcNames[$hStat['hoscode']] ?? $hStat['hoscode'];
+
+                                $isMyHos = ($hStat['hoscode'] === $hoscode);
+
+                                $barColor = 'var(--color-accent)';
+                                if ($pct >= 100) $barColor = 'var(--color-green)';
+
+                                $rankIcon = '';
+                                if ($hRank === 1) $rankIcon = '🥇';
+                                elseif ($hRank === 2) $rankIcon = '🥈';
+                                elseif ($hRank === 3) $rankIcon = '🥉';
+                                else $rankIcon = '🏅';
+                            ?>
+                                <div style="<?= $isMyHos ? 'background: rgba(13, 44, 84, 0.04); border: 1px dashed var(--color-accent); padding: 8px; border-radius: 12px;' : '' ?>">
+                                    <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-primary);">
+                                        <span><?= $rankIcon ?> #<?= $hRank ?> <?= htmlspecialchars($hName) ?> <?= $isMyHos ? '<span style="color:var(--color-accent);font-size:11px;">(รพ.สต. ของคุณ)</span>' : '' ?></span>
+                                        <span><?= $pct ?>%</span>
+                                    </div>
+                                    <div style="width: 100%; height: 8px; background: rgba(13, 44, 84, 0.08); border-radius: 4px; overflow: hidden;">
+                                        <div style="width: <?= $pct ?>%; height: 100%; background: <?= $barColor ?>; border-radius: 4px; transition: width 0.8s ease-in-out;"></div>
+                                    </div>
+                                </div>
+                            <?php
+                                $hRank++;
+                            endforeach;
+                            ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Sub-Tab 4: VHV Badges Explanations Card -->
+            <div id="content-badges" class="tab-content" style="display: none;">
+                <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
+                    <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                        🛡️ ตำนานตราเกียรติยศ (อสม. คัดกรองดีเด่น)
+                    </h4>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 12px; font-size: 12px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 20px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: rgba(251, 191, 36, 0.1); border-radius: 50%;">🥇</span>
+                            <div>
+                                <strong>นักคัดกรองทองคำ:</strong>
+                                <span style="color: var(--text-secondary);">คัดกรองเป้าหมายสำเร็จครบ 100%</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 20px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: rgba(156, 163, 175, 0.1); border-radius: 50%;">🥈</span>
+                            <div>
+                                <strong>นักคัดกรองเงิน:</strong>
+                                <span style="color: var(--text-secondary);">คัดกรองเป้าหมายสำเร็จ 75% ขึ้นไป</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 20px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: rgba(180, 100, 30, 0.1); border-radius: 50%;">🥉</span>
+                            <div>
+                                <strong>นักคัดกรองทองแดง:</strong>
+                                <span style="color: var(--text-secondary);">คัดกรองเป้าหมายสำเร็จ 50% ขึ้นไป</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 20px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: rgba(59, 130, 246, 0.1); border-radius: 50%;">📍</span>
+                            <div>
+                                <strong>ผู้พิทักษ์พิกัดจริง:</strong>
+                                <span style="color: var(--text-secondary);">บันทึกข้อมูลหน้าบ้านเป้าหมายในระยะ 100 เมตรสำเร็จครบทุกเคส</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 20px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: rgba(16, 185, 129, 0.1); border-radius: 50%;">🚀</span>
+                            <div>
+                                <strong>ประเดิมผลงาน:</strong>
+                                <span style="color: var(--text-secondary);">คัดกรองส่งงานเรียบร้อยแล้วอย่างน้อย 1 เคส</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sub-Tab 1: Leaderboard List -->
+            <div id="content-leaderboard" class="tab-content">
+                <div style="margin-top: 10px;">
+                    <h4 style="color: var(--text-primary); font-size: 16px; margin-bottom: 12px; font-weight: 800;">50 อันดับสูงสุด</h4>
+
+                    <?php
+                    $rankNum = 1;
+                    foreach ($topFifty as $index => $leader):
+                        $points = $leader['total_points'] ?? 0;
+
+                        // Assign CSS class based on rank
+                        $rankClass = '';
+                        $badgeText = '';
+                        if ($rankNum === 1) {
+                            $rankClass = 'badge-gold';
+                            $badgeText = '🥇';
+                        } elseif ($rankNum === 2) {
+                            $rankClass = 'badge-silver';
+                            $badgeText = '🏆';
+                        } elseif ($rankNum === 3) {
+                            $rankClass = 'badge-bronze';
+                            $badgeText = '🏆';
+                        } else {
+                            $rankClass = 'badge-custom';
+                            $badgeText = '🎖️';
+                        }
+
+                        // Add special shiny badging based on points milestones
+                        $shinyBadge = '';
+                        if ($points >= 50) {
+                            $shinyBadge = '<span class="badge-icon badge-gold" title="ฮีโร่' . DISTRICT_NAME . '">🔥</span>';
+                        } elseif ($points >= 20) {
+                            $shinyBadge = '<span class="badge-icon badge-silver" title="ผู้พิทักษ์หัวใจ">💖</span>';
+                        }
+                    ?>
+                        <?php
+                        // Display trophy or medal or badge in rank area
+                        $trophyHtml = '';
+                        if ($rankNum === 1) {
+                            $trophyHtml = '<span class="trophy-icon" title="อันดับ 1" style="font-size: 32px; filter: drop-shadow(0 4px 8px rgba(251, 191, 36, 0.55));">🏆</span>';
+                        } elseif ($rankNum === 2) {
+                            $trophyHtml = '<span class="trophy-icon silver" title="อันดับ 2" style="font-size: 30px; filter: drop-shadow(0 4px 8px rgba(156, 163, 175, 0.55)) sepia(0.3) hue-rotate(180deg) saturate(0.3) brightness(1.5);">🏆</span>';
+                        } elseif ($rankNum === 3) {
+                            $trophyHtml = '<span class="trophy-icon bronze" title="อันดับ 3" style="font-size: 30px; filter: drop-shadow(0 4px 8px rgba(180, 100, 30, 0.55)) sepia(1) saturate(2) hue-rotate(5deg) brightness(0.85);">🏆</span>';
+                        } elseif ($rankNum >= 4 && $rankNum <= 10) {
+                            $trophyHtml = '<span class="trophy-icon medal" title="อันดับ ' . $rankNum . '" style="font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));">🏅</span>';
+                        } else {
+                            $trophyHtml = '<span style="font-size: 14px; font-weight: 800; color: var(--text-secondary); background: var(--bg-main); width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; box-shadow: var(--neumorph-inset);">#' . $rankNum . '</span>';
+                        }
+                        ?>
+                        <div class="leaderboard-row"
+                            style="<?= $leader['vhv_id'] === $currentVhvId 
+                                ? 'background: rgba(13, 110, 253, 0.09) !important; border: 2px solid var(--color-accent); box-shadow: var(--neumorph-inset) !important;' 
+                                : 'background: var(--bg-card); box-shadow: var(--neumorph-flat);' ?> display: flex; align-items: center; padding: 18px 16px; border-radius: var(--border-radius); margin-bottom: 16px; position: relative; overflow: hidden;">
+
+                            <!-- Faded background watermark rank number -->
+                            <div style="position: absolute; right: 80px; bottom: -20px; font-size: 80px; font-weight: 900; color: rgba(13, 44, 84, 0.18); pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif;">
+                                <?= $rankNum ?>
+                            </div>
+
+                            <div style="width: 55px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; position: relative; z-index: 2;">
+                                <?= $trophyHtml ?>
+                            </div>
+
+                            <?php
+                            $badges = getBadgesList($leader['total_assigned'], $leader['completed'], $leader['waiting_rewards']);
+                            ?>
+                            <div class="leader-info" style="position: relative; z-index: 2;">
+                                <strong
+                                    style="color: var(--text-primary); font-size: 16px;">
+                                    <?= htmlspecialchars($leader['vhv_name']) ?>
+                                    <?php foreach ($badges as $badge): ?>
+                                        <span class="badge-icon" style="background: rgba(13,44,84,0.05); font-size: 14px;" title="<?= htmlspecialchars($badge['title']) ?>: <?= htmlspecialchars($badge['desc']) ?>">
+                                            <?= $badge['icon'] ?>
+                                        </span>
+                                    <?php endforeach; ?>
+                                </strong>
+                                <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">
+                                    หมู่ที่ <?= $leader['vhv_moo'] ?><?= !empty($leader['village_name']) ? ' ' . htmlspecialchars($leader['village_name']) : '' ?>
+                                </p>
+                                <?php if (!empty($leader['is_hl_coach'])): ?>
+                                    <div
+                                        style="margin-top: 6px; font-size: 12px; color: #fbbf24; font-weight: bold; display: inline-block; background-color: rgba(251, 191, 36, 0.1); padding: 4px 8px; border-radius: 8px; border: 1px solid rgba(251,191,36,0.3);">
+                                        ✨ HL-Coach
+                                    </div>
+                                <?php endif; ?>
+                                <?php
+                                $rowTitle = getPositiveTitle($rankNum);
+                                if ($rowTitle):
+                                ?>
+                                    <div
+                                        style="margin-top: 6px; font-size: 12px; color: var(--color-accent); font-weight: bold; display: inline-block; background-color: rgba(13, 44, 84, 0.05); padding: 4px 8px; border-radius: 8px; box-shadow: var(--neumorph-inset);">
+                                        <?= $rowTitle ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <div class="leader-score" style="flex-shrink: 0; position: relative; z-index: 2;">
+                                <div style="font-size: 20px; color: var(--color-accent);"><?= (float)$points ?></div>
+                                <span style="font-size: 12px; color: var(--text-muted);">แต้ม</span>
+                                <?= $shinyBadge ?>
+                            </div>
+                        </div>
+                    <?php
+                        $rankNum++;
+                    endforeach;
+                    ?>
+                </div>
             </div>
         </div>
 
-        <!-- Bottom Navigation Bar -->
+        <!-- ======================================================= -->
+        <!-- TAB 2: REWARDS STORE PANE                               -->
+        <!-- ======================================================= -->
+        <div id="main-pane-rewards" class="main-tab-pane" style="display: none;">
+            
+            <!-- Store Action Bar -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                <div>
+                    <h4 style="color: var(--color-accent); margin: 0; font-size: 15px; font-weight: 800;">🎁 ศูนย์ของรางวัล อสม.</h4>
+                    <p style="color: var(--text-secondary); margin: 2px 0 0 0; font-size: 12px;">สะสมแต้มผลงานแลกรับสิทธิ์</p>
+                </div>
+                <button type="button" onclick="openMyRedemptionsModal()" style="background: var(--bg-card); border: 1px solid var(--border-color); color: var(--color-primary); padding: 7px 12px; border-radius: 12px; font-size: 12px; font-weight: 800; cursor: pointer; box-shadow: var(--neumorph-flat); white-space: nowrap; flex-shrink: 0;">
+                    📜 ประวัติ (<?= count($myRedemptions) ?>)
+                </button>
+            </div>
+
+            <!-- Current Points Card -->
+            <div class="card-dark" style="padding: 18px; box-shadow: var(--neumorph-flat); margin-bottom: 18px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: center; text-align: center;">
+                    <div style="border-right: 1px solid rgba(13, 44, 84, 0.1); padding-right: 8px;">
+                        <span style="color: var(--text-secondary); font-size: 12px; font-weight: bold; display: block; margin-bottom: 2px;">
+                            <?= $systemEnabled ? 'คะแนนพร้อมแลก' : 'คะแนนสะสมของคุณ' ?>
+                        </span>
+                        <div style="font-size: 30px; font-weight: 800; color: var(--color-accent); line-height: 1.1;">
+                            <?= (float)$availablePoints ?> <span style="font-size: 15px; color: var(--text-secondary); font-weight: normal;">แต้ม</span>
+                        </div>
+                    </div>
+                    <div>
+                        <span style="color: var(--text-secondary); font-size: 12px; font-weight: bold; display: block; margin-bottom: 2px;">
+                            <?= $systemEnabled ? 'แลกไปแล้ว' : 'สถานะระบบ' ?>
+                        </span>
+                        <div style="font-size: <?= $systemEnabled ? '30px' : '15px' ?>; font-weight: 800; color: <?= $systemEnabled ? 'var(--text-primary)' : '#D97706' ?>; line-height: 1.1; margin-top: <?= $systemEnabled ? '0' : '6px' ?>;">
+                            <?= $systemEnabled ? ((float)$pointsSpent . ' <span style="font-size: 15px; color: var(--text-secondary); font-weight: normal;">แต้ม</span>') : '⏳ เร็วๆ นี้' ?>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 14px; font-size: 12.5px; text-align: center; color: var(--text-primary); border-top: 1px solid rgba(13, 44, 84, 0.1); padding-top: 10px; font-weight: bold; line-height: 1.4;">
+                    <?= $systemEnabled 
+                        ? '🎉 เปิดให้แลกของรางวัลแล้ว เลือกของรางวัลและกดแลกรับสิทธิ์ได้เลยค่ะ' 
+                        : '🎁 กำลังจัดเตรียมรายการของรางวัล ท่านสามารถสะสมแต้มรอไว้ได้เลยค่ะ' ?>
+                </div>
+            </div>
+
+            <!-- Dynamic Category Filter Chips -->
+            <div class="category-scroll">
+                <button type="button" class="category-chip active" onclick="filterCategory('all', this)">ทั้งหมด</button>
+                <?php foreach ($rewardCategories as $rc): ?>
+                    <button type="button" class="category-chip" onclick="filterCategory('<?= htmlspecialchars($rc['category_code']) ?>', this)">
+                        <?= htmlspecialchars($rc['icon_emoji'] ?? '🏷️') ?> <?= htmlspecialchars($rc['category_name']) ?>
+                    </button>
+                <?php endforeach; ?>
+            </div>
+
+            <!-- Rewards Cards List -->
+            <div class="rewards-list">
+                <?php if (empty($rewardItems)): ?>
+                    <div class="card-dark" style="padding: 30px; text-align: center; color: var(--text-muted);">
+                        <div style="font-size: 36px; margin-bottom: 8px;">🎁</div>
+                        <div style="font-weight: 700; font-size: 14px;">ยังไม่มีรายการของรางวัล</div>
+                        <div style="font-size: 12px; margin-top: 4px;">เจ้าหน้าที่กำลังจัดเตรียมรายการของรางวัลสำหรับ อสม.</div>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($rewardItems as $it): ?>
+                        <?php
+                            $reqPts = (float)$it['points_required'];
+                            $pct = ($reqPts > 0) ? min(100, round(($availablePoints / $reqPts) * 100)) : 100;
+                            $canAfford = $availablePoints >= $reqPts;
+                            $isOutOfStock = ($it['stock_quantity'] != -1 && $it['stock_quantity'] <= 0);
+                        ?>
+                        <div class="reward-card item-card-box" data-category="<?= htmlspecialchars($it['category']) ?>">
+                            <div>
+                                <div class="reward-top-row">
+                                    <div class="reward-icon-box"><?= htmlspecialchars($it['icon_emoji'] ?: '🎁') ?></div>
+                                    <div style="flex-grow: 1; min-width: 0;">
+                                        <div style="font-size: 14.5px; font-weight: 800; color: var(--text-primary); margin-bottom: 2px;">
+                                            <?= htmlspecialchars($it['title']) ?>
+                                        </div>
+                                        <?php if ($systemEnabled): ?>
+                                            <div class="reward-points-badge">
+                                                ⭐ <strong><?= number_format($reqPts) ?></strong> แต้ม
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="reward-points-badge" style="background: rgba(100, 116, 139, 0.12); color: #64748B;">
+                                                ✨ รายการของรางวัล
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+
+                                <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0 0 8px 0;">
+                                    <?= htmlspecialchars($it['description'] ?: 'ไม่มีคำอธิบายเพิ่มเติม') ?>
+                                </p>
+
+                                <!-- Product Visual Illustration / Real Photo Preview -->
+                                <div style="background: linear-gradient(135deg, rgba(13, 44, 84, 0.03) 0%, rgba(13, 44, 84, 0.06) 100%); border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; margin: 6px 0 12px 0; border: 1px dashed var(--border-color); box-shadow: var(--neumorph-inset);">
+                                    <?php if (!empty($it['image_url'])): ?>
+                                        <img src="<?= htmlspecialchars($it['image_url']) ?>" alt="<?= htmlspecialchars($it['title']) ?>" style="height: 60px; max-width: 85px; object-fit: contain; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background: #ffffff; padding: 2px;">
+                                    <?php else: ?>
+                                        <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--bg-card); display: flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: var(--neumorph-flat); flex-shrink: 0;">
+                                            <?= htmlspecialchars($it['icon_emoji'] ?: '🎁') ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    <div style="font-size: 11.5px; color: var(--text-secondary); line-height: 1.4;">
+                                        <strong style="color: var(--text-primary); display: block; font-size: 12.5px; margin-bottom: 2px;">🎁 สิทธิประโยชน์ อสม.</strong>
+                                        <span>หมวด: <?= htmlspecialchars($categoryMap[$it['category']] ?? $it['category']) ?></span>
+                                    </div>
+                                </div>
+
+                                <?php if ($systemEnabled): ?>
+                                    <!-- Progress Bar (Active Mode) -->
+                                    <div class="progress-box">
+                                        <div class="progress-label-row">
+                                            <span>ความคืบหน้า</span>
+                                            <span><?= number_format($availablePoints, 1) ?> / <?= number_format($reqPts) ?> แต้ม</span>
+                                        </div>
+                                        <div class="progress-track">
+                                            <div class="progress-fill" style="width: <?= $pct ?>%; <?= $canAfford ? 'background: #10B981;' : 'background: #F59E0B;' ?>"></div>
+                                        </div>
+                                    </div>
+                                <?php else: ?>
+                                    <!-- Coming Soon Note (Preview Mode) -->
+                                    <div style="font-size: 11.5px; color: var(--text-muted); margin: 4px 0 10px 0; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                                        <span>⏳</span> <span>รอประกาศเกณฑ์คะแนนเร็วๆ นี้</span>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <div>
+                                <?php if (!$systemEnabled): ?>
+                                    <button type="button" class="btn-redeem btn-redeem-locked" disabled>
+                                        🔒 เร็วๆ นี้ (เปิดให้แลกเร็วๆ นี้)
+                                    </button>
+                                <?php elseif ($isOutOfStock): ?>
+                                    <button type="button" class="btn-redeem btn-redeem-locked" disabled>
+                                        ❌ ของรางวัลหมดชั่วคราว
+                                    </button>
+                                <?php elseif (!$canAfford): ?>
+                                    <?php $diff = $reqPts - $availablePoints; ?>
+                                    <button type="button" class="btn-redeem btn-redeem-locked" disabled>
+                                        🔒 ขาดอีก <?= number_format($diff, 1) ?> แต้ม
+                                    </button>
+                                <?php else: ?>
+                                    <button type="button" onclick='confirmRedeem(<?= json_encode($it, JSON_UNESCAPED_UNICODE) ?>)' class="btn-redeem btn-redeem-active">
+                                        🎁 แลกของรางวัลนี้
+                                    </button>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- CLEAN 4-ITEM BOTTOM NAVIGATION                          -->
+        <!-- ======================================================= -->
         <div class="bottom-nav">
             <a href="index.php" class="nav-link">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -676,19 +1108,13 @@ $hcNames = get_health_units();
                 </svg>
                 <span>สแกนบ้าน</span>
             </a>
-            <a href="rewards.php" class="nav-link">
-                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V6a2 2 0 10-2 2h2zm0 13a7 7 0 100-14 7 7 0 000 14z"></path>
-                </svg>
-                แลกรางวัล
-            </a>
             <a href="leaderboard.php" class="nav-link active">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path
-                        d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z">
+                        d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138z">
                     </path>
                 </svg>
-                กระดานคะแนน
+                คะแนน & รางวัล
             </a>
             <a href="profile.php" class="nav-link">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -698,16 +1124,206 @@ $hcNames = get_health_units();
             </a>
         </div>
     </div>
+
+    <!-- Modal: Confirm Redeem -->
+    <div id="confirmModal" class="confirm-modal" onclick="closeConfirmModal(event)">
+        <div class="confirm-modal-box" onclick="event.stopPropagation()">
+            <div id="modalIcon" style="font-size: 48px; margin-bottom: 8px;">🎁</div>
+            <h3 id="modalTitle" style="margin: 0 0 6px 0; font-size: 17px; font-weight: 800; color: var(--text-primary);">
+                ยืนยันการแลกของรางวัล
+            </h3>
+            <p id="modalDesc" style="font-size: 12.5px; color: var(--text-secondary); margin: 0 0 14px 0;"></p>
+
+            <div style="background: var(--bg-main); padding: 12px 14px; border-radius: 14px; margin-bottom: 18px; text-align: left; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="color: var(--text-secondary);">แต้มที่ต้องใช้:</span>
+                    <strong id="modalCost" style="color: #D97706;">-</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-secondary);">แต้มคงเหลือหลังแลก:</span>
+                    <strong id="modalRemaining" style="color: #059669;">-</strong>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button type="button" id="btnSubmitRedeem" onclick="submitRedeem()" class="btn-redeem btn-redeem-active" style="flex: 1;">
+                    ยืนยันการแลก ✨
+                </button>
+                <button type="button" onclick="closeConfirmModal()" class="btn-redeem btn-redeem-locked" style="width: auto; padding: 11px 16px;">
+                    ยกเลิก
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: My Redemptions History -->
+    <div id="myRedemptionsModal" class="confirm-modal" onclick="closeMyRedemptionsModal(event)">
+        <div class="confirm-modal-box" onclick="event.stopPropagation()" style="max-width: 440px; max-height: 80vh; overflow-y: auto; text-align: left;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+                <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--color-accent);">
+                    📜 ประวัติการแลกของรางวัล
+                </h3>
+                <button type="button" onclick="closeMyRedemptionsModal()" style="background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-muted);">&times;</button>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <?php if (empty($myRedemptions)): ?>
+                    <div style="text-align: center; color: var(--text-muted); padding: 30px 10px;">
+                        <div style="font-size: 32px; margin-bottom: 6px;">📭</div>
+                        <div style="font-weight: 700; font-size: 13.5px;">ยังไม่มีประวัติการแลกของรางวัล</div>
+                        <div style="font-size: 12px; margin-top: 2px;">เมื่อกดแลกของรางวัล รายการจะแสดงที่นี่</div>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($myRedemptions as $mr): ?>
+                        <?php
+                            $statusBadge = '<span style="background:rgba(245,158,11,0.15); color:#D97706; padding:2px 7px; border-radius:6px; font-size:10.5px; font-weight:800;">⏳ รอรับของที่ รพ.สต.</span>';
+                            if ($mr['status'] === 'fulfilled') {
+                                $statusBadge = '<span style="background:rgba(16,185,129,0.15); color:#059669; padding:2px 7px; border-radius:6px; font-size:10.5px; font-weight:800;">✅ รับของแล้ว</span>';
+                            } elseif ($mr['status'] === 'cancelled') {
+                                $statusBadge = '<span style="background:rgba(239,68,68,0.15); color:#DC2626; padding:2px 7px; border-radius:6px; font-size:10.5px; font-weight:800;">❌ ยกเลิก</span>';
+                            }
+                        ?>
+                        <div style="background: var(--bg-main); border-radius: 12px; padding: 12px; box-shadow: var(--neumorph-inset); border: 1px solid var(--border-color);">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                                <strong style="font-size: 13.5px; color: var(--text-primary);">
+                                    <?= htmlspecialchars($mr['icon_emoji'] ?: '🎁') ?> <?= htmlspecialchars($mr['item_title']) ?>
+                                </strong>
+                                <?= $statusBadge ?>
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; color: var(--text-secondary);">
+                                <span>รหัสรับของ: <strong style="font-family: monospace; color: var(--color-primary);"><?= htmlspecialchars($mr['redemption_code']) ?></strong></span>
+                                <span>ใช้ <?= number_format($mr['points_spent']) ?> แต้ม</span>
+                            </div>
+                            <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 4px;">
+                                🕒 <?= htmlspecialchars(substr($mr['created_at'], 0, 16)) ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // Switch between Top Main Tabs: Leaderboard vs Rewards
+        function switchMainTab(tabId, updateUrl = true) {
+            if (updateUrl) {
+                const newUrl = new URL(window.location);
+                newUrl.searchParams.set('tab', tabId);
+                window.history.replaceState({}, '', newUrl);
+            }
+
+            document.querySelectorAll('.main-tab-pane').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.main-tab-pill').forEach(btn => {
+                btn.classList.remove('active');
+                btn.style.background = 'transparent';
+                btn.style.color = 'var(--text-secondary)';
+                btn.style.boxShadow = 'none';
+            });
+
+            const targetPane = document.getElementById('main-pane-' + tabId);
+            const targetBtn = document.getElementById('main-tab-btn-' + tabId);
+            if (targetPane) targetPane.style.display = 'block';
+            if (targetBtn) {
+                targetBtn.classList.add('active');
+                targetBtn.style.background = 'var(--bg-card)';
+                targetBtn.style.color = 'var(--color-accent)';
+                targetBtn.style.boxShadow = 'var(--neumorph-flat)';
+            }
+        }
+
+        // Switch Sub-tabs inside Leaderboard
         function switchTab(tabId) {
-            // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-            // Remove active class from all tab buttons
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
 
-            // Show selected tab content and activate button
-            document.getElementById('content-' + tabId).style.display = 'block';
-            document.getElementById('btn-' + tabId).classList.add('active');
+            const targetContent = document.getElementById('content-' + tabId);
+            const targetBtn = document.getElementById('btn-' + tabId);
+            if (targetContent) targetContent.style.display = 'block';
+            if (targetBtn) targetBtn.classList.add('active');
+        }
+
+        // Auto-select main tab on load if specified in URL query
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tabParam = urlParams.get('tab');
+            if (tabParam === 'rewards') {
+                switchMainTab('rewards', false);
+            } else {
+                switchMainTab('leaderboard', false);
+            }
+        })();
+
+        // Category Filter for Rewards
+        function filterCategory(cat, btn) {
+            document.querySelectorAll('.category-chip').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            const cards = document.querySelectorAll('.item-card-box');
+            cards.forEach(card => {
+                if (cat === 'all' || card.getAttribute('data-category') === cat) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Redemption Logic
+        let selectedItem = null;
+        const currentPoints = <?= (float)$availablePoints ?>;
+
+        function confirmRedeem(item) {
+            selectedItem = item;
+            document.getElementById('modalIcon').innerText = item.icon_emoji || '🎁';
+            document.getElementById('modalTitle').innerText = item.title;
+            document.getElementById('modalDesc').innerText = item.description || 'กรุณายืนยันการขอแลกของรางวัลนี้';
+            document.getElementById('modalCost').innerText = item.points_required + ' แต้ม';
+            document.getElementById('modalRemaining').innerText = (currentPoints - parseFloat(item.points_required)).toFixed(1) + ' แต้ม';
+            document.getElementById('confirmModal').style.display = 'flex';
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').style.display = 'none';
+            selectedItem = null;
+        }
+
+        function submitRedeem() {
+            if (!selectedItem) return;
+
+            const btn = document.getElementById('btnSubmitRedeem');
+            btn.disabled = true;
+            btn.innerText = 'กำลังทำรายการ... ⌛';
+
+            fetch('../api/rewards.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ action: 'redeem_item', item_id: selectedItem.item_id })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert('เกิดข้อผิดพลาด: ' + data.message);
+                    btn.disabled = false;
+                    btn.innerText = 'ยืนยันการแลก ✨';
+                }
+            })
+            .catch(err => {
+                alert('เชื่อมต่อล้มเหลว: ' + err);
+                btn.disabled = false;
+                btn.innerText = 'ยืนยันการแลก ✨';
+            });
+        }
+
+        function openMyRedemptionsModal() {
+            document.getElementById('myRedemptionsModal').style.display = 'flex';
+        }
+
+        function closeMyRedemptionsModal() {
+            document.getElementById('myRedemptionsModal').style.display = 'none';
         }
     </script>
 </body>

@@ -15,13 +15,29 @@ $is_super_admin = !empty($_SESSION['is_super_admin']);
 
 $systemEnabled = (int)get_system_setting('reward_system_enabled', 0);
 
-// Fetch Categories
-$categories = [
-    'equipment' => 'อุปกรณ์ลงพื้นที่',
-    'souvenir' => 'ของที่ระลึก อสม.',
-    'medical' => 'เครื่องมือแพทย์',
-    'honorary' => 'เชิดชูเกียรติ'
-];
+// Fetch Dynamic Categories
+$categories = [];
+$categoryList = [];
+try {
+    $stmtCats = $pdo->query("
+        SELECT c.*, COUNT(i.item_id) AS item_count
+        FROM `reward_categories` c
+        LEFT JOIN `reward_items` i ON c.category_code = i.category
+        GROUP BY c.category_code
+        ORDER BY c.sort_order ASC, c.category_name ASC
+    ");
+    $categoryList = $stmtCats->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($categoryList as $c) {
+        $categories[$c['category_code']] = $c['category_name'];
+    }
+} catch (\Exception $e) {
+    $categories = [
+        'equipment' => 'อุปกรณ์ลงพื้นที่',
+        'souvenir' => 'ของที่ระลึก อสม.',
+        'medical' => 'เครื่องมือแพทย์',
+        'honorary' => 'เชิดชูเกียรติ'
+    ];
+}
 
 // Fetch items
 $items = [];
@@ -205,117 +221,150 @@ try {
         .reward-tabs {
             display: flex;
             gap: 10px;
+            border-bottom: 2px solid var(--border-color);
             margin-bottom: 20px;
-            border-bottom: 1.5px solid var(--border-color);
-            padding-bottom: 10px;
-            flex-wrap: wrap;
+            overflow-x: auto;
         }
 
         .tab-button {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            padding: 10px 20px;
-            border-radius: 14px;
-            font-size: 14px;
+            background: none;
+            border: none;
+            padding: 12px 18px;
+            font-size: 14.5px;
             font-weight: 800;
+            color: var(--text-secondary);
             cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-            box-shadow: var(--neumorph-flat);
+            position: relative;
+            white-space: nowrap;
+            transition: color 0.2s;
         }
 
         .tab-button.active {
-            background: var(--color-primary);
-            color: #ffffff;
-            border-color: var(--color-primary);
+            color: var(--color-primary);
         }
 
-        /* Items Grid */
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--color-primary);
+            border-radius: 3px 3px 0 0;
+        }
+
+        /* Catalog Grid */
         .items-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 18px;
+            gap: 16px;
         }
 
         .item-card {
             background: var(--bg-card);
-            border-radius: 18px;
-            padding: 18px;
+            border-radius: 20px;
+            padding: 16px;
             box-shadow: var(--neumorph-flat);
             border: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            transition: all 0.2s;
             position: relative;
+            transition: transform 0.2s;
         }
 
         .item-card:hover {
-            border-color: var(--color-primary);
             transform: translateY(-2px);
         }
 
         .item-card-header {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             gap: 12px;
             margin-bottom: 10px;
         }
 
         .item-icon-box {
-            width: 46px;
-            height: 46px;
+            width: 48px;
+            height: 48px;
             border-radius: 14px;
             background: var(--bg-main);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 22px;
-            flex-shrink: 0;
+            font-size: 24px;
             box-shadow: var(--neumorph-inset);
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .item-icon-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .item-badge-points {
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            background: rgba(16, 185, 129, 0.12);
-            color: #059669;
-            padding: 3px 10px;
+            background: rgba(245, 158, 11, 0.12);
+            color: #D97706;
+            padding: 4px 10px;
             border-radius: 10px;
-            font-size: 12.5px;
+            font-size: 13px;
             font-weight: 800;
         }
 
         .item-badge-stock {
-            font-size: 11px;
-            font-weight: 700;
+            font-size: 12px;
             color: var(--text-muted);
+            font-weight: 600;
         }
 
         /* Table */
+        .table-responsive {
+            overflow-x: auto;
+        }
+
         .queue-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13.5px;
+            font-size: 13px;
+            text-align: left;
         }
 
         .queue-table th {
-            text-align: left;
             padding: 12px 14px;
             background: var(--bg-main);
             color: var(--text-secondary);
             font-weight: 800;
             border-bottom: 2px solid var(--border-color);
+            white-space: nowrap;
         }
 
         .queue-table td {
-            padding: 14px;
+            padding: 12px 14px;
             border-bottom: 1px solid var(--border-color);
             color: var(--text-primary);
+        }
+
+        .preset-btn {
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover {
+            background: var(--color-primary);
+            color: white;
         }
 
         /* Modal */
@@ -328,7 +377,7 @@ try {
             width: 100%;
             height: 100%;
             background: rgba(13, 44, 84, 0.6);
-            backdrop-filter: blur(6px);
+            backdrop-filter: blur(5px);
             align-items: center;
             justify-content: center;
             padding: 20px;
@@ -338,8 +387,8 @@ try {
         .reward-modal-content {
             background: var(--bg-card);
             border-radius: 24px;
-            padding: 28px 24px;
-            max-width: 540px;
+            padding: 24px;
+            max-width: 520px;
             width: 100%;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
             border: 1px solid var(--border-color);
@@ -348,28 +397,28 @@ try {
         }
 
         .form-row {
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
 
         .form-row label {
             display: block;
-            font-size: 13.5px;
-            font-weight: 700;
-            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--text-secondary);
             margin-bottom: 6px;
         }
 
         .form-input {
             width: 100%;
-            padding: 10px 14px;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            background: var(--bg-main);
-            color: var(--text-primary);
-            font-size: 14px;
-            font-weight: 600;
             box-sizing: border-box;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 14px;
+            color: var(--text-primary);
             outline: none;
+            box-shadow: var(--neumorph-inset);
         }
 
         .form-input:focus {
@@ -388,11 +437,14 @@ try {
                     🎁 จัดการระบบของรางวัล & แคตตาล็อก อสม.
                 </h2>
                 <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 14px;">
-                    ควบคุมสถานะเปิด-ปิดระบบแลกของรางวัล ตั้งค่าเกณฑ์คะแนน และจัดการการส่งมอบรางวัล
+                    ควบคุมสถานะเปิด-ปิดระบบแลกของรางวัล จัดการหมวดหมู่ แนบรูปภาพจริง และบันทึกการส่งมอบ
                 </p>
             </div>
-            <div>
-                <button type="button" onclick="openItemModal()" class="btn-dash-action" style="background: var(--color-primary); color: #ffffff; padding: 10px 18px; border-radius: 14px; font-size: 14px; font-weight: 800; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--neumorph-flat);">
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button type="button" onclick="openCategoryModal()" class="btn-dash-action" style="background: var(--bg-card); color: var(--color-primary); border: 1.5px solid var(--border-color); padding: 10px 16px; border-radius: 14px; font-size: 13.5px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--neumorph-flat);">
+                    🗂️ จัดการหมวดหมู่
+                </button>
+                <button type="button" onclick="openItemModal()" class="btn-dash-action" style="background: var(--color-primary); color: #ffffff; padding: 10px 18px; border-radius: 14px; font-size: 13.5px; font-weight: 800; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--neumorph-flat);">
                     ➕ เพิ่มของรางวัลใหม่
                 </button>
             </div>
@@ -470,6 +522,9 @@ try {
             <button type="button" class="tab-button active" onclick="switchRewardTab('catalog')" id="tab-btn-catalog">
                 📦 แคตตาล็อกของรางวัล (<?= count($items) ?>)
             </button>
+            <button type="button" class="tab-button" onclick="switchRewardTab('categories')" id="tab-btn-categories">
+                🗂️ จัดการหมวดหมู่ (<?= count($categoryList) ?>)
+            </button>
             <button type="button" class="tab-button" onclick="switchRewardTab('queue')" id="tab-btn-queue">
                 📋 คำขอแลกรางวัล & ส่งมอบ (<span id="queueCountBadge"><?= $pendingCount ?></span>)
             </button>
@@ -482,7 +537,13 @@ try {
                     <div class="item-card" id="item-card-<?= $item['item_id'] ?>" style="<?= !$item['is_active'] ? 'opacity: 0.6;' : '' ?>">
                         <div>
                             <div class="item-card-header">
-                                <div class="item-icon-box"><?= htmlspecialchars($item['icon_emoji']) ?></div>
+                                <div class="item-icon-box">
+                                    <?php if (!empty($item['image_url'])): ?>
+                                        <img src="../<?= htmlspecialchars($item['image_url']) ?>" alt="<?= htmlspecialchars($item['title']) ?>">
+                                    <?php else: ?>
+                                        <?= htmlspecialchars($item['icon_emoji']) ?>
+                                    <?php endif; ?>
+                                </div>
                                 <div style="flex-grow: 1; min-width: 0;">
                                     <div style="font-size: 15px; font-weight: 800; color: var(--text-primary); margin-bottom: 2px;">
                                         <?= htmlspecialchars($item['title']) ?>
@@ -522,7 +583,53 @@ try {
             </div>
         </div>
 
-        <!-- Tab 2: Redemptions Queue -->
+        <!-- Tab 2: Category Management -->
+        <div id="tab-content-categories" style="display: none;">
+            <div style="background: var(--bg-card); border-radius: 20px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color); overflow: hidden; padding: 14px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+                    <strong style="font-size: 15px; color: var(--text-primary);">รายการหมวดหมู่ของรางวัล</strong>
+                    <button type="button" onclick="openCategoryModal()" class="preset-btn" style="background: var(--color-primary); color: white; border: none; padding: 8px 14px;">
+                        ➕ เพิ่มหมวดหมู่ใหม่
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="queue-table">
+                        <thead>
+                            <tr>
+                                <th>ไอคอน</th>
+                                <th>ชื่อหมวดหมู่</th>
+                                <th>รหัสหมวดหมู่ (Code)</th>
+                                <th>จำนวนของรางวัล</th>
+                                <th>ลำดับ</th>
+                                <th>สถานะ</th>
+                                <th>การจัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($categoryList as $cat): ?>
+                                <tr>
+                                    <td style="font-size: 22px;"><?= htmlspecialchars($cat['icon_emoji']) ?></td>
+                                    <td><strong><?= htmlspecialchars($cat['category_name']) ?></strong></td>
+                                    <td><code style="background: var(--bg-main); padding: 3px 6px; border-radius: 6px;"><?= htmlspecialchars($cat['category_code']) ?></code></td>
+                                    <td><?= number_format($cat['item_count']) ?> รายการ</td>
+                                    <td><?= (int)$cat['sort_order'] ?></td>
+                                    <td>
+                                        <?= $cat['is_active'] ? '<span style="color: #10B981; font-weight: 800;">✅ เปิดใช้งาน</span>' : '<span style="color: #64748B;">🔒 ปิด</span>' ?>
+                                    </td>
+                                    <td>
+                                        <button type="button" onclick='openEditCategoryModal(<?= json_encode($cat, JSON_UNESCAPED_UNICODE) ?>)' class="preset-btn">✏️ แก้ไข</button>
+                                        <button type="button" onclick="deleteCategory('<?= $cat['category_code'] ?>', '<?= addslashes($cat['category_name']) ?>', <?= (int)$cat['item_count'] ?>)" class="preset-btn" style="color: #EF4444;">🗑️</button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Redemptions Queue -->
         <div id="tab-content-queue" style="display: none;">
             <div style="background: var(--bg-card); border-radius: 20px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color); overflow: hidden; padding: 10px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px;">
@@ -564,7 +671,7 @@ try {
         </div>
     </div>
 
-    <!-- Modal: Add / Edit Item -->
+    <!-- Modal: Add / Edit Item (With Real Image Upload) -->
     <div id="itemModal" class="reward-modal" onclick="closeItemModal(event)">
         <div class="reward-modal-content" onclick="event.stopPropagation()">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
@@ -574,8 +681,9 @@ try {
                 <button type="button" onclick="closeItemModal()" style="background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-muted);">&times;</button>
             </div>
 
-            <form id="itemForm" onsubmit="handleSaveItem(event)">
+            <form id="itemForm" onsubmit="handleSaveItem(event)" enctype="multipart/form-data">
                 <input type="hidden" name="item_id" id="form_item_id" value="0">
+                <input type="hidden" name="image_url" id="form_image_url" value="">
 
                 <div class="form-row">
                     <label>ชื่อของรางวัล <span style="color: #EF4444;">*</span></label>
@@ -597,10 +705,9 @@ try {
                     <div class="form-row">
                         <label>หมวดหมู่</label>
                         <select name="category" id="form_category" class="form-input">
-                            <option value="equipment">อุปกรณ์ลงพื้นที่</option>
-                            <option value="souvenir">ของที่ระลึก อสม.</option>
-                            <option value="medical">เครื่องมือแพทย์</option>
-                            <option value="honorary">เชิดชูเกียรติ</option>
+                            <?php foreach ($categories as $catCode => $catName): ?>
+                                <option value="<?= htmlspecialchars($catCode) ?>"><?= htmlspecialchars($catName) ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="form-row">
@@ -609,9 +716,18 @@ try {
                     </div>
                 </div>
 
+                <!-- Real Image Upload / Attachment -->
+                <div class="form-row">
+                    <label>📷 แนบภาพประกอบของรางวัล (จริง)</label>
+                    <input type="file" name="image_file" id="form_image_file" accept="image/*" class="form-input" onchange="previewSelectedImage(this)">
+                    <div id="image_preview_container" style="display: none; margin-top: 10px; text-align: center;">
+                        <img id="image_preview_box" src="" alt="Preview" style="max-height: 120px; border-radius: 12px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color);">
+                    </div>
+                </div>
+
                 <div class="form-row">
                     <label>รายละเอียดของรางวัล</label>
-                    <textarea name="description" id="form_description" rows="3" class="form-input" placeholder="คำอธิบายสั้นๆ ของสิ่งของ..."></textarea>
+                    <textarea name="description" id="form_description" rows="2" class="form-input" placeholder="คำอธิบายสั้นๆ ของสิ่งของ..."></textarea>
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
@@ -631,11 +747,60 @@ try {
         </div>
     </div>
 
+    <!-- Modal: Add / Edit Category -->
+    <div id="categoryModal" class="reward-modal" onclick="closeCategoryModal(event)">
+        <div class="reward-modal-content" onclick="event.stopPropagation()">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                <h3 id="catModalTitle" style="margin: 0; color: var(--color-accent); font-size: 18px; font-weight: 800;">
+                    ➕ จัดการหมวดหมู่ของรางวัล
+                </h3>
+                <button type="button" onclick="closeCategoryModal()" style="background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-muted);">&times;</button>
+            </div>
+
+            <form id="categoryForm" onsubmit="handleSaveCategory(event)">
+                <input type="hidden" name="is_edit" id="form_cat_is_edit" value="0">
+
+                <div class="form-row">
+                    <label>รหัสหมวดหมู่ (Code ภาษาอังกฤษ) <span style="color: #EF4444;">*</span></label>
+                    <input type="text" name="category_code" id="form_cat_code" class="form-input" required placeholder="เช่น uniform, tech, wellness">
+                </div>
+
+                <div class="form-row">
+                    <label>ชื่อหมวดหมู่ (ภาษาไทย) <span style="color: #EF4444;">*</span></label>
+                    <input type="text" name="category_name" id="form_cat_name" class="form-input" required placeholder="เช่น เสื้อและเครื่องแต่งกาย">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-row">
+                        <label>ไอคอน Emoji</label>
+                        <input type="text" name="icon_emoji" id="form_cat_emoji" class="form-input" value="📦" maxlength="10">
+                    </div>
+                    <div class="form-row">
+                        <label>ลำดับการแสดง</label>
+                        <input type="number" name="sort_order" id="form_cat_sort" class="form-input" value="0">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 14px;">
+                    <button type="submit" id="btnSaveCat" class="btn-giant btn-giant-primary" style="margin: 0; padding: 12px; font-size: 14px; border-radius: 12px; flex: 1;">
+                        💾 บันทึกหมวดหมู่
+                    </button>
+                    <button type="button" onclick="closeCategoryModal()" class="btn-dash-action" style="padding: 12px 18px; border-radius: 12px;">
+                        ยกเลิก
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         function switchRewardTab(tabName) {
             document.getElementById('tab-content-catalog').style.display = tabName === 'catalog' ? 'block' : 'none';
+            document.getElementById('tab-content-categories').style.display = tabName === 'categories' ? 'block' : 'none';
             document.getElementById('tab-content-queue').style.display = tabName === 'queue' ? 'block' : 'none';
+            
             document.getElementById('tab-btn-catalog').classList.toggle('active', tabName === 'catalog');
+            document.getElementById('tab-btn-categories').classList.toggle('active', tabName === 'categories');
             document.getElementById('tab-btn-queue').classList.toggle('active', tabName === 'queue');
 
             if (tabName === 'queue') {
@@ -672,6 +837,17 @@ try {
             });
         }
 
+        function previewSelectedImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('image_preview_box').src = e.target.result;
+                    document.getElementById('image_preview_container').style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
         function openItemModal() {
             document.getElementById('modalTitle').innerText = '➕ เพิ่มของรางวัลใหม่';
             document.getElementById('form_item_id').value = 0;
@@ -679,7 +855,9 @@ try {
             document.getElementById('form_description').value = '';
             document.getElementById('form_points').value = 15;
             document.getElementById('form_emoji').value = '🎁';
-            document.getElementById('form_category').value = 'equipment';
+            document.getElementById('form_image_url').value = '';
+            document.getElementById('form_image_file').value = '';
+            document.getElementById('image_preview_container').style.display = 'none';
             document.getElementById('form_stock').value = -1;
             document.getElementById('form_active').checked = true;
             document.getElementById('itemModal').style.display = 'flex';
@@ -694,6 +872,16 @@ try {
             document.getElementById('form_emoji').value = item.icon_emoji || '🎁';
             document.getElementById('form_category').value = item.category || 'equipment';
             document.getElementById('form_stock').value = item.stock_quantity;
+            document.getElementById('form_image_url').value = item.image_url || '';
+            document.getElementById('form_image_file').value = '';
+            
+            if (item.image_url) {
+                document.getElementById('image_preview_box').src = '../' + item.image_url;
+                document.getElementById('image_preview_container').style.display = 'block';
+            } else {
+                document.getElementById('image_preview_container').style.display = 'none';
+            }
+
             document.getElementById('form_active').checked = item.is_active == 1;
             document.getElementById('itemModal').style.display = 'flex';
         }
@@ -751,6 +939,88 @@ try {
                     alert(data.message);
                     const card = document.getElementById('item-card-' + itemId);
                     if (card) card.remove();
+                } else {
+                    alert('เกิดข้อผิดพลาด: ' + data.message);
+                }
+            })
+            .catch(err => alert('เชื่อมต่อล้มเหลว: ' + err));
+        }
+
+        function openCategoryModal() {
+            document.getElementById('catModalTitle').innerText = '➕ เพิ่มหมวดหมู่ใหม่';
+            document.getElementById('form_cat_is_edit').value = '0';
+            document.getElementById('form_cat_code').value = '';
+            document.getElementById('form_cat_code').readOnly = false;
+            document.getElementById('form_cat_name').value = '';
+            document.getElementById('form_cat_emoji').value = '📦';
+            document.getElementById('form_cat_sort').value = '0';
+            document.getElementById('categoryModal').style.display = 'flex';
+        }
+
+        function openEditCategoryModal(cat) {
+            document.getElementById('catModalTitle').innerText = '✏️ แก้ไขหมวดหมู่';
+            document.getElementById('form_cat_is_edit').value = '1';
+            document.getElementById('form_cat_code').value = cat.category_code;
+            document.getElementById('form_cat_code').readOnly = true;
+            document.getElementById('form_cat_name').value = cat.category_name;
+            document.getElementById('form_cat_emoji').value = cat.icon_emoji || '📦';
+            document.getElementById('form_cat_sort').value = cat.sort_order || '0';
+            document.getElementById('categoryModal').style.display = 'flex';
+        }
+
+        function closeCategoryModal() {
+            document.getElementById('categoryModal').style.display = 'none';
+        }
+
+        function handleSaveCategory(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSaveCat');
+            btn.disabled = true;
+            btn.innerText = 'กำลังบันทึก... ⌛';
+
+            const form = document.getElementById('categoryForm');
+            const formData = new FormData(form);
+            formData.append('action', 'admin_save_category');
+
+            fetch('../api/rewards.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert('เกิดข้อผิดพลาด: ' + data.message);
+                    btn.disabled = false;
+                    btn.innerText = '💾 บันทึกหมวดหมู่';
+                }
+            })
+            .catch(err => {
+                alert('เชื่อมต่อล้มเหลว: ' + err);
+                btn.disabled = false;
+                btn.innerText = '💾 บันทึกหมวดหมู่';
+            });
+        }
+
+        function deleteCategory(code, name, itemCount) {
+            if (itemCount > 0) {
+                alert(`ไม่สามารถลบหมวดหมู่ "${name}" ได้ เนื่องจากมีของรางวัลอยู่ในหมวดนี้ ${itemCount} รายการ`);
+                return;
+            }
+            if (!confirm(`คุณต้องการลบหมวดหมู่ "${name}" ใช่หรือไม่?`)) return;
+
+            fetch('../api/rewards.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ action: 'admin_delete_category', category_code: code })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(data.message);
+                    window.location.reload();
                 } else {
                     alert('เกิดข้อผิดพลาด: ' + data.message);
                 }
