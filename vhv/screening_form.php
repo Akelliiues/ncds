@@ -221,7 +221,8 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="NCDs ตาลสุม">
+    <meta name="apple-mobile-web-app-title" content="NCDs Portal">
+    <meta name="application-name" content="NCDs Portal">
     <meta name="theme-color" content="#0d2c54">
     <title>ฟอร์มคัดกรองโรคเรื้อรัง - อสม. ตาลสุม</title>
     <link rel="stylesheet" href="../assets/css/style.css">

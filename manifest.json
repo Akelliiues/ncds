@@ -1,7 +1,7 @@
 {
   "id": "ncds-portal-tansum-root",
-  "short_name": "NCD ตาลสุม",
-  "name": "NCDs by อสม. อำเภอตาลสุม",
+  "short_name": "NCDs Portal",
+  "name": "NCDs Portal",
   "description": "ระบบคัดกรองโรค NCDs และจัดอันดับคะแนนเชิงรุก สำหรับ อสม. อำเภอตาลสุม",
   "start_url": "index.php",
   "scope": "./",

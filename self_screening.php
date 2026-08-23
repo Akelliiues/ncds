@@ -16,7 +16,8 @@ require_once __DIR__ . '/config/db.php';
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="ตรวจสุขภาพตนเอง">
+    <meta name="apple-mobile-web-app-title" content="NCDs Portal">
+    <meta name="application-name" content="NCDs Portal">
     <meta name="theme-color" content="#0d2c54">
     <title>ตรวจเช็คสุขภาพเบื้องต้น - อำเภอ<?= DISTRICT_NAME ?></title>
     <link rel="stylesheet" href="assets/css/style.css">

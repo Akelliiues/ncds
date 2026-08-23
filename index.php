@@ -160,7 +160,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="NCDs ตาลสุม">
+    <meta name="apple-mobile-web-app-title" content="NCDs Portal">
+    <meta name="application-name" content="NCDs Portal">
     <meta name="theme-color" content="#0d2c54">
     <title>เข้าสู่ระบบ NCDs <?= DISTRICT_NAME ?> - คัดกรอง ดูแล ป้องกันเพื่อสุขภาพที่ดีอย่างยั่งยืน</title>
     <link rel="stylesheet" href="assets/css/style.css">
@@ -276,8 +277,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div style="display: flex; align-items: center; gap: 10px; text-align: left;">
                         <span style="font-size: 26px;">🩺</span>
                         <div>
-                            <div style="color: var(--color-primary); font-size: 14px; font-weight: 800;">สำหรับประชาชน: ประเมินสุขภาพตนเอง</div>
-                            <div style="color: var(--text-secondary); font-size: 11.5px;">เช็คความเสี่ยงความดัน-เบาหวาน (ไม่ต้องล็อกอิน)</div>
+                            <div style="color: var(--color-primary); font-size: 14px; font-weight: 800;">ประเมินสุขภาพตนเองเบื้องต้น</div>
+                            <div style="color: var(--text-secondary); font-size: 11.5px;">เช็คความเสี่ยงความดัน-เบาหวานด้วยตัวเอง</div>
                         </div>
                     </div>
                     <span style="color: var(--color-primary); font-weight: 800; font-size: 16px;">→</span>

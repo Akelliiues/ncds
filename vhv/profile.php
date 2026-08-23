@@ -92,7 +92,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="NCDs ตาลสุม">
+    <meta name="apple-mobile-web-app-title" content="NCDs Portal">
+    <meta name="application-name" content="NCDs Portal">
     <meta name="theme-color" content="#0d2c54">
     <title>ข้อมูลส่วนตัว - อสม. นครตาลสุม</title>
     <link rel="stylesheet" href="../assets/css/style.css">

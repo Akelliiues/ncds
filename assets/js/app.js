@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (existing) return;
         const toast = document.createElement('div');
         toast.id = 'sw-update-toast';
-        toast.innerHTML = '🔄 กำลังอัปเดตแอป NCDs ตาลสุม...';
+        toast.innerHTML = '🔄 กำลังอัปเดตแอป NCDs Portal...';
         toast.style.cssText = `
             position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
             background: #1e40af; color: #fff; padding: 12px 24px;
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('PWA: App installed successfully!');
         deferredPrompt = null;
         if (typeof showToast === 'function') {
-            showToast('🎉 ติดตั้งแอป NCDs ตาลสุม ลงเครื่องเรียบร้อยแล้ว!');
+            showToast('🎉 ติดตั้งแอป NCDs Portal ลงเครื่องเรียบร้อยแล้ว!');
         }
     });
 
