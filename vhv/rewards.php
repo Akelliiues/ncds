@@ -381,7 +381,9 @@ try {
         <!-- 1. Points Hero Card -->
         <div class="points-hero-card">
             <div style="display: flex; align-items: center; justify-content: space-between;">
-                <span style="font-size: 13px; font-weight: 700; opacity: 0.9;">⭐ คะแนนพร้อมแลกรางวัล</span>
+                <span style="font-size: 13px; font-weight: 700; opacity: 0.9;">
+                    <?= $systemEnabled ? '⭐ คะแนนพร้อมแลกรางวัล' : '⭐ คะแนนผลงานสะสมของคุณ' ?>
+                </span>
                 <span style="background: rgba(255, 255, 255, 0.2); padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 800;">ปีงบประมาณ <?= function_exists('get_current_budget_year') ? get_current_budget_year() + 543 : '2569' ?></span>
             </div>
 
@@ -396,8 +398,13 @@ try {
                     <div class="points-sub-val"><?= number_format($totalEarned, 1) ?> แต้ม</div>
                 </div>
                 <div class="points-sub-item" style="border-left: 1px solid rgba(255,255,255,0.2); padding-left: 12px;">
-                    <div class="points-sub-label">แลกไปแล้ว</div>
-                    <div class="points-sub-val"><?= number_format($pointsSpent, 1) ?> แต้ม</div>
+                    <?php if ($systemEnabled): ?>
+                        <div class="points-sub-label">แลกไปแล้ว</div>
+                        <div class="points-sub-val"><?= number_format($pointsSpent, 1) ?> แต้ม</div>
+                    <?php else: ?>
+                        <div class="points-sub-label">สถานะระบบ</div>
+                        <div class="points-sub-val" style="color: #FCD34D;">รอเปิดให้แลกรางวัล</div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -405,13 +412,13 @@ try {
         <!-- 2. System Status Banner -->
         <?php if (!$systemEnabled): ?>
             <div class="banner-coming-soon">
-                <span style="font-size: 26px;">🔒</span>
+                <span style="font-size: 26px;">🎁</span>
                 <div>
                     <strong style="font-size: 14.5px; color: #92400E; display: block; margin-bottom: 2px;">
-                        ศูนย์ของรางวัลเตรียมเปิดให้บริการเร็วๆ นี้ (Preview Mode)
+                        ของรางวัลเตรียมเปิดให้แลกเร็วๆ นี้ (Preview Mode)
                     </strong>
                     <p style="margin: 0; font-size: 12.5px; color: #B45309; line-height: 1.45;">
-                        เจ้าหน้าที่ รพ.สต. กำลังจัดเตรียมรายการของรางวัล ท่านสามารถสะสมคะแนนจากการลงพื้นที่คัดกรองรอไว้ได้เลยค่ะ!
+                        เจ้าหน้าที่ รพ.สต. กำลังจัดเตรียมรายการของรางวัลและกำหนดเกณฑ์คะแนน ท่านสามารถสะสมแต้มจากการลงพื้นที่คัดกรองรอไว้ได้เลยค่ะ!
                     </p>
                 </div>
             </div>
@@ -450,9 +457,15 @@ try {
                                 <div style="font-size: 15px; font-weight: 800; color: var(--text-primary); margin-bottom: 2px;">
                                     <?= htmlspecialchars($it['title']) ?>
                                 </div>
-                                <div class="reward-points-badge">
-                                    ⭐ <strong><?= number_format($reqPts) ?></strong> แต้ม
-                                </div>
+                                <?php if ($systemEnabled): ?>
+                                    <div class="reward-points-badge">
+                                        ⭐ <strong><?= number_format($reqPts) ?></strong> แต้ม
+                                    </div>
+                                <?php else: ?>
+                                    <div class="reward-points-badge" style="background: rgba(100, 116, 139, 0.12); color: #64748B;">
+                                        ✨ รายการของรางวัล
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
 
@@ -460,22 +473,29 @@ try {
                             <?= htmlspecialchars($it['description'] ?: 'ไม่มีคำอธิบายเพิ่มเติม') ?>
                         </p>
 
-                        <!-- Progress Bar -->
-                        <div class="progress-box">
-                            <div class="progress-label-row">
-                                <span>ความคืบหน้า</span>
-                                <span><?= number_format($availablePoints, 1) ?> / <?= number_format($reqPts) ?> แต้ม</span>
+                        <?php if ($systemEnabled): ?>
+                            <!-- Progress Bar (Active Mode) -->
+                            <div class="progress-box">
+                                <div class="progress-label-row">
+                                    <span>ความคืบหน้า</span>
+                                    <span><?= number_format($availablePoints, 1) ?> / <?= number_format($reqPts) ?> แต้ม</span>
+                                </div>
+                                <div class="progress-track">
+                                    <div class="progress-fill" style="width: <?= $pct ?>%; <?= $canAfford ? 'background: #10B981;' : 'background: #F59E0B;' ?>"></div>
+                                </div>
                             </div>
-                            <div class="progress-track">
-                                <div class="progress-fill" style="width: <?= $pct ?>%; <?= $canAfford ? 'background: #10B981;' : 'background: #F59E0B;' ?>"></div>
+                        <?php else: ?>
+                            <!-- Coming Soon Note (Preview Mode - Hide Points) -->
+                            <div style="font-size: 11.5px; color: var(--text-muted); margin: 6px 0 12px 0; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                                <span>⏳</span> <span>รอประกาศเกณฑ์คะแนนเร็วๆ นี้</span>
                             </div>
-                        </div>
+                        <?php endif; ?>
                     </div>
 
                     <div>
                         <?php if (!$systemEnabled): ?>
                             <button type="button" class="btn-redeem btn-redeem-locked" disabled>
-                                🔒 เร็วๆ นี้ (สะสมแต้มรอ)
+                                🔒 เร็วๆ นี้ (เปิดให้แลกเร็วๆ นี้)
                             </button>
                         <?php elseif ($isOutOfStock): ?>
                             <button type="button" class="btn-redeem btn-redeem-locked" disabled>
