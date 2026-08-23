@@ -433,37 +433,42 @@ try {
             }
         }
 
-        /* Category Filter Chips */
-        .category-scroll {
+        /* Dynamic Category Filter Wrap Chips (No Overflow, Auto Wrap) */
+        .category-filter-wrap {
             display: flex;
+            flex-wrap: wrap;
             gap: 8px;
-            overflow-x: auto;
-            padding-bottom: 8px;
-            margin-bottom: 16px;
-            scrollbar-width: none;
-            -webkit-overflow-scrolling: touch;
+            margin-bottom: 18px;
+            align-items: center;
         }
-        .category-scroll::-webkit-scrollbar { display: none; }
 
         .category-chip {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             color: var(--text-secondary);
-            padding: 7px 14px;
+            padding: 6px 13px;
             border-radius: 50px;
-            font-size: 12.5px;
+            font-size: 12px;
             font-weight: 800;
-            white-space: nowrap;
             cursor: pointer;
             box-shadow: var(--neumorph-flat);
-            transition: all 0.2s;
-            flex-shrink: 0;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            line-height: 1.2;
+            user-select: none;
+        }
+
+        .category-chip:active {
+            transform: scale(0.96);
         }
 
         .category-chip.active {
             background: var(--color-primary);
             color: #ffffff;
             border-color: var(--color-primary);
+            box-shadow: 0 4px 12px rgba(13, 44, 84, 0.25);
         }
 
         /* Rewards List & Card Redesign - High Impact Hero Visual & Clean Compact Layout */
@@ -1075,12 +1080,15 @@ try {
                 </div>
             </div>
 
-            <!-- Dynamic Category Filter Chips -->
-            <div class="category-scroll">
-                <button type="button" class="category-chip active" onclick="filterCategory('all', this)">ทั้งหมด</button>
+            <!-- Dynamic Category Filter Wrap Chips (Auto Wrap & No Horizontal Overflow) -->
+            <div class="category-filter-wrap">
+                <button type="button" class="category-chip active" onclick="filterCategory('all', this)">
+                    <span>✨</span> <span>ทั้งหมด</span>
+                </button>
                 <?php foreach ($rewardCategories as $rc): ?>
                     <button type="button" class="category-chip" onclick="filterCategory('<?= htmlspecialchars($rc['category_code']) ?>', this)">
-                        <?= htmlspecialchars($rc['icon_emoji'] ?? '🏷️') ?> <?= htmlspecialchars($rc['category_name']) ?>
+                        <span><?= htmlspecialchars($rc['icon_emoji'] ?? '🏷️') ?></span> 
+                        <span><?= htmlspecialchars($rc['category_name']) ?></span>
                     </button>
                 <?php endforeach; ?>
             </div>

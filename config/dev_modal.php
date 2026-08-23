@@ -285,7 +285,9 @@ if (file_exists('assets/aboutus.png')) {
             <div class="dev-profile-info">
                 <span class="dev-badge">ผู้พัฒนาระบบ</span>
                 <h4 class="dev-name">นายบุญธรรม พันธ์ใหญ่</h4>
-                <p class="dev-title">นักวิชาการคอมพิวเตอร์ สสอ.<?= DISTRICT_NAME ?></p>
+                <p class="dev-title">นักวิชาการคอมพิวเตอร์ </p>
+                <p class="dev-title">สำนักงานสาธารณสุขอำเภอตาลสุม</p>
+                <p class="dev-title">จังหวัดอุบลราชธานี</p>
             </div>
         </div>
 
