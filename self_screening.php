@@ -1,5 +1,5 @@
 <?php
-// self_screening.php - แบบประเมินสุขภาพและพฤติกรรมเสี่ยง NCDs ด้วยตนเองสำหรับประชาชน
+// self_screening.php - แบบประเมินสุขภาพและพฤติกรรมเสี่ยง NCDs ด้วยตนเองสำหรับประชาชน (Claymorphism & Overlay Navigation)
 require_once __DIR__ . '/config/db.php';
 ?>
 <!DOCTYPE html>
@@ -18,130 +18,260 @@ require_once __DIR__ . '/config/db.php';
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ประเมินสุขภาพตนเอง">
     <meta name="theme-color" content="#0d2c54">
-    <title>แบบประเมินสุขภาพและพฤติกรรม NCDs ด้วยตนเอง - อำเภอ<?= DISTRICT_NAME ?></title>
+    <title>ตรวจเช็คสุขภาพเบื้องต้น - อำเภอ<?= DISTRICT_NAME ?></title>
     <link rel="stylesheet" href="assets/css/style.css">
     <link rel="apple-touch-icon" href="assets/icon.png">
     <link rel="manifest" href="manifest.json">
     <script src="assets/js/clinical_guidance.js"></script>
 
     <style>
-        .self-step-card {
-            display: none;
-            animation: fadeIn 0.3s ease;
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            position: relative;
+            overflow-x: hidden;
         }
-        .self-step-card.active {
+
+        .screen-container {
+            max-width: 520px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 12px 16px 40px 16px;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        /* Slide Transition */
+        .question-slide {
+            display: none;
+            animation: slideInRight 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .question-slide.active {
             display: block;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Question Option Cards */
-        .option-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        @media (min-width: 480px) {
-            .option-grid-2 {
-                grid-template-columns: 1fr 1fr;
-            }
-            .option-grid-3 {
-                grid-template-columns: 1fr 1fr 1fr;
-            }
-        }
-
-        .option-card {
-            position: relative;
-            background: var(--bg-card);
-            border-radius: 20px;
-            padding: 14px 16px;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05), inset 1px 1px 2px rgba(255, 255, 255, 0.8);
-            cursor: pointer;
-            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-            border: 2px solid transparent;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            user-select: none;
-        }
-        .option-card:hover {
-            transform: translateY(-2px) scale(1.01);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-        }
-        .option-card input[type="radio"] {
-            display: none;
-        }
-        .option-card.selected {
-            background: rgba(59, 130, 246, 0.06);
-            border-color: #3b82f6;
-            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.15), inset 1px 1px 3px rgba(59, 130, 246, 0.1);
-        }
-        [data-theme="dark"] .option-card.selected {
-            background: rgba(56, 189, 248, 0.12);
-            border-color: #38bdf8;
-        }
-        .clay-icon-wrap {
-            width: 52px;
-            height: 52px;
-            border-radius: 16px;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
-            background: #e2e8f0;
-            border: 2px solid rgba(255, 255, 255, 0.6);
-        }
-        .clay-icon-wrap img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.3s ease;
-        }
-        .option-card:hover .clay-icon-wrap img {
-            transform: scale(1.1);
-        }
-        .option-text h4 {
-            margin: 0 0 3px 0;
-            font-size: 15.5px;
-            font-weight: 800;
-            color: var(--text-primary);
-        }
-        .option-text p {
-            margin: 0;
-            font-size: 12.5px;
-            color: var(--text-secondary);
-            line-height: 1.35;
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(24px) scale(0.98); }
+            to { opacity: 1; transform: translateX(0) scale(1); }
         }
 
         /* Progress Bar */
+        .top-nav-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .progress-pill {
+            background: rgba(59, 130, 246, 0.12);
+            color: #2563eb;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+        [data-theme="dark"] .progress-pill {
+            background: rgba(56, 189, 248, 0.18);
+            color: #38bdf8;
+        }
+
         .progress-container {
             width: 100%;
-            height: 8px;
+            height: 7px;
             background: var(--bg-darker);
             border-radius: 9999px;
-            margin-bottom: 24px;
+            margin-bottom: 16px;
             overflow: hidden;
             box-shadow: var(--neumorph-inset);
         }
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, #3b82f6, #10b981);
-            width: 25%;
-            transition: width 0.3s ease;
+            width: 10%;
+            transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             border-radius: 9999px;
         }
 
-        /* Solution Action Box */
+        /* Big Question Header */
+        .q-header {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .q-title {
+            font-size: 20px;
+            font-weight: 900;
+            color: var(--text-primary);
+            margin: 0 0 4px 0;
+            line-height: 1.35;
+        }
+        .q-subtitle {
+            font-size: 13.5px;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        /* Large Claymorphism Option Cards */
+        .clay-options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .clay-opt-card {
+            position: relative;
+            background: var(--bg-card);
+            border-radius: 22px;
+            padding: 14px 18px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05), inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.8), inset -1.5px -1.5px 3px rgba(0, 0, 0, 0.03);
+            cursor: pointer;
+            transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 2.5px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .clay-opt-card:active {
+            transform: scale(0.97);
+        }
+        .clay-opt-card input[type="radio"] {
+            display: none;
+        }
+        .clay-opt-card.selected {
+            background: rgba(59, 130, 246, 0.08);
+            border-color: #3b82f6;
+            box-shadow: 0 8px 22px rgba(59, 130, 246, 0.22), inset 2px 2px 4px rgba(59, 130, 246, 0.1);
+            transform: scale(1.02);
+        }
+        [data-theme="dark"] .clay-opt-card.selected {
+            background: rgba(56, 189, 248, 0.15);
+            border-color: #38bdf8;
+        }
+
+        /* Prominent Clay Icon Container */
+        .clay-icon-large {
+            width: 64px;
+            height: 64px;
+            border-radius: 18px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1), inset 1px 1px 2px rgba(255, 255, 255, 0.6);
+            background: #e2e8f0;
+            border: 2px solid rgba(255, 255, 255, 0.7);
+        }
+        .clay-icon-large img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        .clay-opt-card:hover .clay-icon-large img,
+        .clay-opt-card.selected .clay-icon-large img {
+            transform: scale(1.12);
+        }
+
+        /* Large Bold Typography */
+        .opt-content {
+            flex: 1;
+            text-align: left;
+        }
+        .opt-content h4 {
+            margin: 0 0 3px 0;
+            font-size: 17.5px;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1.25;
+        }
+        .opt-content p {
+            margin: 0;
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.35;
+        }
+
+        .opt-check-badge {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color, #cbd5e1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: transparent;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        .clay-opt-card.selected .opt-check-badge {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+        }
+
+        /* Side Overlay Navigation Buttons */
+        .side-overlay-btn {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), inset 2px 2px 4px rgba(255, 255, 255, 0.9);
+            color: var(--text-primary);
+            font-size: 22px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 99;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .side-overlay-btn:hover {
+            transform: translateY(-50%) scale(1.12);
+            color: #3b82f6;
+        }
+        .side-overlay-btn:active {
+            transform: translateY(-50%) scale(0.92);
+        }
+        .side-btn-prev {
+            left: 8px;
+        }
+        .side-btn-next {
+            right: 8px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
+        }
+        .side-btn-next:hover {
+            color: white;
+        }
+
+        /* Hide side button when inactive */
+        .side-overlay-btn.disabled {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-50%) scale(0.6);
+        }
+
+        /* Results & Solution Box */
         .solution-box {
             background: var(--bg-card);
             border-radius: 20px;
-            padding: 18px;
-            margin-bottom: 16px;
+            padding: 16px;
+            margin-bottom: 14px;
             box-shadow: var(--neumorph-flat);
             border-left: 6px solid #3b82f6;
             text-align: left;
@@ -162,13 +292,13 @@ require_once __DIR__ . '/config/db.php';
         }
         .solution-list {
             margin: 0;
-            padding-left: 20px;
+            padding-left: 18px;
             font-size: 14px;
-            line-height: 1.65;
+            line-height: 1.6;
             color: var(--text-primary);
         }
         .solution-list li {
-            margin-bottom: 6px;
+            margin-bottom: 5px;
         }
 
         /* Voice Coach Trigger */
@@ -176,435 +306,449 @@ require_once __DIR__ . '/config/db.php';
             background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(16, 185, 129, 0.12));
             border: 1.5px solid rgba(59, 130, 246, 0.3);
             border-radius: 16px;
-            padding: 14px 16px;
+            padding: 12px 14px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 20px;
+            gap: 10px;
+            margin-bottom: 16px;
         }
     </style>
 </head>
 <body class="vhv-accessibility">
-    <div class="mobile-wrapper" style="padding-bottom: 80px;">
-        
-        <!-- Header Brand -->
-        <div style="text-align: center; margin-bottom: 20px; padding-top: 10px;">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px;">
-                <img src="assets/icon.png" alt="Logo" style="width: 44px; height: 44px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                <span style="font-weight: 800; font-size: 16px; color: var(--color-accent);">NCDs Portal อำเภอ<?= DISTRICT_NAME ?></span>
-            </div>
-            <h2 style="font-size: 22px; font-weight: 800; margin: 4px 0; color: var(--text-primary);">ตรวจเช็คสุขภาพเบื้องต้นด้วยตนเอง</h2>
-            <p style="font-size: 13.5px; color: var(--text-secondary); margin: 0;">ตอบคำถามง่ายๆ 1 นาที รู้ทันความเสี่ยง พร้อมวิธีลดความดันและค่าน้ำตาล</p>
-        </div>
 
-        <!-- Progress Indicator -->
-        <div class="progress-container">
-            <div id="self-progress" class="progress-fill"></div>
+    <!-- Floating Side Overlay Buttons -->
+    <button type="button" id="btn-side-prev" class="side-overlay-btn side-btn-prev disabled" onclick="prevQuestion()" title="ย้อนกลับ">
+        ‹
+    </button>
+    <button type="button" id="btn-side-next" class="side-overlay-btn side-btn-next" onclick="nextQuestion()" title="ถัดไป">
+        ›
+    </button>
+
+    <div class="screen-container">
+        
+        <!-- Top Nav & Progress Bar -->
+        <div id="top-nav-section">
+            <div class="top-nav-bar">
+                <a href="index.php" style="color: var(--text-secondary); text-decoration: none; font-size: 13.5px; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                    ✕ ออก
+                </a>
+                <span id="step-badge" class="progress-pill">ข้อ 1 จาก 10</span>
+                <span style="font-size: 12.5px; color: var(--color-accent); font-weight: 800;">
+                    NCDs ตาลสุม
+                </span>
+            </div>
+            <div class="progress-container">
+                <div id="self-progress" class="progress-fill"></div>
+            </div>
         </div>
 
         <form id="self-screening-form" onsubmit="return false;">
             
-            <!-- STEP 1: เรื่องตัวเรา & รูปร่าง -->
-            <div id="step-1" class="self-step-card active">
-                <div style="margin-bottom: 18px;">
-                    <span style="font-size: 13px; font-weight: 800; color: #3b82f6; text-transform: uppercase;">ข้อ 1-3 จาก 10</span>
-                    <h3 style="font-size: 18px; font-weight: 800; margin: 4px 0; color: var(--text-primary);">👤 เรื่องตัวเรา & รูปร่าง</h3>
+            <!-- QUESTION 1: เพศ -->
+            <div id="q-1" class="question-slide active">
+                <div class="q-header">
+                    <h2 class="q-title">1. เพศของท่าน</h2>
+                    <p class="q-subtitle">แตะเลือกเพศเพื่อเริ่มตรวจเช็ค</p>
                 </div>
-
-                <!-- Gender -->
-                <div style="margin-bottom: 18px;">
-                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">1. เพศ</label>
-                    <div class="option-grid option-grid-2">
-                        <label class="option-card selected" onclick="selectOption(this, 'gender')">
-                            <input type="radio" name="gender" value="male" checked>
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/male.jpg" alt="เพศชาย">
-                            </div>
-                            <div class="option-text">
-                                <h4>ชาย</h4>
-                            </div>
-                        </label>
-                        <label class="option-card" onclick="selectOption(this, 'gender')">
-                            <input type="radio" name="gender" value="female">
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/female.jpg" alt="เพศหญิง">
-                            </div>
-                            <div class="option-text">
-                                <h4>หญิง</h4>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Age Group -->
-                <div style="margin-bottom: 18px;">
-                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">2. อายุเท่าไหร่?</label>
-                    <div class="option-grid">
-                        <label class="option-card selected" onclick="selectOption(this, 'age_group')">
-                            <input type="radio" name="age_group" value="young" checked>
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/exercise.jpg" alt="อายุน้อยกว่า 35 ปี">
-                            </div>
-                            <div class="option-text">
-                                <h4>น้อยกว่า 35 ปี</h4>
-                                <p>วัยหนุ่มสาว / วัยเริ่มทำงาน</p>
-                            </div>
-                        </label>
-                        <label class="option-card" onclick="selectOption(this, 'age_group')">
-                            <input type="radio" name="age_group" value="middle">
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/shield.jpg" alt="อายุ 35-59 ปี">
-                            </div>
-                            <div class="option-text">
-                                <h4>อายุ 35 - 59 ปี</h4>
-                                <p>วัยทำงาน (ควรเริ่มตรวจสุขภาพประจำปี)</p>
-                            </div>
-                        </label>
-                        <label class="option-card" onclick="selectOption(this, 'age_group')">
-                            <input type="radio" name="age_group" value="senior">
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/sleep.jpg" alt="อายุ 60 ปีขึ้นไป">
-                            </div>
-                            <div class="option-text">
-                                <h4>อายุ 60 ปีขึ้นไป</h4>
-                                <p>วัยผู้สูงอายุ</p>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Body / Waist Shape -->
-                <div style="margin-bottom: 24px;">
-                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">3. รูปร่างและรอบเอว</label>
-                    <div class="option-grid">
-                        <label class="option-card selected" onclick="selectOption(this, 'body_shape')">
-                            <input type="radio" name="body_shape" value="slim" checked>
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/waist.jpg" alt="สมส่วน พอดีตัว">
-                            </div>
-                            <div class="option-text">
-                                <h4>สมส่วน พอดีตัว</h4>
-                                <p>ไม่อึดอัด พุงไม่ยื่น</p>
-                            </div>
-                        </label>
-                        <label class="option-card" onclick="selectOption(this, 'body_shape')">
-                            <input type="radio" name="body_shape" value="chubby">
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/sweet.jpg" alt="เริ่มมีพุง">
-                            </div>
-                            <div class="option-text">
-                                <h4>เริ่มมีพุง / ท้วม</h4>
-                                <p>กางเกงเริ่มแน่น มีพุงเล็กน้อย</p>
-                            </div>
-                        </label>
-                        <label class="option-card" onclick="selectOption(this, 'body_shape')">
-                            <input type="radio" name="body_shape" value="obese">
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/fried.jpg" alt="อ้วนลงพุงชัดเจน">
-                            </div>
-                            <div class="option-text">
-                                <h4>อ้วนลงพุงชัดเจน</h4>
-                                <p>พุงยื่นเยอะ เหนื่อยง่าย</p>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <button type="button" onclick="goToStep(2)" class="btn-giant btn-giant-primary" style="width: 100%; margin: 0; padding: 14px; font-size: 16px;">
-                    ถัดไป: เรื่องการกินอาหาร →
-                </button>
-            </div>
-
-
-            <!-- STEP 2: เรื่องการกินอาหาร -->
-            <div id="step-2" class="self-step-card">
-                <div style="margin-bottom: 18px;">
-                    <span style="font-size: 13px; font-weight: 800; color: #3b82f6; text-transform: uppercase;">ข้อ 4-6 จาก 10</span>
-                    <h3 style="font-size: 18px; font-weight: 800; margin: 4px 0; color: var(--text-primary);">🥗 เรื่องการกินอาหาร</h3>
-                </div>
-
-                <!-- Sweetness / Sugar -->
-                <div style="margin-bottom: 18px;">
-                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">4. ดื่มน้ำหวาน ชงหวาน หรือกินขนมหวานบ่อยไหม?</label>
-                    <div class="option-grid">
-                        <label class="option-card selected" onclick="selectOption(this, 'sweet_habit')">
-                            <input type="radio" name="sweet_habit" value="low" checked>
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/water.jpg" alt="ดื่มน้ำเปล่าเป็นหลัก">
-                            </div>
-                            <div class="option-text">
-                                <h4>ดื่มน้ำเปล่าเป็นหลัก</h4>
-                                <p>แทบไม่แตะน้ำอัดลม ชาหวาน กาแฟใส่นมข้น</p>
-                            </div>
-                        </label>
-                        <label class="option-card" onclick="selectOption(this, 'sweet_habit')">
-                            <input type="radio" name="sweet_habit" value="med">
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/sweet.jpg" alt="ดื่มบ้างบางวัน">
-                            </div>
-                            <div class="option-text">
-                                <h4>ดื่มบ้างบางวัน (สัปดาห์ละ 1-3 ครั้ง)</h4>
-                                <p>ดื่มเฉพาะเวลาเหนื่อย หรือมีสังสรรค์</p>
-                            </div>
-                        </label>
-                        <label class="option-card" onclick="selectOption(this, 'sweet_habit')">
-                            <input type="radio" name="sweet_habit" value="high">
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/sweet.jpg" alt="กินเกือบทุกวัน">
-                            </div>
-                            <div class="option-text">
-                                <h4>กินเกือบทุกวัน / ติดรสหวาน</h4>
-                                <p>ต้องมีน้ำหวาน ชา กาแฟ หรือขนมหวานทุกวัน</p>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Salt / Sodium / Fried -->
-                <div style="margin-bottom: 18px;">
-                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">5. ชอบกินเค็ม เติมผงชูรส/น้ำปลา หรือกินของทอดบ่อยไหม?</label>
-                    <div class="option-grid">
-                        <label class="option-card selected" onclick="selectOption(this, 'salt_habit')">
-                            <input type="radio" name="salt_habit" value="low" checked>
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/veggie.jpg" alt="กินรสจืดๆ">
-                            </div>
-                            <div class="option-text">
-                                <h4>กินรสจืดๆ ไม่ปรุงเพิ่ม</h4>
-                                <p>เลี่ยงของทอดมัน ซดน้ำแกงแต่น้อย</p>
-                            </div>
-                        </label>
-                        <label class="option-card" onclick="selectOption(this, 'salt_habit')">
-                            <input type="radio" name="salt_habit" value="med">
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/fried.jpg" alt="กินรสจัดบ้างบางมื้อ">
-                            </div>
-                            <div class="option-text">
-                                <h4>กินรสจัดบ้างบางมื้อ</h4>
-                                <p>มีส้มตำ ปลาร้า หรือของทอด สัปดาห์ละ 2-3 ครั้ง</p>
-                            </div>
-                        </label>
-                        <label class="option-card" onclick="selectOption(this, 'salt_habit')">
-                            <input type="radio" name="salt_habit" value="high">
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/fried.jpg" alt="ชอบรสเค็มจัด">
-                            </div>
-                            <div class="option-text">
-                                <h4>ชอบรสเค็มจัด / ปลาร้าเข้ม / ของทอดประจำ</h4>
-                                <p>ชอบเติมน้ำปลา ผงชูรส ซดน้ำแกงจนหมด</p>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Vegetables -->
-                <div style="margin-bottom: 24px;">
-                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">6. กินผักในมื้ออาหารบ่อยแค่ไหน?</label>
-                    <div class="option-grid">
-                        <label class="option-card selected" onclick="selectOption(this, 'veggie_habit')">
-                            <input type="radio" name="veggie_habit" value="good" checked>
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/veggie.jpg" alt="กินผักทุกมื้อ">
-                            </div>
-                            <div class="option-text">
-                                <h4>กินผักทุกมื้อ หรือเกือบทุกมื้อ</h4>
-                                <p>มีผักสด ผักลวก ผักต้มในจานเสมอ</p>
-                            </div>
-                        </label>
-                        <label class="option-card" onclick="selectOption(this, 'veggie_habit')">
-                            <input type="radio" name="veggie_habit" value="poor">
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/fried.jpg" alt="ไม่ค่อยกินผัก">
-                            </div>
-                            <div class="option-text">
-                                <h4>ไม่ค่อยกินผัก / กินน้อยมาก</h4>
-                                <p>เน้นเนื้อสัตว์ ข้าว และของทอด</p>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 12px;">
-                    <button type="button" onclick="goToStep(1)" class="btn-giant btn-giant-secondary" style="flex: 1; margin: 0; padding: 14px;">
-                        ← ย้อนกลับ
-                    </button>
-                    <button type="button" onclick="goToStep(3)" class="btn-giant btn-giant-primary" style="flex: 1.5; margin: 0; padding: 14px;">
-                        ถัดไป: การขยับร่างกาย →
-                    </button>
+                <div class="clay-options-list">
+                    <label class="clay-opt-card selected" onclick="pickOption(this, 'gender', 1)">
+                        <input type="radio" name="gender" value="male" checked>
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/male.jpg" alt="เพศชาย">
+                        </div>
+                        <div class="opt-content">
+                            <h4>ชาย</h4>
+                            <p>สุภาพบุรุษ</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                    <label class="clay-opt-card" onclick="pickOption(this, 'gender', 1)">
+                        <input type="radio" name="gender" value="female">
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/female.jpg" alt="เพศหญิง">
+                        </div>
+                        <div class="opt-content">
+                            <h4>หญิง</h4>
+                            <p>สุภาพสตรี</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
                 </div>
             </div>
 
 
-            <!-- STEP 3: การขยับร่างกาย & ออกกำลังกาย -->
-            <div id="step-3" class="self-step-card">
-                <div style="margin-bottom: 18px;">
-                    <span style="font-size: 13px; font-weight: 800; color: #3b82f6; text-transform: uppercase;">ข้อ 7 จาก 10</span>
-                    <h3 style="font-size: 18px; font-weight: 800; margin: 4px 0; color: var(--text-primary);">🏃 การขยับร่างกาย & ออกกำลังกาย</h3>
+            <!-- QUESTION 2: อายุ -->
+            <div id="q-2" class="question-slide">
+                <div class="q-header">
+                    <h2 class="q-title">2. ท่านอายุเท่าไหร่?</h2>
+                    <p class="q-subtitle">ช่วงวัยที่ตรงกับท่านในปัจจุบัน</p>
                 </div>
-
-                <!-- Physical Activity -->
-                <div style="margin-bottom: 24px;">
-                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">7. ได้ออกกำลังกายหรือออกแรงทำงานไหม?</label>
-                    <div class="option-grid">
-                        <label class="option-card selected" onclick="selectOption(this, 'exercise_habit')">
-                            <input type="radio" name="exercise_habit" value="regular" checked>
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/exercise.jpg" alt="ทำเป็นประจำ">
-                            </div>
-                            <div class="option-text">
-                                <h4>ทำเป็นประจำ (3-5 วัน/สัปดาห์)</h4>
-                                <p>เดินเร็ว วิ่ง ปั่นจักรยาน ทำงานสวนเหงื่อออก 20-30 นาที</p>
-                            </div>
-                        </label>
-                        <label class="option-card" onclick="selectOption(this, 'exercise_habit')">
-                            <input type="radio" name="exercise_habit" value="some">
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/waist.jpg" alt="มีเดินขยับตัวบ้าง">
-                            </div>
-                            <div class="option-text">
-                                <h4>มีเดินขยับตัวบ้าง (1-2 วัน/สัปดาห์)</h4>
-                                <p>ทำงานบ้าน กวาดใบไม้ เดินไปมา</p>
-                            </div>
-                        </label>
-                        <label class="option-card" onclick="selectOption(this, 'exercise_habit')">
-                            <input type="radio" name="exercise_habit" value="sedentary">
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/sleep.jpg" alt="แทบไม่ได้ออก">
-                            </div>
-                            <div class="option-text">
-                                <h4>แทบไม่ได้ออก / นั่งนานทั้งวัน</h4>
-                                <p>นั่งทำงานหรือนอนเล่นมือถือนานๆ ขยับตัวน้อย</p>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 12px;">
-                    <button type="button" onclick="goToStep(2)" class="btn-giant btn-giant-secondary" style="flex: 1; margin: 0; padding: 14px;">
-                        ← ย้อนกลับ
-                    </button>
-                    <button type="button" onclick="goToStep(4)" class="btn-giant btn-giant-primary" style="flex: 1.5; margin: 0; padding: 14px;">
-                        ถัดไป: การนอน & พักผ่อน →
-                    </button>
+                <div class="clay-options-list">
+                    <label class="clay-opt-card selected" onclick="pickOption(this, 'age_group', 2)">
+                        <input type="radio" name="age_group" value="young" checked>
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/exercise.jpg" alt="น้อยกว่า 35 ปี">
+                        </div>
+                        <div class="opt-content">
+                            <h4>น้อยกว่า 35 ปี</h4>
+                            <p>วัยหนุ่มสาว / วัยเริ่มทำงาน</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                    <label class="clay-opt-card" onclick="pickOption(this, 'age_group', 2)">
+                        <input type="radio" name="age_group" value="middle">
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/shield.jpg" alt="อายุ 35-59 ปี">
+                        </div>
+                        <div class="opt-content">
+                            <h4>อายุ 35 - 59 ปี</h4>
+                            <p>วัยทำงาน (ควรตรวจสุขภาพประจำปี)</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                    <label class="clay-opt-card" onclick="pickOption(this, 'age_group', 2)">
+                        <input type="radio" name="age_group" value="senior">
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/sleep.jpg" alt="อายุ 60 ปีขึ้นไป">
+                        </div>
+                        <div class="opt-content">
+                            <h4>อายุ 60 ปีขึ้นไป</h4>
+                            <p>วัยผู้สูงอายุ</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
                 </div>
             </div>
 
 
-            <!-- STEP 4: การนอน & สุขภาพกายใจ -->
-            <div id="step-4" class="self-step-card">
-                <div style="margin-bottom: 18px;">
-                    <span style="font-size: 13px; font-weight: 800; color: #3b82f6; text-transform: uppercase;">ข้อ 8-10 จาก 10</span>
-                    <h3 style="font-size: 18px; font-weight: 800; margin: 4px 0; color: var(--text-primary);">😴 การนอน & การพักผ่อน</h3>
+            <!-- QUESTION 3: รูปร่าง & รอบเอว -->
+            <div id="q-3" class="question-slide">
+                <div class="q-header">
+                    <h2 class="q-title">3. รูปร่างและรอบเอว</h2>
+                    <p class="q-subtitle">สัดส่วนหน้าท้องและรูปร่างของท่าน</p>
                 </div>
-
-                <!-- Sleep -->
-                <div style="margin-bottom: 18px;">
-                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">8. นอนหลับดีไหม?</label>
-                    <div class="option-grid">
-                        <label class="option-card selected" onclick="selectOption(this, 'sleep_habit')">
-                            <input type="radio" name="sleep_habit" value="good" checked>
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/sleep.jpg" alt="หลับสนิทดี">
-                            </div>
-                            <div class="option-text">
-                                <h4>หลับสนิทดี ตื่นมาสดชื่น</h4>
-                                <p>นอน 6-8 ชั่วโมง ไม่ค่อยตื่นกลางดึก</p>
-                            </div>
-                        </label>
-                        <label class="option-card" onclick="selectOption(this, 'sleep_habit')">
-                            <input type="radio" name="sleep_habit" value="poor">
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/sweet.jpg" alt="หลับยาก">
-                            </div>
-                            <div class="option-text">
-                                <h4>หลับๆ ตื่นๆ / หลับยาก ตื่นไม่สดชื่น</h4>
-                                <p>ตื่นกลางดึกบ่อย พักผ่อนไม่ค่อยพอ</p>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Smoking & Alcohol -->
-                <div style="margin-bottom: 18px;">
-                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">9. สูบบุหรี่หรือดื่มเหล้าไหม?</label>
-                    <div class="option-grid">
-                        <label class="option-card selected" onclick="selectOption(this, 'substance_habit')">
-                            <input type="radio" name="substance_habit" value="none" checked>
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/shield.jpg" alt="ไม่สูบและไม่ดื่ม">
-                            </div>
-                            <div class="option-text">
-                                <h4>ไม่สูบ และ ไม่ดื่ม</h4>
-                                <p>หรือไม่แตะเลย</p>
-                            </div>
-                        </label>
-                        <label class="option-card" onclick="selectOption(this, 'substance_habit')">
-                            <input type="radio" name="substance_habit" value="some">
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/water.jpg" alt="ดื่มเฉพาะงาน">
-                            </div>
-                            <div class="option-text">
-                                <h4>ดื่มเฉพาะงานสังสรรค์ / สูบบ้างบางครั้ง</h4>
-                            </div>
-                        </label>
-                        <label class="option-card" onclick="selectOption(this, 'substance_habit')">
-                            <input type="radio" name="substance_habit" value="regular">
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/fried.jpg" alt="สูบหรือดื่มประจำ">
-                            </div>
-                            <div class="option-text">
-                                <h4>สูบหรือดื่มเป็นประจำ</h4>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Family History -->
-                <div style="margin-bottom: 24px;">
-                    <label style="display: block; font-size: 14.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">10. พ่อแม่หรือพี่น้อง มีใครเป็นเบาหวานหรือความดันไหม?</label>
-                    <div class="option-grid">
-                        <label class="option-card selected" onclick="selectOption(this, 'family_history')">
-                            <input type="radio" name="family_history" value="no" checked>
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/shield.jpg" alt="ไม่มีใครเป็น">
-                            </div>
-                            <div class="option-text">
-                                <h4>ไม่มีใครเป็น</h4>
-                            </div>
-                        </label>
-                        <label class="option-card" onclick="selectOption(this, 'family_history')">
-                            <input type="radio" name="family_history" value="yes">
-                            <div class="clay-icon-wrap">
-                                <img src="assets/img/clay/waist.jpg" alt="มีคนเป็น">
-                            </div>
-                            <div class="option-text">
-                                <h4>มีคนเป็นเบาหวานหรือความดัน</h4>
-                                <p>มีประวัติในครอบครัว</p>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 12px;">
-                    <button type="button" onclick="goToStep(3)" class="btn-giant btn-giant-secondary" style="flex: 1; margin: 0; padding: 14px;">
-                        ← ย้อนกลับ
-                    </button>
-                    <button type="button" onclick="calculateSelfResults()" class="btn-giant btn-giant-success" style="flex: 1.5; margin: 0; padding: 14px; background: linear-gradient(135deg, #10b981, #059669); color: white;">
-                        🎯 ดูผลตรวจเช็คสุขภาพ ✨
-                    </button>
+                <div class="clay-options-list">
+                    <label class="clay-opt-card selected" onclick="pickOption(this, 'body_shape', 3)">
+                        <input type="radio" name="body_shape" value="slim" checked>
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/waist.jpg" alt="สมส่วน พอดีตัว">
+                        </div>
+                        <div class="opt-content">
+                            <h4>สมส่วน พอดีตัว</h4>
+                            <p>ไม่อึดอัด พุงไม่ยื่น</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                    <label class="clay-opt-card" onclick="pickOption(this, 'body_shape', 3)">
+                        <input type="radio" name="body_shape" value="chubby">
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/sweet.jpg" alt="เริ่มมีพุง">
+                        </div>
+                        <div class="opt-content">
+                            <h4>เริ่มมีพุง / ท้วม</h4>
+                            <p>กางเกงเริ่มแน่น มีพุงเล็กน้อย</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                    <label class="clay-opt-card" onclick="pickOption(this, 'body_shape', 3)">
+                        <input type="radio" name="body_shape" value="obese">
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/fried.jpg" alt="อ้วนลงพุงชัดเจน">
+                        </div>
+                        <div class="opt-content">
+                            <h4>อ้วนลงพุงชัดเจน</h4>
+                            <p>พุงยื่นเยอะ เหนื่อยง่าย</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
                 </div>
             </div>
 
 
-            <!-- STEP 5: หน้าสรุปผลสุขภาพ & คำแนะนำลดความดัน-ลดน้ำตาล -->
-            <div id="step-5" class="self-step-card">
+            <!-- QUESTION 4: ของหวาน & น้ำหวาน -->
+            <div id="q-4" class="question-slide">
+                <div class="q-header">
+                    <h2 class="q-title">4. ดื่มน้ำหวานหรือขนมหวานบ่อยไหม?</h2>
+                    <p class="q-subtitle">ชา ชานม กาแฟใส่นมข้น น้ำอัดลม</p>
+                </div>
+                <div class="clay-options-list">
+                    <label class="clay-opt-card selected" onclick="pickOption(this, 'sweet_habit', 4)">
+                        <input type="radio" name="sweet_habit" value="low" checked>
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/water.jpg" alt="ดื่มน้ำเปล่าเป็นหลัก">
+                        </div>
+                        <div class="opt-content">
+                            <h4>ดื่มน้ำเปล่าเป็นหลัก</h4>
+                            <p>แทบไม่แตะน้ำอัดลม ชาหวาน</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                    <label class="clay-opt-card" onclick="pickOption(this, 'sweet_habit', 4)">
+                        <input type="radio" name="sweet_habit" value="med">
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/sweet.jpg" alt="ดื่มบ้างบางวัน">
+                        </div>
+                        <div class="opt-content">
+                            <h4>ดื่มบ้างบางวัน</h4>
+                            <p>สัปดาห์ละ 1-3 ครั้ง เวลาเหนื่อย</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                    <label class="clay-opt-card" onclick="pickOption(this, 'sweet_habit', 4)">
+                        <input type="radio" name="sweet_habit" value="high">
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/sweet.jpg" alt="กินเกือบทุกวัน">
+                        </div>
+                        <div class="opt-content">
+                            <h4>กินเกือบทุกวัน / ติดหวาน</h4>
+                            <p>ต้องมีน้ำหวาน กาแฟ หรือขนมทุกวัน</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                </div>
+            </div>
+
+
+            <!-- QUESTION 5: ของเค็ม & ของทอด -->
+            <div id="q-5" class="question-slide">
+                <div class="q-header">
+                    <h2 class="q-title">5. ชอบกินเค็ม ผงชูรส หรือของทอดไหม?</h2>
+                    <p class="q-subtitle">น้ำปลา ซอสปรุงรส ปลาร้าเข้มข้น</p>
+                </div>
+                <div class="clay-options-list">
+                    <label class="clay-opt-card selected" onclick="pickOption(this, 'salt_habit', 5)">
+                        <input type="radio" name="salt_habit" value="low" checked>
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/veggie.jpg" alt="กินรสจืดๆ">
+                        </div>
+                        <div class="opt-content">
+                            <h4>กินรสจืดๆ ไม่ปรุงเพิ่ม</h4>
+                            <p>เลี่ยงของทอด ซดน้ำแกงแต่น้อย</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                    <label class="clay-opt-card" onclick="pickOption(this, 'salt_habit', 5)">
+                        <input type="radio" name="salt_habit" value="med">
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/fried.jpg" alt="กินรสจัดบ้าง">
+                        </div>
+                        <div class="opt-content">
+                            <h4>กินรสจัดบ้างบางมื้อ</h4>
+                            <p>มีส้มตำ ปลาร้า ของทอด สัปดาห์ละ 2-3 ครั้ง</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                    <label class="clay-opt-card" onclick="pickOption(this, 'salt_habit', 5)">
+                        <input type="radio" name="salt_habit" value="high">
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/fried.jpg" alt="ชอบรสเค็มจัด">
+                        </div>
+                        <div class="opt-content">
+                            <h4>ชอบเค็มจัด / ปลาร้าเข้ม / ของทอดประจำ</h4>
+                            <p>ชอบเติมน้ำปลา ผงชูรส ซดน้ำแกงหมด</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                </div>
+            </div>
+
+
+            <!-- QUESTION 6: การกินผัก -->
+            <div id="q-6" class="question-slide">
+                <div class="q-header">
+                    <h2 class="q-title">6. กินผักในมื้ออาหารบ่อยแค่ไหน?</h2>
+                    <p class="q-subtitle">ผักสด ผักลวก ผักต้มในแต่ละมื้อ</p>
+                </div>
+                <div class="clay-options-list">
+                    <label class="clay-opt-card selected" onclick="pickOption(this, 'veggie_habit', 6)">
+                        <input type="radio" name="veggie_habit" value="good" checked>
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/veggie.jpg" alt="กินผักทุกมื้อ">
+                        </div>
+                        <div class="opt-content">
+                            <h4>กินผักทุกมื้อ หรือเกือบทุกมื้อ</h4>
+                            <p>มีผักสด ผักลวก ผักต้มในจานเสมอ</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                    <label class="clay-opt-card" onclick="pickOption(this, 'veggie_habit', 6)">
+                        <input type="radio" name="veggie_habit" value="poor">
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/fried.jpg" alt="ไม่ค่อยกินผัก">
+                        </div>
+                        <div class="opt-content">
+                            <h4>ไม่ค่อยกินผัก / กินน้อยมาก</h4>
+                            <p>เน้นเนื้อสัตว์ ข้าว และของทอด</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                </div>
+            </div>
+
+
+            <!-- QUESTION 7: การออกกำลังกาย -->
+            <div id="q-7" class="question-slide">
+                <div class="q-header">
+                    <h2 class="q-title">7. ได้ออกกำลังกายหรือออกแรงไหม?</h2>
+                    <p class="q-subtitle">กิจกรรมขยับตัวต่อเนื่อง 20-30 นาที</p>
+                </div>
+                <div class="clay-options-list">
+                    <label class="clay-opt-card selected" onclick="pickOption(this, 'exercise_habit', 7)">
+                        <input type="radio" name="exercise_habit" value="regular" checked>
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/exercise.jpg" alt="ทำเป็นประจำ">
+                        </div>
+                        <div class="opt-content">
+                            <h4>ทำเป็นประจำ (3-5 วัน/สัปดาห์)</h4>
+                            <p>เดินเร็ว วิ่ง ปั่นจักรยาน ทำสวนเหงื่อออก</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                    <label class="clay-opt-card" onclick="pickOption(this, 'exercise_habit', 7)">
+                        <input type="radio" name="exercise_habit" value="some">
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/waist.jpg" alt="มีเดินขยับตัวบ้าง">
+                        </div>
+                        <div class="opt-content">
+                            <h4>มีเดินขยับตัวบ้าง (1-2 วัน/สัปดาห์)</h4>
+                            <p>ทำงานบ้าน กวาดใบไม้ เดินไปมา</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                    <label class="clay-opt-card" onclick="pickOption(this, 'exercise_habit', 7)">
+                        <input type="radio" name="exercise_habit" value="sedentary">
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/sleep.jpg" alt="แทบไม่ได้ออก">
+                        </div>
+                        <div class="opt-content">
+                            <h4>แทบไม่ได้ออก / นั่งนานทั้งวัน</h4>
+                            <p>นั่งทำงานหรือนอนเล่นมือถือนาน</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                </div>
+            </div>
+
+
+            <!-- QUESTION 8: การนอนหลับ -->
+            <div id="q-8" class="question-slide">
+                <div class="q-header">
+                    <h2 class="q-title">8. ท่านนอนหลับดีไหม?</h2>
+                    <p class="q-subtitle">คุณภาพการนอนหลับและการพักผ่อน</p>
+                </div>
+                <div class="clay-options-list">
+                    <label class="clay-opt-card selected" onclick="pickOption(this, 'sleep_habit', 8)">
+                        <input type="radio" name="sleep_habit" value="good" checked>
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/sleep.jpg" alt="หลับสนิทดี">
+                        </div>
+                        <div class="opt-content">
+                            <h4>หลับสนิทดี ตื่นมาสดชื่น</h4>
+                            <p>นอน 6-8 ชั่วโมง ไม่ค่อยตื่นกลางดึก</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                    <label class="clay-opt-card" onclick="pickOption(this, 'sleep_habit', 8)">
+                        <input type="radio" name="sleep_habit" value="poor">
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/sweet.jpg" alt="หลับยาก">
+                        </div>
+                        <div class="opt-content">
+                            <h4>หลับๆ ตื่นๆ / หลับยาก</h4>
+                            <p>ตื่นกลางดึกบ่อย พักผ่อนไม่ค่อยพอ</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                </div>
+            </div>
+
+
+            <!-- QUESTION 9: บุหรี่ & สุรา -->
+            <div id="q-9" class="question-slide">
+                <div class="q-header">
+                    <h2 class="q-title">9. สูบบุหรี่หรือดื่มเหล้าไหม?</h2>
+                    <p class="q-subtitle">ความถี่ในการสูบหรือดื่มในปัจจุบัน</p>
+                </div>
+                <div class="clay-options-list">
+                    <label class="clay-opt-card selected" onclick="pickOption(this, 'substance_habit', 9)">
+                        <input type="radio" name="substance_habit" value="none" checked>
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/shield.jpg" alt="ไม่สูบและไม่ดื่ม">
+                        </div>
+                        <div class="opt-content">
+                            <h4>ไม่สูบ และ ไม่ดื่ม</h4>
+                            <p>หรือไม่แตะเลย</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                    <label class="clay-opt-card" onclick="pickOption(this, 'substance_habit', 9)">
+                        <input type="radio" name="substance_habit" value="some">
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/water.jpg" alt="ดื่มเฉพาะงาน">
+                        </div>
+                        <div class="opt-content">
+                            <h4>ดื่มเฉพาะงานสังสรรค์</h4>
+                            <p>สูบบ้างบางครั้ง</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                    <label class="clay-opt-card" onclick="pickOption(this, 'substance_habit', 9)">
+                        <input type="radio" name="substance_habit" value="regular">
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/fried.jpg" alt="สูบหรือดื่มประจำ">
+                        </div>
+                        <div class="opt-content">
+                            <h4>สูบหรือดื่มเป็นประจำ</h4>
+                            <p>ทำต่อเนื่องเป็นประจำ</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                </div>
+            </div>
+
+
+            <!-- QUESTION 10: ประวัติครอบครัว -->
+            <div id="q-10" class="question-slide">
+                <div class="q-header">
+                    <h2 class="q-title">10. พ่อแม่หรือพี่น้อง มีใครเป็นเบาหวาน-ความดันไหม?</h2>
+                    <p class="q-subtitle">ประวัติพันธุกรรมสายตรง</p>
+                </div>
+                <div class="clay-options-list">
+                    <label class="clay-opt-card selected" onclick="pickOption(this, 'family_history', 10, true)">
+                        <input type="radio" name="family_history" value="no" checked>
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/shield.jpg" alt="ไม่มีใครเป็น">
+                        </div>
+                        <div class="opt-content">
+                            <h4>ไม่มีใครเป็น</h4>
+                            <p>ไม่มีประวัติในครอบครัวสายตรง</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                    <label class="clay-opt-card" onclick="pickOption(this, 'family_history', 10, true)">
+                        <input type="radio" name="family_history" value="yes">
+                        <div class="clay-icon-large">
+                            <img src="assets/img/clay/waist.jpg" alt="มีคนเป็น">
+                        </div>
+                        <div class="opt-content">
+                            <h4>มีคนเป็นเบาหวานหรือความดัน</h4>
+                            <p>พ่อ แม่ หรือพี่น้องเคยเป็น</p>
+                        </div>
+                        <div class="opt-check-badge">✓</div>
+                    </label>
+                </div>
+            </div>
+
+
+            <!-- STEP 11: หน้าสรุปผลตรวจสุขภาพ & คำแนะนำลดความดัน-ลดน้ำตาล -->
+            <div id="q-result" class="question-slide">
                 
                 <!-- Overall Risk Banner -->
-                <div id="result-risk-banner" style="background: var(--bg-card); border-radius: 24px; padding: 22px; margin-bottom: 20px; box-shadow: var(--neumorph-flat); text-align: center; border: 2px solid #10b981;">
-                    <div id="result-risk-icon" style="font-size: 48px; margin-bottom: 6px;">🟢</div>
-                    <h3 id="result-risk-title" style="margin: 0 0 6px 0; font-size: 20px; font-weight: 800; color: #10b981;">สุขภาพโดยรวมอยู่ในเกณฑ์ดีเยี่ยม</h3>
-                    <p id="result-risk-desc" style="margin: 0; font-size: 14px; color: var(--text-secondary); line-height: 1.5;">พฤติกรรมการดูแลตนเองดีมาก รักษาความสดชื่นและสุขภาพแบบนี้ต่อเนื่องไปนะครับ</p>
+                <div id="result-risk-banner" style="background: var(--bg-card); border-radius: 24px; padding: 20px; margin-bottom: 16px; box-shadow: var(--neumorph-flat); text-align: center; border: 2.5px solid #10b981;">
+                    <div id="result-risk-icon" style="font-size: 44px; margin-bottom: 4px;">🟢</div>
+                    <h3 id="result-risk-title" style="margin: 0 0 4px 0; font-size: 19px; font-weight: 800; color: #10b981;">สุขภาพดีมาก (ความเสี่ยงต่ำ)</h3>
+                    <p id="result-risk-desc" style="margin: 0; font-size: 13.5px; color: var(--text-secondary); line-height: 1.45;">ดูแลตัวเองได้ดีมาก ทั้งเรื่องกิน ออกกำลังกาย และการนอน ทำต่อเนื่องไปเรื่อยๆ นะครับ</p>
                 </div>
 
                 <!-- Voice Coach Player Bar -->
@@ -624,7 +768,7 @@ require_once __DIR__ . '/config/db.php';
                 <!-- Solution Card 1: อยากลดความดัน ต้องทำอย่างไร? -->
                 <div class="solution-box bp-box">
                     <div class="solution-title" style="color: #2563eb;">
-                        <span>🩺</span> <span>ถ้าอยากลดความดัน / ป้องกันความดันสูง ต้องทำอย่างไร?</span>
+                        <span>🩺</span> <span>ถ้าอยากลดความดัน ต้องทำอย่างไร?</span>
                     </div>
                     <ul class="solution-list" id="bp-advice-list">
                         <!-- Populated by JS -->
@@ -634,7 +778,7 @@ require_once __DIR__ . '/config/db.php';
                 <!-- Solution Card 2: อยากลดค่าน้ำตาล / เบาหวาน ต้องทำอย่างไร? -->
                 <div class="solution-box sugar-box">
                     <div class="solution-title" style="color: #d97706;">
-                        <span>🩸</span> <span>ถ้าอยากลดค่าน้ำตาล / ป้องกันโรคเบาหวาน ต้องทำอย่างไร?</span>
+                        <span>🩸</span> <span>ถ้าอยากลดค่าน้ำตาล ต้องทำอย่างไร?</span>
                     </div>
                     <ul class="solution-list" id="sugar-advice-list">
                         <!-- Populated by JS -->
@@ -642,28 +786,28 @@ require_once __DIR__ . '/config/db.php';
                 </div>
 
                 <!-- Community Referral Card -->
-                <div style="background: linear-gradient(135deg, #0d2c54, #1e3a8a); color: white; border-radius: 20px; padding: 20px; margin-bottom: 24px; box-shadow: 0 10px 25px rgba(13, 44, 84, 0.3); text-align: left;">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                        <div style="background: rgba(255,255,255,0.15); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 20px;">🏥</div>
+                <div style="background: linear-gradient(135deg, #0d2c54, #1e3a8a); color: white; border-radius: 20px; padding: 18px; margin-bottom: 20px; box-shadow: 0 8px 20px rgba(13, 44, 84, 0.25); text-align: left;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                        <div style="background: rgba(255,255,255,0.15); border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-size: 18px;">🏥</div>
                         <div>
-                            <h4 style="margin: 0; font-size: 16px; font-weight: 800; color: #38bdf8;">อยากทราบค่าความดันและค่าน้ำตาลที่แท้จริง?</h4>
-                            <p style="margin: 2px 0 0 0; font-size: 12.5px; color: #cbd5e1;">ระบบสาธารณสุขอำเภอ<?= DISTRICT_NAME ?> พร้อมดูแลท่านฟรี</p>
+                            <h4 style="margin: 0; font-size: 15px; font-weight: 800; color: #38bdf8;">อยากตรวจวัดค่าความดันและค่าน้ำตาลจริง?</h4>
+                            <p style="margin: 2px 0 0 0; font-size: 12px; color: #cbd5e1;">ระบบสาธารณสุขอำเภอ<?= DISTRICT_NAME ?> พร้อมดูแลท่านฟรี</p>
                         </div>
                     </div>
-                    <p style="font-size: 13.5px; line-height: 1.5; margin: 10px 0; color: #f1f5f9;">
-                        ผลประเมินนี้เป็นการวิเคราะห์จากพฤติกรรมเบื้องต้น แนะนำให้ท่านติดต่อ <strong>อสม. ประจำคุ้มบ้านของท่าน</strong> เพื่อตรวจวัดความดันโลหิตและเจาะน้ำตาลปลายนิ้ว (DTX) หรือเข้ารับบริการตรวจสุขภาพประจำปีได้ฟรีที่ <strong>รพ.สต. ใกล้บ้าน</strong> ได้เลยครับ
+                    <p style="font-size: 13px; line-height: 1.45; margin: 8px 0; color: #f1f5f9;">
+                        ติดต่อ <strong>อสม. ประจำคุ้มบ้านของท่าน</strong> เพื่อตรวจวัดความดันโลหิตและเจาะน้ำตาลปลายนิ้ว หรือตรวจสุขภาพประจำปีได้ฟรีที่ <strong>รพ.สต. ใกล้บ้าน</strong> ได้เลยครับ
                     </p>
                 </div>
 
                 <!-- Action Buttons -->
                 <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <button type="button" onclick="shareResultCard()" class="btn-giant btn-giant-primary" style="margin: 0; padding: 14px; font-size: 15px; background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
-                        📤 แชร์หรือบันทึกผลการประเมินให้ อสม. ดู
+                    <button type="button" onclick="shareResultCard()" class="btn-giant btn-giant-primary" style="margin: 0; padding: 13px; font-size: 15px; background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
+                        📤 แชร์หรือบันทึกผลให้ อสม. ดู
                     </button>
-                    <button type="button" onclick="goToStep(1)" class="btn-giant btn-giant-secondary" style="margin: 0; padding: 12px; font-size: 14px;">
+                    <button type="button" onclick="restartScreening()" class="btn-giant btn-giant-secondary" style="margin: 0; padding: 11px; font-size: 14px;">
                         🔄 ประเมินใหม่อีกครั้ง
                     </button>
-                    <a href="index.php" style="text-align: center; color: var(--color-accent); text-decoration: none; font-size: 14px; font-weight: 700; margin-top: 8px; display: block;">
+                    <a href="index.php" style="text-align: center; color: var(--color-accent); text-decoration: none; font-size: 14px; font-weight: 700; margin-top: 4px; display: block;">
                         ← กลับหน้าหลัก
                     </a>
                 </div>
@@ -675,36 +819,92 @@ require_once __DIR__ . '/config/db.php';
     </div>
 
     <script>
-        let currentStep = 1;
-        let calculatedRiskLevel = 'green'; // green, yellow, red
+        let currentQ = 1;
+        const totalQ = 10;
+        let calculatedRiskLevel = 'green';
         let currentVoiceText = '';
+        let isNavigating = false;
 
-        function selectOption(el, inputName) {
-            const container = el.parentElement;
-            const allCards = container.querySelectorAll('.option-card');
-            allCards.forEach(c => c.classList.remove('selected'));
+        function updateUIState() {
+            // Update question visibility
+            document.querySelectorAll('.question-slide').forEach(q => q.classList.remove('active'));
             
-            el.classList.add('selected');
-            const radio = el.querySelector('input[type="radio"]');
-            if (radio) radio.checked = true;
-        }
+            const prevBtn = document.getElementById('btn-side-prev');
+            const nextBtn = document.getElementById('btn-side-next');
+            const topNav = document.getElementById('top-nav-section');
 
-        function goToStep(stepNumber) {
-            document.querySelectorAll('.self-step-card').forEach(card => card.classList.remove('active'));
-            
-            const targetCard = document.getElementById('step-' + stepNumber);
-            if (targetCard) {
-                targetCard.classList.add('active');
-                currentStep = stepNumber;
-            }
+            if (currentQ <= totalQ) {
+                const targetQ = document.getElementById('q-' + currentQ);
+                if (targetQ) targetQ.classList.add('active');
 
-            // Update Progress bar
-            const progress = document.getElementById('self-progress');
-            if (progress) {
-                progress.style.width = (stepNumber * 25) + '%';
+                // Update Progress Pill & Bar
+                document.getElementById('step-badge').innerText = `ข้อ ${currentQ} จาก ${totalQ}`;
+                document.getElementById('self-progress').style.width = (currentQ * 10) + '%';
+                topNav.style.display = 'block';
+
+                // Side Buttons
+                if (currentQ === 1) {
+                    prevBtn.classList.add('disabled');
+                } else {
+                    prevBtn.classList.remove('disabled');
+                }
+                nextBtn.classList.remove('disabled');
+                nextBtn.innerHTML = '›';
+            } else {
+                // Result Screen
+                const resultScreen = document.getElementById('q-result');
+                if (resultScreen) resultScreen.classList.add('active');
+                
+                prevBtn.classList.add('disabled');
+                nextBtn.classList.add('disabled');
+                topNav.style.display = 'none';
             }
 
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function pickOption(cardEl, inputName, qNum, isLast = false) {
+            const container = cardEl.parentElement;
+            container.querySelectorAll('.clay-opt-card').forEach(c => c.classList.remove('selected'));
+            
+            cardEl.classList.add('selected');
+            const radio = cardEl.querySelector('input[type="radio"]');
+            if (radio) radio.checked = true;
+
+            // Auto-advance to next question after 220ms
+            if (!isNavigating) {
+                isNavigating = true;
+                setTimeout(() => {
+                    if (isLast || qNum >= totalQ) {
+                        calculateSelfResults();
+                    } else {
+                        currentQ = qNum + 1;
+                        updateUIState();
+                    }
+                    isNavigating = false;
+                }, 220);
+            }
+        }
+
+        function nextQuestion() {
+            if (currentQ < totalQ) {
+                currentQ++;
+                updateUIState();
+            } else if (currentQ === totalQ) {
+                calculateSelfResults();
+            }
+        }
+
+        function prevQuestion() {
+            if (currentQ > 1) {
+                currentQ--;
+                updateUIState();
+            }
+        }
+
+        function restartScreening() {
+            currentQ = 1;
+            updateUIState();
         }
 
         function calculateSelfResults() {
@@ -721,7 +921,6 @@ require_once __DIR__ . '/config/db.php';
             const substance = data.get('substance_habit') || 'none';
             const family = data.get('family_history') || 'no';
 
-            // Risk Scoring Calculation
             let riskPoints = 0;
             if (age === 'middle') riskPoints += 1;
             if (age === 'senior') riskPoints += 2;
@@ -739,10 +938,9 @@ require_once __DIR__ . '/config/db.php';
             if (substance === 'regular') riskPoints += 3;
             if (family === 'yes') riskPoints += 2;
 
-            // Generate Tailored BP Advice
+            // BP Advice
             const bpList = document.getElementById('bp-advice-list');
             bpList.innerHTML = '';
-
             const bpAdvices = [];
             if (salt === 'high' || salt === 'med') {
                 bpAdvices.push('<strong>ลดเค็ม:</strong> ตักน้ำปลา/ผงชูรสน้อยลงครึ่งหนึ่ง เลี่ยงซดน้ำส้มตำหรือน้ำแกงจนหมด');
@@ -763,7 +961,6 @@ require_once __DIR__ . '/config/db.php';
             if (substance === 'regular' || substance === 'some') {
                 bpAdvices.push('<strong>ลดหรือเลิกบุหรี่/สุรา:</strong> ช่วยให้หลอดเลือดคลายตัว ความดันจะลดลงสู่เกณฑ์ปกติได้เร็ว');
             }
-
             bpAdvices.push('<strong>ดื่มน้ำเปล่า 6-8 แก้วต่อวัน:</strong> ช่วยให้เลือดไหลเวียนดี ไม่ข้นหนืด');
 
             bpAdvices.forEach(adv => {
@@ -772,11 +969,9 @@ require_once __DIR__ . '/config/db.php';
                 bpList.appendChild(li);
             });
 
-
-            // Generate Tailored Blood Sugar Advice
+            // Blood Sugar Advice
             const sugarList = document.getElementById('sugar-advice-list');
             sugarList.innerHTML = '';
-
             const sugarAdvices = [];
             if (sweet === 'high' || sweet === 'med') {
                 sugarAdvices.push('<strong>สั่งหวานน้อย:</strong> สั่งเครื่องดื่มหวานน้อย หรือเปลี่ยนมาดื่มน้ำเปล่า งดน้ำอัดลมและชานม');
@@ -793,7 +988,6 @@ require_once __DIR__ . '/config/db.php';
             } else {
                 sugarAdvices.push('<strong>เลือกผลไม้ไม่หวานจัด:</strong> เช่น ฝรั่ง แอปเปิ้ลเขียว ส้มโอ เลี่ยงทุเรียน ลำไย มะม่วงสุก');
             }
-
             sugarAdvices.push('<strong>ไม่กินจุบจิบระหว่างมื้อ:</strong> ให้ร่างกายได้ดึงน้ำตาลสะสมไปเผาผลาญ');
 
             sugarAdvices.forEach(adv => {
@@ -802,8 +996,7 @@ require_once __DIR__ . '/config/db.php';
                 sugarList.appendChild(li);
             });
 
-
-            // Render Overall Banner & Risk Level
+            // Overall Risk Banner
             const banner = document.getElementById('result-risk-banner');
             const icon = document.getElementById('result-risk-icon');
             const title = document.getElementById('result-risk-title');
@@ -835,13 +1028,12 @@ require_once __DIR__ . '/config/db.php';
                 currentVoiceText = 'ผลตรวจรอบนี้ ต้องดูแลเป็นพิเศษค่ะ เดี๋ยวให้ ออ สอ มอ ช่วยตรวจเช็คความดันและค่าน้ำตาลให้นะคะ';
             }
 
-            goToStep(5);
+            currentQ = totalQ + 1;
+            updateUIState();
         }
 
         function playSelfVoiceCoach() {
             const btn = document.getElementById('btn-self-voice');
-            const btnText = document.getElementById('voice-btn-text');
-
             let audioKey = 'normal';
             if (calculatedRiskLevel === 'yellow') audioKey = 'warning';
             if (calculatedRiskLevel === 'red') audioKey = 'critical';
@@ -863,12 +1055,12 @@ require_once __DIR__ . '/config/db.php';
         function shareResultCard() {
             if (navigator.share) {
                 navigator.share({
-                    title: 'ผลประเมินสุขภาพ NCDs ด้วยตนเอง - อำเภอ<?= DISTRICT_NAME ?>',
-                    text: 'ฉันได้ทำแบบประเมินความเสี่ยงโรคความดันและเบาหวานเบื้องต้นผ่านระบบ NCDs Portal อำเภอ<?= DISTRICT_NAME ?> แล้ว!',
+                    title: 'ผลตรวจสุขภาพ NCDs ด้วยตนเอง - อำเภอ<?= DISTRICT_NAME ?>',
+                    text: 'ฉันได้ทำแบบตรวจเช็คความเสี่ยงโรคความดันและเบาหวานเบื้องต้นผ่านระบบ NCDs Portal อำเภอ<?= DISTRICT_NAME ?> แล้ว!',
                     url: window.location.href
                 }).catch(e => console.log('Share canceled', e));
             } else {
-                alert('💡 ท่านสามารถแคปภาพหน้าจอนี้ (Screenshot) แล้วส่งไลน์ให้ อสม. หรือลูกหลานช่วยดูผลประเมินได้เลยครับ!');
+                alert('💡 ท่านสามารถแคปภาพหน้าจอนี้ (Screenshot) แล้วส่งไลน์ให้ อสม. หรือลูกหลานช่วยดูผลตรวจได้เลยครับ!');
             }
         }
     </script>
