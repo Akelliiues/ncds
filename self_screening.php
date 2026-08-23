@@ -56,11 +56,11 @@ require_once __DIR__ . '/config/db.php';
         .option-card {
             position: relative;
             background: var(--bg-card);
-            border-radius: 18px;
-            padding: 16px;
-            box-shadow: var(--neumorph-flat);
+            border-radius: 20px;
+            padding: 14px 16px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05), inset 1px 1px 2px rgba(255, 255, 255, 0.8);
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
             border: 2px solid transparent;
             display: flex;
             align-items: center;
@@ -68,40 +68,52 @@ require_once __DIR__ . '/config/db.php';
             user-select: none;
         }
         .option-card:hover {
-            transform: translateY(-2px);
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
         }
         .option-card input[type="radio"] {
             display: none;
         }
         .option-card.selected {
-            background: rgba(59, 130, 246, 0.08);
+            background: rgba(59, 130, 246, 0.06);
             border-color: #3b82f6;
-            box-shadow: var(--neumorph-inset);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.15), inset 1px 1px 3px rgba(59, 130, 246, 0.1);
         }
         [data-theme="dark"] .option-card.selected {
             background: rgba(56, 189, 248, 0.12);
             border-color: #38bdf8;
         }
-        .option-icon {
-            font-size: 30px;
-            width: 48px;
-            height: 48px;
+        .clay-icon-wrap {
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 14px;
-            background: var(--bg-darker);
             flex-shrink: 0;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+            background: #e2e8f0;
+            border: 2px solid rgba(255, 255, 255, 0.6);
+        }
+        .clay-icon-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        .option-card:hover .clay-icon-wrap img {
+            transform: scale(1.1);
         }
         .option-text h4 {
             margin: 0 0 3px 0;
-            font-size: 16px;
+            font-size: 15.5px;
             font-weight: 800;
             color: var(--text-primary);
         }
         .option-text p {
             margin: 0;
-            font-size: 13px;
+            font-size: 12.5px;
             color: var(--text-secondary);
             line-height: 1.35;
         }
@@ -206,14 +218,18 @@ require_once __DIR__ . '/config/db.php';
                     <div class="option-grid option-grid-2">
                         <label class="option-card selected" onclick="selectOption(this, 'gender')">
                             <input type="radio" name="gender" value="male" checked>
-                            <div class="option-icon">👨</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/male.jpg" alt="เพศชาย">
+                            </div>
                             <div class="option-text">
                                 <h4>ชาย</h4>
                             </div>
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'gender')">
                             <input type="radio" name="gender" value="female">
-                            <div class="option-icon">👩</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/female.jpg" alt="เพศหญิง">
+                            </div>
                             <div class="option-text">
                                 <h4>หญิง</h4>
                             </div>
@@ -227,7 +243,9 @@ require_once __DIR__ . '/config/db.php';
                     <div class="option-grid">
                         <label class="option-card selected" onclick="selectOption(this, 'age_group')">
                             <input type="radio" name="age_group" value="young" checked>
-                            <div class="option-icon">🌱</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/exercise.jpg" alt="อายุน้อยกว่า 35 ปี">
+                            </div>
                             <div class="option-text">
                                 <h4>น้อยกว่า 35 ปี</h4>
                                 <p>วัยหนุ่มสาว / วัยเริ่มทำงาน</p>
@@ -235,7 +253,9 @@ require_once __DIR__ . '/config/db.php';
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'age_group')">
                             <input type="radio" name="age_group" value="middle">
-                            <div class="option-icon">💼</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/shield.jpg" alt="อายุ 35-59 ปี">
+                            </div>
                             <div class="option-text">
                                 <h4>อายุ 35 - 59 ปี</h4>
                                 <p>วัยทำงาน (ควรเริ่มตรวจสุขภาพประจำปี)</p>
@@ -243,7 +263,9 @@ require_once __DIR__ . '/config/db.php';
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'age_group')">
                             <input type="radio" name="age_group" value="senior">
-                            <div class="option-icon">🧓</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/sleep.jpg" alt="อายุ 60 ปีขึ้นไป">
+                            </div>
                             <div class="option-text">
                                 <h4>อายุ 60 ปีขึ้นไป</h4>
                                 <p>วัยผู้สูงอายุ</p>
@@ -258,7 +280,9 @@ require_once __DIR__ . '/config/db.php';
                     <div class="option-grid">
                         <label class="option-card selected" onclick="selectOption(this, 'body_shape')">
                             <input type="radio" name="body_shape" value="slim" checked>
-                            <div class="option-icon">✨</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/waist.jpg" alt="สมส่วน พอดีตัว">
+                            </div>
                             <div class="option-text">
                                 <h4>สมส่วน พอดีตัว</h4>
                                 <p>ไม่อึดอัด พุงไม่ยื่น</p>
@@ -266,7 +290,9 @@ require_once __DIR__ . '/config/db.php';
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'body_shape')">
                             <input type="radio" name="body_shape" value="chubby">
-                            <div class="option-icon">👖</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/sweet.jpg" alt="เริ่มมีพุง">
+                            </div>
                             <div class="option-text">
                                 <h4>เริ่มมีพุง / ท้วม</h4>
                                 <p>กางเกงเริ่มแน่น มีพุงเล็กน้อย</p>
@@ -274,7 +300,9 @@ require_once __DIR__ . '/config/db.php';
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'body_shape')">
                             <input type="radio" name="body_shape" value="obese">
-                            <div class="option-icon">⚠️</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/fried.jpg" alt="อ้วนลงพุงชัดเจน">
+                            </div>
                             <div class="option-text">
                                 <h4>อ้วนลงพุงชัดเจน</h4>
                                 <p>พุงยื่นเยอะ เหนื่อยง่าย</p>
@@ -302,7 +330,9 @@ require_once __DIR__ . '/config/db.php';
                     <div class="option-grid">
                         <label class="option-card selected" onclick="selectOption(this, 'sweet_habit')">
                             <input type="radio" name="sweet_habit" value="low" checked>
-                            <div class="option-icon">🥛</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/water.jpg" alt="ดื่มน้ำเปล่าเป็นหลัก">
+                            </div>
                             <div class="option-text">
                                 <h4>ดื่มน้ำเปล่าเป็นหลัก</h4>
                                 <p>แทบไม่แตะน้ำอัดลม ชาหวาน กาแฟใส่นมข้น</p>
@@ -310,7 +340,9 @@ require_once __DIR__ . '/config/db.php';
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'sweet_habit')">
                             <input type="radio" name="sweet_habit" value="med">
-                            <div class="option-icon">🧋</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/sweet.jpg" alt="ดื่มบ้างบางวัน">
+                            </div>
                             <div class="option-text">
                                 <h4>ดื่มบ้างบางวัน (สัปดาห์ละ 1-3 ครั้ง)</h4>
                                 <p>ดื่มเฉพาะเวลาเหนื่อย หรือมีสังสรรค์</p>
@@ -318,7 +350,9 @@ require_once __DIR__ . '/config/db.php';
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'sweet_habit')">
                             <input type="radio" name="sweet_habit" value="high">
-                            <div class="option-icon">🥤</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/sweet.jpg" alt="กินเกือบทุกวัน">
+                            </div>
                             <div class="option-text">
                                 <h4>กินเกือบทุกวัน / ติดรสหวาน</h4>
                                 <p>ต้องมีน้ำหวาน ชา กาแฟ หรือขนมหวานทุกวัน</p>
@@ -333,7 +367,9 @@ require_once __DIR__ . '/config/db.php';
                     <div class="option-grid">
                         <label class="option-card selected" onclick="selectOption(this, 'salt_habit')">
                             <input type="radio" name="salt_habit" value="low" checked>
-                            <div class="option-icon">🥣</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/veggie.jpg" alt="กินรสจืดๆ">
+                            </div>
                             <div class="option-text">
                                 <h4>กินรสจืดๆ ไม่ปรุงเพิ่ม</h4>
                                 <p>เลี่ยงของทอดมัน ซดน้ำแกงแต่น้อย</p>
@@ -341,7 +377,9 @@ require_once __DIR__ . '/config/db.php';
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'salt_habit')">
                             <input type="radio" name="salt_habit" value="med">
-                            <div class="option-icon">🍲</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/fried.jpg" alt="กินรสจัดบ้างบางมื้อ">
+                            </div>
                             <div class="option-text">
                                 <h4>กินรสจัดบ้างบางมื้อ</h4>
                                 <p>มีส้มตำ ปลาร้า หรือของทอด สัปดาห์ละ 2-3 ครั้ง</p>
@@ -349,7 +387,9 @@ require_once __DIR__ . '/config/db.php';
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'salt_habit')">
                             <input type="radio" name="salt_habit" value="high">
-                            <div class="option-icon">🧂</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/fried.jpg" alt="ชอบรสเค็มจัด">
+                            </div>
                             <div class="option-text">
                                 <h4>ชอบรสเค็มจัด / ปลาร้าเข้ม / ของทอดประจำ</h4>
                                 <p>ชอบเติมน้ำปลา ผงชูรส ซดน้ำแกงจนหมด</p>
@@ -364,7 +404,9 @@ require_once __DIR__ . '/config/db.php';
                     <div class="option-grid">
                         <label class="option-card selected" onclick="selectOption(this, 'veggie_habit')">
                             <input type="radio" name="veggie_habit" value="good" checked>
-                            <div class="option-icon">🥦</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/veggie.jpg" alt="กินผักทุกมื้อ">
+                            </div>
                             <div class="option-text">
                                 <h4>กินผักทุกมื้อ หรือเกือบทุกมื้อ</h4>
                                 <p>มีผักสด ผักลวก ผักต้มในจานเสมอ</p>
@@ -372,7 +414,9 @@ require_once __DIR__ . '/config/db.php';
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'veggie_habit')">
                             <input type="radio" name="veggie_habit" value="poor">
-                            <div class="option-icon">🥩</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/fried.jpg" alt="ไม่ค่อยกินผัก">
+                            </div>
                             <div class="option-text">
                                 <h4>ไม่ค่อยกินผัก / กินน้อยมาก</h4>
                                 <p>เน้นเนื้อสัตว์ ข้าว และของทอด</p>
@@ -405,7 +449,9 @@ require_once __DIR__ . '/config/db.php';
                     <div class="option-grid">
                         <label class="option-card selected" onclick="selectOption(this, 'exercise_habit')">
                             <input type="radio" name="exercise_habit" value="regular" checked>
-                            <div class="option-icon">🏃‍♂️</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/exercise.jpg" alt="ทำเป็นประจำ">
+                            </div>
                             <div class="option-text">
                                 <h4>ทำเป็นประจำ (3-5 วัน/สัปดาห์)</h4>
                                 <p>เดินเร็ว วิ่ง ปั่นจักรยาน ทำงานสวนเหงื่อออก 20-30 นาที</p>
@@ -413,7 +459,9 @@ require_once __DIR__ . '/config/db.php';
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'exercise_habit')">
                             <input type="radio" name="exercise_habit" value="some">
-                            <div class="option-icon">🚶</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/waist.jpg" alt="มีเดินขยับตัวบ้าง">
+                            </div>
                             <div class="option-text">
                                 <h4>มีเดินขยับตัวบ้าง (1-2 วัน/สัปดาห์)</h4>
                                 <p>ทำงานบ้าน กวาดใบไม้ เดินไปมา</p>
@@ -421,7 +469,9 @@ require_once __DIR__ . '/config/db.php';
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'exercise_habit')">
                             <input type="radio" name="exercise_habit" value="sedentary">
-                            <div class="option-icon">🛋️</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/sleep.jpg" alt="แทบไม่ได้ออก">
+                            </div>
                             <div class="option-text">
                                 <h4>แทบไม่ได้ออก / นั่งนานทั้งวัน</h4>
                                 <p>นั่งทำงานหรือนอนเล่นมือถือนานๆ ขยับตัวน้อย</p>
@@ -454,7 +504,9 @@ require_once __DIR__ . '/config/db.php';
                     <div class="option-grid">
                         <label class="option-card selected" onclick="selectOption(this, 'sleep_habit')">
                             <input type="radio" name="sleep_habit" value="good" checked>
-                            <div class="option-icon">🌙</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/sleep.jpg" alt="หลับสนิทดี">
+                            </div>
                             <div class="option-text">
                                 <h4>หลับสนิทดี ตื่นมาสดชื่น</h4>
                                 <p>นอน 6-8 ชั่วโมง ไม่ค่อยตื่นกลางดึก</p>
@@ -462,7 +514,9 @@ require_once __DIR__ . '/config/db.php';
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'sleep_habit')">
                             <input type="radio" name="sleep_habit" value="poor">
-                            <div class="option-icon">🥱</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/sweet.jpg" alt="หลับยาก">
+                            </div>
                             <div class="option-text">
                                 <h4>หลับๆ ตื่นๆ / หลับยาก ตื่นไม่สดชื่น</h4>
                                 <p>ตื่นกลางดึกบ่อย พักผ่อนไม่ค่อยพอ</p>
@@ -477,7 +531,9 @@ require_once __DIR__ . '/config/db.php';
                     <div class="option-grid">
                         <label class="option-card selected" onclick="selectOption(this, 'substance_habit')">
                             <input type="radio" name="substance_habit" value="none" checked>
-                            <div class="option-icon">🌿</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/shield.jpg" alt="ไม่สูบและไม่ดื่ม">
+                            </div>
                             <div class="option-text">
                                 <h4>ไม่สูบ และ ไม่ดื่ม</h4>
                                 <p>หรือไม่แตะเลย</p>
@@ -485,14 +541,18 @@ require_once __DIR__ . '/config/db.php';
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'substance_habit')">
                             <input type="radio" name="substance_habit" value="some">
-                            <div class="option-icon">🥂</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/water.jpg" alt="ดื่มเฉพาะงาน">
+                            </div>
                             <div class="option-text">
                                 <h4>ดื่มเฉพาะงานสังสรรค์ / สูบบ้างบางครั้ง</h4>
                             </div>
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'substance_habit')">
                             <input type="radio" name="substance_habit" value="regular">
-                            <div class="option-icon">🚬</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/fried.jpg" alt="สูบหรือดื่มประจำ">
+                            </div>
                             <div class="option-text">
                                 <h4>สูบหรือดื่มเป็นประจำ</h4>
                             </div>
@@ -506,14 +566,18 @@ require_once __DIR__ . '/config/db.php';
                     <div class="option-grid">
                         <label class="option-card selected" onclick="selectOption(this, 'family_history')">
                             <input type="radio" name="family_history" value="no" checked>
-                            <div class="option-icon">🛡️</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/shield.jpg" alt="ไม่มีใครเป็น">
+                            </div>
                             <div class="option-text">
                                 <h4>ไม่มีใครเป็น</h4>
                             </div>
                         </label>
                         <label class="option-card" onclick="selectOption(this, 'family_history')">
                             <input type="radio" name="family_history" value="yes">
-                            <div class="option-icon">🧬</div>
+                            <div class="clay-icon-wrap">
+                                <img src="assets/img/clay/waist.jpg" alt="มีคนเป็น">
+                            </div>
                             <div class="option-text">
                                 <h4>มีคนเป็นเบาหวานหรือความดัน</h4>
                                 <p>มีประวัติในครอบครัว</p>
