@@ -139,14 +139,26 @@ h1, h2, h3, h4, h5, h6 {
 
 /* VHV Mobile Page Wrapper */
 .mobile-wrapper {
-    max-width: 480px;
+    max-width: 520px;
+    width: 100%;
     margin: 0 auto;
     background-color: var(--bg-main);
     min-height: 100vh;
-    padding: 20px 20px 110px 20px;
+    min-height: 100dvh;
+    padding: max(16px, env(safe-area-inset-top, 16px)) max(16px, env(safe-area-inset-right, 16px)) max(110px, calc(100px + env(safe-area-inset-bottom, 20px))) max(16px, env(safe-area-inset-left, 16px));
     position: relative;
     border: none;
     box-shadow: 0 0 30px rgba(166, 180, 200, 0.15);
+    box-sizing: border-box;
+}
+
+@media (max-width: 640px) or (display-mode: standalone) {
+    .mobile-wrapper {
+        max-width: 100% !important;
+        width: 100% !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+    }
 }
 
 /* Big Accessibility Neumorphic Inset Inputs */

@@ -1,5 +1,5 @@
 {
-  "id": "ncds-portal-tansum-vhv",
+  "id": "ncds-portal-tansum-root",
   "short_name": "NCD ตาลสุม",
   "name": "NCDs by อสม. อำเภอตาลสุม",
   "description": "ระบบคัดกรองโรค NCDs และจัดอันดับคะแนนเชิงรุก สำหรับ อสม. อำเภอตาลสุม",
@@ -12,13 +12,13 @@
   "theme_color": "#0d2c54",
   "icons": [
     {
-      "src": "../assets/icon.png",
+      "src": "assets/icon.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "../assets/icon.png",
+      "src": "assets/icon.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
