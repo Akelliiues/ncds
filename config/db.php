@@ -1,6 +1,7 @@
 <?php
 // config/db.php
 require_once __DIR__ . '/line_config.php';
+require_once __DIR__ . '/icons.php';
 
 // ==========================================
 // Visitor Mode: Data Masking & Security Interceptor
@@ -335,18 +336,52 @@ $options = [
 
 require_once __DIR__ . '/demo_database.php';
 
-try {
-    if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION['is_demo_mode']) && $_SESSION['is_demo_mode'] === true) {
-        $pdo = new DemoMockPDO($dsn, $user, $pass, $options);
-        initDemoMockupDatabase($pdo);
-    } else {
-        $pdo = new PDO($dsn, $user, $pass, $options);
-        $pdo->setAttribute(PDO::ATTR_STATEMENT_CLASS, ['VisitorMaskPDOStatement', [$pdo]]);
+$pdo = null;
+$connectError = null;
+$portsToTry = !empty($port) ? [$port] : [''];
+if ($is_local) {
+    foreach (['3307', '3306', '3333'] as $fallbackPort) {
+        if (!in_array($fallbackPort, $portsToTry)) {
+            $portsToTry[] = $fallbackPort;
+        }
     }
-} catch (\PDOException $e) {
+}
+
+$usersToTry = [[$user, $pass]];
+if ($is_local && ($user !== 'root' || $pass !== '')) {
+    $usersToTry[] = ['root', ''];
+}
+
+foreach ($portsToTry as $pTry) {
+    foreach ($usersToTry as $uCred) {
+        $uName = $uCred[0];
+        $uPass = $uCred[1];
+        try {
+            if (!empty($pTry)) {
+                $dsnTry = "mysql:host=$host;port=$pTry;dbname=$db;charset=$charset";
+            } else {
+                $dsnTry = "mysql:host=$host;dbname=$db;charset=$charset";
+            }
+
+            if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION['is_demo_mode']) && $_SESSION['is_demo_mode'] === true) {
+                $pdo = new DemoMockPDO($dsnTry, $uName, $uPass, $options);
+                initDemoMockupDatabase($pdo);
+            } else {
+                $pdo = new PDO($dsnTry, $uName, $uPass, $options);
+                $pdo->setAttribute(PDO::ATTR_STATEMENT_CLASS, ['VisitorMaskPDOStatement', [$pdo]]);
+            }
+            $connectError = null;
+            break 2; // Connected successfully
+        } catch (\PDOException $e) {
+            $connectError = $e;
+        }
+    }
+}
+
+if ($pdo === null && $connectError !== null) {
     global $allow_db_failure;
     if (php_sapi_name() === 'cli' || (isset($allow_db_failure) && $allow_db_failure === true)) {
-        throw new \PDOException($e->getMessage(), (int) $e->getCode());
+        throw new \PDOException($connectError->getMessage(), (int) $connectError->getCode());
     } else {
         header('HTTP/1.1 500 Internal Server Error');
         $is_sub_dir = (strpos($_SERVER['SCRIPT_NAME'], '/admin/') !== false || strpos($_SERVER['SCRIPT_NAME'], '/vhv/') !== false);
@@ -2094,6 +2129,45 @@ try {
                     'normal'
                 ]);
             }
+
+            // 7. Citizen Self-Screening Anonymous Logs Table
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `citizen_self_screenings` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `session_hash` VARCHAR(64) NULL,
+                `budget_year` INT NOT NULL DEFAULT 2026,
+                `gender` ENUM('male', 'female') NOT NULL DEFAULT 'female',
+                `age_group` ENUM('young', 'middle', 'senior') NOT NULL,
+                `body_shape` ENUM('thin', 'slim', 'chubby', 'obese') NOT NULL DEFAULT 'slim',
+                `sweet_habit` ENUM('low', 'med', 'high') NOT NULL,
+                `salt_habit` ENUM('low', 'med', 'high') NOT NULL,
+                `veggie_habit` ENUM('good', 'poor') NOT NULL,
+                `exercise_habit` ENUM('regular', 'some', 'sedentary') NOT NULL,
+                `sleep_habit` ENUM('good', 'poor') NOT NULL,
+                `substance_habit` ENUM('none', 'some', 'regular') NOT NULL,
+                `family_history` ENUM('no', 'yes') NOT NULL,
+                `risk_points` INT NOT NULL DEFAULT 0,
+                `risk_level` ENUM('green', 'yellow', 'red') NOT NULL,
+                `sub_district_code` VARCHAR(10) NULL,
+                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX `idx_budget_year` (`budget_year`),
+                INDEX `idx_created_at` (`created_at`),
+                INDEX `idx_risk_level` (`risk_level`),
+                INDEX `idx_gender` (`gender`),
+                INDEX `idx_age_group` (`age_group`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+            try {
+                // Ensure gender column exists if table was previously created
+                $pdo->exec("ALTER TABLE `citizen_self_screenings` ADD COLUMN `gender` ENUM('male', 'female') NOT NULL DEFAULT 'female' AFTER `budget_year`;");
+            } catch (\PDOException $e) {}
+
+            try {
+                $pdo->exec("ALTER TABLE `citizen_self_screenings` MODIFY COLUMN `body_shape` ENUM('thin', 'slim', 'chubby', 'obese') NOT NULL DEFAULT 'slim';");
+            } catch (\PDOException $e) {}
+
+            try {
+                $pdo->exec("ALTER TABLE `citizen_self_screenings` ADD COLUMN `sub_district_code` VARCHAR(10) NULL AFTER `risk_level`;");
+            } catch (\PDOException $e) {}
         } catch (\PDOException $e) {}
     }
 } catch (\Exception $e) {
@@ -2164,3 +2238,42 @@ if (!function_exists('get_admin_title')) {
         return '☠️ ข้าคือชะตาที่มิอาจเลี่ยง!!';
     }
 }
+
+// Auto-create critical_alerts table if it doesn't exist
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `critical_alerts` (
+        `alert_id` INT AUTO_INCREMENT PRIMARY KEY,
+        `screening_id` INT NULL,
+        `citizen_screening_id` INT NULL,
+        `hoscode` VARCHAR(10) NOT NULL,
+        `target_cid` VARCHAR(20) NOT NULL,
+        `patient_name` VARCHAR(150) NOT NULL,
+        `age` INT DEFAULT NULL,
+        `house_no` VARCHAR(50) DEFAULT NULL,
+        `moo` VARCHAR(10) DEFAULT NULL,
+        `sub_district_code` VARCHAR(10) DEFAULT NULL,
+        `latitude` DECIMAL(10,8) DEFAULT NULL,
+        `longitude` DECIMAL(11,8) DEFAULT NULL,
+        `crisis_type` VARCHAR(50) NOT NULL,
+        `sbp` INT DEFAULT NULL,
+        `dbp` INT DEFAULT NULL,
+        `dtx` INT DEFAULT NULL,
+        `red_flags` TEXT DEFAULT NULL,
+        `vhv_name` VARCHAR(150) DEFAULT NULL,
+        `vhv_phone` VARCHAR(30) DEFAULT NULL,
+        `alert_status` VARCHAR(30) DEFAULT 'pending',
+        `acknowledged_by` VARCHAR(100) DEFAULT NULL,
+        `acknowledged_at` DATETIME DEFAULT NULL,
+        `referral_destination` VARCHAR(100) DEFAULT NULL,
+        `referral_notes` TEXT DEFAULT NULL,
+        `is_jhcis_synced` TINYINT(1) DEFAULT 0,
+        `jhcis_visitno` VARCHAR(50) DEFAULT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_hoscode_status (`hoscode`, `alert_status`),
+        INDEX idx_created_at (`created_at`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+} catch (\PDOException $e) {
+    // Fail silently
+}
+

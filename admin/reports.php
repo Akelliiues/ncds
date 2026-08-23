@@ -95,6 +95,27 @@ try {
 } catch (\Throwable $e) {
     $maxAvailableRound = 3;
 }
+
+if (!function_exists('appendDemographicFilters')) {
+    function appendDemographicFilters(&$sql, $alias = 'p') {
+        global $filter_gender, $filter_age;
+        if (!empty($filter_gender)) {
+            if ($filter_gender === '1') {
+                $sql .= " AND ({$alias}.sex = '1' OR {$alias}.sex = 'ชาย' OR {$alias}.sex = 'M' OR {$alias}.sex = 'male')";
+            } elseif ($filter_gender === '2') {
+                $sql .= " AND ({$alias}.sex = '2' OR {$alias}.sex = 'หญิง' OR {$alias}.sex = 'F' OR {$alias}.sex = 'female')";
+            }
+        }
+        if (!empty($filter_age)) {
+            if ($filter_age === '35-59') {
+                $sql .= " AND ({$alias}.birth IS NOT NULL AND {$alias}.birth != '0000-00-00' AND TIMESTAMPDIFF(YEAR, {$alias}.birth, CURRENT_DATE) BETWEEN 35 AND 59)";
+            } elseif ($filter_age === '60+') {
+                $sql .= " AND ({$alias}.birth IS NOT NULL AND {$alias}.birth != '0000-00-00' AND TIMESTAMPDIFF(YEAR, {$alias}.birth, CURRENT_DATE) >= 60)";
+            }
+        }
+    }
+}
+
 $params = [];
 
 if ($filter_source === 'screened') {
@@ -901,7 +922,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
     </div>
 
     <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
-        <h2 style="margin-bottom: 4px;" class="no-print">รายงานและการพิมพ์รายชื่อ (Flexible Reports Manager)</h2>
+        <h2 style="margin-bottom: 4px; display: flex; align-items: center; gap: 10px;" class="no-print">
+            <?= render_neu_icon('clipboard-record', 'md', 'text-blue') ?>
+            <span>รายงานและการพิมพ์รายชื่อ (Flexible Reports Manager)</span>
+        </h2>
         <p style="color: var(--text-secondary); margin-bottom: 30px; font-size: 15px;" class="no-print">
             ผู้รับผิดชอบ: <strong style="color: var(--color-accent);"><?= htmlspecialchars($admin_title) ?></strong>
         </p>
@@ -909,8 +933,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
         <!-- Filters Section (Hidden on Print) -->
         <div class="card-dark no-print" style="margin-bottom: 30px;">
             <h3
-                style="color: var(--color-accent); margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 20px;">
-                🔍 เงื่อนไขรายงาน
+                style="color: var(--color-accent); margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+                <?= render_neu_icon('search-inspect', 'xs', 'text-blue') ?>
+                <span>เงื่อนไขรายงาน</span>
             </h3>
 
             <form method="GET" action="reports.php">

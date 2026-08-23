@@ -2592,29 +2592,29 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             }
 
             grid.innerHTML = `
-                <div style="background: ${bpBg}; border: 1.5px solid ${bpBorder}; border-radius: 16px; padding: 12px 10px; text-align: center;">
-                    <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 2px;">🩺 ความดันโลหิต</div>
-                    <div style="font-size: 20px; font-weight: 900; color: ${bpColor}; line-height: 1.2; letter-spacing: -0.3px;">${bpBadge}</div>
-                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px; font-weight: 500;">${bpSub}</div>
+                <div style="background: var(--bg-card); border: 1px solid var(--border-color, transparent); border-radius: 20px; padding: 14px 10px; text-align: center; box-shadow: var(--neumorph-flat);">
+                    <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 3px;">🩺 ความดันโลหิต</div>
+                    <div style="font-size: 21px; font-weight: 900; color: ${bpColor}; line-height: 1.2; letter-spacing: -0.3px;">${bpBadge}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; font-weight: 600;">${bpSub}</div>
                 </div>
-                <div style="background: ${dtxBg}; border: 1.5px solid ${dtxBorder}; border-radius: 16px; padding: 12px 10px; text-align: center;">
-                    <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 2px;">🩸 น้ำตาลในเลือด</div>
-                    <div style="font-size: 20px; font-weight: 900; color: ${dtxColor}; line-height: 1.2; letter-spacing: -0.3px;">${dtxBadge}</div>
-                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px; font-weight: 500;">${dtxSub}</div>
+                <div style="background: var(--bg-card); border: 1px solid var(--border-color, transparent); border-radius: 20px; padding: 14px 10px; text-align: center; box-shadow: var(--neumorph-flat);">
+                    <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 3px;">🩸 น้ำตาลในเลือด</div>
+                    <div style="font-size: 21px; font-weight: 900; color: ${dtxColor}; line-height: 1.2; letter-spacing: -0.3px;">${dtxBadge}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; font-weight: 600;">${dtxSub}</div>
                 </div>
-                <div style="background: ${bmiBg}; border: 1.5px solid ${bmiBorder}; border-radius: 16px; padding: 12px 10px; text-align: center;">
-                    <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 2px;">⚖️ รูปร่าง / BMI</div>
-                    <div style="font-size: 20px; font-weight: 900; color: ${bmiColor}; line-height: 1.2; letter-spacing: -0.3px;">${bmiBadge}</div>
-                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px; font-weight: 500;">${bmiSub}</div>
+                <div style="background: var(--bg-card); border: 1px solid var(--border-color, transparent); border-radius: 20px; padding: 14px 10px; text-align: center; box-shadow: var(--neumorph-flat);">
+                    <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 3px;">⚖️ รูปร่าง / BMI</div>
+                    <div style="font-size: 21px; font-weight: 900; color: ${bmiColor}; line-height: 1.2; letter-spacing: -0.3px;">${bmiBadge}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; font-weight: 600;">${bmiSub}</div>
                 </div>
-                <div style="background: ${waistBg}; border: 1.5px solid ${waistBorder}; border-radius: 16px; padding: 12px 10px; text-align: center;">
-                    <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 2px;">📏 สัดส่วนรอบเอว</div>
-                    <div style="font-size: 20px; font-weight: 900; color: ${waistColor}; line-height: 1.2; letter-spacing: -0.3px;">${waistBadge}</div>
-                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px; font-weight: 500;">${waistSub}</div>
+                <div style="background: var(--bg-card); border: 1px solid var(--border-color, transparent); border-radius: 20px; padding: 14px 10px; text-align: center; box-shadow: var(--neumorph-flat);">
+                    <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 3px;">📏 สัดส่วนรอบเอว</div>
+                    <div style="font-size: 21px; font-weight: 900; color: ${waistColor}; line-height: 1.2; letter-spacing: -0.3px;">${waistBadge}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; font-weight: 600;">${waistSub}</div>
                 </div>
             `;
 
-            // Trend & Comparison Section with Dynamic Large Background Arrow Watermark
+            // Trend & Comparison Section with Dynamic Thick Bold Arrow Watermark (Red Up / Green Down)
             const trendBgIcon = document.getElementById('summary-trend-bg-icon');
             const trendBadge = document.getElementById('summary-trend-badge');
             const trendDetailsContainer = document.getElementById('summary-trend-details');
@@ -2626,9 +2626,12 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 trendBadge.style.color = '#10B981';
                 trendBadge.style.border = '1px solid rgba(16, 185, 129, 0.4)';
                 if (trendBgIcon) {
-                    trendBgIcon.innerHTML = '↘'; // แนวโน้มลดลง / สุขภาพดีขึ้น
-                    trendBgIcon.style.color = '#10B981';
-                    trendBgIcon.style.opacity = '0.18';
+                    // Thick Bold Arrow Pointing Down (Green - Improved / Healthy)
+                    trendBgIcon.innerHTML = `
+                        <svg width="84" height="84" viewBox="0 0 24 24" fill="#10B981" style="opacity: 0.32; filter: drop-shadow(0 2px 4px rgba(16, 185, 129, 0.2));">
+                            <path d="M7 19h10v-10h-2.5v5.7L5.8 6 4 7.8l8.7 8.7H7V19z"/>
+                        </svg>
+                    `;
                 }
                 detailList = [
                     { icon: '✓', color: '#10B981', text: 'ความดันโลหิตและสุขภาพโดยรวมปรับตัวดีขึ้น' },
@@ -2636,16 +2639,19 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 ];
             } else if (meta.trend_status === 'worsened') {
                 trendBadge.innerText = '⚠️ เฝ้าระวัง (ค่าตรวจสูงขึ้น)';
-                trendBadge.style.background = 'rgba(245, 158, 11, 0.16)';
-                trendBadge.style.color = '#D97706';
-                trendBadge.style.border = '1px solid rgba(245, 158, 11, 0.5)';
+                trendBadge.style.background = 'rgba(239, 68, 68, 0.14)';
+                trendBadge.style.color = '#EF4444';
+                trendBadge.style.border = '1px solid rgba(239, 68, 68, 0.45)';
                 if (trendBgIcon) {
-                    trendBgIcon.innerHTML = '↗'; // แนวโน้มสูงขึ้น / เฝ้าระวัง
-                    trendBgIcon.style.color = '#EA580C';
-                    trendBgIcon.style.opacity = '0.20';
+                    // Thick Bold Arrow Pointing Up (Red - Worsened / High Risk)
+                    trendBgIcon.innerHTML = `
+                        <svg width="84" height="84" viewBox="0 0 24 24" fill="#EF4444" style="opacity: 0.36; filter: drop-shadow(0 2px 4px rgba(239, 68, 68, 0.25));">
+                            <path d="M7 5h10v10h-2.5V9.3L5.8 18 4 16.2l8.7-8.7H7V5z"/>
+                        </svg>
+                    `;
                 }
                 detailList = [
-                    { icon: '⚠️', color: '#EA580C', text: 'ค่าตรวจมีแนวโน้มสูงขึ้นกว่าครั้งก่อน' },
+                    { icon: '⚠️', color: '#EF4444', text: 'ค่าตรวจมีแนวโน้มสูงขึ้นกว่าครั้งก่อน' },
                     { icon: '💡', color: '#3B82F6', text: 'แนะนำเพิ่มการปรับเปลี่ยนพฤติกรรม 3อ. 2ส. อย่างใกล้ชิด' }
                 ];
             } else if (meta.trend_status === 'first_round') {
@@ -2654,9 +2660,12 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 trendBadge.style.color = '#2563EB';
                 trendBadge.style.border = '1px solid rgba(59, 130, 246, 0.35)';
                 if (trendBgIcon) {
-                    trendBgIcon.innerHTML = '🎯';
-                    trendBgIcon.style.color = '#3B82F6';
-                    trendBgIcon.style.opacity = '0.12';
+                    trendBgIcon.innerHTML = `
+                        <svg width="78" height="78" viewBox="0 0 24 24" fill="#3B82F6" style="opacity: 0.20;">
+                            <circle cx="12" cy="12" r="9" stroke="#3B82F6" stroke-width="2" fill="none"/>
+                            <circle cx="12" cy="12" r="5" fill="#3B82F6"/>
+                        </svg>
+                    `;
                 }
                 detailList = [
                     { icon: '✓', color: '#3B82F6', text: 'บันทึกเป็นฐานข้อมูลประเมินสุขภาพประจำปีเรียบร้อย' },
@@ -2668,9 +2677,11 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 trendBadge.style.color = '#64748B';
                 trendBadge.style.border = '1px solid rgba(100, 116, 139, 0.35)';
                 if (trendBgIcon) {
-                    trendBgIcon.innerHTML = '➔';
-                    trendBgIcon.style.color = '#64748B';
-                    trendBgIcon.style.opacity = '0.12';
+                    trendBgIcon.innerHTML = `
+                        <svg width="78" height="78" viewBox="0 0 24 24" fill="#64748B" style="opacity: 0.18;">
+                            <path d="M4 11h11.5l-4-4L13 5.5 19.5 12 13 18.5 11.5 17l4-4H4v-2z"/>
+                        </svg>
+                    `;
                 }
                 detailList = [
                     { icon: '✓', color: '#10B981', text: 'ระดับความดันและค่าน้ำตาลทรงตัวใกล้เคียงเดิม' },
@@ -2695,11 +2706,13 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             let adviceHtml = '';
             adviceList.forEach(item => {
                 adviceHtml += `
-                    <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; background: var(--bg-darker); border-left: 3.5px solid var(--color-green, #10B981); margin-bottom: 5px; box-shadow: var(--neumorph-inset);">
-                        <span style="font-size: 22px; line-height: 1; flex-shrink: 0;">${item.icon || '💡'}</span>
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; background: var(--bg-card); border: 1px solid var(--border-color, transparent); margin-bottom: 8px; box-shadow: var(--neumorph-flat);">
+                        <div style="width: 40px; height: 40px; border-radius: 14px; background: var(--bg-darker); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; box-shadow: var(--neumorph-inset);">
+                            ${item.icon || '💡'}
+                        </div>
                         <div>
-                            <div style="font-weight: 800; font-size: 13.5px; color: var(--text-primary);">${item.title}</div>
-                            <div style="font-size: 11.5px; color: var(--text-secondary); line-height: 1.3;">${item.desc}</div>
+                            <div style="font-weight: 800; font-size: 13.5px; color: var(--text-primary); margin-bottom: 2px;">${item.title}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.35;">${item.desc}</div>
                         </div>
                     </div>
                 `;
@@ -2728,11 +2741,234 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 guidanceContainer.style.display = 'block';
             }
 
+            // Emergency Alert Detection & Trigger Setup
+            const isCriticalCase = (riskLevel === 'red' || riskLevel === 'critical' || sbpVal >= 180 || dbpVal >= 110 || dtxVal >= 300 || (dtxVal > 0 && dtxVal < 70));
+            const emergBox = document.getElementById('summary-emergency-box');
+            if (emergBox) {
+                if (isCriticalCase) {
+                    emergBox.style.display = 'block';
+                    let crisisType = 'general_critical';
+                    if (sbpVal >= 180 || dbpVal >= 110) crisisType = 'ht_crisis';
+                    else if (dtxVal >= 300) crisisType = 'dtx_high';
+                    else if (dtxVal > 0 && dtxVal < 70) crisisType = 'dtx_low';
+
+                    currentEmergencyData = {
+                        screening_id: data.screening_id || null,
+                        hoscode: selectedResident?.hoscode || '<?= addslashes($_SESSION["admin_hoscode"] ?? "07758") ?>',
+                        target_cid: selectedResident?.cid || meta.target_cid || '',
+                        patient_name: resName,
+                        age: selectedResident?.age || meta.age || null,
+                        house_no: selectedResident?.house_no || meta.house_no || '',
+                        moo: selectedResident?.moo || meta.moo || '',
+                        sub_district_code: selectedResident?.sub_district_code || meta.sub_district_code || '',
+                        latitude: selectedResident?.homeLat || meta.latitude || null,
+                        longitude: selectedResident?.homeLng || meta.longitude || null,
+                        crisis_type: crisisType,
+                        sbp: sbpVal,
+                        dbp: dbpVal,
+                        dtx: dtxVal,
+                        red_flags: meta.red_flags || ''
+                    };
+                } else {
+                    emergBox.style.display = 'none';
+                    currentEmergencyData = null;
+                }
+            }
+
             document.getElementById('counseling-summary-modal').style.display = 'block';
             window.scrollTo(0,0);
         }
 
+        let currentEmergencyData = null;
+
+        function sendEmergencyAlertFromSummary() {
+            if (!currentEmergencyData) return;
+            const btn = document.getElementById('btn-send-emergency-alert');
+            const fb = document.getElementById('emergency-alert-feedback');
+            btn.disabled = true;
+            btn.innerHTML = '⏳ กำลังส่งสัญญาณฉุกเฉินไปยัง รพ.สต....';
+            
+            const formData = new FormData();
+            formData.append('action', 'trigger_alert');
+            formData.append('screening_id', currentEmergencyData.screening_id || '');
+            formData.append('hoscode', currentEmergencyData.hoscode || '07758');
+            formData.append('target_cid', currentEmergencyData.target_cid || '');
+            formData.append('patient_name', currentEmergencyData.patient_name || '');
+            formData.append('age', currentEmergencyData.age || '');
+            formData.append('house_no', currentEmergencyData.house_no || '');
+            formData.append('moo', currentEmergencyData.moo || '');
+            formData.append('sub_district_code', currentEmergencyData.sub_district_code || '');
+            formData.append('latitude', currentEmergencyData.latitude || '');
+            formData.append('longitude', currentEmergencyData.longitude || '');
+            formData.append('crisis_type', currentEmergencyData.crisis_type || 'ht_crisis');
+            formData.append('sbp', currentEmergencyData.sbp || '');
+            formData.append('dbp', currentEmergencyData.dbp || '');
+            formData.append('dtx', currentEmergencyData.dtx || '');
+            formData.append('red_flags', currentEmergencyData.red_flags || '');
+            formData.append('vhv_name', '<?= addslashes($_SESSION["vhv_name"] ?? "อสม. ผู้บันทึก") ?>');
+            formData.append('vhv_phone', '<?= addslashes($_SESSION["vhv_phone"] ?? "") ?>');
+
+            fetch('../api/emergency_alert.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.status === 'success') {
+                    btn.style.display = 'none';
+                    const tracker = document.getElementById('emergency-live-tracker');
+                    if (tracker) tracker.style.display = 'block';
+                    
+                    document.getElementById('step-track-1').style.opacity = '1';
+                    document.getElementById('step-track-1-badge').innerText = '✅ ส่งถึง รพ.สต. แล้ว';
+                    document.getElementById('step-track-1-badge').style.background = '#10B981';
+                    
+                    fb.innerHTML = `🚨 ส่งสัญญาณแจ้งเหตุถึงเครื่อง รพ.สต. สำเร็จ (เคส #${res.alert_id})<br><span style="font-size:11.5px; font-weight:normal; color:var(--text-secondary);">เสียงไซเรนกำลังดังที่โต๊ะเจ้าหน้าที่ รพ.สต. และกำลังรอเจ้าหน้าที่กดรับเรื่อง...</span>`;
+                    fb.style.display = 'block';
+
+                    // Start Live 2-Way Polling for VHV
+                    startVhvAlertStatusPolling(res.alert_id);
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '⚡ ลองส่งสัญญาณอีกครั้ง';
+                    alert('ข้อผิดพลาด: ' + res.message);
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '⚡ ลองส่งสัญญาณอีกครั้ง';
+                alert('เชื่อมต่อล้มเหลว: ' + err);
+            });
+        }
+
+        let currentActiveAlertId = null;
+        let vhvAlertPollTimer = null;
+        let demoAutoSimTimer1 = null;
+        let demoAutoSimTimer2 = null;
+
+        function startVhvAlertStatusPolling(alertId) {
+            currentActiveAlertId = alertId;
+            if (vhvAlertPollTimer) clearInterval(vhvAlertPollTimer);
+            if (demoAutoSimTimer1) clearTimeout(demoAutoSimTimer1);
+            if (demoAutoSimTimer2) clearTimeout(demoAutoSimTimer2);
+
+            // Show demo simulator control panel if in demo/sandbox mode
+            const demoPanel = document.getElementById('demo-sim-controls');
+            if (demoPanel) demoPanel.style.display = 'block';
+
+            // Automatic demo progression in demo mode if no real station answers in 3.5 seconds
+            <?php if ($isDemo): ?>
+            demoAutoSimTimer1 = setTimeout(() => {
+                if (currentActiveAlertId) {
+                    triggerDemoSimulationAck();
+                }
+            }, 3500);
+
+            demoAutoSimTimer2 = setTimeout(() => {
+                if (currentActiveAlertId) {
+                    triggerDemoSimulationRefer();
+                }
+            }, 7500);
+            <?php endif; ?>
+
+            vhvAlertPollTimer = setInterval(() => {
+                fetch(`../api/emergency_alert.php?action=check_alert_status&alert_id=${alertId}`)
+                .then(r => r.json())
+                .then(res => {
+                    if (res.status === 'success') {
+                        const status = res.alert_status;
+                        const fb = document.getElementById('emergency-alert-feedback');
+
+                        // Step 2: Acknowledged by Health Center Staff
+                        if (status === 'acknowledged' || status === 'referred_hospital') {
+                            const step2 = document.getElementById('step-track-2');
+                            const step2Badge = document.getElementById('step-track-2-badge');
+                            if (step2) step2.style.opacity = '1';
+                            if (step2Badge) {
+                                step2Badge.innerText = '✅ รับเรื่องแล้ว';
+                                step2Badge.style.background = '#10B981';
+                                step2Badge.style.color = '#FFFFFF';
+                            }
+                            
+                            fb.innerHTML = `
+                                <div style="color: #059669; font-weight: 900; font-size: 14px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                                    <span>✅</span> <span>เจ้าหน้าที่ รพ.สต. รับเรื่องแล้ว</span>
+                                </div>
+                                <div style="font-size: 12.5px; color: var(--text-primary); line-height: 1.5;">
+                                    <div>👤 <strong>ผู้รับเรื่อง:</strong> ${res.acknowledged_by || 'เจ้าหน้าที่ รพ.สต. ดอนมดแดง'}</div>
+                                    <div>🕒 <strong>เวลา:</strong> ${res.acknowledged_at || 'เมื่อสักครู่'}</div>
+                                    <div style="margin-top: 4px; color: #047857; font-weight: 600;">💡 กำลังประสานงานช่วยเหลือ ขอให้ อสม. ดูแลผู้ป่วยให้อยู่ในท่านอนราบอย่างปลอดภัย</div>
+                                </div>
+                            `;
+                            fb.style.background = 'rgba(16, 185, 129, 0.12)';
+                            fb.style.borderColor = 'rgba(16, 185, 129, 0.35)';
+
+                            if (navigator.vibrate) {
+                                try { navigator.vibrate([100, 50, 100]); } catch(e) {}
+                            }
+                        }
+
+                        // Step 3: Referred to Hospital (10957) with Clean Refer No.
+                        if (status === 'referred_hospital') {
+                            const step3 = document.getElementById('step-track-3');
+                            const step3Badge = document.getElementById('step-track-3-badge');
+                            if (step3) step3.style.opacity = '1';
+                            if (step3Badge) {
+                                step3Badge.innerText = '🚀 ส่งต่อเรียบร้อย';
+                                step3Badge.style.background = '#2563EB';
+                                step3Badge.style.color = '#FFFFFF';
+                            }
+
+                            const referNo = res.jhcis_visitno || 'REF-6901-0001';
+
+                            fb.innerHTML = `
+                                <div style="color: #1D4ED8; font-weight: 900; font-size: 14.5px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                                    <span>🚀</span> <span>พร้อมส่งต่อไปยัง ${res.referral_destination || 'โรงพยาบาลตาลสุม (10957)'}</span>
+                                </div>
+                                <div style="background: rgba(37, 99, 235, 0.08); border: 1px dashed rgba(37, 99, 235, 0.3); border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+                                    <span style="font-size: 12.5px; color: var(--text-secondary); font-weight: 700;">📋 เลขที่ใบส่งต่อ (Refer No.):</span>
+                                    <span style="font-size: 15px; font-weight: 900; color: #1E40AF; letter-spacing: 0.5px;">${referNo}</span>
+                                </div>
+                                <div style="font-size: 12.5px; color: var(--text-primary); line-height: 1.5;">
+                                    <div>🏥 <strong>ปลายทาง:</strong> ${res.referral_destination || 'โรงพยาบาลตาลสุม (10957)'}</div>
+                                    <div style="color: #2563EB; font-weight: 600; margin-top: 3px;">🚑 ระบบ Fast-Track เตรียมพร้อมรับผู้ป่วยเรียบร้อยแล้ว</div>
+                                </div>
+                            `;
+                            fb.style.background = 'rgba(59, 130, 246, 0.1)';
+                            fb.style.borderColor = 'rgba(59, 130, 246, 0.35)';
+
+                            clearInterval(vhvAlertPollTimer);
+                        }
+                    }
+                })
+                .catch(() => {});
+            }, 2000);
+        }
+
+        function triggerDemoSimulationAck() {
+            if (!currentActiveAlertId) return;
+            fetch(`../api/emergency_alert.php?action=simulate_demo_ack&alert_id=${currentActiveAlertId}`)
+            .then(r => r.json())
+            .then(res => {
+                console.log('Demo Ack Triggered:', res);
+            })
+            .catch(() => {});
+        }
+
+        function triggerDemoSimulationRefer() {
+            if (!currentActiveAlertId) return;
+            fetch(`../api/emergency_alert.php?action=simulate_demo_refer&alert_id=${currentActiveAlertId}&referral_destination=โรงพยาบาลตาลสุม (10957)`)
+            .then(r => r.json())
+            .then(res => {
+                console.log('Demo Refer Triggered:', res);
+            })
+            .catch(() => {});
+        }
+
         function closeCounselingSummaryAndFinish() {
+            if (vhvAlertPollTimer) clearInterval(vhvAlertPollTimer);
+            if (demoAutoSimTimer1) clearTimeout(demoAutoSimTimer1);
+            if (demoAutoSimTimer2) clearTimeout(demoAutoSimTimer2);
             document.getElementById('counseling-summary-modal').style.display = 'none';
             window.location.href = 'index.php';
         }
@@ -2781,59 +3017,130 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
         color: var(--text-primary, #0d2c54);
         overflow-y: auto;
         display: none;
-        padding: 16px 12px 32px 12px;
+        padding: 16px 12px 36px 12px;
         box-sizing: border-box;
         font-family: var(--font-base, sans-serif);
     ">
         <div style="
-            max-width: 430px; 
+            max-width: 440px; 
             margin: 0 auto; 
-            background: var(--bg-card); 
-            border-radius: 22px; 
-            box-shadow: 0 20px 45px -10px rgba(0,0,0,0.3), var(--neumorph-flat); 
-            border: 1px solid var(--border-color, rgba(255,255,255,0.12)); 
-            padding: 16px;
+            background: var(--bg-main, #eef2f7); 
+            border-radius: 28px; 
+            box-shadow: 0 25px 50px -12px rgba(13, 44, 84, 0.35), var(--neumorph-flat); 
+            border: 1px solid var(--border-color, transparent); 
+            padding: 18px 16px;
             box-sizing: border-box;
         ">
-            <!-- Clean Top Bar Header -->
+            <!-- Neumorphic Inset Top Bar Header -->
             <div style="
                 display: flex; 
                 align-items: center; 
                 justify-content: space-between; 
-                margin-bottom: 14px; 
-                padding-bottom: 12px; 
-                border-bottom: 1px solid var(--border-color, rgba(148, 163, 184, 0.2));
+                margin-bottom: 16px; 
+                padding: 10px 14px; 
+                background: var(--bg-darker);
+                border-radius: 20px;
+                box-shadow: var(--neumorph-inset);
             ">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="width: 36px; height: 36px; border-radius: 12px; background: linear-gradient(135deg, var(--color-accent, #0d2c54), var(--color-primary, #3B82F6)); display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; box-shadow: 0 4px 10px rgba(13, 44, 84, 0.15);">
+                    <div style="width: 38px; height: 38px; border-radius: 14px; background: linear-gradient(135deg, var(--color-accent, #0d2c54), var(--color-primary, #3B82F6)); display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; box-shadow: 0 4px 10px rgba(13, 44, 84, 0.2);">
                         🩺
                     </div>
                     <div>
-                        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.2px;">สรุปผลการคัดกรองสุขภาพ</div>
-                        <div id="summary-resident-name" style="font-size: 15px; color: var(--color-accent, #0d2c54); font-weight: 800; line-height: 1.2;">คุณ...</div>
+                        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.2px;">สรุปผลการคัดกรองสุขภาพ</div>
+                        <div id="summary-resident-name" style="font-size: 15px; color: var(--color-accent, #0d2c54); font-weight: 900; line-height: 1.2;">คุณ...</div>
                     </div>
                 </div>
-                <span style="font-size: 11.5px; font-weight: 800; color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 5px 10px; border-radius: 10px; border: 1px solid rgba(16, 185, 129, 0.3);">
+                <span style="font-size: 11.5px; font-weight: 800; color: #10B981; background: var(--bg-card); padding: 5px 12px; border-radius: 12px; box-shadow: var(--neumorph-flat);">
                     บันทึกสำเร็จ ✅
                 </span>
             </div>
 
-            <!-- Hero Overall Health Status Banner (Risk-Themed Gradient) -->
+            <!-- Hero Overall Health Status Banner (Risk-Themed Neumorphic Card) -->
             <div id="summary-hero-card" style="
-                border-radius: 18px; 
-                padding: 16px 18px; 
+                border-radius: 22px; 
+                padding: 18px 16px; 
                 margin-bottom: 16px; 
                 color: #FFFFFF; 
                 text-align: center;
                 transition: all 0.3s ease;
-                box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.35);
+                box-shadow: var(--neumorph-flat);
             ">
                 <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 5px;">
                     <span id="summary-hero-icon" style="font-size: 24px;">🟢</span>
                     <span id="summary-hero-title" style="font-size: 19px; font-weight: 900; letter-spacing: -0.3px; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">สุขภาพปกติ (เกณฑ์ดีเยี่ยม)</span>
                 </div>
-                <div id="summary-hero-desc" style="font-size: 13px; opacity: 0.95; line-height: 1.5; font-weight: 500; text-wrap: balance; word-break: keep-all; text-shadow: 0 1px 2px rgba(0,0,0,0.15);">
+                <div id="summary-hero-desc" style="font-size: 13px; opacity: 0.95; line-height: 1.5; font-weight: 600; text-wrap: balance; word-break: keep-all; text-shadow: 0 1px 2px rgba(0,0,0,0.15);">
                     ค่าความดันและน้ำตาลอยู่ในเกณฑ์มาตรฐาน สุขภาพแข็งแรงดี
+                </div>
+            </div>
+
+            <!-- Emergency Dispatch Alert Action Box (Shown for Critical/Red cases) -->
+            <div id="summary-emergency-box" style="display: none; background: var(--bg-card); border: 1.5px solid rgba(239, 68, 68, 0.45); border-radius: 22px; padding: 16px; margin-bottom: 18px; box-shadow: var(--neumorph-flat);">
+                <!-- Header Title -->
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                    <div style="font-size: 15px; font-weight: 900; color: #DC2626; display: flex; align-items: center; gap: 6px;">
+                        <span style="font-size: 20px;">🚨</span> <span>แจ้งเหตุวิกฤต Fast-Track รพ.สต.</span>
+                    </div>
+                    <span style="background: rgba(220, 38, 38, 0.12); color: #DC2626; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 10px; box-shadow: var(--neumorph-flat);">ฉุกเฉินเร่งด่วน</span>
+                </div>
+
+                <p style="font-size: 12.5px; color: var(--text-secondary); margin: 0 0 14px 0; line-height: 1.45;">
+                    พบค่าสัญญาณชีพสูงวิกฤต สามารถยิงสัญญาณไซเรนเตือนไปยังหน้าจอคอมพิวเตอร์ รพ.สต. ได้ทันที
+                </p>
+
+                <!-- Initial Big Dispatch Button -->
+                <button type="button" id="btn-send-emergency-alert" onclick="sendEmergencyAlertFromSummary()" style="width: 100%; padding: 14px; margin-bottom: 14px; background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); color: white; border: none; border-radius: 16px; font-weight: 800; font-size: 15px; cursor: pointer; box-shadow: 0 6px 18px rgba(220, 38, 38, 0.4); display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span>🆘 ส่งสัญญาณฉุกเฉินแจ้งไปยัง รพ.สต. ทันที</span>
+                </button>
+
+                <!-- Live 3-Step Progress Tracker for VHV -->
+                <div id="emergency-live-tracker" style="display: none; margin-bottom: 14px;">
+                    <!-- Step Progress Flow -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 12px;">
+                        <div id="step-track-1" style="background: var(--bg-darker); border-radius: 14px; padding: 10px 6px; text-align: center; box-shadow: var(--neumorph-inset);">
+                            <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 3px;">1. ส่งสัญญาณ</div>
+                            <span id="step-track-1-badge" style="background: #10B981; color: white; font-size: 10.5px; font-weight: 800; padding: 3px 8px; border-radius: 8px; display: inline-block;">✅ ส่งแล้ว</span>
+                        </div>
+                        <div id="step-track-2" style="background: var(--bg-darker); border-radius: 14px; padding: 10px 6px; text-align: center; box-shadow: var(--neumorph-inset); opacity: 0.6;">
+                            <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 3px;">2. รพ.สต. รับเรื่อง</div>
+                            <span id="step-track-2-badge" style="background: #E2E8F0; color: #475569; font-size: 10.5px; font-weight: 800; padding: 3px 8px; border-radius: 8px; display: inline-block;">⏳ รอเปิดรับ</span>
+                        </div>
+                        <div id="step-track-3" style="background: var(--bg-darker); border-radius: 14px; padding: 10px 6px; text-align: center; box-shadow: var(--neumorph-inset); opacity: 0.6;">
+                            <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 3px;">3. พร้อมส่งต่อ</div>
+                            <span id="step-track-3-badge" style="background: #E2E8F0; color: #475569; font-size: 10.5px; font-weight: 800; padding: 3px 8px; border-radius: 8px; display: inline-block;">รอการส่งต่อ</span>
+                        </div>
+                    </div>
+
+                    <!-- Clean Dynamic Feedback & Refer Info Box -->
+                    <div id="emergency-alert-feedback" style="display: none; padding: 14px; border-radius: 18px; border: 1px solid #10B981; background: var(--bg-card); box-shadow: var(--neumorph-flat); text-align: left; margin-bottom: 12px;">
+                        <!-- Feedback content -->
+                    </div>
+
+                    <!-- Sandbox & Demo Testing Simulation Controls -->
+                    <div id="demo-sim-controls" style="display: none; background: var(--bg-darker); border-radius: 16px; padding: 10px 12px; margin-bottom: 8px; box-shadow: var(--neumorph-inset);">
+                        <div style="font-size: 11px; font-weight: 800; color: #D97706; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">
+                            <span>🧪</span> <span>โหมดสาธิต: ทดลองจำลองการตอบรับจาก รพ.สต.</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <button type="button" onclick="triggerDemoSimulationAck()" style="background: #10B981; color: white; border: none; padding: 8px; border-radius: 10px; font-size: 11.5px; font-weight: 800; cursor: pointer; box-shadow: 0 3px 8px rgba(16, 185, 129, 0.3);">
+                                🟢 จำลอง รพ.สต. รับเรื่อง
+                            </button>
+                            <button type="button" onclick="triggerDemoSimulationRefer()" style="background: #2563EB; color: white; border: none; padding: 8px; border-radius: 10px; font-size: 11.5px; font-weight: 800; cursor: pointer; box-shadow: 0 3px 8px rgba(37, 99, 235, 0.3);">
+                                🚀 จำลอง สั่งส่งต่อ รพ.
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Emergency Call Row -->
+                <div style="display: flex; gap: 10px;">
+                    <a href="tel:1669" style="flex: 1; padding: 12px; background: #DC2626; color: white; text-decoration: none; border-radius: 14px; font-size: 13.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);">
+                        📞 โทร 1669 ด่วน
+                    </a>
+                    <a href="tel:045251123" id="btn-call-pcu" style="flex: 1; padding: 12px; background: var(--bg-card); color: var(--text-primary); text-decoration: none; border-radius: 14px; font-size: 13.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: var(--neumorph-flat);">
+                        🏥 โทร รพ.สต.
+                    </a>
                 </div>
             </div>
 
@@ -2841,22 +3148,22 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             <div id="summary-guidance-container" style="margin-bottom: 16px;"></div>
 
             <!-- 4 Health Cards Grid -->
-            <div style="margin-bottom: 16px;">
-                <div style="font-size: 12.5px; font-weight: 800; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+            <div style="margin-bottom: 18px;">
+                <div style="font-size: 13px; font-weight: 800; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; margin-bottom: 10px;">
                     <span>📊</span> <span>ผลตรวจสุขภาพ 4 ด้าน</span>
                 </div>
-                <div id="summary-results-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <!-- 4 Metric Cards -->
+                <div id="summary-results-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <!-- 4 Neumorphic Metric Cards -->
                 </div>
             </div>
 
             <!-- Comparison with Previous Round (Dynamic Watermark Arrow) -->
             <div id="summary-trend-card" style="
-                background: var(--bg-darker); 
-                border-radius: 16px; 
-                padding: 12px 14px; 
-                margin-bottom: 16px; 
-                box-shadow: var(--neumorph-inset); 
+                background: var(--bg-card); 
+                border-radius: 22px; 
+                padding: 16px 18px; 
+                margin-bottom: 18px; 
+                box-shadow: var(--neumorph-flat); 
                 border: 1px solid var(--border-color, transparent);
                 position: relative;
                 overflow: hidden;
@@ -2864,8 +3171,8 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 <!-- Large Watermark Arrow / Icon Background -->
                 <div id="summary-trend-bg-icon" style="
                     position: absolute;
-                    right: 8px;
-                    bottom: -8px;
+                    right: 10px;
+                    bottom: -6px;
                     font-size: 78px;
                     font-weight: 900;
                     line-height: 1;
@@ -2881,31 +3188,49 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 </div>
 
                 <div style="position: relative; z-index: 1;">
-                    <div style="font-size: 12px; font-weight: 800; color: var(--text-secondary); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                        <span style="display: flex; align-items: center; gap: 5px;"><span>🔄</span> <span>ผลเปรียบเทียบจากรอบก่อน</span></span>
-                        <span id="summary-trend-badge" style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 8px;">📈 ดีขึ้น</span>
+                    <div style="font-size: 12.5px; font-weight: 800; color: var(--text-secondary); display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                        <span style="display: flex; align-items: center; gap: 6px;"><span>🔄</span> <span>ผลเปรียบเทียบจากรอบก่อน</span></span>
+                        <span id="summary-trend-badge" style="font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 12px; box-shadow: var(--neumorph-flat);">📈 ดีขึ้น</span>
                     </div>
-                    <div id="summary-trend-details" style="display: flex; flex-direction: column; gap: 5px;">
+                    <div id="summary-trend-details" style="display: flex; flex-direction: column; gap: 6px;">
                         <!-- Trend Comparison Details -->
                     </div>
                 </div>
             </div>
 
-            <!-- Key Lifestyle Actions (3อ. 2ส.) -->
-            <div style="margin-bottom: 18px;">
-                <div style="font-size: 12.5px; font-weight: 800; color: var(--color-green, #10B981); display: flex; align-items: center; gap: 5px; margin-bottom: 8px;">
+            <!-- Key Lifestyle Actions (3อ. 2ส.) Inset Well Card -->
+            <div style="
+                background: var(--bg-darker); 
+                border-radius: 22px; 
+                padding: 16px 14px; 
+                margin-bottom: 20px; 
+                box-shadow: var(--neumorph-inset);
+            ">
+                <div style="font-size: 13px; font-weight: 800; color: var(--color-green, #10B981); display: flex; align-items: center; gap: 6px; margin-bottom: 12px;">
                     <span>💡</span> <span>ข้อแนะนำการดูแลสุขภาพ (3อ. 2ส.)</span>
                 </div>
-                <div id="summary-advice-container" style="display: flex; flex-direction: column; gap: 6px;">
+                <div id="summary-advice-container" style="display: flex; flex-direction: column; gap: 8px;">
                     <!-- Advice Items -->
                 </div>
-                <div style="margin-top: 10px; font-size: 12px; color: var(--text-secondary); text-align: center; border-top: 1px dashed var(--border-color, rgba(148, 163, 184, 0.25)); padding-top: 8px; font-weight: 600;">
-                    📅 นัดติดตามผลครั้งถัดไป: <strong id="summary-next-date" style="color: var(--color-accent, #0d2c54); font-weight: 800;">-</strong>
+                
+                <!-- Next Appointment Inset Tag -->
+                <div style="
+                    margin-top: 12px; 
+                    background: var(--bg-card); 
+                    border-radius: 14px; 
+                    padding: 10px 14px; 
+                    box-shadow: var(--neumorph-flat); 
+                    font-size: 12.5px; 
+                    color: var(--text-secondary); 
+                    text-align: center; 
+                    font-weight: 700;
+                ">
+                    📅 นัดติดตามผลครั้งถัดไป: <strong id="summary-next-date" style="color: var(--color-accent, #0d2c54); font-weight: 900;">-</strong>
                 </div>
             </div>
 
             <!-- CTA Finish Button -->
-            <button type="button" onclick="closeCounselingSummaryAndFinish()" class="btn-giant btn-giant-primary" style="margin: 0; padding: 14px; font-size: 15.5px; border-radius: 16px; width: 100%; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35); font-weight: 800;">
+            <button type="button" onclick="closeCounselingSummaryAndFinish()" class="btn-giant btn-giant-primary" style="margin: 0; padding: 15px; font-size: 16px; border-radius: 20px; width: 100%; box-shadow: var(--neumorph-flat); font-weight: 900;">
                 ✅ รับทราบผลตรวจ และเสร็จสิ้นงาน
             </button>
         </div>

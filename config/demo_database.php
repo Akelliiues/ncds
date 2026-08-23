@@ -62,10 +62,10 @@ class DemoMockPDO extends PDO {
             'staging_hdc_ht'           => 'demo_mock_staging_hdc_ht',
             'staging_hdc_dm'           => 'demo_mock_staging_hdc_dm',
             'staging_jhcis_person'     => 'demo_mock_staging_jhcis_person',
-            'system_messages'          => 'demo_mock_system_messages',
-            'system_message_reads'     => 'demo_mock_system_message_reads',
             'jhcis_sync_configs'       => 'demo_mock_jhcis_sync_configs',
-            'jhcis_sync_logs'          => 'demo_mock_jhcis_sync_logs'
+            'jhcis_sync_logs'          => 'demo_mock_jhcis_sync_logs',
+            'citizen_self_screenings'  => 'demo_mock_citizen_self_screenings',
+            'critical_alerts'          => 'demo_mock_critical_alerts'
         ];
         foreach ($tables as $real => $mock) {
             $sql = preg_replace('/\b' . preg_quote($real, '/') . '\b/i', $mock, $sql);
@@ -122,8 +122,68 @@ function initDemoMockupDatabase($pdo) {
             'system_messages',
             'system_message_reads',
             'jhcis_sync_configs',
-            'jhcis_sync_logs'
+            'jhcis_sync_logs',
+            'citizen_self_screenings',
+            'critical_alerts'
         ];
+
+        // Ensure base critical_alerts table exists
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `critical_alerts` (
+            `alert_id` INT AUTO_INCREMENT PRIMARY KEY,
+            `screening_id` INT NULL,
+            `citizen_screening_id` INT NULL,
+            `hoscode` VARCHAR(10) NOT NULL,
+            `target_cid` VARCHAR(20) NOT NULL,
+            `patient_name` VARCHAR(150) NOT NULL,
+            `age` INT DEFAULT NULL,
+            `house_no` VARCHAR(50) DEFAULT NULL,
+            `moo` VARCHAR(10) DEFAULT NULL,
+            `sub_district_code` VARCHAR(10) DEFAULT NULL,
+            `latitude` DECIMAL(10,8) DEFAULT NULL,
+            `longitude` DECIMAL(11,8) DEFAULT NULL,
+            `crisis_type` VARCHAR(50) NOT NULL,
+            `sbp` INT DEFAULT NULL,
+            `dbp` INT DEFAULT NULL,
+            `dtx` INT DEFAULT NULL,
+            `red_flags` TEXT DEFAULT NULL,
+            `vhv_name` VARCHAR(150) DEFAULT NULL,
+            `vhv_phone` VARCHAR(30) DEFAULT NULL,
+            `alert_status` VARCHAR(30) DEFAULT 'pending',
+            `acknowledged_by` VARCHAR(100) DEFAULT NULL,
+            `acknowledged_at` DATETIME DEFAULT NULL,
+            `referral_destination` VARCHAR(100) DEFAULT NULL,
+            `referral_notes` TEXT DEFAULT NULL,
+            `is_jhcis_synced` TINYINT(1) DEFAULT 0,
+            `jhcis_visitno` VARCHAR(50) DEFAULT NULL,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+        // Ensure base citizen_self_screenings exists
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `citizen_self_screenings` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `session_hash` VARCHAR(64) NULL,
+            `budget_year` INT NOT NULL DEFAULT 2026,
+            `gender` ENUM('male', 'female') NOT NULL DEFAULT 'female',
+            `age_group` ENUM('young', 'middle', 'senior') NOT NULL,
+            `body_shape` ENUM('slim', 'chubby', 'obese') NOT NULL,
+            `sweet_habit` ENUM('low', 'med', 'high') NOT NULL,
+            `salt_habit` ENUM('low', 'med', 'high') NOT NULL,
+            `veggie_habit` ENUM('good', 'poor') NOT NULL,
+            `exercise_habit` ENUM('regular', 'some', 'sedentary') NOT NULL,
+            `sleep_habit` ENUM('good', 'poor') NOT NULL,
+            `substance_habit` ENUM('none', 'some', 'regular') NOT NULL,
+            `family_history` ENUM('no', 'yes') NOT NULL,
+            `risk_points` INT NOT NULL DEFAULT 0,
+            `risk_level` ENUM('green', 'yellow', 'red') NOT NULL,
+            `sub_district_code` VARCHAR(10) NULL,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX `idx_budget_year` (`budget_year`),
+            INDEX `idx_created_at` (`created_at`),
+            INDEX `idx_risk_level` (`risk_level`),
+            INDEX `idx_gender` (`gender`),
+            INDEX `idx_age_group` (`age_group`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
 
         foreach ($tablesToDuplicate as $tbl) {
             $pdo->exec("CREATE TABLE IF NOT EXISTS `demo_mock_$tbl` LIKE `$tbl`;");
@@ -218,6 +278,56 @@ function initDemoMockupDatabase($pdo) {
             $stmtVil->execute(['34100103', '341001', 3, 'หมู่ 3 บ้านโคกสว่าง (จำลอง)', '99999']);
             $stmtVil->execute(['34100104', '341001', 4, 'หมู่ 4 บ้านนาเจริญ (จำลอง)', '99999']);
             $stmtVil->execute(['34100105', '341001', 5, 'หมู่ 5 บ้านโนนงาม (จำลอง)', '99999']);
+
+            // Seed Mock Citizen Self-Screening Anonymous Records (30+ diverse demographic cases)
+            $mockCitizenScreenings = [
+                ['anon_sess_01', 2026, 'male', 'young', 'slim', 'low', 'low', 'good', 'regular', 'good', 'none', 'no', 0, 'green', '341801'],
+                ['anon_sess_02', 2026, 'female', 'middle', 'chubby', 'med', 'med', 'good', 'some', 'good', 'none', 'yes', 5, 'yellow', '341801'],
+                ['anon_sess_03', 2026, 'female', 'senior', 'obese', 'high', 'high', 'poor', 'sedentary', 'poor', 'none', 'yes', 15, 'red', '341802'],
+                ['anon_sess_04', 2026, 'male', 'middle', 'chubby', 'med', 'high', 'good', 'some', 'poor', 'some', 'no', 8, 'yellow', '341802'],
+                ['anon_sess_05', 2026, 'female', 'young', 'slim', 'low', 'low', 'good', 'regular', 'good', 'none', 'no', 0, 'green', '341803'],
+                ['anon_sess_06', 2026, 'male', 'senior', 'obese', 'high', 'high', 'poor', 'sedentary', 'poor', 'regular', 'yes', 18, 'red', '341803'],
+                ['anon_sess_07', 2026, 'female', 'middle', 'slim', 'med', 'low', 'good', 'regular', 'good', 'none', 'no', 2, 'green', '341804'],
+                ['anon_sess_08', 2026, 'male', 'young', 'chubby', 'high', 'med', 'poor', 'some', 'good', 'some', 'no', 7, 'yellow', '341804'],
+                ['anon_sess_09', 2026, 'female', 'senior', 'chubby', 'low', 'med', 'good', 'some', 'poor', 'none', 'yes', 6, 'yellow', '341805'],
+                ['anon_sess_10', 2026, 'male', 'middle', 'obese', 'high', 'high', 'poor', 'sedentary', 'poor', 'regular', 'yes', 17, 'red', '341805'],
+                ['anon_sess_11', 2026, 'female', 'young', 'slim', 'med', 'low', 'good', 'some', 'good', 'none', 'no', 2, 'green', '341806'],
+                ['anon_sess_12', 2026, 'male', 'senior', 'slim', 'low', 'low', 'good', 'regular', 'good', 'none', 'no', 2, 'green', '341806'],
+                ['anon_sess_13', 2026, 'female', 'middle', 'obese', 'med', 'high', 'poor', 'sedentary', 'good', 'none', 'yes', 11, 'red', '341801'],
+                ['anon_sess_14', 2026, 'male', 'middle', 'chubby', 'med', 'med', 'good', 'some', 'good', 'some', 'no', 6, 'yellow', '341802'],
+                ['anon_sess_15', 2026, 'female', 'young', 'slim', 'low', 'low', 'good', 'regular', 'good', 'none', 'no', 0, 'green', '341803'],
+                ['anon_sess_16', 2026, 'male', 'senior', 'chubby', 'med', 'high', 'poor', 'some', 'poor', 'none', 'yes', 10, 'red', '341804'],
+                ['anon_sess_17', 2026, 'female', 'middle', 'slim', 'low', 'med', 'good', 'regular', 'good', 'none', 'no', 2, 'green', '341805'],
+                ['anon_sess_18', 2026, 'male', 'young', 'obese', 'high', 'high', 'poor', 'sedentary', 'poor', 'regular', 'no', 14, 'red', '341806'],
+                ['anon_sess_19', 2026, 'female', 'senior', 'chubby', 'low', 'med', 'good', 'some', 'good', 'none', 'yes', 5, 'yellow', '341801'],
+                ['anon_sess_20', 2026, 'male', 'middle', 'slim', 'low', 'low', 'good', 'regular', 'good', 'none', 'no', 1, 'green', '341802']
+            ];
+
+            $stmtCS = $pdo->prepare("INSERT INTO `demo_mock_citizen_self_screenings` 
+                (session_hash, budget_year, gender, age_group, body_shape, sweet_habit, salt_habit, veggie_habit, exercise_habit, sleep_habit, substance_habit, family_history, risk_points, risk_level, sub_district_code) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            foreach ($mockCitizenScreenings as $cs) {
+                $stmtCS->execute($cs);
+            }
+
+            // Seed Mock Critical Alerts
+            $mockAlerts = [
+                ['99999', '9999900000005', 'วิชัย มั่นคง (จำลอง)', 68, '15/3', '3', '341001', 15.4350, 104.9860, 'ht_crisis (ความดันโลหิตสูงวิกฤต)', 210, 115, 310, 'ปวดศีรษะรุนแรง ตาพร่ามัว ปากเบี้ยว', 'อสม. บุญทัน เจริญดี (จำลอง)', '081-234-5678', 'pending'],
+                ['99999', '9999900000002', 'สมศรี สุขสรรค์ (จำลอง)', 71, '45/2', '1', '341001', 15.4310, 104.9825, 'dtx_high (น้ำตาลสูงวิกฤต)', 175, 95, 340, 'อ่อนเพลียมาก กระหายน้ำ หายใจหอบ', 'อสม. สมชาย ใจดี (จำลอง)', '089-876-5432', 'acknowledged'],
+                ['99999', '9999900000007', 'อนันต์ เจริญสุข (จำลอง)', 61, '99/4', '4', '341001', 15.4370, 104.9880, 'ht_crisis (ความดันโลหิตสูงวิกฤต)', 195, 110, 140, 'แน่นหน้าอกร้าวไปกราม', 'อสม. บุญทัน เจริญดี (จำลอง)', '081-234-5678', 'referred_hospital']
+            ];
+
+            $stmtCA = $pdo->prepare("INSERT INTO `demo_mock_critical_alerts`
+                (hoscode, target_cid, patient_name, age, house_no, moo, sub_district_code, latitude, longitude, crisis_type, sbp, dbp, dtx, red_flags, vhv_name, vhv_phone, alert_status, referral_destination, is_jhcis_synced)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            foreach ($mockAlerts as $ca) {
+                $refDest = ($ca[16] === 'referred_hospital') ? 'โรงพยาบาลตาลสุม (10988)' : null;
+                $isSynced = ($ca[16] === 'referred_hospital') ? 1 : 0;
+                $stmtCA->execute([
+                    $ca[0], $ca[1], $ca[2], $ca[3], $ca[4], $ca[5], $ca[6], $ca[7], $ca[8], $ca[9],
+                    $ca[10], $ca[11], $ca[12], $ca[13], $ca[14], $ca[15], $ca[16], $refDest, $isSynced
+                ]);
+            }
         }
     } catch (\Throwable $e) {
         // Failover gracefully

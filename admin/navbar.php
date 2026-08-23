@@ -24,9 +24,17 @@ $is_super_admin = (!isset($admin_hoscode) || empty($admin_hoscode)) && (isset($_
 
 $is_core_active = in_array($current_page, ['index.php', 'profile.php', 'leaderboard.php']);
 $is_targets_active = in_array($current_page, ['target_manager.php', 'dpac_manager.php']);
-$is_work_active = in_array($current_page, ['assignment.php', 'vhv_approval.php', 'print_qr.php', 'vhv_tasks.php']);
-$is_reports_active = in_array($current_page, ['analytics.php', 'reports.php', 'security_log.php', 'surveillance_reports.php']);
-$is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php', 'db_manager.php', 'user_manager.php', 'unit_house_manager.php', 'update.php', 'messages.php', 'jhcis_sync.php']);
+$is_work_active = in_array($current_page, ['assignment.php', 'vhv_approval.php', 'print_qr.php', 'vhv_tasks.php', 'critical_referrals.php']);
+$is_reports_active = in_array($current_page, ['analytics.php', 'citizen_health_dashboard.php', 'reports.php', 'security_log.php', 'surveillance_reports.php']);
+$is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php', 'db_manager.php', 'user_manager.php', 'unit_house_manager.php', 'update.php', 'messages.php', 'jhcis_sync.php', 'emergency_receiver.php']);
+
+$pendingAlertsCount = 0;
+try {
+    $paSql = "SELECT COUNT(*) FROM critical_alerts WHERE alert_status = 'pending' " . (!empty($admin_hoscode) ? "AND hoscode = ?" : "");
+    $paStmt = $pdo->prepare($paSql);
+    $paStmt->execute(!empty($admin_hoscode) ? [$admin_hoscode] : []);
+    $pendingAlertsCount = (int)$paStmt->fetchColumn();
+} catch (\Throwable $e) {}
 ?>
 <script>
     // Immediately apply theme before rendering
@@ -305,14 +313,21 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
     </style>
 <?php endif; ?>
 <div class="admin-navbar no-print">
-    <a href="index.php" class="admin-logo" style="display: flex; align-items: center; gap: 10px;">
-        <img src="../assets/icon.png" alt="Logo" style="height: 35px; width: 35px;">
-        <span>NCDs Portal</span>
-        <?php if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true): ?>
-            <span style="background-color: rgba(245, 158, 11, 0.15); color: #d97706; border: 1.5px solid rgba(217, 119, 6, 0.4); padding: 4px 10px; border-radius: 50px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; box-shadow: inset 1px 1px 3px rgba(0,0,0,0.05); margin-left: 5px;">
-                👁️ โหมดผู้มาเยือน
+    <a href="#" onclick="openDevModal(event)" class="admin-logo" style="display: flex; align-items: center; gap: 11px; text-decoration: none; cursor: pointer;" title="คลิกเพื่อดูรายละเอียดระบบและทีมพัฒนา">
+        <img src="../assets/icon.png" alt="Logo" style="height: 44px; width: 44px; border-radius: 12px; flex-shrink: 0; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.1));">
+        <div style="display: flex; flex-direction: column; justify-content: center;">
+            <div style="display: flex; align-items: center; gap: 6px; line-height: 1.15;">
+                <span style="font-size: 18.5px; font-weight: 900; color: var(--color-primary); letter-spacing: -0.2px;">NCDs Portal</span>
+                <?php if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true): ?>
+                    <span style="background-color: rgba(245, 158, 11, 0.15); color: #d97706; border: 1.5px solid rgba(217, 119, 6, 0.4); padding: 2px 7px; border-radius: 50px; font-size: 10px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px; box-shadow: inset 1px 1px 2px rgba(0,0,0,0.05);">
+                        👁️ ผู้มาเยือน
+                    </span>
+                <?php endif; ?>
+            </div>
+            <span style="font-size: 10px; font-weight: 600; color: var(--text-secondary); opacity: 0.85; margin-top: 1px; white-space: nowrap; letter-spacing: 0.1px;">
+                คัดกรอง ดูแล ป้องกัน เพื่อสุขภาพที่ดีอย่างยั่งยืน
             </span>
-        <?php endif; ?>
+        </div>
     </a>
     <div class="admin-nav-links">
         <!-- 1. General/Core Dropdown -->
@@ -351,7 +366,7 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
                     </svg>
                     คู่มือการใช้งานระบบ
                 </a>
-                <a href="../about.php" onclick="openDevModal(event)">
+                <a href="../about.php" class="<?= $current_page == 'about.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
@@ -423,6 +438,17 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
                     </svg>
                     เช็คงาน อสม.
                 </a>
+                <a href="critical_referrals.php" class="<?= $current_page == 'critical_referrals.php' ? 'active' : '' ?>" style="<?= $pendingAlertsCount > 0 ? 'background: rgba(220,38,38,0.12); color: #DC2626 !important; font-weight: 800;' : '' ?>">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>เคสวิกฤต & ส่งต่อ</span>
+                    <?php if ($pendingAlertsCount > 0): ?>
+                        <span style="margin-left: auto; background: #DC2626; color: white; border-radius: 50px; padding: 2px 7px; font-size: 10.5px; font-weight: 900;">
+                            <?= $pendingAlertsCount ?>
+                        </span>
+                    <?php endif; ?>
+                </a>
             </div>
         </div>
 
@@ -438,6 +464,12 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
                 </svg>
             </button>
             <div class="nav-dropdown-content">
+                <a href="citizen_health_dashboard.php" class="<?= $current_page == 'citizen_health_dashboard.php' ? 'active' : '' ?>">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    สถิติสุขภาพประชาชน
+                </a>
                 <a href="analytics.php" class="<?= $current_page == 'analytics.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16 8v8m-4-5v5m-4-2v2M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12z" />
@@ -542,6 +574,12 @@ $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php'
                         อัปเดตระบบ (Update)
                     </a>
                 <?php endif; ?>
+                <a href="emergency_receiver.php" target="_blank" class="<?= $current_page == 'emergency_receiver.php' ? 'active' : '' ?>" style="color: #DC2626 !important; font-weight: 800;">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Red Alert Station (เด้งจอ)
+                </a>
             </div>
         </div>
 

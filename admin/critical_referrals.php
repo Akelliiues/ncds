@@ -1,0 +1,586 @@
+<?php
+// admin/critical_referrals.php - ศูนย์จัดการเคสวิกฤตและการส่งต่อ (Critical Referrals & JHCIS Integration)
+require_once __DIR__ . '/../config/session.php';
+
+if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+    header("Location: ../index.php");
+    exit();
+}
+
+require_once __DIR__ . '/../config/db.php';
+
+// Auto-ensure table exists
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `critical_alerts` (
+        `alert_id` INT AUTO_INCREMENT PRIMARY KEY,
+        `screening_id` INT NULL,
+        `citizen_screening_id` INT NULL,
+        `hoscode` VARCHAR(10) NOT NULL,
+        `target_cid` VARCHAR(20) NOT NULL,
+        `patient_name` VARCHAR(150) NOT NULL,
+        `age` INT DEFAULT NULL,
+        `house_no` VARCHAR(50) DEFAULT NULL,
+        `moo` VARCHAR(10) DEFAULT NULL,
+        `sub_district_code` VARCHAR(10) DEFAULT NULL,
+        `latitude` DECIMAL(10,8) DEFAULT NULL,
+        `longitude` DECIMAL(11,8) DEFAULT NULL,
+        `crisis_type` VARCHAR(50) NOT NULL,
+        `sbp` INT DEFAULT NULL,
+        `dbp` INT DEFAULT NULL,
+        `dtx` INT DEFAULT NULL,
+        `red_flags` TEXT DEFAULT NULL,
+        `vhv_name` VARCHAR(150) DEFAULT NULL,
+        `vhv_phone` VARCHAR(30) DEFAULT NULL,
+        `alert_status` VARCHAR(30) DEFAULT 'pending',
+        `acknowledged_by` VARCHAR(100) DEFAULT NULL,
+        `acknowledged_at` DATETIME DEFAULT NULL,
+        `referral_destination` VARCHAR(100) DEFAULT NULL,
+        `referral_notes` TEXT DEFAULT NULL,
+        `is_jhcis_synced` TINYINT(1) DEFAULT 0,
+        `jhcis_visitno` VARCHAR(50) DEFAULT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+} catch (\Throwable $e) {}
+
+$admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
+$admin_title = function_exists('get_admin_title') ? get_admin_title() : 'ผู้ดูแลระบบ';
+$is_super_admin = !empty($_SESSION['is_super_admin']);
+$hc_names = function_exists('get_health_units') ? get_health_units() : [];
+
+$selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '';
+$status_filter = $_GET['status'] ?? 'all';
+
+// Fetch Alerts
+$where = ["1=1"];
+$params = [];
+
+if (!empty($selected_hoscode) && $selected_hoscode !== 'ALL') {
+    $where[] = "(hoscode = ? OR hoscode = 'ALL' OR hoscode = '99999')";
+    $params[] = $selected_hoscode;
+}
+
+if ($status_filter !== 'all') {
+    $where[] = "alert_status = ?";
+    $params[] = $status_filter;
+}
+
+$whereSql = implode(' AND ', $where);
+
+// Summary Stats
+$stats = [
+    'total_alerts' => 0, 'pending_count' => 0, 'ack_count' => 0, 'referred_count' => 0, 'jhcis_synced_count' => 0
+];
+
+try {
+    $statsSql = "
+        SELECT 
+            COUNT(*) as total_alerts,
+            SUM(CASE WHEN alert_status = 'pending' THEN 1 ELSE 0 END) as pending_count,
+            SUM(CASE WHEN alert_status = 'acknowledged' THEN 1 ELSE 0 END) as ack_count,
+            SUM(CASE WHEN alert_status = 'referred_hospital' THEN 1 ELSE 0 END) as referred_count,
+            SUM(CASE WHEN is_jhcis_synced = 1 THEN 1 ELSE 0 END) as jhcis_synced_count
+        FROM critical_alerts
+        WHERE " . (!empty($selected_hoscode) && $selected_hoscode !== 'ALL' ? "hoscode = ?" : "1=1");
+    
+    $statsStmt = $pdo->prepare($statsSql);
+    $statsStmt->execute(!empty($selected_hoscode) && $selected_hoscode !== 'ALL' ? [$selected_hoscode] : []);
+    $resStats = $statsStmt->fetch(PDO::FETCH_ASSOC);
+    if ($resStats) {
+        $stats = $resStats;
+    }
+} catch (\Throwable $e) {}
+
+// Fetch Alert List
+$alerts = [];
+try {
+    $listStmt = $pdo->prepare("
+        SELECT * FROM critical_alerts 
+        WHERE {$whereSql} 
+        ORDER BY alert_id DESC 
+        LIMIT 100
+    ");
+    $listStmt->execute($params);
+    $alerts = $listStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+} catch (\Throwable $e) {}
+
+$districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
+?>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ศูนย์จัดการเคสวิกฤตและการส่งต่อ - NCDs Portal อำเภอ<?= htmlspecialchars($districtName) ?></title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <style>
+        .kpi-grid-referral {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .kpi-grid-referral {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .kpi-grid-referral {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .referral-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: var(--neumorph-flat);
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .status-pending { background: rgba(220, 38, 38, 0.15); color: #DC2626; border: 1px solid #DC2626; }
+        .status-acknowledged { background: rgba(245, 158, 11, 0.15); color: #D97706; border: 1px solid #F59E0B; }
+        .status-referred_hospital { background: rgba(59, 130, 246, 0.15); color: #2563EB; border: 1px solid #3B82F6; }
+        .status-resolved { background: rgba(16, 185, 129, 0.15); color: #10B981; border: 1px solid #10B981; }
+
+        /* Modal */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(8px);
+            z-index: 99999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .modal-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            max-width: 520px;
+            width: 100%;
+            padding: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4);
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Top Navbar -->
+        <?php require_once __DIR__ . '/navbar.php'; ?>
+
+        <main class="main-content" style="padding: 20px 24px;">
+            <!-- Header Section -->
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
+                <div>
+                    <h1 style="margin: 0; font-size: 22px; font-weight: 900; color: var(--color-accent, #0d2c54); display: flex; align-items: center; gap: 10px;">
+                        <span>🚨 ศูนย์จัดการเคสวิกฤต & ส่งต่อการรักษา (Emergency Triage)</span>
+                    </h1>
+                    <p style="margin: 4px 0 0 0; font-size: 13.5px; color: var(--text-secondary);">
+                        ระบบรับเรื่องเหตุวิกฤตฉุกเฉินจากชุมชน • ประเมิน Triage • สั่งส่งต่อ รพ.ตาลสุม & ซิงค์เข้า JHCIS
+                    </p>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <a href="../tools/red_alert_station/NCDs_RedAlert_Station.exe" download class="btn-action" style="background: linear-gradient(135deg, #10B981, #059669); color: white; text-decoration: none; padding: 10px 18px; border-radius: 12px; font-weight: 800; font-size: 13px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); display: inline-flex; align-items: center; gap: 6px;">
+                        <span>📥 ดาวน์โหลดแอป (.exe)</span>
+                    </a>
+                    <a href="emergency_receiver.php" target="_blank" class="btn-action" style="background: linear-gradient(135deg, #DC2626, #991B1B); color: white; text-decoration: none; padding: 10px 18px; border-radius: 12px; font-weight: 800; font-size: 13px; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35); display: inline-flex; align-items: center; gap: 6px;">
+                        <span>🖥️ เปิดหน้าจอ Red Alert Station</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- KPI Metric Cards -->
+            <div class="kpi-grid-referral">
+                <div class="referral-card" style="border-left: 4px solid #DC2626;">
+                    <div style="font-size: 12px; font-weight: 800; color: var(--text-secondary);">เคสรอรับเรื่องด่วน (Pending)</div>
+                    <div style="font-size: 32px; font-weight: 900; color: #DC2626; margin-top: 4px;">
+                        <?= number_format($stats['pending_count']) ?> <span style="font-size: 14px; font-weight: 700; color: var(--text-secondary);">เคส</span>
+                    </div>
+                </div>
+                <div class="referral-card" style="border-left: 4px solid #F59E0B;">
+                    <div style="font-size: 12px; font-weight: 800; color: var(--text-secondary);">รับทราบแล้ว/กำลังดูแล</div>
+                    <div style="font-size: 32px; font-weight: 900; color: #F59E0B; margin-top: 4px;">
+                        <?= number_format($stats['ack_count']) ?> <span style="font-size: 14px; font-weight: 700; color: var(--text-secondary);">เคส</span>
+                    </div>
+                </div>
+                <div class="referral-card" style="border-left: 4px solid #3B82F6;">
+                    <div style="font-size: 12px; font-weight: 800; color: var(--text-secondary);">ส่งต่อ รพ.ตาลสุม แล้ว</div>
+                    <div style="font-size: 32px; font-weight: 900; color: #3B82F6; margin-top: 4px;">
+                        <?= number_format($stats['referred_count']) ?> <span style="font-size: 14px; font-weight: 700; color: var(--text-secondary);">เคส</span>
+                    </div>
+                </div>
+                <div class="referral-card" style="border-left: 4px solid #10B981;">
+                    <div style="font-size: 12px; font-weight: 800; color: var(--text-secondary);">ซิงค์สร้างใน JHCIS แล้ว</div>
+                    <div style="font-size: 32px; font-weight: 900; color: #10B981; margin-top: 4px;">
+                        <?= number_format($stats['jhcis_synced_count']) ?> <span style="font-size: 14px; font-weight: 700; color: var(--text-secondary);">เคส</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="referral-card" style="margin-bottom: 20px; padding: 14px 20px;">
+                <form method="GET" action="critical_referrals.php" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <span style="font-size: 13px; font-weight: 800; color: var(--text-primary);">กรองข้อมูล:</span>
+                        
+                        <select name="hoscode" onchange="this.form.submit()" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 10px; font-size: 13px; font-weight: 700; outline: none;">
+                            <option value="">ทุก รพ.สต. (ภาพรวมอำเภอ)</option>
+                            <?php foreach ($hc_names as $code => $name): ?>
+                                <option value="<?= $code ?>" <?= $selected_hoscode == $code ? 'selected' : '' ?>>
+                                    [<?= $code ?>] <?= $name ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+
+                        <select name="status" onchange="this.form.submit()" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 10px; font-size: 13px; font-weight: 700; outline: none;">
+                            <option value="all" <?= $status_filter === 'all' ? 'selected' : '' ?>>ทุกสถานะ</option>
+                            <option value="pending" <?= $status_filter === 'pending' ? 'selected' : '' ?>>🚨 รอรับเรื่อง (Pending)</option>
+                            <option value="acknowledged" <?= $status_filter === 'acknowledged' ? 'selected' : '' ?>>⏳ รับทราบแล้ว (Acknowledged)</option>
+                            <option value="referred_hospital" <?= $status_filter === 'referred_hospital' ? 'selected' : '' ?>>🏥 ส่งต่อ รพ. (Referred)</option>
+                            <option value="resolved" <?= $status_filter === 'resolved' ? 'selected' : '' ?>>✅ สิ้นสุดการดูแล (Resolved)</option>
+                        </select>
+                    </div>
+
+                    <button type="button" onclick="location.reload()" style="background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 14px; border-radius: 10px; font-size: 12.5px; font-weight: 700; cursor: pointer;">
+                        🔄 รีเฟรชรายการ
+                    </button>
+                </form>
+            </div>
+
+            <!-- Table of Emergency Cases -->
+            <div class="referral-card">
+                <div class="table-responsive">
+                    <table class="custom-table" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th style="text-align: center; width: 60px;">#</th>
+                                <th>ผู้ป่วย / CID</th>
+                                <th>ที่อยู่ / รพ.สต.</th>
+                                <th>สัญญาณชีพวิกฤต</th>
+                                <th>ภาวะฉุกเฉิน / Red Flags</th>
+                                <th>อสม. ผู้แจ้ง</th>
+                                <th style="text-align: center;">สถานะ</th>
+                                <th style="text-align: center; width: 220px;">การจัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($alerts)): ?>
+                                <tr>
+                                    <td colspan="8" style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
+                                        <div style="font-size: 32px; margin-bottom: 8px;">🛡️</div>
+                                        <div style="font-weight: 700;">ไม่พบเคสวิกฤตฉุกเฉินตามเงื่อนไขที่เลือก</div>
+                                    </td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($alerts as $row): ?>
+                                    <?php
+                                    $isPending = ($row['alert_status'] === 'pending');
+                                    $isReferred = ($row['alert_status'] === 'referred_hospital');
+                                    $mapUrl = ($row['latitude'] && $row['longitude'])
+                                        ? "https://www.google.com/maps?q={$row['latitude']},{$row['longitude']}"
+                                        : "https://www.google.com/maps/search/อำเภอตาลสุม";
+                                    ?>
+                                    <tr style="<?= $isPending ? 'background: rgba(220, 38, 38, 0.05);' : '' ?>">
+                                        <td style="text-align: center; font-weight: 800; color: var(--text-secondary);">
+                                            #<?= $row['alert_id'] ?>
+                                        </td>
+                                        <td>
+                                            <div style="font-weight: 800; font-size: 14.5px; color: var(--text-primary);">
+                                                <?= htmlspecialchars($row['patient_name']) ?>
+                                            </div>
+                                            <div style="font-size: 11.5px; color: var(--text-secondary); font-family: monospace;">
+                                                CID: <?= htmlspecialchars($row['target_cid']) ?> <?= $row['age'] ? "({$row['age']} ปี)" : '' ?>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div style="font-size: 12.5px; font-weight: 600;">
+                                                บ้านเลขที่ <?= htmlspecialchars($row['house_no'] ?: '-') ?> ม.<?= htmlspecialchars($row['moo'] ?: '-') ?>
+                                            </div>
+                                            <div style="font-size: 11.5px; color: var(--text-secondary);">
+                                                [<?= $row['hoscode'] ?>] <?= $hc_names[$row['hoscode']] ?? 'รพ.สต.' ?>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div style="font-size: 14px; font-weight: 900; color: <?= $row['sbp'] >= 180 ? '#DC2626' : '#10B981' ?>;">
+                                                BP: <?= $row['sbp'] ? "{$row['sbp']}/{$row['dbp']}" : '-' ?> mmHg
+                                            </div>
+                                            <div style="font-size: 12px; font-weight: 800; color: <?= $row['dtx'] >= 300 ? '#DC2626' : '#F59E0B' ?>;">
+                                                DTX: <?= $row['dtx'] ? "{$row['dtx']} mg%" : '-' ?>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div style="font-size: 12.5px; font-weight: 800; color: #DC2626;">
+                                                <?= htmlspecialchars($row['crisis_type']) ?>
+                                            </div>
+                                            <?php if (!empty($row['red_flags'])): ?>
+                                                <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.3;">
+                                                    ⚠️ <?= htmlspecialchars($row['red_flags']) ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <div style="font-size: 12.5px; font-weight: 700;">
+                                                <?= htmlspecialchars($row['vhv_name'] ?: 'อสม. ในพื้นที่') ?>
+                                            </div>
+                                            <?php if (!empty($row['vhv_phone'])): ?>
+                                                <a href="tel:<?= htmlspecialchars($row['vhv_phone']) ?>" style="font-size: 11.5px; color: #3B82F6; text-decoration: none; font-weight: 700;">
+                                                    📞 <?= htmlspecialchars($row['vhv_phone']) ?>
+                                                </a>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <?php if ($row['alert_status'] === 'pending'): ?>
+                                                <span class="status-pill status-pending">🚨 รอรับเรื่อง</span>
+                                            <?php elseif ($row['alert_status'] === 'acknowledged'): ?>
+                                                <span class="status-pill status-acknowledged">⏳ รับทราบแล้ว</span>
+                                            <?php elseif ($row['alert_status'] === 'referred_hospital'): ?>
+                                                <span class="status-pill status-referred_hospital">🏥 ส่งต่อ รพ.</span>
+                                                <?php if ($row['is_jhcis_synced']): ?>
+                                                    <div style="font-size: 10.5px; color: #10B981; font-weight: 800; margin-top: 3px;">✓ JHCIS Synced</div>
+                                                <?php endif; ?>
+                                            <?php else: ?>
+                                                <span class="status-pill status-resolved">✅ ปิดเคสแล้ว</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
+                                                <?php if ($isPending): ?>
+                                                    <button type="button" onclick="ackAlert(<?= $row['alert_id'] ?>)" class="btn-action" style="padding: 5px 10px; font-size: 11.5px; background: #DC2626; color: white; border: none; border-radius: 8px; font-weight: 800; cursor: pointer;">
+                                                        🔕 รับเรื่อง
+                                                    </button>
+                                                <?php endif; ?>
+                                                
+                                                <button type="button" onclick="openReferModal(<?= htmlspecialchars(json_encode($row), ENT_QUOTES, 'UTF-8') ?>)" class="btn-action" style="padding: 5px 10px; font-size: 11.5px; background: #3B82F6; color: white; border: none; border-radius: 8px; font-weight: 800; cursor: pointer;">
+                                                    🏥 สั่งส่งต่อ
+                                                </button>
+
+                                                <button type="button" onclick="openSlipModal(<?= htmlspecialchars(json_encode($row), ENT_QUOTES, 'UTF-8') ?>)" class="btn-action" style="padding: 5px 10px; font-size: 11.5px; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; font-weight: 700; cursor: pointer;" title="ออกใบส่งต่ออิเล็กทรอนิกส์">
+                                                    📋 e-Slip
+                                                </button>
+
+                                                <a href="<?= $mapUrl ?>" target="_blank" class="btn-action" style="padding: 5px 10px; font-size: 11.5px; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; text-decoration: none; font-weight: 700;" title="เปิดแผนที่นำทาง">
+                                                    🗺️
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Refer & JHCIS Action Modal -->
+    <div id="refer-modal" class="modal-backdrop">
+        <div class="modal-box">
+            <h3 style="margin: 0 0 12px 0; font-size: 18px; font-weight: 900; color: #3B82F6; display: flex; align-items: center; gap: 8px;">
+                <span>🏥</span> สั่งส่งต่อผู้ป่วย & บันทึกลง JHCIS
+            </h3>
+            
+            <div id="modal-target-patient" style="background: var(--bg-darker); padding: 12px; border-radius: 12px; margin-bottom: 16px; font-size: 13px;">
+                <!-- Target patient summary -->
+            </div>
+
+            <form id="form-refer-submit" onsubmit="submitReferral(event)">
+                <input type="hidden" id="refer-alert-id" name="alert_id">
+
+                <div style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 12.5px; font-weight: 800; margin-bottom: 6px;">สถานพยาบาลปลายทางที่ส่งต่อ:</label>
+                    <select id="refer-dest" name="referral_destination" class="form-select" style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-weight: 700;">
+                        <option value="โรงพยาบาลตาลสุม (10957)" selected>🏥 โรงพยาบาลตาลสุม (แม่ข่ายหลัก - รหัส 10957)</option>
+                        <option value="โรงพยาบาลสรรพสิทธิประสงค์ (10670)">🏥 โรงพยาบาลสรรพสิทธิประสงค์ (ศูนย์อุบลฯ - รหัส 10670)</option>
+                        <option value="โรงพยาบาลวารินชำราบ (10738)">🏥 โรงพยาบาลวารินชำราบ (รหัส 10738)</option>
+                        <option value="รพ.สต. ในเขตรับผิดชอบ">🏥 รพ.สต. ในเขตพื้นที่ (รับตัวเข้าสังเกตอาการ)</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 12.5px; font-weight: 800; margin-bottom: 6px;">การวินิจฉัยเบื้องต้น / บันทึกการส่งต่อ:</label>
+                    <textarea id="refer-notes" name="referral_notes" rows="3" class="form-input" style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); box-sizing: border-box;" placeholder="ระบุอาการสำคัญ หรือข้อสั่งการของแพทย์/พยาบาล..."></textarea>
+                </div>
+
+                <div style="margin-bottom: 18px; background: rgba(16, 185, 129, 0.08); border: 1px solid #10B981; border-radius: 12px; padding: 12px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800; color: #10B981; cursor: pointer;">
+                        <input type="checkbox" id="refer-sync-jhcis" name="sync_jhcis" value="1" checked style="width: 18px; height: 18px;">
+                        <span>⚡ ซิงค์สร้าง Record ส่งต่อไปยังตาราง visitrefer ใน JHCIS ทันที</span>
+                    </label>
+                    <div style="font-size: 11.5px; color: var(--text-secondary); margin-left: 26px; margin-top: 4px;">
+                        ระบบจะสร้างรหัสรับบริการและบันทึกแฟ้ม REFER ในฐานข้อมูล JHCIS ของ รพ.สต. ให้อัตโนมัติ
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" onclick="closeReferModal()" style="padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-weight: 700; cursor: pointer;">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" id="btn-submit-refer" style="padding: 10px 24px; border-radius: 10px; border: none; background: #3B82F6; color: white; font-weight: 800; cursor: pointer; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);">
+                        🚀 ยืนยันการสั่งส่งต่อ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- e-Referral Slip Modal (Printable) -->
+    <div id="slip-modal" class="modal-backdrop">
+        <div class="modal-box" style="max-width: 480px; text-align: center;">
+            <div style="border: 2px dashed #DC2626; border-radius: 18px; padding: 18px; background: rgba(220, 38, 38, 0.03); margin-bottom: 16px;">
+                <div style="font-size: 11px; font-weight: 800; color: #DC2626; letter-spacing: 1px; text-transform: uppercase;">
+                    EMERGENCY FAST-TRACK REFERRAL SLIP
+                </div>
+                <h2 style="margin: 4px 0 6px 0; font-size: 20px; font-weight: 900; color: var(--color-accent, #0d2c54);">
+                    ใบส่งต่อกรณีวิกฤตฉุกเฉิน
+                </h2>
+                <div style="font-size: 12px; color: var(--text-secondary);">
+                    สาธารณสุขอำเภอ<?= htmlspecialchars($districtName) ?> • รพ.สต. ประจำตำบล
+                </div>
+
+                <div style="margin: 16px 0; padding: 12px; background: var(--bg-card); border-radius: 14px; text-align: left; font-size: 13px;">
+                    <div style="font-size: 15px; font-weight: 900; color: var(--text-primary); margin-bottom: 6px;" id="slip-patient-name">-</div>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;"><strong>CID:</strong> <span id="slip-cid">-</span></div>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;"><strong>ที่อยู่:</strong> <span id="slip-address">-</span></div>
+                    <div style="font-size: 14px; font-weight: 900; color: #DC2626; margin-top: 8px;" id="slip-vitals">-</div>
+                    <div style="font-size: 12px; color: #DC2626; font-weight: 700; margin-top: 4px;" id="slip-crisis">-</div>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 6px;"><strong>ปลายทาง:</strong> <span id="slip-dest" style="color: #3B82F6; font-weight: 800;">-</span></div>
+                </div>
+
+                <!-- QR Code representation -->
+                <div style="background: white; padding: 10px; display: inline-block; border-radius: 12px; border: 1px solid #E2E8F0; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                    <img id="slip-qr-img" src="" alt="Referral QR" style="width: 140px; height: 140px; display: block;">
+                </div>
+                <div style="font-size: 11px; color: var(--text-secondary); margin-top: 6px;">
+                    สแกนที่จุดคัดกรองห้องฉุกเฉิน (ER) เพื่อดึงข้อมูลประวัติทันที
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button type="button" onclick="window.print()" style="padding: 10px 18px; border-radius: 10px; border: none; background: #10B981; color: white; font-weight: 800; cursor: pointer;">
+                    🖨️ พิมพ์ใบส่งต่อ
+                </button>
+                <button type="button" onclick="closeSlipModal()" style="padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-weight: 700; cursor: pointer;">
+                    ปิดหน้าต่าง
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        function ackAlert(alertId) {
+            const formData = new FormData();
+            formData.append('action', 'acknowledge_alert');
+            formData.append('alert_id', alertId);
+            formData.append('staff_name', '<?= addslashes($_SESSION["admin_username"] ?? "เจ้าหน้าที่ รพ.สต.") ?>');
+
+            fetch('../api/emergency_alert.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.status === 'success') {
+                    location.reload();
+                } else {
+                    alert('ข้อผิดพลาด: ' + res.message);
+                }
+            });
+        }
+
+        function openReferModal(alert) {
+            document.getElementById('refer-alert-id').value = alert.alert_id;
+            document.getElementById('modal-target-patient').innerHTML = `
+                <div style="font-weight: 800; font-size: 14.5px; color: var(--text-primary);">${alert.patient_name} (${alert.age ? alert.age + ' ปี' : ''})</div>
+                <div style="color: #DC2626; font-weight: 800; margin-top: 2px;">ความดัน SBP: ${alert.sbp || '-'}/${alert.dbp || '-'} | DTX: ${alert.dtx || '-'} (${alert.crisis_type})</div>
+                <div style="color: var(--text-secondary); font-size: 11.5px; margin-top: 2px;">บ้านเลขที่ ${alert.house_no || '-'} ม.${alert.moo || '-'} • อสม. ${alert.vhv_name || '-'}</div>
+            `;
+            document.getElementById('refer-notes').value = alert.referral_notes || `พบค่าสัญญาณชีพวิกฤต SBP ${alert.sbp}/${alert.dbp} DTX ${alert.dtx} ${alert.red_flags ? '(' + alert.red_flags + ')' : ''}`;
+            document.getElementById('refer-modal').style.display = 'flex';
+        }
+
+        function closeReferModal() {
+            document.getElementById('refer-modal').style.display = 'none';
+        }
+
+        function submitReferral(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit-refer');
+            btn.disabled = true;
+            btn.innerHTML = '⏳ กำลังบันทึกและส่งข้อมูลเข้า JHCIS...';
+
+            const form = document.getElementById('form-refer-submit');
+            const formData = new FormData(form);
+            formData.append('action', 'update_referral_status');
+            formData.append('status', 'referred_hospital');
+            formData.append('staff_name', '<?= addslashes($_SESSION["admin_username"] ?? "เจ้าหน้าที่ รพ.สต.") ?>');
+
+            fetch('../api/emergency_alert.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.status === 'success') {
+                    alert('✅ ' + res.message);
+                    location.reload();
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '🚀 ยืนยันการสั่งส่งต่อ';
+                    alert('❌ ข้อผิดพลาด: ' + res.message);
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '🚀 ยืนยันการสั่งส่งต่อ';
+                alert('เชื่อมต่อล้มเหลว: ' + err);
+            });
+        }
+
+        function openSlipModal(alert) {
+            document.getElementById('slip-patient-name').innerText = `${alert.patient_name} (${alert.age ? alert.age + ' ปี' : ''})`;
+            document.getElementById('slip-cid').innerText = alert.target_cid || '-';
+            document.getElementById('slip-address').innerText = `บ้านเลขที่ ${alert.house_no || '-'} ม.${alert.moo || '-'} ต.ตาลสุม`;
+            document.getElementById('slip-vitals').innerText = `🩺 BP: ${alert.sbp || '-'}/${alert.dbp || '-'} mmHg | 🩸 DTX: ${alert.dtx || '-'} mg%`;
+            document.getElementById('slip-crisis').innerText = `⚠️ ${alert.crisis_type} ${alert.red_flags ? '(' + alert.red_flags + ')' : ''}`;
+            document.getElementById('slip-dest').innerText = alert.referral_destination || 'โรงพยาบาลตาลสุม (10957)';
+
+            const qrData = encodeURIComponent(`NCD_REFER:${alert.alert_id}|${alert.target_cid}|BP:${alert.sbp}/${alert.dbp}|DTX:${alert.dtx}`);
+            document.getElementById('slip-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}`;
+
+            document.getElementById('slip-modal').style.display = 'flex';
+        }
+
+        function closeSlipModal() {
+            document.getElementById('slip-modal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

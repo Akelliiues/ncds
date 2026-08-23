@@ -227,8 +227,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <body class="vhv-accessibility">
     <div class="login-container">
-        <div class="login-brand"
-            style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 12px;">
+        <div class="login-brand" onclick="openDevModal(event)" title="คลิกเพื่อดูรายละเอียดระบบและทีมพัฒนา"
+            style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 12px; cursor: pointer;">
             <img src="assets/icon.png" alt="NCDs Portal Logo" class="brand-logo">
             <span>สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?></span>
             <h1>ระบบคัดกรอง NCDs Portal</h1>
@@ -266,19 +266,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </form>
             <div style="text-align: center; margin-bottom: 12px;">
                 <a href="vhv/register.php"
-                    style="color: var(--color-accent); text-decoration: none; font-weight: bold; font-size: 14px; display: inline-block;">
-                    📝 ลงทะเบียน อสม. ใหม่
+                    style="color: var(--color-accent); text-decoration: none; font-weight: bold; font-size: 13.5px; display: inline-flex; align-items: center; gap: 6px;">
+                    <?= render_neu_icon('doctor', 'xs', 'disc-blue') ?>
+                    <span>ลงทะเบียน อสม. ใหม่</span>
                 </a>
             </div>
 
             <!-- Citizen Self-Screening Portal Entry -->
             <div style="margin-top: 12px; margin-bottom: 6px;">
                 <a href="self_screening.php" style="display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(16, 185, 129, 0.08)); border: 1.5px solid rgba(59, 130, 246, 0.3); padding: 12px 14px; border-radius: 16px; text-decoration: none; transition: transform 0.2s; box-shadow: var(--neumorph-flat);">
-                    <div style="display: flex; align-items: center; gap: 10px; text-align: left;">
-                        <span style="font-size: 26px;">🩺</span>
+                    <div style="display: flex; align-items: center; gap: 12px; text-align: left;">
+                        <?= render_neu_icon('mobile-health', 'md', 'text-blue') ?>
                         <div>
-                            <div style="color: var(--color-primary); font-size: 14px; font-weight: 800;">ประเมินสุขภาพตนเองเบื้องต้น</div>
-                            <div style="color: var(--text-secondary); font-size: 11.5px;">เช็คความเสี่ยงความดัน-เบาหวานด้วยตัวเอง</div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="color: var(--color-primary); font-size: 14px; font-weight: 800;">ประเมินสุขภาพตนเอง</span>
+                            </div>
+                            <div style="color: var(--text-secondary); font-size: 11.5px;">เช็คความเสี่ยงความดัน-เบาหวานด้วยตัวเองฟรี ไม่เก็บข้อมูลส่วนตัว</div>
                         </div>
                     </div>
                     <span style="color: var(--color-primary); font-weight: 800; font-size: 16px;">→</span>
@@ -382,8 +385,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ระบบจัดการคัดกรองโรคเรื้อรังเชิงรุก NCDs 2026<br>
             อำเภอ<?= DISTRICT_NAME ?> จังหวัด<?= PROVINCE_NAME ?><br>
             <div style="margin-top: 6px; display: flex; justify-content: center; gap: 12px; align-items: center;">
-                <a href="about.php" onclick="openDevModal(event)" style="color: var(--color-accent); text-decoration: none; font-weight: bold;">
-                    ℹ️ เกี่ยวกับผู้พัฒนา
+                <a href="about.php" style="color: var(--color-accent); text-decoration: none; font-weight: bold;">
+                    ℹ️ เกี่ยวกับผู้พัฒนา & ข้อมูลระบบ
                 </a>
                 <span style="color: var(--border-color); font-size: 10px;">|</span>
                 <a href="manual.php" style="color: var(--color-accent); text-decoration: none; font-weight: bold;">

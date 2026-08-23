@@ -409,9 +409,9 @@ if (DemoDataProvider::isDemoMode()) {
         <div class="card-dark" style="margin-bottom: 20px; border: 2px dashed #3b82f6; background: rgba(59, 130, 246, 0.05); padding: 16px;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
                 <span style="font-weight: 800; color: #3b82f6; font-size: 14.5px; display: flex; align-items: center; gap: 6px;">
-                    🧪 ตัวอย่างจำลองการทำงาน อสม. (Demo Sandbox)
+                    🧪 ตัวอย่างจำลองการทำงาน อสม.
                 </span>
-                <span style="font-size: 11px; background: #3b82f6; color: white; padding: 2px 8px; border-radius: 9999px; font-weight: bold;">โหมดทดสอบ</span>
+                <span style="font-size: 11px; background: #3b82f6; color: white; padding: 2px 8px; border-radius: 9999px; font-weight: bold;">Demo</span>
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 10px; margin-top: 8px;">
                 <div style="padding: 10px; border-radius: 8px; background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.3);">

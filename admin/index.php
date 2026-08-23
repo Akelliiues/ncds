@@ -933,159 +933,161 @@ if (DemoDataProvider::isDemoMode()) {
                 กลุ่มเป้าหมายคัดกรองแยกตามประเภทโรค
             </h3>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; margin-bottom: 30px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px; margin-bottom: 12px;">
             <!-- กลุ่มเสี่ยง Both -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-red); position: relative; overflow: hidden;" onclick="showCardModal('targets_both')">
-                <div style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(239, 68, 68, 0.08);"></div>
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 22px;">🔴</span>
-                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">เป้าหมายคัดกรองร่วม (DM+HT)</span>
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-red); position: relative; overflow: hidden; padding: 16px 18px;" onclick="showCardModal('targets_both')">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                    <?= render_neu_icon('heart-pulse', 'sm', 'disc-red') ?>
+                    <span style="color: var(--text-secondary); font-size: 13.5px; font-weight: bold;">เป้าหมายร่วม (DM+HT)</span>
                 </div>
-                <div class="stat-val" style="color: var(--color-red);"><?= number_format($metrics['group_both']) ?> <span style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
-                <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                <div class="stat-val" style="color: var(--color-red); font-size: 38px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 6px 0; display: flex; justify-content: flex-end; align-items: baseline;">
+                    <?= number_format($metrics['group_both']) ?> <span style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">  ราย</span>
+                </div>
+                <div style="margin-top: 4px; font-size: 12px; color: var(--text-muted); line-height: 1.35;">
                     ประชากรทั่วไป 35 ปีขึ้นไป (ต้องตรวจ 2 โรค)
                 </div>
-                <div style="margin-top: 6px; font-size: 12px; color: var(--color-red); font-weight: bold;">
+                <div style="margin-top: 4px; font-size: 12px; color: var(--color-red); font-weight: bold;">
                     <?= $metrics['total_targets'] > 0 ? round(($metrics['group_both'] / $metrics['total_targets']) * 100, 1) : 0 ?>%
                     ของเป้าหมายคัดกรอง
                 </div>
             </div>
 
             <!-- กลุ่มเสี่ยง DM -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #f97316; position: relative; overflow: hidden;" onclick="showCardModal('targets_dm')">
-                <div style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(249, 115, 22, 0.08);"></div>
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 22px;">🟠</span>
-                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">เป้าหมายคัดกรอง (เบาหวาน)</span>
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #f97316; position: relative; overflow: hidden; padding: 16px 18px;" onclick="showCardModal('targets_dm')">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                    <?= render_neu_icon('syringe', 'sm', 'disc-yellow') ?>
+                    <span style="color: var(--text-secondary); font-size: 13.5px; font-weight: bold;">เป้าหมาย (เบาหวาน)</span>
                 </div>
-                <div class="stat-val" style="color: #f97316;"><?= number_format($metrics['group_dm']) ?> <span style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
-                <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                <div class="stat-val" style="color: #f97316; font-size: 38px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 6px 0; display: flex; justify-content: flex-end; align-items: baseline;">
+                    <?= number_format($metrics['group_dm']) ?> <span style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">  ราย</span>
+                </div>
+                <div style="margin-top: 4px; font-size: 12px; color: var(--text-muted); line-height: 1.35;">
                     เฉพาะเบาหวาน (เป็นผู้ป่วยความดันแล้ว)
                 </div>
-                <div style="margin-top: 6px; font-size: 12px; color: #f97316; font-weight: bold;">
+                <div style="margin-top: 4px; font-size: 12px; color: #f97316; font-weight: bold;">
                     <?= $metrics['total_targets'] > 0 ? round(($metrics['group_dm'] / $metrics['total_targets']) * 100, 1) : 0 ?>%
                     ของเป้าหมายคัดกรอง
                 </div>
             </div>
 
             <!-- กลุ่มเสี่ยง HT -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #06b6d4; position: relative; overflow: hidden;" onclick="showCardModal('targets_ht')">
-                <div style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(6, 182, 212, 0.08);"></div>
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 22px;">🔵</span>
-                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">เป้าหมายคัดกรอง (ความดัน)</span>
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #06b6d4; position: relative; overflow: hidden; padding: 16px 18px;" onclick="showCardModal('targets_ht')">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                    <?= render_neu_icon('thermometer', 'sm', 'disc-blue') ?>
+                    <span style="color: var(--text-secondary); font-size: 13.5px; font-weight: bold;">เป้าหมาย (ความดัน)</span>
                 </div>
-                <div class="stat-val" style="color: #06b6d4;"><?= number_format($metrics['group_ht']) ?> <span style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
-                <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                <div class="stat-val" style="color: #06b6d4; font-size: 38px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 6px 0; display: flex; justify-content: flex-end; align-items: baseline;">
+                    <?= number_format($metrics['group_ht']) ?> <span style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">  ราย</span>
+                </div>
+                <div style="margin-top: 4px; font-size: 12px; color: var(--text-muted); line-height: 1.35;">
                     เฉพาะความดัน (เป็นผู้ป่วยเบาหวานแล้ว)
                 </div>
-                <div style="margin-top: 6px; font-size: 12px; color: #06b6d4; font-weight: bold;">
+                <div style="margin-top: 4px; font-size: 12px; color: #06b6d4; font-weight: bold;">
                     <?= $metrics['total_targets'] > 0 ? round(($metrics['group_ht'] / $metrics['total_targets']) * 100, 1) : 0 ?>%
                     ของเป้าหมายคัดกรอง
                 </div>
             </div>
 
-
-
             <!-- กลุ่มสงสัยป่วยสะสม (Suspect) -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-yellow); position: relative; overflow: hidden;" onclick="showCardModal('targets_suspected')">
-                <div style="position: absolute; top: -15px; right: -15px; width: 80px; height: 80px; border-radius: 50%; background: rgba(234, 179, 8, 0.08);"></div>
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 22px;">🟡</span>
-                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">กลุ่มสงสัยป่วยสะสม (Suspect)</span>
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-yellow); position: relative; overflow: hidden; padding: 16px 18px;" onclick="showCardModal('targets_suspected')">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                    <?= render_neu_icon('warning-alert', 'sm', 'disc-yellow') ?>
+                    <span style="color: var(--text-secondary); font-size: 13.5px; font-weight: bold;">กลุ่มสงสัยป่วย (Suspect)</span>
                 </div>
-                <div class="stat-val" style="color: var(--color-yellow);"><?= number_format($metrics['group_suspected']) ?> <span style="font-size: 16px; color: var(--text-secondary);">ราย</span></div>
-                <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                <div class="stat-val" style="color: var(--color-yellow); font-size: 38px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 6px 0; display: flex; justify-content: flex-end; align-items: baseline;">
+                    <?= number_format($metrics['group_suspected']) ?> <span style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">  ราย</span>
+                </div>
+                <div style="margin-top: 4px; font-size: 12px; color: var(--text-muted); line-height: 1.35;">
                     ผลตรวจผิดปกติปีก่อน (รอแพทย์วินิจฉัย)
                 </div>
-                <div style="margin-top: 6px; font-size: 12px; color: var(--color-yellow); font-weight: bold;">
+                <div style="margin-top: 4px; font-size: 12px; color: var(--color-yellow); font-weight: bold;">
                     จากฐานข้อมูลระบบ HDC
                 </div>
             </div>
         </div>
 
         <!-- Metrics Grid -->
-        <div class="grid-cols-4" style="margin-bottom: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 16px;">
+        <div class="grid-cols-4" style="margin-bottom: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 12px;">
             <!-- Card 1: ผลงานคัดกรองรอบที่ 1 -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-green); position: relative; overflow: hidden;" onclick="showCardModal('screened')">
-                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 20px; line-height: 1;">✅</span>
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-green); position: relative; overflow: hidden; padding: 16px 18px;" onclick="showCardModal('screened')">
+                <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 4px;">
+                    <?= render_neu_icon('first-aid', 'md', 'disc-green') ?>
                     <div>
-                        <div style="color: var(--text-secondary); font-size: 14px; font-weight: bold; line-height: 1.3;">คัดกรองรอบที่ 1</div>
-                        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.2;">รอบหลักประจำปี (Baseline)</div>
+                        <div style="color: var(--text-secondary); font-size: 13.5px; font-weight: bold; line-height: 1.3;">คัดกรองรอบที่ 1</div>
+                        <div style="font-size: 11.5px; color: var(--text-muted); line-height: 1.2;">รอบหลักประจำปี (Baseline)</div>
                     </div>
                 </div>
-                <div class="stat-val" style="color: var(--color-green); margin-top: 4px;">
+                <div class="stat-val" style="color: var(--color-green); font-size: 38px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 6px 0; display: flex; justify-content: flex-end; align-items: baseline;">
                     <?= number_format($metrics['r1_completed'] ?? $metrics['screened_count']) ?> <span
-                        style="font-size: 16px; color: var(--text-secondary);">ราย</span>
+                        style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">  ราย</span>
                 </div>
-                <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                <div style="margin-top: 4px; font-size: 12px; color: var(--text-muted); line-height: 1.35;">
                     คิดเป็น <strong style="color: var(--color-green);"><?= $metrics['total_targets'] > 0 ? round((($metrics['r1_completed'] ?? $metrics['screened_count']) / $metrics['total_targets']) * 100, 1) : 0 ?>%</strong> ของเป้าหมาย <?= number_format($metrics['total_targets']) ?> ราย
                 </div>
-                <div style="margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+                <div style="margin-top: 3px; font-size: 11px; color: var(--text-muted);">
                     (คลิกดูสถิติแยกตามระดับความเสี่ยง)
                 </div>
             </div>
 
             <!-- Card 2: ผลงานคัดกรองติดตามซ้ำรอบที่ 2 -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #3b82f6; position: relative; overflow: hidden;" onclick="showCardModal('rescreen_r2')">
-                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 20px; line-height: 1;">🔄</span>
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #3b82f6; position: relative; overflow: hidden; padding: 16px 18px;" onclick="showCardModal('rescreen_r2')">
+                <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 4px;">
+                    <?= render_neu_icon('refresh-repeat', 'md', 'disc-blue') ?>
                     <div>
-                        <div style="color: var(--text-secondary); font-size: 14px; font-weight: bold; line-height: 1.3;">คัดกรองรอบที่ 2</div>
-                        <div style="font-size: 12px; color: #3b82f6; line-height: 1.2;">ติดตามซ้ำกลุ่มเสี่ยง (Re-screening)</div>
+                        <div style="color: var(--text-secondary); font-size: 13.5px; font-weight: bold; line-height: 1.3;">คัดกรองรอบที่ 2</div>
+                        <div style="font-size: 11.5px; color: #3b82f6; line-height: 1.2;">ติดตามซ้ำกลุ่มเสี่ยง (Re-screening)</div>
                     </div>
                 </div>
-                <div class="stat-val" style="color: #3b82f6; margin-top: 4px;">
+                <div class="stat-val" style="color: #3b82f6; font-size: 38px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 6px 0; display: flex; justify-content: flex-end; align-items: baseline;">
                     <?= number_format($metrics['r2_completed'] ?? 0) ?> <span
-                        style="font-size: 16px; color: var(--text-secondary);">ราย</span>
+                        style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">ราย</span>
                 </div>
-                <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                <div style="margin-top: 4px; font-size: 12px; color: var(--text-muted); line-height: 1.35;">
                     ติดตามซ้ำแล้ว <strong style="color: #3b82f6;"><?= ($metrics['r1_completed'] ?? 1) > 0 ? round((($metrics['r2_completed'] ?? 0) / max($metrics['r1_completed'] ?? 1, 1)) * 100, 1) : 0 ?>%</strong> จากรอบแรก
                 </div>
-                <div style="margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+                <div style="margin-top: 3px; font-size: 11px; color: var(--text-muted);">
                     (คลิกดูสถิติจำแนกรายพื้นที่)
                 </div>
             </div>
 
             <!-- Card 3: รอดำเนินการ -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-primary); position: relative; overflow: hidden;" onclick="showCardModal('pending')">
-                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 20px; line-height: 1;">⏳</span>
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-primary); position: relative; overflow: hidden; padding: 16px 18px;" onclick="showCardModal('pending')">
+                <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 4px;">
+                    <?= render_neu_icon('clipboard-record', 'md', 'text-navy') ?>
                     <div>
-                        <div style="color: var(--text-secondary); font-size: 14px; font-weight: bold; line-height: 1.3;">รอดำเนินการ</div>
-                        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.2;">งานมอบหมายค้างตรวจ (Pending)</div>
+                        <div style="color: var(--text-secondary); font-size: 13.5px; font-weight: bold; line-height: 1.3;">รอดำเนินการ</div>
+                        <div style="font-size: 11.5px; color: var(--text-muted); line-height: 1.2;">งานมอบหมายค้างตรวจ (Pending)</div>
                     </div>
                 </div>
-                <div class="stat-val" style="color: var(--color-primary); margin-top: 4px;">
+                <div class="stat-val" style="color: var(--color-primary); font-size: 38px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 6px 0; display: flex; justify-content: flex-end; align-items: baseline;">
                     <?= number_format($metrics['pending_count']) ?> <span
-                        style="font-size: 16px; color: var(--text-secondary);">ราย</span>
+                        style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">ราย</span>
                 </div>
-                <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                <div style="margin-top: 4px; font-size: 12px; color: var(--text-muted); line-height: 1.35;">
                     มอบหมายแล้ว รอ อสม. ลงพื้นที่
                 </div>
-                <div style="margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+                <div style="margin-top: 3px; font-size: 11px; color: var(--text-muted);">
                     (คลิกดูรายละเอียดแยกรายพื้นที่)
                 </div>
             </div>
 
             <!-- Card 4: แต้มรางวัลสะสม อสม. -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #eab308; position: relative; overflow: hidden;" onclick="showCardModal('rewards')">
-                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 20px; line-height: 1;">🏆</span>
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #eab308; position: relative; overflow: hidden; padding: 16px 18px;" onclick="showCardModal('rewards')">
+                <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 4px;">
+                    <?= render_neu_icon('doctor', 'md', 'disc-yellow') ?>
                     <div>
-                        <div style="color: var(--text-secondary); font-size: 14px; font-weight: bold; line-height: 1.3;">แต้มรางวัลสะสม อสม.</div>
-                        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.2;">คะแนนปฏิบัติงานสะสม (Rewards)</div>
+                        <div style="color: var(--text-secondary); font-size: 13.5px; font-weight: bold; line-height: 1.3;">แต้มรางวัลสะสม อสม.</div>
+                        <div style="font-size: 11.5px; color: var(--text-muted); line-height: 1.2;">คะแนนปฏิบัติงานสะสม (Rewards)</div>
                     </div>
                 </div>
-                <div class="stat-val" style="color: #eab308; margin-top: 4px;">
+                <div class="stat-val" style="color: #eab308; font-size: 38px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 6px 0; display: flex; justify-content: flex-end; align-items: baseline;">
                     <?= ((float)($metrics['total_points'] ?? 0) == (int)($metrics['total_points'] ?? 0) ? number_format($metrics['total_points'] ?? 0) : number_format($metrics['total_points'] ?? 0, 2)) ?> <span
-                        style="font-size: 16px; color: var(--text-secondary);">แต้ม</span>
+                        style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">  แต้ม</span>
                 </div>
-                <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                <div style="margin-top: 4px; font-size: 12px; color: var(--text-muted); line-height: 1.35;">
                     จาก อสม. ปฏิบัติงานทั้งหมด <?= $metrics['total_vhvs'] ?> คน
                 </div>
-                <div style="margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+                <div style="margin-top: 3px; font-size: 11px; color: var(--text-muted);">
                     (คลิกดูกระดานคะแนน Top 10)
                 </div>
             </div>

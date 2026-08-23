@@ -380,8 +380,9 @@ try {
         <!-- Header -->
         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 24px;">
             <div>
-                <h2 style="color: var(--color-accent); margin: 0; font-size: 24px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                    📊 รายงานและระบบเฝ้าระวังสุขภาพ 6 มิติ
+                <h2 style="color: var(--color-accent); margin: 0; font-size: 24px; font-weight: 800; display: flex; align-items: center; gap: 12px;">
+                    <?= render_neu_icon('xray', 'lg', 'text-navy') ?>
+                    <span>รายงานและระบบเฝ้าระวังสุขภาพ 6 มิติ</span>
                 </h2>
                 <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 14px;">
                     เครื่องมือติดตามเฝ้าระวังโรคไม่ติดต่อเรื้อรังเชิงรุก อำเภอ<?= DISTRICT_NAME ?>
@@ -406,42 +407,42 @@ try {
         <!-- 6 Tabs Navigation (2 Rows Grid Layout) -->
         <div class="surv-tabs no-print">
             <button class="surv-tab-btn <?= $selected_tab === 'tab1' ? 'active' : '' ?>" onclick="switchSurvTab('tab1')">
-                <div class="tab-icon">📋</div>
+                <?= render_neu_icon('clipboard-record', 'md', 'text-blue') ?>
                 <div class="tab-label">
                     <span class="tab-title">1. ทะเบียนติดตามกลุ่มเสี่ยง</span>
                     <span class="tab-count"><?= number_format(count($dim1_data)) ?> คน</span>
                 </div>
             </button>
             <button class="surv-tab-btn <?= $selected_tab === 'tab2' ? 'active' : '' ?>" onclick="switchSurvTab('tab2')">
-                <div class="tab-icon">🔄</div>
+                <?= render_neu_icon('refresh-repeat', 'md', 'text-green') ?>
                 <div class="tab-label">
                     <span class="tab-title">2. กลุ่มที่ควรตรวจซ้ำ</span>
                     <span class="tab-count"><?= number_format(count($dim2_data)) ?> คน</span>
                 </div>
             </button>
             <button class="surv-tab-btn <?= $selected_tab === 'tab3' ? 'active' : '' ?>" onclick="switchSurvTab('tab3')">
-                <div class="tab-icon">⚠️</div>
+                <?= render_neu_icon('warning-alert', 'md', 'text-yellow') ?>
                 <div class="tab-label">
                     <span class="tab-title">3. ขาดการติดตาม</span>
                     <span class="tab-count"><?= number_format(count($dim3_data)) ?> คน</span>
                 </div>
             </button>
             <button class="surv-tab-btn <?= $selected_tab === 'tab4' ? 'active' : '' ?>" onclick="switchSurvTab('tab4')">
-                <div class="tab-icon">⚪</div>
+                <?= render_neu_icon('doctor', 'md', 'text-purple') ?>
                 <div class="tab-label">
                     <span class="tab-title">4. ยังไม่ได้รับการคัดกรอง</span>
                     <span class="tab-count"><?= number_format(count($dim4_data)) ?> คน</span>
                 </div>
             </button>
             <button class="surv-tab-btn <?= $selected_tab === 'tab5' ? 'active' : '' ?>" onclick="switchSurvTab('tab5')">
-                <div class="tab-icon">📈</div>
+                <?= render_neu_icon('sleep', 'md', 'text-navy') ?>
                 <div class="tab-label">
                     <span class="tab-title">5. ผลสัมฤทธิ์ & สุขภาพนอน 1น.</span>
                     <span class="tab-count">วิเคราะห์ภาพรวม</span>
                 </div>
             </button>
             <button class="surv-tab-btn <?= $selected_tab === 'tab6' ? 'active' : '' ?>" onclick="switchSurvTab('tab6')">
-                <div class="tab-icon">🔍</div>
+                <?= render_neu_icon('search-inspect', 'md', 'text-red') ?>
                 <div class="tab-label">
                     <span class="tab-title">6. ตรวจสอบคุณภาพข้อมูล</span>
                     <span class="tab-count"><?= number_format(count($dim6_anomalies)) ?> รายการ</span>
@@ -451,9 +452,10 @@ try {
 
         <!-- TAB 1: ทะเบียนติดตามกลุ่มเสี่ยง/เยี่ยมบ้าน -->
         <div id="tab1-content" class="surv-content" style="display: <?= $selected_tab === 'tab1' ? 'block' : 'none' ?>;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h4 style="margin: 0; color: var(--color-accent); font-size: 16px; font-weight: 800;">
-                    📋 ทะเบียนประชากรกลุ่มเสี่ยงสูงและภาวะวิกฤตที่ต้องได้รับการเยี่ยมบ้าน
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                <h4 style="margin: 0; color: var(--color-accent); font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                    <?= render_neu_icon('clipboard-record', 'sm', 'text-blue') ?>
+                    <span>ทะเบียนประชากรกลุ่มเสี่ยงสูงและภาวะวิกฤตที่ต้องได้รับการเยี่ยมบ้าน</span>
                 </h4>
                 <button type="button" class="btn-export-excel" onclick="exportTableToExcel('table-tab1', 'ทะเบียนติดตามกลุ่มเสี่ยง_สสอตาลสุม')">
                     📥 ส่งออก Excel
@@ -494,7 +496,7 @@ try {
                                     <td><?= htmlspecialchars($r['house_no']) ?> ม.<?= htmlspecialchars($r['moo']) ?></td>
                                     <td>[<?= htmlspecialchars($r['hoscode']) ?>]</td>
                                     <td style="color: <?= $r['sys_bp1'] >= 140 ? '#EF4444' : 'inherit' ?>; font-weight: bold;"><?= $r['sys_bp1'] ?>/<?= $r['dia_bp1'] ?></td>
-                                    <td style="color: $r['dtx_value'] >= 126 ? '#EF4444' : 'inherit'; font-weight: bold;"><?= $r['dtx_value'] ?: '-' ?></td>
+                                    <td style="color: <?= $r['dtx_value'] >= 126 ? '#EF4444' : 'inherit' ?>; font-weight: bold;"><?= $r['dtx_value'] ?: '-' ?></td>
                                     <td><span style="padding:2px 8px; border-radius:8px; font-weight:800; font-size:11.5px; <?= $clBadge ?>"><?= $clText ?></span></td>
                                     <td>
                                         <?php if ($r['health_progress'] === 'improved'): ?>
@@ -520,9 +522,10 @@ try {
 
         <!-- TAB 2: กลุ่มที่ควรตรวจซ้ำ (Retest Due) -->
         <div id="tab2-content" class="surv-content" style="display: <?= $selected_tab === 'tab2' ? 'block' : 'none' ?>;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h4 style="margin: 0; color: var(--color-accent); font-size: 16px; font-weight: 800;">
-                    🔄 กลุ่มสงสัยป่วย/ปริ่มเสี่ยง ที่ควรได้รับการตรวจซ้ำ (Retest Due)
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                <h4 style="margin: 0; color: var(--color-accent); font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                    <?= render_neu_icon('refresh-repeat', 'sm', 'text-green') ?>
+                    <span>กลุ่มสงสัยป่วย/ปริ่มเสี่ยง ที่ควรได้รับการตรวจซ้ำ (Retest Due)</span>
                 </h4>
                 <button type="button" class="btn-export-excel" onclick="exportTableToExcel('table-tab2', 'กลุ่มที่ควรตรวจซ้ำ_สสอตาลสุม')">
                     📥 ส่งออก Excel
@@ -572,9 +575,10 @@ try {
 
         <!-- TAB 3: ขาดการติดตามในรอบเดือน (Overdue Followup) -->
         <div id="tab3-content" class="surv-content" style="display: <?= $selected_tab === 'tab3' ? 'block' : 'none' ?>;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h4 style="margin: 0; color: var(--color-accent); font-size: 16px; font-weight: 800;">
-                    ⚠️ รายชื่อผู้ที่เกินกำหนดวันนัดติดตามเยี่ยมบ้าน (Overdue Followup)
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                <h4 style="margin: 0; color: var(--color-accent); font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                    <?= render_neu_icon('warning-alert', 'sm', 'text-yellow') ?>
+                    <span>รายชื่อผู้ที่เกินกำหนดวันนัดติดตามเยี่ยมบ้าน (Overdue Followup)</span>
                 </h4>
                 <button type="button" class="btn-export-excel" onclick="exportTableToExcel('table-tab3', 'กลุ่มขาดการติดตาม_สสอตาลสุม')">
                     📥 ส่งออก Excel
@@ -620,9 +624,10 @@ try {
 
         <!-- TAB 4: กลุ่มที่ยังไม่เคยได้รับการคัดกรอง -->
         <div id="tab4-content" class="surv-content" style="display: <?= $selected_tab === 'tab4' ? 'block' : 'none' ?>;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h4 style="margin: 0; color: var(--color-accent); font-size: 16px; font-weight: 800;">
-                    ⚪ ประชากรอายุ 35 ปีขึ้นไปที่ยังไม่ได้รับการคัดกรองในปีงบประมาณ <?= $activeBudgetYear + 543 ?>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                <h4 style="margin: 0; color: var(--color-accent); font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                    <?= render_neu_icon('doctor', 'sm', 'text-purple') ?>
+                    <span>ประชากรอายุ 35 ปีขึ้นไปที่ยังไม่ได้รับการคัดกรองในปีงบประมาณ <?= $activeBudgetYear + 543 ?></span>
                 </h4>
                 <button type="button" class="btn-export-excel" onclick="exportTableToExcel('table-tab4', 'กลุ่มยังไม่ได้รับการคัดกรอง_สสอตาลสุม')">
                     📥 ส่งออก Excel
@@ -669,8 +674,9 @@ try {
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                 <!-- Health Progress Outcome -->
                 <div class="card-dark" style="padding: 20px; background: var(--bg-card); border-radius: 20px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color);">
-                    <h4 style="margin: 0 0 16px 0; color: var(--color-accent); font-size: 16px; font-weight: 800;">
-                        📈 สรุปผลสัมฤทธิ์พัฒนาการสุขภาพ (Health Progress)
+                    <h4 style="margin: 0 0 16px 0; color: var(--color-accent); font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                        <?= render_neu_icon('heart-pulse', 'sm', 'text-green') ?>
+                        <span>สรุปผลสัมฤทธิ์พัฒนาการสุขภาพ (Health Progress)</span>
                     </h4>
                     <div style="display: flex; flex-direction: column; gap: 12px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(16,185,129,0.1); border-radius: 12px; border-left: 4px solid #10B981;">
@@ -683,6 +689,50 @@ try {
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(239,68,68,0.1); border-radius: 12px; border-left: 4px solid #EF4444;">
                             <span style="font-weight: 700; color: #DC2626;">🔴 ต้องระวัง / แย่ลง (Worsened)</span>
+                            <span style="font-size: 18px; font-weight: 800; color: #DC2626;"><?= number_format($dim5_stats['worsened']) ?> คน</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(100,116,139,0.1); border-radius: 12px; border-left: 4px solid #64748B;">
+                            <span style="font-weight: 700; color: #64748B;">⚪ ค่าตั้งต้น (Baseline Checkpoint)</span>
+                            <span style="font-size: 18px; font-weight: 800; color: #64748B;"><?= number_format($dim5_stats['baseline']) ?> คน</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sleep Quality Analysis -->
+                <div class="card-dark" style="padding: 20px; background: var(--bg-card); border-radius: 20px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color);">
+                    <h4 style="margin: 0 0 16px 0; color: var(--color-accent); font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                        <?= render_neu_icon('sleep', 'sm', 'text-purple') ?>
+                        <span>คุณภาพการนอนหลับของกลุ่มเป้าหมาย (1น.)</span>
+                    </h4>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(16,185,129,0.1); border-radius: 12px; border-left: 4px solid #10B981;">
+                            <span style="font-weight: 700; color: #10B981;">😴 หลับสนิทดี (Good Sleep)</span>
+                            <span style="font-size: 18px; font-weight: 800; color: #10B981;"><?= number_format($dim5_stats['sleep_good']) ?> คน</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(245,158,11,0.1); border-radius: 12px; border-left: 4px solid #F59E0B;">
+                            <span style="font-weight: 700; color: #D97706;">🥱 หลับๆ ตื่นๆ (Restless Sleep)</span>
+                            <span style="font-size: 18px; font-weight: 800; color: #D97706;"><?= number_format($dim5_stats['sleep_restless']) ?> คน</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(239,68,68,0.1); border-radius: 12px; border-left: 4px solid #EF4444;">
+                            <span style="font-weight: 700; color: #DC2626;">😫 นอนไม่ค่อยหลับ / หลับยาก (Poor Sleep)</span>
+                            <span style="font-size: 18px; font-weight: 800; color: #DC2626;"><?= number_format($dim5_stats['sleep_poor']) ?> คน</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 6: ตรวจสอบคุณภาพข้อมูล (Data Quality Audit) -->
+        <div id="tab6-content" class="surv-content" style="display: <?= $selected_tab === 'tab6' ? 'block' : 'none' ?>;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                <h4 style="margin: 0; color: var(--color-accent); font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                    <?= render_neu_icon('search-inspect', 'sm', 'text-red') ?>
+                    <span>ตรวจจับค่าข้อมูลผิดปกติและค่าผิดวิสัย (Data Quality & Anomaly Audit)</span>
+                </h4>
+                <button type="button" class="btn-export-excel" onclick="exportTableToExcel('table-tab6', 'ตรวจสอบคุณภาพข้อมูล_สสอตาลสุม')">
+                    📥 ส่งออก Excel
+                </button>
+            </div>n style="font-weight: 700; color: #DC2626;">🔴 ต้องระวัง / แย่ลง (Worsened)</span>
                             <span style="font-size: 18px; font-weight: 800; color: #DC2626;"><?= number_format($dim5_stats['worsened']) ?> คน</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(100,116,139,0.1); border-radius: 12px; border-left: 4px solid #64748B;">

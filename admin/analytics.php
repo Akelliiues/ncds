@@ -1226,18 +1226,15 @@ try {
     <?php include 'navbar.php'; ?>
 
     <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
-        <h2 style="margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
-            <span style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: rgba(14, 165, 233, 0.15); color: #0ea5e9;">
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 8v8m-4-5v5m-4-2v2M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12z" />
-                </svg>
-            </span>
-            ระบบวิเคราะห์ข้อมูลเชิงลึก (Advanced Analytics)
+        <h2 style="margin-bottom: 4px; display: flex; align-items: center; gap: 12px;">
+            <?= render_neu_icon('analytics-bars', 'lg', 'text-navy') ?>
+            <span>ระบบวิเคราะห์ข้อมูลเชิงลึก (Advanced Analytics)</span>
         </h2>
         <!-- Executive Actions Bar -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; gap: 14px; flex-wrap: wrap;" class="no-print">
             <div style="font-size: 14px; font-weight: bold; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
-                <span>📊 รายงานวิเคราะห์ข้อมูลเชิงลึกขั้นสูง (Advanced Analytics Suite)</span>
+                <?= render_neu_icon('clipboard-record', 'xs', 'text-blue') ?>
+                <span>รายงานวิเคราะห์ข้อมูลเชิงลึกขั้นสูง (Advanced Analytics Suite)</span>
             </div>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <button type="button" onclick="exportR2RCSV()" class="btn-control" style="background: rgba(14, 165, 233, 0.12); color: #0ea5e9; border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 12px; font-weight: 700; padding: 9px 16px; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--neumorph-flat); transition: all 0.2s;">

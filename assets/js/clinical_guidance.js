@@ -271,12 +271,12 @@
         const safeAudioKey = result.audio_key || 'normal';
 
         return `
-            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 14px; box-shadow: var(--neumorph-flat); margin-bottom: 12px;">
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color, transparent); border-radius: 20px; padding: 16px; box-shadow: var(--neumorph-flat); margin-bottom: 16px;">
                 ${emergencyHtml}
 
                 <!-- Header: Progress Badge & Next Appointment in 1 Clean Line -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 6px;">
-                    <span style="${result.progress_badge_style}; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 6px;">
+                    <span style="${result.progress_badge_style}; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; box-shadow: var(--neumorph-flat);">
                         <span>${result.progress_icon}</span> <span>${result.progress_label}</span>
                     </span>
                     <span style="font-size: 12px; color: var(--text-secondary); font-weight: 700;">
@@ -284,23 +284,23 @@
                     </span>
                 </div>
 
-                <!-- Positive Speech Script with Instant Natural Voice Coach Button -->
-                <div style="background: rgba(16, 185, 129, 0.08); border-left: 3.5px solid #10B981; border-radius: 0 14px 14px 0; padding: 12px; font-size: 13.5px; color: var(--text-primary); line-height: 1.45; margin-bottom: 10px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
-                        <span style="font-size: 11.5px; font-weight: 800; color: #10B981; display: flex; align-items: center; gap: 4px;">
-                            <span>💬</span> <span>บทพูดชวนคุยกับชาวบ้าน:</span>
-                        </span>
-                        <button type="button" onclick="ClinicalGuidance.speak('${safeAudioKey}', '${safeScript}', this)" style="background: #10B981; color: white; border: none; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35); transition: all 0.2s;">
-                            <span>🔊</span> <span>เปิดเสียงพูด (เสียงธรรมชาติ)</span>
-                        </button>
+                <!-- Positive Doctor Speech Script with Big Prominent Voice Button -->
+                <div style="background: var(--bg-darker); border-radius: 18px; padding: 14px; margin-bottom: 12px; box-shadow: var(--neumorph-inset);">
+                    <!-- Big Prominent Audio Button -->
+                    <button type="button" onclick="ClinicalGuidance.speak('${safeAudioKey}', '${safeScript}', this)" style="width: 100%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; border: none; padding: 12px 16px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); margin-bottom: 10px; transition: transform 0.15s ease;">
+                        <span style="font-size: 18px;">🔊</span> <span>เปิดเสียงคุณหมอให้ฟัง</span>
+                    </button>
+
+                    <!-- Speech Quote Bubble (Neumorphic Inset Well) -->
+                    <div style="background: var(--bg-card); border-radius: 14px; padding: 12px 14px; font-size: 13.5px; color: var(--text-primary); line-height: 1.55; font-weight: 600; box-shadow: var(--neumorph-flat);">
+                        <span style="color: #10B981; font-size: 16px; font-weight: 900; margin-right: 4px;">“</span>${result.what_to_say}<span style="color: #10B981; font-size: 16px; font-weight: 900; margin-left: 4px;">”</span>
                     </div>
-                    <div style="font-style: italic; font-weight: 600; color: var(--text-primary); font-size: 14px;">"${result.what_to_say}"</div>
                 </div>
 
                 <!-- 1-Line Clean Tip -->
-                <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; display: flex; align-items: flex-start; gap: 6px; padding: 4px 2px;">
+                <div style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.4; display: flex; align-items: flex-start; gap: 6px; padding: 2px 2px;">
                     <span style="flex-shrink: 0;">💡</span>
-                    <span><strong>คำแนะนำ:</strong> ${result.concise_tip}</span>
+                    <span><strong>คำแนะนำสุขภาพ:</strong> ${result.concise_tip}</span>
                 </div>
             </div>
         `;
