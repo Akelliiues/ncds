@@ -228,10 +228,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="login-container">
         <div class="login-brand"
             style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 12px;">
-            <a href="javascript:void(0)" onclick="openAppInstallModal(event)" title="แตะเพื่อติดตั้งแอปพลิเคชันลงเครื่อง" style="position: relative; display: inline-block; text-decoration: none;">
-                <img src="assets/icon.png" alt="NCDs Portal Logo" class="brand-logo" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.06)'" onmouseout="this.style.transform='scale(1)'">
-                <span style="position: absolute; bottom: 6px; right: -2px; background: #10b981; color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; border: 2px solid var(--bg-main); box-shadow: 0 2px 6px rgba(0,0,0,0.25);" title="ติดตั้งแอป">📲</span>
-            </a>
+            <img src="assets/icon.png" alt="NCDs Portal Logo" class="brand-logo">
             <span>สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?></span>
             <h1>ระบบคัดกรอง NCDs Portal</h1>
         </div>
@@ -270,6 +267,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <a href="vhv/register.php"
                     style="color: var(--color-accent); text-decoration: none; font-weight: bold; font-size: 14px; display: inline-block;">
                     📝 ลงทะเบียน อสม. ใหม่
+                </a>
+            </div>
+
+            <!-- Citizen Self-Screening Portal Entry -->
+            <div style="margin-top: 12px; margin-bottom: 6px;">
+                <a href="self_screening.php" style="display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(16, 185, 129, 0.08)); border: 1.5px solid rgba(59, 130, 246, 0.3); padding: 12px 14px; border-radius: 16px; text-decoration: none; transition: transform 0.2s; box-shadow: var(--neumorph-flat);">
+                    <div style="display: flex; align-items: center; gap: 10px; text-align: left;">
+                        <span style="font-size: 26px;">🩺</span>
+                        <div>
+                            <div style="color: var(--color-primary); font-size: 14px; font-weight: 800;">สำหรับประชาชน: ประเมินสุขภาพตนเอง</div>
+                            <div style="color: var(--text-secondary); font-size: 11.5px;">เช็คความเสี่ยงความดัน-เบาหวาน (ไม่ต้องล็อกอิน)</div>
+                        </div>
+                    </div>
+                    <span style="color: var(--color-primary); font-weight: 800; font-size: 16px;">→</span>
                 </a>
             </div>
 
