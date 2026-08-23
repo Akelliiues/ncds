@@ -466,66 +466,167 @@ try {
             border-color: var(--color-primary);
         }
 
-        /* Rewards List Layout */
+        /* Rewards List & Card Redesign - High Impact Hero Visual & Clean Compact Layout */
         .rewards-list {
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
             margin-bottom: 24px;
+        }
+
+        @media (min-width: 640px) {
+            .rewards-list {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 16px;
+            }
         }
 
         .reward-card {
             background: var(--bg-card);
-            border-radius: 18px;
-            padding: 16px;
+            border-radius: 20px;
             box-shadow: var(--neumorph-flat);
             border: 1px solid var(--border-color);
+            overflow: hidden;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             position: relative;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+        }
+
+        .reward-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(13, 44, 84, 0.12);
         }
 
         .reward-card:active {
-            transform: scale(0.99);
+            transform: scale(0.985);
         }
 
-        .reward-top-row {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            margin-bottom: 8px;
-        }
-
-        .reward-icon-box {
-            width: 44px;
-            height: 44px;
-            border-radius: 14px;
-            background: var(--bg-main);
+        /* Large Hero Visual Showcase */
+        .reward-hero {
+            position: relative;
+            width: 100%;
+            height: 140px;
+            background: linear-gradient(145deg, rgba(13, 44, 84, 0.03) 0%, rgba(13, 44, 84, 0.08) 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 22px;
-            flex-shrink: 0;
-            box-shadow: var(--neumorph-inset);
+            border-bottom: 1px solid rgba(13, 44, 84, 0.06);
+            overflow: hidden;
         }
 
-        .reward-points-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            background: rgba(245, 158, 11, 0.12);
-            color: #D97706;
-            padding: 3px 8px;
-            border-radius: 8px;
+        [data-theme="dark"] .reward-hero {
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.07) 100%);
+            border-bottom-color: rgba(255, 255, 255, 0.06);
+        }
+
+        .reward-hero-img {
+            max-height: 110px;
+            max-width: 82%;
+            object-fit: contain;
+            filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.14));
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .reward-card:hover .reward-hero-img {
+            transform: scale(1.08);
+        }
+
+        .reward-hero-emoji {
+            font-size: 58px;
+            filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.15));
+            line-height: 1;
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .reward-card:hover .reward-hero-emoji {
+            transform: scale(1.12);
+        }
+
+        /* Floating Overlays */
+        .hero-badge-category {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: var(--text-primary);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11.5px;
+            font-weight: 800;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            z-index: 2;
+        }
+
+        [data-theme="dark"] .hero-badge-category {
+            background: rgba(30, 41, 59, 0.85);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .hero-badge-points {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(135deg, #F59E0B, #D97706);
+            color: #ffffff;
+            padding: 4px 11px;
+            border-radius: 20px;
             font-size: 12px;
             font-weight: 800;
+            box-shadow: 0 3px 10px rgba(217, 119, 6, 0.35);
+            z-index: 2;
+        }
+
+        .hero-badge-preview {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: #ffffff;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 800;
+            z-index: 2;
+        }
+
+        /* Card Content Body */
+        .reward-body {
+            padding: 14px 16px 16px 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            flex-grow: 1;
+        }
+
+        .reward-title {
+            font-size: 15.5px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin: 0 0 4px 0;
+            line-height: 1.35;
+        }
+
+        .reward-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.45;
+            margin: 0 0 12px 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
         /* Progress Bar */
         .progress-box {
-            margin: 8px 0 12px 0;
+            margin: 0 0 12px 0;
         }
 
         .progress-label-row {
@@ -538,7 +639,7 @@ try {
         }
 
         .progress-track {
-            height: 6px;
+            height: 5px;
             background: var(--bg-main);
             border-radius: 10px;
             overflow: hidden;
@@ -554,7 +655,7 @@ try {
 
         .btn-redeem {
             width: 100%;
-            padding: 11px;
+            height: 42px;
             border-radius: 12px;
             font-size: 13.5px;
             font-weight: 800;
@@ -574,6 +675,7 @@ try {
         }
         .btn-redeem-active:hover {
             transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(0, 168, 120, 0.4);
         }
 
         .btn-redeem-locked {
@@ -1004,82 +1106,84 @@ try {
                             $isOutOfStock = ($it['stock_quantity'] != -1 && $it['stock_quantity'] <= 0);
                         ?>
                         <div class="reward-card item-card-box" data-category="<?= htmlspecialchars($it['category']) ?>">
-                            <div>
-                                <div class="reward-top-row">
-                                    <div class="reward-icon-box"><?= htmlspecialchars($it['icon_emoji'] ?: '🎁') ?></div>
-                                    <div style="flex-grow: 1; min-width: 0;">
-                                        <div style="font-size: 14.5px; font-weight: 800; color: var(--text-primary); margin-bottom: 2px;">
-                                            <?= htmlspecialchars($it['title']) ?>
-                                        </div>
-                                        <?php if ($systemEnabled): ?>
-                                            <div class="reward-points-badge">
-                                                ⭐ <strong><?= number_format($reqPts) ?></strong> แต้ม
-                                            </div>
-                                        <?php else: ?>
-                                            <div class="reward-points-badge" style="background: rgba(100, 116, 139, 0.12); color: #64748B;">
-                                                ✨ รายการของรางวัล
-                                            </div>
-                                        <?php endif; ?>
-                                    </div>
+                            <!-- 1. Large Eye-Catching Hero Visual Showcase -->
+                            <div class="reward-hero">
+                                <!-- Floating Category Pill (Top-Left) -->
+                                <div class="hero-badge-category">
+                                    <?= htmlspecialchars($it['icon_emoji'] ?: '🏷️') ?> <?= htmlspecialchars($categoryMap[$it['category']] ?? $it['category']) ?>
                                 </div>
 
-                                <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0 0 8px 0;">
-                                    <?= htmlspecialchars($it['description'] ?: 'ไม่มีคำอธิบายเพิ่มเติม') ?>
-                                </p>
-
-                                <!-- Product Visual Illustration / Real Photo Preview -->
-                                <div style="background: linear-gradient(135deg, rgba(13, 44, 84, 0.03) 0%, rgba(13, 44, 84, 0.06) 100%); border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; margin: 6px 0 12px 0; border: 1px dashed var(--border-color); box-shadow: var(--neumorph-inset);">
-                                    <?php if (!empty($it['image_url'])): ?>
-                                        <img src="<?= htmlspecialchars($it['image_url']) ?>" alt="<?= htmlspecialchars($it['title']) ?>" style="height: 60px; max-width: 85px; object-fit: contain; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background: #ffffff; padding: 2px;">
-                                    <?php else: ?>
-                                        <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--bg-card); display: flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: var(--neumorph-flat); flex-shrink: 0;">
-                                            <?= htmlspecialchars($it['icon_emoji'] ?: '🎁') ?>
-                                        </div>
-                                    <?php endif; ?>
-                                    <div style="font-size: 11.5px; color: var(--text-secondary); line-height: 1.4;">
-                                        <strong style="color: var(--text-primary); display: block; font-size: 12.5px; margin-bottom: 2px;">🎁 สิทธิประโยชน์ อสม.</strong>
-                                        <span>หมวด: <?= htmlspecialchars($categoryMap[$it['category']] ?? $it['category']) ?></span>
-                                    </div>
-                                </div>
-
+                                <!-- Floating Points / Status Badge (Top-Right) -->
                                 <?php if ($systemEnabled): ?>
-                                    <!-- Progress Bar (Active Mode) -->
-                                    <div class="progress-box">
-                                        <div class="progress-label-row">
-                                            <span>ความคืบหน้า</span>
-                                            <span><?= number_format($availablePoints, 1) ?> / <?= number_format($reqPts) ?> แต้ม</span>
-                                        </div>
-                                        <div class="progress-track">
-                                            <div class="progress-fill" style="width: <?= $pct ?>%; <?= $canAfford ? 'background: #10B981;' : 'background: #F59E0B;' ?>"></div>
-                                        </div>
+                                    <div class="hero-badge-points">
+                                        ⭐ <?= number_format($reqPts) ?> แต้ม
                                     </div>
                                 <?php else: ?>
-                                    <!-- Coming Soon Note (Preview Mode) -->
-                                    <div style="font-size: 11.5px; color: var(--text-muted); margin: 4px 0 10px 0; font-weight: 600; display: flex; align-items: center; gap: 4px;">
-                                        <span>⏳</span> <span>รอประกาศเกณฑ์คะแนนเร็วๆ นี้</span>
+                                    <div class="hero-badge-preview">
+                                        ✨ รอเปิดแลก
+                                    </div>
+                                <?php endif; ?>
+
+                                <!-- Centered Large Image / 3D Emoji -->
+                                <?php if (!empty($it['image_url'])): ?>
+                                    <?php
+                                        $imgSrc = (strpos($it['image_url'], 'http') === 0 || strpos($it['image_url'], '/') === 0) 
+                                            ? $it['image_url'] 
+                                            : '../' . $it['image_url'];
+                                    ?>
+                                    <img src="<?= htmlspecialchars($imgSrc) ?>" alt="<?= htmlspecialchars($it['title']) ?>" class="reward-hero-img">
+                                <?php else: ?>
+                                    <div class="reward-hero-emoji">
+                                        <?= htmlspecialchars($it['icon_emoji'] ?: '🎁') ?>
                                     </div>
                                 <?php endif; ?>
                             </div>
 
-                            <div>
-                                <?php if (!$systemEnabled): ?>
-                                    <button type="button" class="btn-redeem btn-redeem-locked" disabled>
-                                        🔒 เร็วๆ นี้ (เปิดให้แลกเร็วๆ นี้)
-                                    </button>
-                                <?php elseif ($isOutOfStock): ?>
-                                    <button type="button" class="btn-redeem btn-redeem-locked" disabled>
-                                        ❌ ของรางวัลหมดชั่วคราว
-                                    </button>
-                                <?php elseif (!$canAfford): ?>
-                                    <?php $diff = $reqPts - $availablePoints; ?>
-                                    <button type="button" class="btn-redeem btn-redeem-locked" disabled>
-                                        🔒 ขาดอีก <?= number_format($diff, 1) ?> แต้ม
-                                    </button>
-                                <?php else: ?>
-                                    <button type="button" onclick='confirmRedeem(<?= json_encode($it, JSON_UNESCAPED_UNICODE) ?>)' class="btn-redeem btn-redeem-active">
-                                        🎁 แลกของรางวัลนี้
-                                    </button>
-                                <?php endif; ?>
+                            <!-- 2. Compact Crisp Content Body -->
+                            <div class="reward-body">
+                                <div>
+                                    <h4 class="reward-title">
+                                        <?= htmlspecialchars($it['title']) ?>
+                                    </h4>
+                                    <p class="reward-desc">
+                                        <?= htmlspecialchars($it['description'] ?: 'ของรางวัลพิเศษสำหรับ อสม. คนเก่งประจำพื้นที่') ?>
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <?php if ($systemEnabled): ?>
+                                        <!-- Progress Bar (Active Mode) -->
+                                        <div class="progress-box">
+                                            <div class="progress-label-row">
+                                                <span>คะแนนสะสม</span>
+                                                <span><?= number_format($availablePoints, 1) ?> / <?= number_format($reqPts) ?> แต้ม</span>
+                                            </div>
+                                            <div class="progress-track">
+                                                <div class="progress-fill" style="width: <?= $pct ?>%; <?= $canAfford ? 'background: #10B981;' : 'background: #F59E0B;' ?>"></div>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <!-- Action CTA Button -->
+                                    <?php if (!$systemEnabled): ?>
+                                        <button type="button" class="btn-redeem btn-redeem-locked" disabled>
+                                            🔒 เปิดให้แลกเร็วๆ นี้
+                                        </button>
+                                    <?php elseif ($isOutOfStock): ?>
+                                        <button type="button" class="btn-redeem btn-redeem-locked" disabled>
+                                            ❌ ของรางวัลหมดชั่วคราว
+                                        </button>
+                                    <?php elseif (!$canAfford): ?>
+                                        <?php $diff = $reqPts - $availablePoints; ?>
+                                        <button type="button" class="btn-redeem btn-redeem-locked" disabled>
+                                            🔒 ขาดอีก <?= number_format($diff, 1) ?> แต้ม
+                                        </button>
+                                    <?php else: ?>
+                                        <button type="button" onclick='confirmRedeem(<?= json_encode($it, JSON_UNESCAPED_UNICODE) ?>)' class="btn-redeem btn-redeem-active">
+                                            🎁 แลกของรางวัลนี้ ✨
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                     <?php endforeach; ?>
