@@ -6,12 +6,12 @@
 
 ## [v2.1-stable] - Stable Release 2.1: Top 50 Prestige 3D Badges, Multi-Round Analytics & Cockpit Pipeline (2026-08-24) 🚀
 
-### 🛡️ ปรับแต่งตราผู้พัฒนาที่ได้รับการรับรอง (Verified Developer Badge) เป็นจานกลม 3D Neumorphic
-- **เลือกใช้ดีไซน์จานกลม Solid 3D สีฟ้า Sky Blue & Cyan พร้อมเครื่องหมายถูกสีขาวคมชัด (Image 2 Style)**:
-  - สอดคล้องกับมาตรฐาน Verified Badge ระดับสากล และกลมกลืนกับธีม Neumorphic Soft-UI ของทั้งระบบ
-  - เพิ่มมิติความลึกด้วยแสงสะท้อนทรงกลม (Inner/Outer Glow) และเอฟเฟกต์ขยายเมื่อวางเมาส์ (Hover Micro-animation)
+### 🛡️ ปรับเปลี่ยนตราผู้พัฒนาที่ได้รับการรับรอง (Verified Badge) เป็นสไตล์ Lime-Green Neumorphic
+- **เลือกใช้ดีไซน์จานกลม Neumorphic สีขาว พร้อมวงแหวนเส้นประและเครื่องหมายถูกสีเขียวมะนาว (Lime Green Dash-Circle Checkmark)**:
+  - สร้างด้วย Vector SVG คมชัดระดับ Retina ทุกหน้าจอ พร้อมลูกเล่นเส้นประ (Dash-accent ring) โทนเขียวมะนาว `#72cd27`
+  - วางบนจานกลม Neumorphic นุ่มลึก มีมิติแสงเงา 3D และเอฟเฟกต์ขยายเมื่อ Hover (Micro-animation)
   - ปรับใช้พร้อมกันทั้งในหน้า [about.php](file:///d:/_Site/ssotansum/ncd/about.php) และหน้าต่างป็อปอัปผู้พัฒนา [config/dev_modal.php](file:///d:/_Site/ssotansum/ncd/config/dev_modal.php)
-  - อัปเดตการแสดงผลเวอร์ชันใน Dev Modal เป็น `v2.1 (Stable Version 2.1)`
+  - รองรับทั้ง Light Mode และ Dark Mode อย่างสมบูรณ์แบบ
 
 ### 🏆 ปรับจูนกึ่งกลางถ้วยรางวัลอันดับ 1-4 และอัปเดตไอคอนอันดับ 51+ (Mint & Gold Rosette)
 - **ปรับพิกัดจุดกึ่งกลางของอันดับ 1 ถึง 4 ให้ตรงเป๊ะ 100%**:

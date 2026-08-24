@@ -578,32 +578,39 @@ function get_time_diff_display($timestamp) {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 17px;
-            height: 17px;
-            background: radial-gradient(circle at 35% 35%, #38bdf8 0%, #0284c7 100%);
-            color: #ffffff;
+            width: 21px;
+            height: 21px;
+            background: var(--bg-card, #ffffff);
             border-radius: 50%;
-            font-size: 10.5px;
-            font-weight: 900;
-            line-height: 1;
-            box-shadow: 0 2px 5px rgba(2, 132, 199, 0.35), inset 1px 1px 2px rgba(255, 255, 255, 0.8), inset -1px -1px 2px rgba(0, 0, 0, 0.2);
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.08), -2px -2px 5px rgba(255, 255, 255, 0.9), inset 1px 1px 1px rgba(255, 255, 255, 0.8);
             cursor: help;
             vertical-align: middle;
-            margin-left: 3px;
-            border: 1.5px solid #ffffff;
+            margin-left: 4px;
+            padding: 2px;
+            box-sizing: border-box;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             flex-shrink: 0;
         }
 
         .verified-badge:hover {
-            transform: scale(1.18);
-            box-shadow: 0 0 10px rgba(14, 165, 233, 0.6), inset 1px 1px 2px rgba(255, 255, 255, 0.9);
+            transform: scale(1.2);
+            box-shadow: 0 0 10px rgba(114, 205, 39, 0.45);
+        }
+
+        .verified-badge svg {
+            width: 100%;
+            height: 100%;
+            display: block;
         }
 
         [data-theme="dark"] .verified-badge {
-            background: radial-gradient(circle at 35% 35%, #38bdf8 0%, #0369a1 100%);
-            box-shadow: 0 0 8px rgba(56, 189, 248, 0.5), inset 1px 1px 2px rgba(255, 255, 255, 0.7);
-            border-color: rgba(255, 255, 255, 0.4);
+            background: #1e293b;
+            box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.5), -1px -1px 3px rgba(255, 255, 255, 0.05);
+        }
+
+        [data-theme="dark"] .verified-badge svg circle,
+        [data-theme="dark"] .verified-badge svg path {
+            stroke: #84cc16;
         }
 
         .dev-role {
@@ -939,7 +946,12 @@ function get_time_diff_display($timestamp) {
                 <div class="dev-info">
                     <div class="dev-name-row">
                         <span class="dev-name">นายบุญธรรม พันธ์ใหญ่</span>
-                        <span class="verified-badge" title="ผู้พัฒนาระบบที่ได้รับการรับรอง">✓</span>
+                        <span class="verified-badge" title="ผู้พัฒนาระบบที่ได้รับการรับรอง (Verified Developer)">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="12" r="9" stroke="#72cd27" stroke-width="2.3" stroke-linecap="round" stroke-dasharray="41 5 4 5" transform="rotate(-30 12 12)" />
+                                <path d="M8.5 12.2l2.3 2.3 5.2-5.5" stroke="#72cd27" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
                     </div>
                     <div class="dev-role">
                         <span style="display: inline-block; background: rgba(13, 44, 84, 0.08); color: var(--color-primary); padding: 2px 8px; border-radius: 6px; font-weight: 800; font-size: 11.5px; margin-bottom: 4px;">Solo Developer</span><br>
