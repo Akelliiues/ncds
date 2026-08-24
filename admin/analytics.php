@@ -37,92 +37,23 @@ if (DemoDataProvider::isDemoMode()) {
     $beforeAfterData = $mockAnalytics['beforeAfterData'] ?? [];
     $ncdBeforeAfterData = $mockAnalytics['ncdMultiRoundData'] ?? [];
     $funnelData = ['total_targets' => 250, 'r1_completed' => 185, 'r2_assigned' => 70, 'r2_completed' => 64, 'r3_completed' => 7];
-    $actionCounts = ['overdue' => 5, 'awaiting_r2' => 115, 'high_risk_unassigned' => 4];
+    $actionCounts = ['overdue' => 2, 'awaiting_r2' => 115, 'high_risk_unassigned' => 4];
     $overdueActionRows = [
         [
             'assignment_id' => 'DEMO_OVERDUE_1',
             'round_number' => 2,
-            'assigned_at' => date('Y-m-d H:i:s', strtotime('-11 days')),
+            'assigned_at' => date('Y-m-d H:i:s', strtotime('-10 days')),
             'cid' => '9999900000005',
-            'first_name' => 'สุวรรณี',
-            'last_name' => 'วรรณโคตร (จำลอง)',
-            'house_no' => '47',
-            'moo' => '5',
-            'village_name' => 'บ้านคำหนามแท่ง',
+            'first_name' => 'วิชัย',
+            'last_name' => 'มั่นคง (จำลอง)',
+            'house_no' => '15/3',
+            'moo' => '3',
             'hoscode' => '99999',
-            'vhv_name' => 'นางสมใจ แสงวงศ์',
-            'vhv_moo' => '5',
+            'vhv_name' => 'อสม. บุญทัน เจริญดี (จำลอง)',
+            'village_name' => 'บ้านโคกสว่าง (จำลอง)',
+            'health_unit_name' => 'รพ.สต.บ้านโคกสว่าง (จำลอง)',
             'vhv_hoscode' => '99999',
-            'health_unit_name' => 'รพ.สต. ตาลสุม (จำลอง)',
-            'waiting_days' => 11
-        ],
-        [
-            'assignment_id' => 'DEMO_OVERDUE_2',
-            'round_number' => 2,
-            'assigned_at' => date('Y-m-d H:i:s', strtotime('-11 days')),
-            'cid' => '9999900000002',
-            'first_name' => 'สายฝน',
-            'last_name' => 'เงาทอง (จำลอง)',
-            'house_no' => '55',
-            'moo' => '5',
-            'village_name' => 'บ้านคำหนามแท่ง',
-            'hoscode' => '99999',
-            'vhv_name' => 'น.ส. กมล เงาทอง',
-            'vhv_moo' => '5',
-            'vhv_hoscode' => '99999',
-            'health_unit_name' => 'รพ.สต. ตาลสุม (จำลอง)',
-            'waiting_days' => 11
-        ],
-        [
-            'assignment_id' => 'DEMO_OVERDUE_3',
-            'round_number' => 2,
-            'assigned_at' => date('Y-m-d H:i:s', strtotime('-11 days')),
-            'cid' => '9999900000003',
-            'first_name' => 'สมใจ',
-            'last_name' => 'แสงวงศ์ (จำลอง)',
-            'house_no' => '68',
-            'moo' => '5',
-            'village_name' => 'บ้านคำหนามแท่ง',
-            'hoscode' => '99999',
-            'vhv_name' => 'นางสมใจ แสงวงศ์',
-            'vhv_moo' => '5',
-            'vhv_hoscode' => '99999',
-            'health_unit_name' => 'รพ.สต. ตาลสุม (จำลอง)',
-            'waiting_days' => 11
-        ],
-        [
-            'assignment_id' => 'DEMO_OVERDUE_4',
-            'round_number' => 2,
-            'assigned_at' => date('Y-m-d H:i:s', strtotime('-11 days')),
-            'cid' => '9999900000004',
-            'first_name' => 'กมล',
-            'last_name' => 'เงาทอง (จำลอง)',
-            'house_no' => '85',
-            'moo' => '5',
-            'village_name' => 'บ้านคำหนามแท่ง',
-            'hoscode' => '99999',
-            'vhv_name' => 'นางกมล เงาทอง',
-            'vhv_moo' => '5',
-            'vhv_hoscode' => '99999',
-            'health_unit_name' => 'รพ.สต. ตาลสุม (จำลอง)',
-            'waiting_days' => 11
-        ],
-        [
-            'assignment_id' => 'DEMO_OVERDUE_5',
-            'round_number' => 2,
-            'assigned_at' => date('Y-m-d H:i:s', strtotime('-11 days')),
-            'cid' => '9999900000001',
-            'first_name' => 'สุพรรณี',
-            'last_name' => 'พาเรือง (จำลอง)',
-            'house_no' => '86',
-            'moo' => '5',
-            'village_name' => 'บ้านคำหนามแท่ง',
-            'hoscode' => '99999',
-            'vhv_name' => 'นางกมล เงาทอง',
-            'vhv_moo' => '5',
-            'vhv_hoscode' => '99999',
-            'health_unit_name' => 'รพ.สต. ตาลสุม (จำลอง)',
-            'waiting_days' => 11
+            'waiting_days' => 10
         ]
     ];
     $dataQuality = ['missing_body' => 0, 'missing_vitals' => 0, 'missing_geo' => 0, 'round_mismatch' => 0, 'orphan_results' => 0, 'mock_cid' => 0];
@@ -404,16 +335,17 @@ try {
     $overdueListStmt = $pdo->prepare("
         SELECT ta.assignment_id, ta.round_number, ta.assigned_at,
                p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
-               v.vhv_name, v.vhv_moo, v.hoscode AS vhv_hoscode,
-               COALESCE(vil.village_name, CONCAT('หมู่ ', p.moo)) AS village_name,
-               COALESCE(h.hosname, h.unit_name, hu.hosname, hu.unit_name) AS health_unit_name,
+               v.vhv_name, v.hoscode AS vhv_hoscode, v.vhv_moo,
+               COALESCE(vil.village_name, vil_p.village_name, '') AS village_name,
+               COALESCE(hu.hosname, hu_p.hosname, '') AS health_unit_name,
                DATEDIFF(NOW(), ta.assigned_at) AS waiting_days
         FROM task_assignments ta
         JOIN target_population p ON p.cid=ta.target_cid
         LEFT JOIN vhv_users v ON v.vhv_id=ta.vhv_id
-        LEFT JOIN villages vil ON (vil.hoscode = p.hoscode AND vil.moo = p.moo)
-        LEFT JOIN health_units h ON h.hoscode = v.hoscode
-        LEFT JOIN health_units hu ON hu.hoscode = p.hoscode
+        LEFT JOIN health_units hu ON hu.hoscode=v.hoscode
+        LEFT JOIN health_units hu_p ON hu_p.hoscode=p.hoscode
+        LEFT JOIN villages vil ON vil.vhid_code=p.vhid_code
+        LEFT JOIN villages vil_p ON vil_p.sub_district_code=p.sub_district_code AND vil_p.moo=p.moo
         WHERE ta.budget_year=? AND ta.is_sandbox=? AND ta.assignment_status='pending'
           AND ta.round_number>=2 AND ta.assigned_at < DATE_SUB(NOW(), INTERVAL 7 DAY)
           AND p.hoscode IN ($inPlaceholders)
@@ -1465,34 +1397,30 @@ try {
                         <thead>
                             <tr>
                                 <th>ชื่อ-นามสกุล</th>
-                                <th>พื้นที่</th>
-                                <th>หมู่บ้านที่รับผิดชอบ</th>
+                                <th>พื้นที่เป้าหมาย</th>
+                                <th>หมู่บ้าน</th>
                                 <th>รอบ</th>
-                                <th>อสม.</th>
+                                <th>อสม. ผู้รับผิดชอบ</th>
                                 <th>สังกัด อสม.</th>
                                 <th style="text-align:right;">รอมาแล้ว</th>
                             </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($overdueActionRows as $job): ?>
+                        <?php foreach ($overdueActionRows as $job): 
+                            $vVillage = !empty($job['village_name']) ? ('หมู่ ' . (int)$job['moo'] . ' ' . $job['village_name']) : ('หมู่ที่ ' . (int)$job['moo']);
+                            $vUnitName = !empty($job['health_unit_name']) 
+                                ? $job['health_unit_name'] 
+                                : ($hc_names[$job['vhv_hoscode'] ?? $job['hoscode']] ?? ('รหัส ' . ($job['vhv_hoscode'] ?? $job['hoscode'] ?? '-')));
+                        ?>
                             <tr>
                                 <td><strong><?= htmlspecialchars(trim($job['first_name'].' '.$job['last_name'])) ?></strong></td>
                                 <td>บ้านเลขที่ <?= htmlspecialchars($job['house_no'] ?: '-') ?> หมู่ <?= (int)$job['moo'] ?></td>
+                                <td><span style="color: var(--text-primary); font-weight: 600;"><?= htmlspecialchars($vVillage) ?></span></td>
+                                <td><span class="badge" style="background: rgba(14, 165, 233, 0.1); color: #0284c7; font-size: 11.5px; font-weight: 700; border: 1px solid rgba(14, 165, 233, 0.25);">รอบ <?= (int)$job['round_number'] ?></span></td>
+                                <td><?= htmlspecialchars($job['vhv_name'] ?: 'ยังไม่ระบุ') ?></td>
                                 <td>
-                                    <span style="font-weight: 600; color: var(--text-primary);">
-                                        <?= !empty($job['village_name']) ? htmlspecialchars($job['village_name']) : ('หมู่ที่ ' . (int)$job['moo']) ?>
-                                    </span>
-                                </td>
-                                <td><span class="badge" style="background: rgba(14, 165, 233, 0.12); color: #0284c7; font-weight: 700; font-size: 11.5px; padding: 2px 8px; border-radius: 6px;">รอบ <?= (int)$job['round_number'] ?></span></td>
-                                <td>
-                                    <div style="font-weight: 700; color: var(--text-primary);"><?= htmlspecialchars($job['vhv_name'] ?: '-') ?></div>
-                                    <?php if (!empty($job['vhv_moo'])): ?>
-                                        <small style="font-size: 11px; color: var(--text-muted);">อสม. หมู่ <?= (int)$job['vhv_moo'] ?></small>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <span style="font-size: 12px; color: var(--color-primary); font-weight: 600; background: rgba(13, 44, 84, 0.06); padding: 3px 8px; border-radius: 6px; display: inline-block;">
-                                        <?= htmlspecialchars($job['health_unit_name'] ?: ($hc_names[$job['vhv_hoscode'] ?? $job['hoscode']] ?? ($job['vhv_hoscode'] ?? $job['hoscode'] ?? '-'))) ?>
+                                    <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #059669; font-size: 11.5px; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.25);">
+                                        <?= htmlspecialchars($vUnitName) ?>
                                     </span>
                                 </td>
                                 <td style="text-align:right; color:#f59e0b; font-weight:800;"><?= (int)$job['waiting_days'] ?> วัน</td>
