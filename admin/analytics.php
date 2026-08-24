@@ -1023,35 +1023,44 @@ try {
     $vhvImpactStmt = $pdo->prepare("
         SELECT 
             COALESCE(v.vhv_id, a.vhv_id, a.assigned_vhv) AS vhv_id,
-            COALESCE(v.vhv_name, a.assigned_vhv, 'อสม.') AS vhv_name,
-            COALESCE(v.hoscode, p.hoscode) AS hoscode,
-            COALESCE(vil.village_name, CONCAT('หมู่ ', p.moo)) AS village,
-            COUNT(DISTINCT a.assignment_id) as total_screened,
-            SUM(CASE WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN 1 ELSE 0 END) as risk_found,
-            COUNT(DISTINCT CASE WHEN a.round_number >= 2 THEN a.target_cid END) as total_followups,
+            COALESCE(MAX(v.vhv_name), MAX(a.assigned_vhv), 'อสม.') AS vhv_name,
+            COALESCE(MAX(v.hoscode), MAX(p.hoscode)) AS hoscode,
+            COALESCE(MAX(vil.village_name), CONCAT('หมู่ ', MAX(p.moo))) AS village,
+            COUNT(DISTINCT a.assignment_id) AS total_screened,
+            SUM(CASE WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN 1 ELSE 0 END) AS risk_found,
+            COUNT(DISTINCT CASE WHEN a.round_number >= 2 THEN a.target_cid END) AS total_followups,
             SUM(CASE 
                 WHEN a.round_number >= 2 AND (
                     (s.sys_bp1 < s1.sys_bp1 AND s1.sys_bp1 >= 140) OR
                     (s.dtx_value < s1.dtx_value AND s1.dtx_value >= 126) OR
                     (s.sys_bp1 < 140 AND s.dia_bp1 < 90 AND (s1.sys_bp1 >= 140 OR s1.dia_bp1 >= 90))
                 ) THEN 1 ELSE 0
-            END) as dpac_improved_count
+            END) AS dpac_improved_count
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
-        LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id AND s.is_sandbox = ?
+        LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
         LEFT JOIN vhv_users v ON (a.vhv_id = v.vhv_id OR a.assigned_vhv = v.vhv_name OR a.assigned_vhv = v.vhv_id)
-        LEFT JOIN villages vil ON vil.vhid_code = p.vhid_code
-        LEFT JOIN task_assignments a1 ON a1.target_cid = a.target_cid AND a1.round_number = 1 AND a1.assignment_status = 'completed' AND a1.is_sandbox = ?
-        LEFT JOIN screening_results s1 ON a1.assignment_id = s1.assignment_id AND s1.is_sandbox = ?
-        WHERE a.assignment_status = 'completed' 
-          AND a.budget_year = ? AND a.is_sandbox = ?
+        LEFT JOIN villages vil ON (vil.vhid_code = p.vhid_code OR (vil.moo = p.moo AND vil.sub_district_code = p.sub_district_code))
+        LEFT JOIN task_assignments a1 ON a1.target_cid = a.target_cid AND a1.round_number = 1 AND a1.assignment_status = 'completed'
+        LEFT JOIN screening_results s1 ON a1.assignment_id = s1.assignment_id
+        WHERE a.assignment_status = 'completed'
+          AND (a.is_sandbox = ? OR (a.is_sandbox IS NULL AND ? = 0))
+          AND (a.budget_year = ? OR a.budget_year IS NULL OR ? = 0)
           AND (a.vhv_id IS NOT NULL OR (a.assigned_vhv IS NOT NULL AND a.assigned_vhv != ''))
+          AND (? = '' OR DATE(s.created_at) >= ?)
+          AND (? = '' OR DATE(s.created_at) <= ?)
           AND p.hoscode IN ($inPlaceholders)
         GROUP BY COALESCE(v.vhv_id, a.vhv_id, a.assigned_vhv)
+        HAVING total_screened > 0
         ORDER BY dpac_improved_count DESC, risk_found DESC, total_screened DESC
         LIMIT 5
     ");
-    $vhvImpactStmt->execute(array_merge([$isSandboxVal, $isSandboxVal, $isSandboxVal, $selectedBudgetYear, $isSandboxVal], $hoscodes));
+    $vhvImpactStmt->execute(array_merge([
+        $isSandboxVal, $isSandboxVal,
+        $selectedBudgetYear, $selectedBudgetYear,
+        $dateFrom, $dateFrom,
+        $dateTo, $dateTo
+    ], $hoscodes));
     $vhvImpactData = $vhvImpactStmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (\Throwable $e) {}
 
@@ -1060,16 +1069,24 @@ $totalRiskFoundAll = 0;
 try {
     $overallYieldStmt = $pdo->prepare("
         SELECT 
-            COUNT(DISTINCT a.assignment_id) as total_screened,
-            SUM(CASE WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN 1 ELSE 0 END) as risk_found
+            COUNT(DISTINCT a.assignment_id) AS total_screened,
+            SUM(CASE WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN 1 ELSE 0 END) AS risk_found
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
-        JOIN screening_results s ON a.assignment_id = s.assignment_id AND s.is_sandbox = ?
+        LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
         WHERE a.assignment_status = 'completed'
-          AND a.budget_year = ? AND a.is_sandbox = ?
+          AND (a.is_sandbox = ? OR (a.is_sandbox IS NULL AND ? = 0))
+          AND (a.budget_year = ? OR a.budget_year IS NULL OR ? = 0)
+          AND (? = '' OR DATE(s.created_at) >= ?)
+          AND (? = '' OR DATE(s.created_at) <= ?)
           AND p.hoscode IN ($inPlaceholders)
     ");
-    $overallYieldStmt->execute(array_merge([$isSandboxVal, $selectedBudgetYear, $isSandboxVal], $hoscodes));
+    $overallYieldStmt->execute(array_merge([
+        $isSandboxVal, $isSandboxVal,
+        $selectedBudgetYear, $selectedBudgetYear,
+        $dateFrom, $dateFrom,
+        $dateTo, $dateTo
+    ], $hoscodes));
     $overallYield = $overallYieldStmt->fetch(PDO::FETCH_ASSOC);
     if ($overallYield) {
         $totalScreenedAll = intval($overallYield['total_screened']);
@@ -1077,6 +1094,12 @@ try {
     }
 } catch (\Throwable $e) {}
 
+if ($totalScreenedAll === 0 && !empty($vhvImpactData)) {
+    foreach ($vhvImpactData as $vi) {
+        $totalScreenedAll += intval($vi['total_screened']);
+        $totalRiskFoundAll += intval($vi['risk_found']);
+    }
+}
 $avgYieldRate = $totalScreenedAll > 0 ? round(($totalRiskFoundAll / $totalScreenedAll) * 100, 1) : 0;
 
 // =========================================================================
@@ -1815,7 +1838,7 @@ try {
                                 <tr>
                                     <td style="text-align: center; font-weight: bold;"><?= $idx + 1 ?></td>
                                     <td style="font-weight: bold; color: var(--color-accent);"><?= htmlspecialchars($v['vhv_name']) ?></td>
-                                    <td><?= htmlspecialchars($hc_names[$v['hoscode']] ?? $v['hoscode']) ?> (<?= htmlspecialchars($v['village'] ?? '-') ?>)</td>
+                                    <td><?= htmlspecialchars($hc_names[$v['hoscode']] ?? $v['hoscode']) ?> (<?= htmlspecialchars(!empty($v['village']) ? (strpos($v['village'], 'หมู่') !== false ? $v['village'] : 'หมู่ ' . $v['village']) : '-') ?>)</td>
                                     <td style="text-align: right;"><?= number_format($v['total_screened']) ?></td>
                                     <td style="text-align: right; font-weight: bold;"><?= number_format($v['risk_found']) ?></td>
                                     <td style="text-align: right; color: var(--color-accent); font-weight: bold;"><?= $yRate ?>%</td>
