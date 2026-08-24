@@ -6,6 +6,12 @@
 
 ## [v2.1-stable] - Stable Release 2.1: Top 50 Prestige 3D Badges, Multi-Round Analytics & Cockpit Pipeline (2026-08-24) 🚀
 
+### 📊 เพิ่มคอลัมน์หมู่บ้านและสังกัด อสม. ในตารางรายงานงานค้าง (Overdue Action Table)
+- **ขยายมิติข้อมูลในตาราง 10 งานที่รอนานที่สุด ([admin/analytics.php](file:///d:/_Site/ssotansum/ncd/admin/analytics.php))**:
+  - เพิ่มคอลัมน์ **"หมู่บ้านที่รับผิดชอบ"**: ดึงชื่อหมู่บ้านอัตโนมัติจากฐานข้อมูล (เช่น บ้านคำหนามแท่ง, บ้านตาลสุม)
+  - เพิ่มคอลัมน์ **"สังกัด อสม."**: แสดงหน่วยบริการ/รพ.สต. ที่ อสม. ประจำสังกัด พร้อมแท็กหมวดหมู่สวยงาม
+  - อัปเดต SQL Query และ Mock Data ให้ดึงข้อมูลเชื่อมโยงระหว่าง `task_assignments`, `villages`, `vhv_users`, และ `health_units` อย่างสมบูรณ์
+
 ### 💖 เปลี่ยนไอคอนทางเข้าตรวจประเมินสุขภาพตนเองเป็นรูปหัวใจและโล่ 3D (Heart & Safety Shield Icon)
 - **เปลี่ยนไอคอนรูปโทรศัพท์เดิมในหน้าแรก ([index.php](file:///d:/_Site/ssotansum/ncd/index.php))**:
   - เปลี่ยนมาใช้ไอคอนแอป 3D รูปทรงหัวใจสีน้ำเงิน-ชมพู พร้อมโล่ความปลอดภัยและเครื่องหมายถูก (Squircle App Icon) บันทึกใน [assets/img/health_check_icon.png](file:///d:/_Site/ssotansum/ncd/assets/img/health_check_icon.png)
