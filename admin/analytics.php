@@ -253,62 +253,127 @@ if (DemoDataProvider::isDemoMode()) {
     $dateTo = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateToInput) ? $dateToInput : '';
 
     // 1. Before-After Query for DPAC progress tracking
-    $beforeAfterStmt = $pdo->prepare("
-        SELECT 
-            e.enrollment_id,
-            e.risk_type,
-            p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
-            f1.bp_sys AS sbp_before, f1.bp_dia AS dbp_before, f1.fbs AS fbs_before, f1.health_risk_level AS risk_before,
-            fl.bp_sys AS sbp_after, fl.bp_dia AS dbp_after, fl.fbs AS fbs_after, fl.health_risk_level AS risk_after,
-            fl.round_number AS latest_round
-        FROM dpac_enrollments e
-        JOIN target_population p ON e.cid = p.cid
-        JOIN dpac_followups f1 ON e.enrollment_id = f1.enrollment_id AND f1.round_number = 1 AND f1.status = 'completed' AND f1.is_sandbox = ?
-        JOIN dpac_followups fl ON e.enrollment_id = fl.enrollment_id AND fl.status = 'completed' AND fl.is_sandbox = ?
-        JOIN (
-            SELECT enrollment_id, MAX(round_number) as max_round
-            FROM dpac_followups
-            WHERE status = 'completed' AND is_sandbox = ?
-            GROUP BY enrollment_id
-        ) max_f ON fl.enrollment_id = max_f.enrollment_id AND fl.round_number = max_f.max_round
-        WHERE max_f.max_round > 1 AND e.budget_year = ? AND p.hoscode IN ($inPlaceholders)
-        ORDER BY fl.completed_at DESC
-    ");
-    $beforeAfterStmt->execute(array_merge([$isSandboxVal, $isSandboxVal, $isSandboxVal, $selectedBudgetYear], $hoscodes));
-    $beforeAfterData = $beforeAfterStmt->fetchAll(PDO::FETCH_ASSOC);
+    $dpacBeforeAfterData = [];
+    try {
+        $beforeAfterStmt = $pdo->prepare("
+            SELECT 
+                e.enrollment_id,
+                e.risk_type,
+                p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
+                f1.bp_sys AS sbp_before, f1.bp_dia AS dbp_before, f1.fbs AS fbs_before, f1.health_risk_level AS risk_before,
+                fl.bp_sys AS sbp_after, fl.bp_dia AS dbp_after, fl.fbs AS fbs_after, fl.health_risk_level AS risk_after,
+                fl.round_number AS latest_round
+            FROM dpac_enrollments e
+            JOIN target_population p ON e.cid = p.cid
+            JOIN dpac_followups f1 ON e.enrollment_id = f1.enrollment_id AND f1.round_number = 1 AND f1.status = 'completed' AND f1.is_sandbox = ?
+            JOIN dpac_followups fl ON e.enrollment_id = fl.enrollment_id AND fl.status = 'completed' AND fl.is_sandbox = ?
+            JOIN (
+                SELECT enrollment_id, MAX(round_number) as max_round
+                FROM dpac_followups
+                WHERE status = 'completed' AND is_sandbox = ?
+                GROUP BY enrollment_id
+            ) max_f ON fl.enrollment_id = max_f.enrollment_id AND fl.round_number = max_f.max_round
+            WHERE max_f.max_round > 1 AND e.budget_year = ? AND p.hoscode IN ($inPlaceholders)
+            ORDER BY fl.completed_at DESC
+        ");
+        $beforeAfterStmt->execute(array_merge([$isSandboxVal, $isSandboxVal, $isSandboxVal, $selectedBudgetYear], $hoscodes));
+        $dpacBeforeAfterData = $beforeAfterStmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (\Throwable $e) {}
 
     // NCD Multi-Round Re-screening Before-After Query (Round 1 vs Latest Round)
-    $ncdBeforeAfterStmt = $pdo->prepare("
-        SELECT 
-            p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
-            s1.sys_bp1 AS sbp_r1, s1.dia_bp1 AS dbp_r1, s1.dtx_value AS dtx_r1, s1.bmi AS bmi_r1, s1.created_at AS date_r1,
-            sl.sys_bp1 AS sbp_latest, sl.dia_bp1 AS dbp_latest, sl.dtx_value AS dtx_latest, sl.bmi AS bmi_latest, sl.created_at AS date_latest,
-            al.round_number AS latest_round
-        FROM target_population p
-        JOIN task_assignments a1 ON p.cid = a1.target_cid AND a1.round_number = 1 AND a1.assignment_status = 'completed' AND a1.budget_year = ? AND a1.is_sandbox = ?
-        JOIN screening_results s1 ON a1.assignment_id = s1.assignment_id AND s1.is_sandbox = ?
-        JOIN task_assignments al ON p.cid = al.target_cid AND al.round_number > 1 AND al.assignment_status = 'completed' AND al.budget_year = ? AND al.is_sandbox = ?
-        JOIN screening_results sl ON al.assignment_id = sl.assignment_id AND sl.is_sandbox = ?
-        JOIN (
-            SELECT target_cid, MAX(round_number) as max_round
-            FROM task_assignments
-            WHERE assignment_status = 'completed' AND budget_year = ? AND is_sandbox = ?
-            GROUP BY target_cid
-        ) max_a ON al.target_cid = max_a.target_cid AND al.round_number = max_a.max_round
-        WHERE (? = 0 OR al.round_number = ?)
-          AND (? = '' OR DATE(sl.created_at) >= ?)
-          AND (? = '' OR DATE(sl.created_at) <= ?)
-          AND p.hoscode IN ($inPlaceholders)
-        ORDER BY sl.created_at DESC
-    ");
-    $ncdBeforeAfterStmt->execute(array_merge([
-        $selectedBudgetYear, $isSandboxVal, $isSandboxVal,
-        $selectedBudgetYear, $isSandboxVal, $isSandboxVal,
-        $selectedBudgetYear, $isSandboxVal,
-        $selectedRound, $selectedRound,
-        $dateFrom, $dateFrom, $dateTo, $dateTo
-    ], $hoscodes));
-    $ncdBeforeAfterData = $ncdBeforeAfterStmt->fetchAll(PDO::FETCH_ASSOC);
+    $ncdBeforeAfterData = [];
+    try {
+        $ncdBeforeAfterStmt = $pdo->prepare("
+            SELECT 
+                p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
+                s1.sys_bp1 AS sbp_r1, s1.dia_bp1 AS dbp_r1, s1.dtx_value AS dtx_r1, s1.bmi AS bmi_r1, s1.created_at AS date_r1,
+                sl.sys_bp1 AS sbp_latest, sl.dia_bp1 AS dbp_latest, sl.dtx_value AS dtx_latest, sl.bmi AS bmi_latest, sl.created_at AS date_latest,
+                al.round_number AS latest_round
+            FROM target_population p
+            JOIN task_assignments a1 ON p.cid = a1.target_cid AND a1.round_number = 1 AND a1.assignment_status = 'completed' AND a1.is_sandbox = ?
+            JOIN screening_results s1 ON a1.assignment_id = s1.assignment_id AND s1.is_sandbox = ?
+            JOIN task_assignments al ON p.cid = al.target_cid AND al.round_number > 1 AND al.assignment_status = 'completed' AND al.budget_year = ? AND al.is_sandbox = ?
+            JOIN screening_results sl ON al.assignment_id = sl.assignment_id AND sl.is_sandbox = ?
+            JOIN (
+                SELECT target_cid, MAX(round_number) as max_round
+                FROM task_assignments
+                WHERE assignment_status = 'completed' AND budget_year = ? AND is_sandbox = ?
+                GROUP BY target_cid
+            ) max_a ON al.target_cid = max_a.target_cid AND al.round_number = max_a.max_round
+            WHERE (? = 0 OR al.round_number = ?)
+              AND (? = '' OR DATE(sl.created_at) >= ?)
+              AND (? = '' OR DATE(sl.created_at) <= ?)
+              AND p.hoscode IN ($inPlaceholders)
+            ORDER BY sl.created_at DESC
+        ");
+        $ncdBeforeAfterStmt->execute(array_merge([
+            $isSandboxVal, $isSandboxVal,
+            $selectedBudgetYear, $isSandboxVal, $isSandboxVal,
+            $selectedBudgetYear, $isSandboxVal,
+            $selectedRound, $selectedRound,
+            $dateFrom, $dateFrom, $dateTo, $dateTo
+        ], $hoscodes));
+        $ncdBeforeAfterData = $ncdBeforeAfterStmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (\Throwable $e) {}
+
+    // Combine NCD Multi-Round + DPAC followup outcomes into unified $beforeAfterData
+    $combinedBeforeAfter = [];
+    $processedCids = [];
+
+    // Process NCD Multi-round screenings (Round 1 vs Round 2+)
+    foreach ($ncdBeforeAfterData as $row) {
+        $cid = $row['cid'];
+        $sbp1 = $row['sbp_r1'] !== null && $row['sbp_r1'] !== '' ? floatval($row['sbp_r1']) : null;
+        $dbp1 = $row['dbp_r1'] !== null && $row['dbp_r1'] !== '' ? floatval($row['dbp_r1']) : null;
+        $dtx1 = $row['dtx_r1'] !== null && $row['dtx_r1'] !== '' ? floatval($row['dtx_r1']) : null;
+        $sbpL = $row['sbp_latest'] !== null && $row['sbp_latest'] !== '' ? floatval($row['sbp_latest']) : null;
+        $dbpL = $row['dbp_latest'] !== null && $row['dbp_latest'] !== '' ? floatval($row['dbp_latest']) : null;
+        $dtxL = $row['dtx_latest'] !== null && $row['dtx_latest'] !== '' ? floatval($row['dtx_latest']) : null;
+
+        if ($sbp1 === null && $dbp1 === null && $dtx1 === null && $sbpL === null && $dbpL === null && $dtxL === null) {
+            continue;
+        }
+
+        $isHt = ($sbp1 !== null && $sbp1 >= 120) || ($dbp1 !== null && $dbp1 >= 80) || ($sbpL !== null && $sbpL >= 120) || ($dbpL !== null && $dbpL >= 80);
+        $isDm = ($dtx1 !== null && $dtx1 >= 100) || ($dtxL !== null && $dtxL >= 100);
+        $riskType = ($isHt && $isDm) ? 'BOTH' : ($isHt ? 'HT' : ($isDm ? 'DM' : 'HT'));
+
+        $riskBefore = (($sbp1 !== null && ($sbp1 >= 140 || $dbp1 >= 90)) || ($dtx1 !== null && $dtx1 >= 126)) ? 'เสี่ยงสูง' : ((($sbp1 !== null && ($sbp1 >= 120 || $dbp1 >= 80)) || ($dtx1 !== null && $dtx1 >= 100)) ? 'เสี่ยง' : 'ปกติ');
+        $riskAfter = (($sbpL !== null && ($sbpL >= 140 || $dbpL >= 90)) || ($dtxL !== null && $dtxL >= 126)) ? 'เสี่ยงสูง' : ((($sbpL !== null && ($sbpL >= 120 || $dbpL >= 80)) || ($dtxL !== null && $dtxL >= 100)) ? 'เสี่ยง' : 'ปกติ');
+
+        $combinedBeforeAfter[] = [
+            'source' => 'ncd',
+            'cid' => $cid,
+            'first_name' => $row['first_name'],
+            'last_name' => $row['last_name'],
+            'house_no' => $row['house_no'],
+            'moo' => $row['moo'],
+            'hoscode' => $row['hoscode'],
+            'risk_type' => $riskType,
+            'sbp_before' => $sbp1,
+            'dbp_before' => $dbp1,
+            'fbs_before' => $dtx1,
+            'risk_before' => $riskBefore,
+            'sbp_after' => $sbpL,
+            'dbp_after' => $dbpL,
+            'fbs_after' => $dtxL,
+            'risk_after' => $riskAfter,
+            'latest_round' => $row['latest_round']
+        ];
+        $processedCids[$cid] = true;
+    }
+
+    // Append any DPAC club records if not already processed
+    if (!empty($dpacBeforeAfterData)) {
+        foreach ($dpacBeforeAfterData as $row) {
+            if (!empty($row['cid']) && !isset($processedCids[$row['cid']])) {
+                $combinedBeforeAfter[] = $row;
+                $processedCids[$row['cid']] = true;
+            }
+        }
+    }
+
+    $beforeAfterData = $combinedBeforeAfter;
 
     // Operational funnel and action queues for the selected budget year.
 $funnelData = ['total_targets' => 0, 'r1_completed' => 0, 'r2_assigned' => 0, 'r2_completed' => 0, 'r3_completed' => 0];
@@ -488,36 +553,46 @@ $afterHigh = $highToHigh + $moderateToHigh + $normalToHigh;
 $afterModerate = $highToModerate + $moderateToModerate + $normalToModerate;
 $afterNormal = $highToNormal + $moderateToNormal + $normalToNormal;
 
-// 2. Risk Reduction Rate by Village (moo)
-$villageImprovementStmt = $pdo->prepare("
-    SELECT 
-        p.hoscode, p.moo,
-        COUNT(DISTINCT e.enrollment_id) as total_enrolled,
-        SUM(CASE WHEN max_f.max_round > 1 THEN 1 ELSE 0 END) as completed_followups,
-        SUM(CASE 
-            WHEN max_f.max_round > 1 AND (
-                (f1.health_risk_level = 'เสี่ยงสูง' AND fl.health_risk_level IN ('เสี่ยง', 'ปกติ')) OR
-                (f1.health_risk_level = 'เสี่ยง' AND fl.health_risk_level = 'ปกติ') OR
-                (f1.bp_sys > fl.bp_sys AND f1.bp_sys >= 140) OR
-                (f1.fbs > fl.fbs AND f1.fbs >= 126)
-            ) THEN 1 ELSE 0 
-        END) as improved_count
-    FROM dpac_enrollments e
-    JOIN target_population p ON e.cid = p.cid
-    LEFT JOIN dpac_followups f1 ON e.enrollment_id = f1.enrollment_id AND f1.round_number = 1 AND f1.status = 'completed'
-    LEFT JOIN dpac_followups fl ON e.enrollment_id = fl.enrollment_id AND fl.status = 'completed'
-    LEFT JOIN (
-        SELECT enrollment_id, MAX(round_number) as max_round
-        FROM dpac_followups
-        WHERE status = 'completed'
-        GROUP BY enrollment_id
-    ) max_f ON fl.enrollment_id = max_f.enrollment_id AND fl.round_number = max_f.max_round
-    WHERE p.hoscode IN ($inPlaceholders) AND CAST(p.moo AS UNSIGNED) > 0
-    GROUP BY p.hoscode, p.moo
-    ORDER BY p.hoscode, p.moo
-");
-$villageImprovementStmt->execute($hoscodes);
-$villageImprovementData = $villageImprovementStmt->fetchAll(PDO::FETCH_ASSOC);
+// 2. Risk Reduction Rate by Village (moo) calculated from unified before-after dataset
+$villageStats = [];
+foreach ($beforeAfterData as $row) {
+    $h = $row['hoscode'] ?? '';
+    $m = intval($row['moo'] ?? 0);
+    if ($m <= 0 || empty($h)) continue;
+    $k = $h . '_' . $m;
+    if (!isset($villageStats[$k])) {
+        $villageStats[$k] = [
+            'hoscode' => $h,
+            'moo' => $m,
+            'completed_followups' => 0,
+            'improved_count' => 0
+        ];
+    }
+    $villageStats[$k]['completed_followups']++;
+
+    // Check improvement criteria
+    $isImproved = false;
+    if (!empty($row['sbp_before']) && !empty($row['sbp_after'])) {
+        if ($row['sbp_after'] < $row['sbp_before'] || ($row['sbp_after'] < 140 && $row['dbp_after'] < 90 && ($row['sbp_before'] >= 140 || $row['dbp_before'] >= 90))) {
+            $isImproved = true;
+        }
+    }
+    if (!empty($row['fbs_before']) && !empty($row['fbs_after'])) {
+        if ($row['fbs_after'] < $row['fbs_before'] || ($row['fbs_after'] < 126 && $row['fbs_before'] >= 126)) {
+            $isImproved = true;
+        }
+    }
+    if (($row['risk_before'] ?? '') === 'เสี่ยงสูง' && in_array(($row['risk_after'] ?? ''), ['เสี่ยง', 'ปกติ'])) {
+        $isImproved = true;
+    } elseif (($row['risk_before'] ?? '') === 'เสี่ยง' && ($row['risk_after'] ?? '') === 'ปกติ') {
+        $isImproved = true;
+    }
+
+    if ($isImproved) {
+        $villageStats[$k]['improved_count']++;
+    }
+}
+$villageImprovementData = array_values($villageStats);
 
 // 3. Temporal Heatmap Data (Screens & DPAC followups)
 $historyStmt = $pdo->prepare("
@@ -947,53 +1022,61 @@ $vhvImpactData = [];
 try {
     $vhvImpactStmt = $pdo->prepare("
         SELECT 
-            a.assigned_vhv,
-            COALESCE(v.vhv_name, u.full_name, a.assigned_vhv) AS vhv_name,
-            COALESCE(v.hoscode, u.hoscode, p.hoscode) AS hoscode,
-            COALESCE(v.vhv_moo, u.village, p.moo) AS village,
+            COALESCE(v.vhv_id, a.vhv_id, a.assigned_vhv) AS vhv_id,
+            COALESCE(v.vhv_name, a.assigned_vhv, 'อสม.') AS vhv_name,
+            COALESCE(v.hoscode, p.hoscode) AS hoscode,
+            COALESCE(vil.village_name, CONCAT('หมู่ ', p.moo)) AS village,
             COUNT(DISTINCT a.assignment_id) as total_screened,
             SUM(CASE WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN 1 ELSE 0 END) as risk_found,
-            COUNT(DISTINCT e.enrollment_id) as total_dpac_enrolled,
+            COUNT(DISTINCT CASE WHEN a.round_number >= 2 THEN a.target_cid END) as total_followups,
             SUM(CASE 
-                WHEN max_f.max_round > 1 AND (
-                    (f1.health_risk_level = 'เสี่ยงสูง' AND fl.health_risk_level IN ('เสี่ยง', 'ปกติ')) OR
-                    (f1.health_risk_level = 'เสี่ยง' AND fl.health_risk_level = 'ปกติ') OR
-                    (f1.bp_sys > fl.bp_sys AND f1.bp_sys >= 140) OR
-                    (f1.fbs > fl.fbs AND f1.fbs >= 126)
+                WHEN a.round_number >= 2 AND (
+                    (s.sys_bp1 < s1.sys_bp1 AND s1.sys_bp1 >= 140) OR
+                    (s.dtx_value < s1.dtx_value AND s1.dtx_value >= 126) OR
+                    (s.sys_bp1 < 140 AND s.dia_bp1 < 90 AND (s1.sys_bp1 >= 140 OR s1.dia_bp1 >= 90))
                 ) THEN 1 ELSE 0
             END) as dpac_improved_count
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
-        LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
-        LEFT JOIN vhvs v ON (a.assigned_vhv = v.vhv_name OR a.assigned_vhv = v.vhv_id)
-        LEFT JOIN users u ON (a.assigned_vhv = u.full_name OR a.assigned_vhv = u.username)
-        LEFT JOIN dpac_enrollments e ON a.target_cid = e.cid
-        LEFT JOIN dpac_followups f1 ON e.enrollment_id = f1.enrollment_id AND f1.round_number = 1 AND f1.status = 'completed'
-        LEFT JOIN dpac_followups fl ON e.enrollment_id = fl.enrollment_id AND fl.status = 'completed'
-        LEFT JOIN (
-            SELECT enrollment_id, MAX(round_number) as max_round
-            FROM dpac_followups
-            WHERE status = 'completed'
-            GROUP BY enrollment_id
-        ) max_f ON fl.enrollment_id = max_f.enrollment_id AND fl.round_number = max_f.max_round
+        LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id AND s.is_sandbox = ?
+        LEFT JOIN vhv_users v ON (a.vhv_id = v.vhv_id OR a.assigned_vhv = v.vhv_name OR a.assigned_vhv = v.vhv_id)
+        LEFT JOIN villages vil ON vil.vhid_code = p.vhid_code
+        LEFT JOIN task_assignments a1 ON a1.target_cid = a.target_cid AND a1.round_number = 1 AND a1.assignment_status = 'completed' AND a1.is_sandbox = ?
+        LEFT JOIN screening_results s1 ON a1.assignment_id = s1.assignment_id AND s1.is_sandbox = ?
         WHERE a.assignment_status = 'completed' 
-          AND a.assigned_vhv IS NOT NULL 
-          AND a.assigned_vhv != ''
+          AND a.budget_year = ? AND a.is_sandbox = ?
+          AND (a.vhv_id IS NOT NULL OR (a.assigned_vhv IS NOT NULL AND a.assigned_vhv != ''))
           AND p.hoscode IN ($inPlaceholders)
-        GROUP BY a.assigned_vhv
+        GROUP BY COALESCE(v.vhv_id, a.vhv_id, a.assigned_vhv)
         ORDER BY dpac_improved_count DESC, risk_found DESC, total_screened DESC
         LIMIT 5
     ");
-    $vhvImpactStmt->execute($hoscodes);
+    $vhvImpactStmt->execute(array_merge([$isSandboxVal, $isSandboxVal, $isSandboxVal, $selectedBudgetYear, $isSandboxVal], $hoscodes));
     $vhvImpactData = $vhvImpactStmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (\Throwable $e) {}
 
 $totalScreenedAll = 0;
 $totalRiskFoundAll = 0;
-foreach ($vhvImpactData as $vi) {
-    $totalScreenedAll += intval($vi['total_screened']);
-    $totalRiskFoundAll += intval($vi['risk_found']);
-}
+try {
+    $overallYieldStmt = $pdo->prepare("
+        SELECT 
+            COUNT(DISTINCT a.assignment_id) as total_screened,
+            SUM(CASE WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN 1 ELSE 0 END) as risk_found
+        FROM task_assignments a
+        JOIN target_population p ON a.target_cid = p.cid
+        JOIN screening_results s ON a.assignment_id = s.assignment_id AND s.is_sandbox = ?
+        WHERE a.assignment_status = 'completed'
+          AND a.budget_year = ? AND a.is_sandbox = ?
+          AND p.hoscode IN ($inPlaceholders)
+    ");
+    $overallYieldStmt->execute(array_merge([$isSandboxVal, $selectedBudgetYear, $isSandboxVal], $hoscodes));
+    $overallYield = $overallYieldStmt->fetch(PDO::FETCH_ASSOC);
+    if ($overallYield) {
+        $totalScreenedAll = intval($overallYield['total_screened']);
+        $totalRiskFoundAll = intval($overallYield['risk_found']);
+    }
+} catch (\Throwable $e) {}
+
 $avgYieldRate = $totalScreenedAll > 0 ? round(($totalRiskFoundAll / $totalScreenedAll) * 100, 1) : 0;
 
 // =========================================================================
@@ -1607,7 +1690,7 @@ try {
 
         <!-- DPAC Intervention Outcome Summary Cards -->
         <h3 style="color: var(--color-accent); margin-bottom: 16px; font-size: 18px; display: flex; align-items: center; gap: 8px;">
-            <span>🔄 ประสิทธิผลการปรับเปลี่ยนพฤติกรรมกลุ่มเสี่ยง (DPAC Outcomes)</span>
+            <span>🔄 ประสิทธิผลการปรับเปลี่ยนพฤติกรรมและการติดตามกลุ่มเสี่ยง (Multi-Round & DPAC Outcomes)</span>
             <span style="font-size: 13px; font-weight: normal; color: var(--text-secondary);">(ประเมินเปรียบเทียบ Round 1 vs ล่าสุด ของผู้ติดตาม 2 รอบขึ้นไป รวม <?= number_format($totalAnalyzed) ?> ราย)</span>
         </h3>
 

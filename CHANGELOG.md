@@ -6,6 +6,15 @@
 
 ## [v2.1-stable] - Stable Release 2.1: Top 50 Prestige 3D Badges, Multi-Round Analytics & Cockpit Pipeline (2026-08-24) 🚀
 
+### 🔄 แก้ไขการประมวลผลข้อมูลการคัดกรองรอบ 2+ ในหน้าวิเคราะห์ข้อมูล ([admin/analytics.php](file:///d:/_Site/ssotansum/ncd/admin/analytics.php))
+- **เชื่อมโยงผลการคัดกรองรอบที่ 2 (Multi-Round Re-Screening)**:
+  - นำผลการคัดกรองรอบ 2 ขึ้นไปที่ อสม. บันทึกผ่านฟอร์มคัดกรอง (`task_assignments` & `screening_results`) มารวมเข้ากับการวิเคราะห์เปรียบเทียบก่อน-หลัง (Before-After Outcomes) ทันที
+  - อัปเดตการ์ดสรุปค่าเฉลี่ยความดัน Systolic, ค่าน้ำตาลในเลือด FBS, อัตราการควบคุมได้ดี/ดีขึ้น และกราฟเปรียบเทียบผลตรวจ + กราฟ Risk Transition
+  - แก้ไขการคำนวณอัตราการพัฒนาการสุขภาพรายหมู่บ้าน (Village Improvement Rate) ให้สอดคล้องกันแบบ Real-time
+- **แก้ไขการประมวลผลตารางผลงาน อสม. (VHV Quality & Health Impact)**:
+  - แก้ไข SQL Query ให้เชื่อมโยงกับตาราง `vhv_users` และ `villages` อย่างถูกต้อง
+  - คำนวณอัตรา Screening Yield และนับจำนวนลูกบ้านที่สุขภาพดีขึ้น (ความดัน/น้ำตาลลดลงจากรอบ 1) เพื่อจัดอันดับ 5 อสม. ดีเด่น
+
 ### 📋 เพิ่มคอลัมน์ "หมู่บ้าน" และ "สังกัด อสม." ในตาราง 10 งานที่รอนานที่สุด (Overdue Queue Insights)
 - **ปรับปรุงตารางงานที่ควรดำเนินการต่อ ([admin/analytics.php](file:///d:/_Site/ssotansum/ncd/admin/analytics.php))**:
   - เพิ่มคอลัมน์ **หมู่บ้าน** (เช่น `หมู่ 5 บ้านโคกสว่าง`) แสดงชื่อหมู่บ้านเป้าหมายชัดเจน
