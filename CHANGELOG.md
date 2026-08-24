@@ -6,6 +6,11 @@
 
 ## [v2.1-stable] - Stable Release 2.1: Top 50 Prestige 3D Badges, Multi-Round Analytics & Cockpit Pipeline (2026-08-24) 🚀
 
+### 💖 เปลี่ยนไอคอนทางเข้าตรวจประเมินสุขภาพตนเองเป็นรูปหัวใจและโล่ 3D (Heart & Safety Shield Icon)
+- **เปลี่ยนไอคอนรูปโทรศัพท์เดิมในหน้าแรก ([index.php](file:///d:/_Site/ssotansum/ncd/index.php))**:
+  - เปลี่ยนมาใช้ไอคอนแอป 3D รูปทรงหัวใจสีน้ำเงิน-ชมพู พร้อมโล่ความปลอดภัยและเครื่องหมายถูก (Squircle App Icon) บันทึกใน [assets/img/health_check_icon.png](file:///d:/_Site/ssotansum/ncd/assets/img/health_check_icon.png)
+  - เพิ่มมิติความลึกด้วยแสงเงา Gradient และขอบมุมโค้งมน Antialiased สวยงามและดึงดูดสายตายิ่งขึ้น
+
 ### 🛡️ ปรับเปลี่ยนตราผู้พัฒนาที่ได้รับการรับรอง (Verified Badge) เป็นสไตล์ Lime-Green Neumorphic
 - **เลือกใช้ดีไซน์จานกลม Neumorphic สีขาว พร้อมวงแหวนเส้นประและเครื่องหมายถูกสีเขียวมะนาว (Lime Green Dash-Circle Checkmark)**:
   - สร้างด้วย Vector SVG คมชัดระดับ Retina ทุกหน้าจอ พร้อมลูกเล่นเส้นประ (Dash-accent ring) โทนเขียวมะนาว `#72cd27`

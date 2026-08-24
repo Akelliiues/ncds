@@ -274,17 +274,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <!-- Citizen Self-Screening Portal Entry -->
             <div style="margin-top: 12px; margin-bottom: 6px;">
-                <a href="self_screening.php" style="display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(16, 185, 129, 0.08)); border: 1.5px solid rgba(59, 130, 246, 0.3); padding: 12px 14px; border-radius: 16px; text-decoration: none; transition: transform 0.2s; box-shadow: var(--neumorph-flat);">
+                <a href="self_screening.php" style="display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(16, 185, 129, 0.08)); border: 1.5px solid rgba(59, 130, 246, 0.3); padding: 12px 14px; border-radius: 16px; text-decoration: none; transition: transform 0.2s, box-shadow 0.2s; box-shadow: var(--neumorph-flat);">
                     <div style="display: flex; align-items: center; gap: 12px; text-align: left;">
-                        <?= render_neu_icon('mobile-health', 'md', 'text-blue') ?>
+                        <img src="assets/img/health_check_icon.png?v=20260824_1" alt="ตรวจสุขภาพตนเอง" style="width: 44px; height: 44px; border-radius: 12px; object-fit: contain; box-shadow: 0 4px 10px rgba(225, 29, 72, 0.25), 0 2px 6px rgba(37, 99, 235, 0.2); flex-shrink: 0;">
                         <div>
                             <div style="display: flex; align-items: center; gap: 6px;">
-                                <span style="color: var(--color-primary); font-size: 14px; font-weight: 800;">ประเมินสุขภาพตนเอง</span>
+                                <span style="color: var(--color-primary); font-size: 14px; font-weight: 800;">ตรวจเช็คประเมินสุขภาพตนเอง</span>
                             </div>
-                            <div style="color: var(--text-secondary); font-size: 11.5px;">เช็คความเสี่ยงความดัน-เบาหวานด้วยตัวเองฟรี ไม่เก็บข้อมูลส่วนตัว</div>
+                            <div style="color: var(--text-secondary); font-size: 11.5px;">เช็คความเสี่ยงความดัน-เบาหวานด้วยตัวเอง</div>
                         </div>
                     </div>
-                    <span style="color: var(--color-primary); font-weight: 800; font-size: 16px;">→</span>
+                    <span style="color: var(--color-primary); font-weight: 800; font-size: 16px;">🌞</span>
                 </a>
             </div>
 
