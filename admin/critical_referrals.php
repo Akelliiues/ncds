@@ -111,6 +111,7 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
 <head>
     <script>
         (function() {
+            window.name = "ncd_critical_referrals_tab";
             const theme = localStorage.getItem('theme') || 'light';
             document.documentElement.setAttribute('data-theme', theme);
         })();
@@ -206,10 +207,10 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                    <a href="../tools/red_alert_station/NCDs_RedAlert_Station.exe" download class="btn-action" style="background: linear-gradient(135deg, #10B981, #059669); color: white; text-decoration: none; padding: 10px 18px; border-radius: 12px; font-weight: 800; font-size: 13px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); display: inline-flex; align-items: center; gap: 6px;">
-                        <span>📥 ดาวน์โหลดแอป (.exe)</span>
+                    <a href="download_station.php?format=zip" class="btn-action" style="background: linear-gradient(135deg, #10B981, #059669); color: white; text-decoration: none; padding: 10px 18px; border-radius: 12px; font-weight: 800; font-size: 13px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); display: inline-flex; align-items: center; gap: 6px;" title="ดาวน์โหลดโปรแกรม NCDs Red Alert Station (ไฟล์ .ZIP ปลอดภัย ไม่โดนบล็อก)">
+                        <span>📥 ดาวน์โหลดแอป (.zip)</span>
                     </a>
-                    <a href="emergency_receiver.php" target="_blank" class="btn-action" style="background: linear-gradient(135deg, #DC2626, #991B1B); color: white; text-decoration: none; padding: 10px 18px; border-radius: 12px; font-weight: 800; font-size: 13px; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35); display: inline-flex; align-items: center; gap: 6px;">
+                    <a href="emergency_receiver.php" onclick="openOrFocusTab('emergency_receiver.php', 'ncd_red_alert_station_tab'); return false;" class="btn-action" style="background: linear-gradient(135deg, #DC2626, #991B1B); color: white; text-decoration: none; padding: 10px 18px; border-radius: 12px; font-weight: 800; font-size: 13px; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35); display: inline-flex; align-items: center; gap: 6px;">
                         <span>🖥️ เปิดหน้าจอ Red Alert Station</span>
                     </a>
                 </div>
@@ -348,9 +349,13 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
                                             <div style="font-size: 12.5px; font-weight: 700;">
                                                 <?= htmlspecialchars($row['vhv_name'] ?: 'อสม. ในพื้นที่') ?>
                                             </div>
-                                            <?php if (!empty($row['vhv_phone'])): ?>
-                                                <a href="tel:<?= htmlspecialchars($row['vhv_phone']) ?>" style="font-size: 11.5px; color: #3B82F6; text-decoration: none; font-weight: 700;">
-                                                    📞 <?= htmlspecialchars($row['vhv_phone']) ?>
+                                            <?php 
+                                            $cbPhone = !empty($row['contact_phone']) ? $row['contact_phone'] : ($row['vhv_phone'] ?? '');
+                                            $cbType = ($row['contact_type'] ?? 'vhv') === 'relative' ? 'ญาติ' : 'อสม.';
+                                            if (!empty($cbPhone)): 
+                                            ?>
+                                                <a href="tel:<?= htmlspecialchars($cbPhone) ?>" style="display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; color: #10B981; text-decoration: none; font-weight: 800; background: rgba(16,185,129,0.1); padding: 2px 6px; border-radius: 6px; margin-top: 3px;">
+                                                    📞 <?= htmlspecialchars($cbPhone) ?> <span style="font-size: 10px; font-weight: normal; color: var(--text-muted);">(<?= $cbType ?>)</span>
                                                 </a>
                                             <?php endif; ?>
                                         </td>
@@ -581,6 +586,82 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
         function closeSlipModal() {
             document.getElementById('slip-modal').style.display = 'none';
         }
+
+        // ----------------------------------------------------
+        // Cross-Tab Navigator & Smart Focus Manager
+        // ----------------------------------------------------
+        const MY_TAB_NAME = "ncd_critical_referrals_tab";
+        window.name = MY_TAB_NAME;
+
+        function openOrFocusTab(url, targetTabName) {
+            try {
+                const bc = new BroadcastChannel('ncd_tab_channel');
+                bc.postMessage({
+                    action: 'focus_and_navigate',
+                    target: targetTabName,
+                    url: url,
+                    timestamp: Date.now()
+                });
+            } catch(e) {}
+
+            try {
+                localStorage.setItem('ncd_focus_tab_signal', JSON.stringify({
+                    target: targetTabName,
+                    url: url,
+                    timestamp: Date.now()
+                }));
+            } catch(e) {}
+
+            const targetWin = window.open(url, targetTabName);
+            if (targetWin) {
+                try {
+                    targetWin.focus();
+                } catch(e) {}
+            }
+        }
+
+        (function setupCrossTabFocusListener() {
+            function handleTabFocus(data) {
+                if (!data || data.target !== MY_TAB_NAME) return;
+                try {
+                    window.focus();
+                } catch(e) {}
+
+                if (data.url) {
+                    const currentUrl = window.location.href;
+                    const targetUrl = new URL(data.url, window.location.origin).href;
+                    if (currentUrl !== targetUrl && data.url.indexOf('critical_referrals.php') !== -1) {
+                        window.location.href = data.url;
+                    }
+                }
+
+                const originalTitle = document.title.replace(/⚡ \[สลับมาแท็บนี้\] /g, '');
+                document.title = "⚡ [สลับมาแท็บนี้] " + originalTitle;
+                setTimeout(() => {
+                    document.title = originalTitle;
+                }, 2500);
+            }
+
+            try {
+                const bc = new BroadcastChannel('ncd_tab_channel');
+                bc.onmessage = (event) => {
+                    if (event.data && event.data.action === 'focus_and_navigate') {
+                        handleTabFocus(event.data);
+                    }
+                };
+            } catch(e) {}
+
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'ncd_focus_tab_signal' && e.newValue) {
+                    try {
+                        const payload = JSON.parse(e.newValue);
+                        if (Date.now() - payload.timestamp < 3000) {
+                            handleTabFocus(payload);
+                        }
+                    } catch(err) {}
+                }
+            });
+        })();
     </script>
 </body>
 </html>

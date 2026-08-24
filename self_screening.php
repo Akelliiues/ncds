@@ -451,25 +451,69 @@ require_once __DIR__ . '/config/db.php';
             border-bottom: 1px dashed rgba(148, 163, 184, 0.35);
             padding-bottom: 10px;
             margin-bottom: 14px;
+            gap: 8px;
         }
         .trophy-org-title {
-            font-size: 12px;
-            font-weight: 800;
-            color: var(--color-primary);
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             text-align: left;
+            min-width: 0;
+        }
+        .trophy-logo-img {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            object-fit: cover;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        [data-theme="dark"] .trophy-logo-img {
+            border-color: rgba(56, 189, 248, 0.3);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        .trophy-brand-text {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            line-height: 1.25;
+            min-width: 0;
+        }
+        .trophy-brand-en {
+            font-size: 13px;
+            font-weight: 800;
+            color: #0284c7;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+        }
+        [data-theme="dark"] .trophy-brand-en {
+            color: #38bdf8;
+        }
+        .trophy-brand-th {
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+            white-space: nowrap;
+        }
+        [data-theme="dark"] .trophy-brand-th {
+            color: #94a3b8;
         }
         .trophy-verified-badge {
-            font-size: 10.5px;
+            font-size: 10px;
             font-weight: 800;
             color: #059669;
             background: rgba(16, 185, 129, 0.12);
             border: 1px solid rgba(16, 185, 129, 0.3);
-            padding: 3px 8px;
+            padding: 4px 8px;
             border-radius: 9999px;
             white-space: nowrap;
+            flex-shrink: 0;
+        }
+        [data-theme="dark"] .trophy-verified-badge {
+            color: #34d399;
+            background: rgba(16, 185, 129, 0.2);
+            border-color: rgba(52, 211, 153, 0.4);
         }
         .trophy-score-showcase {
             margin: 8px 0 14px 0;
@@ -498,16 +542,34 @@ require_once __DIR__ . '/config/db.php';
             margin-bottom: 10px;
         }
         .trophy-rank-banner {
-            display: inline-block;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
             background: linear-gradient(135deg, #10b981, #059669);
             color: white;
-            padding: 6px 16px;
-            border-radius: 9999px;
-            font-size: 13.5px;
-            font-weight: 800;
+            padding: 7px 18px;
+            border-radius: 16px;
             box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
             margin-bottom: 14px;
             max-width: 92%;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        .rank-line-1 {
+            font-size: 13.5px;
+            font-weight: 900;
+            letter-spacing: 0.2px;
+            line-height: 1.25;
+            white-space: nowrap;
+        }
+        .rank-line-2 {
+            font-size: 11.5px;
+            font-weight: 700;
+            opacity: 0.95;
+            line-height: 1.25;
+            white-space: nowrap;
         }
         .trophy-pillars-grid {
             display: grid;
@@ -695,6 +757,61 @@ require_once __DIR__ . '/config/db.php';
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
             margin: 12px 0 16px 0;
             border: 1px solid var(--border-color);
+        }
+        .image-modal-btn-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            margin-top: 6px;
+            box-sizing: border-box;
+        }
+        .btn-modal-action {
+            flex: 1 1 0;
+            width: 50%;
+            height: 48px;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            box-sizing: border-box;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+        .btn-modal-download {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #ffffff !important;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+        }
+        .btn-modal-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
+        }
+        .btn-modal-download:active {
+            transform: scale(0.98);
+        }
+        .btn-modal-close {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1.5px solid var(--border-color);
+            box-shadow: var(--neumorph-flat);
+        }
+        [data-theme="dark"] .btn-modal-close {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .btn-modal-close:hover {
+            background: var(--bg-darker);
+            transform: translateY(-2px);
+        }
+        .btn-modal-close:active {
+            transform: scale(0.98);
         }
     </style>
 </head>
@@ -1296,8 +1413,11 @@ require_once __DIR__ . '/config/db.php';
                     <!-- Card Top Header -->
                     <div class="trophy-card-header">
                         <div class="trophy-org-title">
-                            <?= render_neu_icon('shield-check', 'xs', 'text-green') ?>
-                            <span>NCDs Health Passport • อำเภอ<?= DISTRICT_NAME ?></span>
+                            <img src="assets/icon.png" alt="Logo" class="trophy-logo-img">
+                            <div class="trophy-brand-text">
+                                <span class="trophy-brand-en">NCDs Health Passport</span>
+                                <span class="trophy-brand-th">อำเภอ<?= DISTRICT_NAME ?></span>
+                            </div>
                         </div>
                         <div class="trophy-verified-badge">
                             ✓ ประเมินด้วยตนเอง
@@ -1312,7 +1432,8 @@ require_once __DIR__ . '/config/db.php';
                         <div class="trophy-score-value" id="trophy-score-display">95</div>
                         <div class="trophy-score-label">คะแนนสุขภาพตนเอง (เต็ม 100)</div>
                         <div class="trophy-rank-banner" id="trophy-rank-title">
-                            🌟 ยอดมนุษย์สายคลีน สุขภาพดีเด่นแห่งตาลสุม
+                            <div class="rank-line-1">🌟 ยอดมนุษย์สายคลีน</div>
+                            <div class="rank-line-2">สุขภาพดีเด่นแห่งตาลสุม</div>
                         </div>
                     </div>
 
@@ -1462,12 +1583,12 @@ require_once __DIR__ . '/config/db.php';
                 แตะค้างที่รูปภาพด้านล่างเพื่อบันทึกรูป หรือกดปุ่มดาวน์โหลด
             </p>
             <img id="image-modal-preview" class="image-preview-target" alt="Health Trophy Card">
-            <div style="display: flex; gap: 10px;">
-                <a id="image-modal-download-link" href="#" download="ncd_health_passport.png" class="btn-giant btn-giant-primary" style="flex: 1; margin: 0; padding: 12px; font-size: 14px; text-decoration: none; display: flex; align-items: center; justify-content: center;">
+            <div class="image-modal-btn-row">
+                <a id="image-modal-download-link" href="#" download="ncd_health_passport.png" class="btn-modal-action btn-modal-download">
                     📥 ดาวน์โหลด
                 </a>
-                <button type="button" onclick="closeImageModal()" class="btn-giant btn-giant-secondary" style="margin: 0; padding: 12px 18px; font-size: 14px;">
-                    ปิด
+                <button type="button" onclick="closeImageModal()" class="btn-modal-action btn-modal-close">
+                    ✕ ปิด
                 </button>
             </div>
         </div>
@@ -1710,7 +1831,7 @@ require_once __DIR__ . '/config/db.php';
                 calculatedRiskLevel = 'green';
                 if (scoreDisplay) scoreDisplay.style.color = '#10b981';
                 if (rankTitle) {
-                    rankTitle.innerText = '🌟 ยอดมนุษย์สายคลีน สุขภาพดีเด่นแห่งตาลสุม';
+                    rankTitle.innerHTML = '<div class="rank-line-1">🌟 ยอดมนุษย์สายคลีน</div><div class="rank-line-2">สุขภาพดีเด่นแห่ง<?= DISTRICT_NAME ?></div>';
                     rankTitle.style.background = 'linear-gradient(135deg, #10b981, #059669)';
                     rankTitle.style.boxShadow = '0 4px 14px rgba(16, 185, 129, 0.35)';
                 }
@@ -1720,7 +1841,7 @@ require_once __DIR__ . '/config/db.php';
                 calculatedRiskLevel = 'yellow';
                 if (scoreDisplay) scoreDisplay.style.color = '#d97706';
                 if (rankTitle) {
-                    rankTitle.innerText = '⚡ นักสู้สายฟิต พร้อมปรับลดหวาน-ลดเค็ม';
+                    rankTitle.innerHTML = '<div class="rank-line-1">⚡ นักสู้สายฟิต</div><div class="rank-line-2">พร้อมปรับลดหวาน-ลดเค็ม</div>';
                     rankTitle.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
                     rankTitle.style.boxShadow = '0 4px 14px rgba(245, 158, 11, 0.35)';
                 }
@@ -1730,7 +1851,7 @@ require_once __DIR__ . '/config/db.php';
                 calculatedRiskLevel = 'red';
                 if (scoreDisplay) scoreDisplay.style.color = '#dc2626';
                 if (rankTitle) {
-                    rankTitle.innerText = '🛡️ ฮีโร่ตระหนักรู้ พร้อมดูแลตัวเองเพื่อคนที่รัก';
+                    rankTitle.innerHTML = '<div class="rank-line-1">🛡️ ฮีโร่ตระหนักรู้</div><div class="rank-line-2">พร้อมดูแลตัวเองเพื่อคนที่รัก</div>';
                     rankTitle.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
                     rankTitle.style.boxShadow = '0 4px 14px rgba(239, 68, 68, 0.35)';
                 }

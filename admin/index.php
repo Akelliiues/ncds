@@ -425,6 +425,25 @@ if (DemoDataProvider::isDemoMode()) {
     }
     unset($row);
 
+    // Risk by round data (Admin)
+    $chartRiskByRoundStmt = $pdo->prepare("
+        SELECT 
+            COALESCE(v.hoscode, p.hoscode) as hoscode, 
+            p.moo,
+            IFNULL(s.round_number, 1) as round_number,
+            COUNT(DISTINCT CASE WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN p.cid END) as high_risk,
+            COUNT(DISTINCT CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as moderate_risk,
+            COUNT(DISTINCT CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as normal
+        FROM target_population p
+        LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
+        JOIN screening_results s ON (s.target_cid = p.cid)
+        WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+          AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholders)
+        GROUP BY COALESCE(v.hoscode, p.hoscode), p.moo, IFNULL(s.round_number, 1)
+    ");
+    $chartRiskByRoundStmt->execute($hoscodes);
+    $chartRiskByRoundData = $chartRiskByRoundStmt->fetchAll(PDO::FETCH_ASSOC);
+
     $chartDiseaseStmt = $pdo->prepare("
         SELECT 
             SUM(CASE WHEN (s.sys_bp1 >= 140 OR s.dia_bp1 >= 90) AND s.dtx_value >= 126 THEN 1 ELSE 0 END) as ht_dm,
@@ -778,6 +797,24 @@ if (DemoDataProvider::isDemoMode()) {
     $chartRiskStmt->execute($valid_hoscodes);
     $chartRiskData = $chartRiskStmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // Risk by round data (Super Admin)
+    $chartRiskByRoundStmt = $pdo->prepare("
+        SELECT 
+            COALESCE(v.hoscode, p.hoscode) as hoscode,
+            IFNULL(s.round_number, 1) as round_number,
+            COUNT(DISTINCT CASE WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN p.cid END) as high_risk,
+            COUNT(DISTINCT CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as moderate_risk,
+            COUNT(DISTINCT CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as normal
+        FROM target_population p
+        LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
+        JOIN screening_results s ON (s.target_cid = p.cid)
+        WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+          AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholdersSa)
+        GROUP BY COALESCE(v.hoscode, p.hoscode), IFNULL(s.round_number, 1)
+    ");
+    $chartRiskByRoundStmt->execute($valid_hoscodes);
+    $chartRiskByRoundData = $chartRiskByRoundStmt->fetchAll(PDO::FETCH_ASSOC);
+
     $chartDiseaseStmt = $pdo->prepare("
         SELECT 
             SUM(CASE WHEN (s.sys_bp1 >= 140 OR s.dia_bp1 >= 90) AND s.dtx_value >= 126 THEN 1 ELSE 0 END) as ht_dm,
@@ -912,104 +949,197 @@ if (DemoDataProvider::isDemoMode()) {
 
     <!-- ApexCharts -->
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+    <style>
+        .admin-bento-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+        .bento-card {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border-color, #e5e7eb);
+            border-radius: 14px;
+            padding: 16px 18px;
+            box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.04);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .bento-card:hover {
+            border-color: rgba(99, 102, 241, 0.25);
+            box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.08);
+        }
+        .bento-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color, #e5e7eb);
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .bento-title {
+            color: var(--color-accent, #1e293b);
+            margin: 0;
+            font-size: 14.5px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .bento-icon-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+        }
+        .bento-span-12 { grid-column: span 12; }
+        .bento-span-8 { grid-column: span 8; }
+        .bento-span-7 { grid-column: span 7; }
+        .bento-span-6 { grid-column: span 6; }
+        .bento-span-5 { grid-column: span 5; }
+        .bento-span-4 { grid-column: span 4; }
+        .bento-span-3 { grid-column: span 3; }
+
+        @media (max-width: 1100px) {
+            .bento-span-3, .bento-span-4, .bento-span-5 { grid-column: span 6; }
+            .bento-span-7, .bento-span-8 { grid-column: span 12; }
+        }
+        @media (max-width: 768px) {
+            .admin-bento-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+                margin-bottom: 10px;
+            }
+            .bento-span-12, .bento-span-8, .bento-span-7, .bento-span-6, .bento-span-5, .bento-span-4, .bento-span-3 {
+                grid-column: span 1;
+            }
+        }
+
+        /* Recent Screenings Custom Scroll Container */
+        .recent-screenings-scroll {
+            max-height: 410px;
+            overflow-y: auto;
+            overflow-x: auto;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE and Edge */
+        }
+        .recent-screenings-scroll::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+        .recent-screenings-scroll table.admin-table thead th {
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-darker, #f1f5f9);
+            color: var(--text-primary);
+            z-index: 5;
+            box-shadow: 0 1px 0 var(--border-color, #e5e7eb);
+        }
+    </style>
 </head>
 
 <body class="admin-body dashboard-page">
     <?php include 'navbar.php'; ?>
 
-    <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
+    <div style="max-width: 1240px; margin: 20px auto; padding: 0 16px;">
         <h2 style="margin-bottom: 4px;">ภาพรวมความคุ้มครองและพิกัดกลุ่มเสี่ยง (Dashboard)</h2>
-        <p style="color: var(--text-secondary); margin-bottom: 30px; font-size: 15px;">
+        <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">
             หน่วยบริการผู้รับผิดชอบ: <strong
                 style="color: var(--color-accent);"><?= htmlspecialchars($admin_title) ?></strong>
         </p>
 
         <!-- Target Group Summary -->
-        <div style="margin-bottom: 12px;">
-            <h3 style="color: var(--color-accent); margin-bottom: 8px; font-size: 16px; display: flex; align-items: center; gap: 8px;">
-                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <div style="margin-bottom: 8px;">
+            <h3 style="color: var(--color-accent); margin-bottom: 6px; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
                 </svg>
                 กลุ่มเป้าหมายคัดกรองแยกตามประเภทโรค
             </h3>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px; margin-bottom: 12px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 10px; margin-bottom: 10px;">
             <!-- กลุ่มเสี่ยง Both -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-red); position: relative; overflow: hidden; padding: 16px 18px;" onclick="showCardModal('targets_both')">
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-red); position: relative; overflow: hidden; padding: 14px 16px;" onclick="showCardModal('targets_both')">
                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
                     <?= render_neu_icon('heart-pulse', 'sm', 'disc-red') ?>
                     <span style="color: var(--text-secondary); font-size: 13.5px; font-weight: bold;">เป้าหมายร่วม (DM+HT)</span>
                 </div>
-                <div class="stat-val" style="color: var(--color-red); font-size: 38px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 6px 0; display: flex; justify-content: flex-end; align-items: baseline;">
-                    <?= number_format($metrics['group_both']) ?> <span style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">  ราย</span>
+                <div class="stat-val" style="color: var(--color-red); font-size: 36px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 4px 0; display: flex; justify-content: flex-end; align-items: baseline;">
+                    <?= number_format($metrics['group_both']) ?> <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">  ราย</span>
                 </div>
-                <div style="margin-top: 4px; font-size: 12px; color: var(--text-muted); line-height: 1.35;">
+                <div style="margin-top: 3px; font-size: 11.5px; color: var(--text-muted); line-height: 1.35;">
                     ประชากรทั่วไป 35 ปีขึ้นไป (ต้องตรวจ 2 โรค)
                 </div>
-                <div style="margin-top: 4px; font-size: 12px; color: var(--color-red); font-weight: bold;">
+                <div style="margin-top: 3px; font-size: 11.5px; color: var(--color-red); font-weight: bold;">
                     <?= $metrics['total_targets'] > 0 ? round(($metrics['group_both'] / $metrics['total_targets']) * 100, 1) : 0 ?>%
                     ของเป้าหมายคัดกรอง
                 </div>
             </div>
 
             <!-- กลุ่มเสี่ยง DM -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #f97316; position: relative; overflow: hidden; padding: 16px 18px;" onclick="showCardModal('targets_dm')">
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #f97316; position: relative; overflow: hidden; padding: 14px 16px;" onclick="showCardModal('targets_dm')">
                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
                     <?= render_neu_icon('syringe', 'sm', 'disc-yellow') ?>
                     <span style="color: var(--text-secondary); font-size: 13.5px; font-weight: bold;">เป้าหมาย (เบาหวาน)</span>
                 </div>
-                <div class="stat-val" style="color: #f97316; font-size: 38px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 6px 0; display: flex; justify-content: flex-end; align-items: baseline;">
-                    <?= number_format($metrics['group_dm']) ?> <span style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">  ราย</span>
+                <div class="stat-val" style="color: #f97316; font-size: 36px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 4px 0; display: flex; justify-content: flex-end; align-items: baseline;">
+                    <?= number_format($metrics['group_dm']) ?> <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">  ราย</span>
                 </div>
-                <div style="margin-top: 4px; font-size: 12px; color: var(--text-muted); line-height: 1.35;">
+                <div style="margin-top: 3px; font-size: 11.5px; color: var(--text-muted); line-height: 1.35;">
                     เฉพาะเบาหวาน (เป็นผู้ป่วยความดันแล้ว)
                 </div>
-                <div style="margin-top: 4px; font-size: 12px; color: #f97316; font-weight: bold;">
+                <div style="margin-top: 3px; font-size: 11.5px; color: #f97316; font-weight: bold;">
                     <?= $metrics['total_targets'] > 0 ? round(($metrics['group_dm'] / $metrics['total_targets']) * 100, 1) : 0 ?>%
                     ของเป้าหมายคัดกรอง
                 </div>
             </div>
 
             <!-- กลุ่มเสี่ยง HT -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #06b6d4; position: relative; overflow: hidden; padding: 16px 18px;" onclick="showCardModal('targets_ht')">
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #06b6d4; position: relative; overflow: hidden; padding: 14px 16px;" onclick="showCardModal('targets_ht')">
                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
                     <?= render_neu_icon('thermometer', 'sm', 'disc-blue') ?>
                     <span style="color: var(--text-secondary); font-size: 13.5px; font-weight: bold;">เป้าหมาย (ความดัน)</span>
                 </div>
-                <div class="stat-val" style="color: #06b6d4; font-size: 38px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 6px 0; display: flex; justify-content: flex-end; align-items: baseline;">
-                    <?= number_format($metrics['group_ht']) ?> <span style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">  ราย</span>
+                <div class="stat-val" style="color: #06b6d4; font-size: 36px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 4px 0; display: flex; justify-content: flex-end; align-items: baseline;">
+                    <?= number_format($metrics['group_ht']) ?> <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">  ราย</span>
                 </div>
-                <div style="margin-top: 4px; font-size: 12px; color: var(--text-muted); line-height: 1.35;">
+                <div style="margin-top: 3px; font-size: 11.5px; color: var(--text-muted); line-height: 1.35;">
                     เฉพาะความดัน (เป็นผู้ป่วยเบาหวานแล้ว)
                 </div>
-                <div style="margin-top: 4px; font-size: 12px; color: #06b6d4; font-weight: bold;">
+                <div style="margin-top: 3px; font-size: 11.5px; color: #06b6d4; font-weight: bold;">
                     <?= $metrics['total_targets'] > 0 ? round(($metrics['group_ht'] / $metrics['total_targets']) * 100, 1) : 0 ?>%
                     ของเป้าหมายคัดกรอง
                 </div>
             </div>
 
             <!-- กลุ่มสงสัยป่วยสะสม (Suspect) -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-yellow); position: relative; overflow: hidden; padding: 16px 18px;" onclick="showCardModal('targets_suspected')">
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-yellow); position: relative; overflow: hidden; padding: 14px 16px;" onclick="showCardModal('targets_suspected')">
                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
                     <?= render_neu_icon('warning-alert', 'sm', 'disc-yellow') ?>
                     <span style="color: var(--text-secondary); font-size: 13.5px; font-weight: bold;">กลุ่มสงสัยป่วย (Suspect)</span>
                 </div>
-                <div class="stat-val" style="color: var(--color-yellow); font-size: 38px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 6px 0; display: flex; justify-content: flex-end; align-items: baseline;">
-                    <?= number_format($metrics['group_suspected']) ?> <span style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">  ราย</span>
+                <div class="stat-val" style="color: var(--color-yellow); font-size: 36px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 4px 0; display: flex; justify-content: flex-end; align-items: baseline;">
+                    <?= number_format($metrics['group_suspected']) ?> <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">  ราย</span>
                 </div>
-                <div style="margin-top: 4px; font-size: 12px; color: var(--text-muted); line-height: 1.35;">
+                <div style="margin-top: 3px; font-size: 11.5px; color: var(--text-muted); line-height: 1.35;">
                     ผลตรวจผิดปกติปีก่อน (รอแพทย์วินิจฉัย)
                 </div>
-                <div style="margin-top: 4px; font-size: 12px; color: var(--color-yellow); font-weight: bold;">
+                <div style="margin-top: 3px; font-size: 11.5px; color: var(--color-yellow); font-weight: bold;">
                     จากฐานข้อมูลระบบ HDC
                 </div>
             </div>
         </div>
 
         <!-- Metrics Grid -->
-        <div class="grid-cols-4" style="margin-bottom: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 12px;">
+        <div class="grid-cols-4" style="margin-bottom: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 10px;">
             <!-- Card 1: ผลงานคัดกรองรอบที่ 1 -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-green); position: relative; overflow: hidden; padding: 16px 18px;" onclick="showCardModal('screened')">
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-green); position: relative; overflow: hidden; padding: 14px 16px;" onclick="showCardModal('screened')">
                 <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 4px;">
                     <?= render_neu_icon('first-aid', 'md', 'disc-green') ?>
                     <div>
@@ -1017,20 +1147,20 @@ if (DemoDataProvider::isDemoMode()) {
                         <div style="font-size: 11.5px; color: var(--text-muted); line-height: 1.2;">รอบหลักประจำปี (Baseline)</div>
                     </div>
                 </div>
-                <div class="stat-val" style="color: var(--color-green); font-size: 38px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 6px 0; display: flex; justify-content: flex-end; align-items: baseline;">
+                <div class="stat-val" style="color: var(--color-green); font-size: 36px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 4px 0; display: flex; justify-content: flex-end; align-items: baseline;">
                     <?= number_format($metrics['r1_completed'] ?? $metrics['screened_count']) ?> <span
-                        style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">  ราย</span>
+                        style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">  ราย</span>
                 </div>
-                <div style="margin-top: 4px; font-size: 12px; color: var(--text-muted); line-height: 1.35;">
+                <div style="margin-top: 3px; font-size: 11.5px; color: var(--text-muted); line-height: 1.35;">
                     คิดเป็น <strong style="color: var(--color-green);"><?= $metrics['total_targets'] > 0 ? round((($metrics['r1_completed'] ?? $metrics['screened_count']) / $metrics['total_targets']) * 100, 1) : 0 ?>%</strong> ของเป้าหมาย <?= number_format($metrics['total_targets']) ?> ราย
                 </div>
-                <div style="margin-top: 3px; font-size: 11px; color: var(--text-muted);">
+                <div style="margin-top: 2px; font-size: 11px; color: var(--text-muted);">
                     (คลิกดูสถิติแยกตามระดับความเสี่ยง)
                 </div>
             </div>
 
             <!-- Card 2: ผลงานคัดกรองติดตามซ้ำรอบที่ 2 -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #3b82f6; position: relative; overflow: hidden; padding: 16px 18px;" onclick="showCardModal('rescreen_r2')">
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #3b82f6; position: relative; overflow: hidden; padding: 14px 16px;" onclick="showCardModal('rescreen_r2')">
                 <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 4px;">
                     <?= render_neu_icon('refresh-repeat', 'md', 'disc-blue') ?>
                     <div>
@@ -1038,20 +1168,20 @@ if (DemoDataProvider::isDemoMode()) {
                         <div style="font-size: 11.5px; color: #3b82f6; line-height: 1.2;">ติดตามซ้ำกลุ่มเสี่ยง (Re-screening)</div>
                     </div>
                 </div>
-                <div class="stat-val" style="color: #3b82f6; font-size: 38px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 6px 0; display: flex; justify-content: flex-end; align-items: baseline;">
+                <div class="stat-val" style="color: #3b82f6; font-size: 36px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 4px 0; display: flex; justify-content: flex-end; align-items: baseline;">
                     <?= number_format($metrics['r2_completed'] ?? 0) ?> <span
-                        style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">ราย</span>
+                        style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">ราย</span>
                 </div>
-                <div style="margin-top: 4px; font-size: 12px; color: var(--text-muted); line-height: 1.35;">
+                <div style="margin-top: 3px; font-size: 11.5px; color: var(--text-muted); line-height: 1.35;">
                     ติดตามซ้ำแล้ว <strong style="color: #3b82f6;"><?= ($metrics['r1_completed'] ?? 1) > 0 ? round((($metrics['r2_completed'] ?? 0) / max($metrics['r1_completed'] ?? 1, 1)) * 100, 1) : 0 ?>%</strong> จากรอบแรก
                 </div>
-                <div style="margin-top: 3px; font-size: 11px; color: var(--text-muted);">
+                <div style="margin-top: 2px; font-size: 11px; color: var(--text-muted);">
                     (คลิกดูสถิติจำแนกรายพื้นที่)
                 </div>
             </div>
 
             <!-- Card 3: รอดำเนินการ -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-primary); position: relative; overflow: hidden; padding: 16px 18px;" onclick="showCardModal('pending')">
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid var(--color-primary); position: relative; overflow: hidden; padding: 14px 16px;" onclick="showCardModal('pending')">
                 <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 4px;">
                     <?= render_neu_icon('clipboard-record', 'md', 'text-navy') ?>
                     <div>
@@ -1059,20 +1189,20 @@ if (DemoDataProvider::isDemoMode()) {
                         <div style="font-size: 11.5px; color: var(--text-muted); line-height: 1.2;">งานมอบหมายค้างตรวจ (Pending)</div>
                     </div>
                 </div>
-                <div class="stat-val" style="color: var(--color-primary); font-size: 38px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 6px 0; display: flex; justify-content: flex-end; align-items: baseline;">
+                <div class="stat-val" style="color: var(--color-primary); font-size: 36px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 4px 0; display: flex; justify-content: flex-end; align-items: baseline;">
                     <?= number_format($metrics['pending_count']) ?> <span
-                        style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">ราย</span>
+                        style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">ราย</span>
                 </div>
-                <div style="margin-top: 4px; font-size: 12px; color: var(--text-muted); line-height: 1.35;">
+                <div style="margin-top: 3px; font-size: 11.5px; color: var(--text-muted); line-height: 1.35;">
                     มอบหมายแล้ว รอ อสม. ลงพื้นที่
                 </div>
-                <div style="margin-top: 3px; font-size: 11px; color: var(--text-muted);">
+                <div style="margin-top: 2px; font-size: 11px; color: var(--text-muted);">
                     (คลิกดูรายละเอียดแยกรายพื้นที่)
                 </div>
             </div>
 
             <!-- Card 4: แต้มรางวัลสะสม อสม. -->
-            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #eab308; position: relative; overflow: hidden; padding: 16px 18px;" onclick="showCardModal('rewards')">
+            <div class="card-dark" style="cursor: pointer; border-left: 4px solid #eab308; position: relative; overflow: hidden; padding: 14px 16px;" onclick="showCardModal('rewards')">
                 <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 4px;">
                     <?= render_neu_icon('doctor', 'md', 'disc-yellow') ?>
                     <div>
@@ -1080,36 +1210,32 @@ if (DemoDataProvider::isDemoMode()) {
                         <div style="font-size: 11.5px; color: var(--text-muted); line-height: 1.2;">คะแนนปฏิบัติงานสะสม (Rewards)</div>
                     </div>
                 </div>
-                <div class="stat-val" style="color: #eab308; font-size: 38px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 6px 0; display: flex; justify-content: flex-end; align-items: baseline;">
+                <div class="stat-val" style="color: #eab308; font-size: 36px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 4px 0; display: flex; justify-content: flex-end; align-items: baseline;">
                     <?= ((float)($metrics['total_points'] ?? 0) == (int)($metrics['total_points'] ?? 0) ? number_format($metrics['total_points'] ?? 0) : number_format($metrics['total_points'] ?? 0, 2)) ?> <span
-                        style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">  แต้ม</span>
+                        style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">  แต้ม</span>
                 </div>
-                <div style="margin-top: 4px; font-size: 12px; color: var(--text-muted); line-height: 1.35;">
+                <div style="margin-top: 3px; font-size: 11.5px; color: var(--text-muted); line-height: 1.35;">
                     จาก อสม. ปฏิบัติงานทั้งหมด <?= $metrics['total_vhvs'] ?> คน
                 </div>
-                <div style="margin-top: 3px; font-size: 11px; color: var(--text-muted);">
+                <div style="margin-top: 2px; font-size: 11px; color: var(--text-muted);">
                     (คลิกดูกระดานคะแนน Top 10)
                 </div>
             </div>
         </div>
 
-        <!-- Multi-Round Re-screening Performance Chart -->
-        <div class="card-dark" style="margin-bottom: 30px;">
-            <h3 style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+        <!-- Multi-Round Re-screening Performance Chart (Standard Summary Card) -->
+        <div class="card-dark" style="margin-bottom: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: rgba(99, 102, 241, 0.15); color: #6366f1;">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                    </span>
-                    <span>🔄 ความก้าวหน้าและร้อยละผลงานการคัดกรองติดตามซ้ำรายรอบ (Multi-Round Re-screening Performance)</span>
+                    <?= render_neu_icon('chart-line', 'sm', 'disc-blue') ?>
+                    <h3 style="color: var(--color-accent); margin: 0; font-size: 15px; font-weight: 700;">🔄 ความก้าวหน้าและร้อยละผลงานการคัดกรองติดตามซ้ำรายรอบ (Multi-Round Re-screening)</h3>
                 </div>
                 <div style="font-size: 12px; font-weight: 600; color: var(--text-muted);">
                     <?= $admin_hoscode ? 'เปรียบเทียบรายหมู่บ้าน' : 'เปรียบเทียบรายหน่วยบริการ (รพ.สต.)' ?>
                 </div>
-            </h3>
+            </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 14px;">
                 <?php
                 $totAll = array_sum(array_column($chartRescreenData, 'total_targets')) ?: 1;
                 $r1All = array_sum(array_column($chartRescreenData, 'r1_completed'));
@@ -1124,19 +1250,19 @@ if (DemoDataProvider::isDemoMode()) {
                 $denomR3 = max($r2CompAll, $r3CompAll + $r3AssignedAll, 1);
                 $pctR3 = number_format(($r3CompAll / $denomR3) * 100, 1);
                 ?>
-                <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.2); padding: 12px 16px; border-radius: 12px;">
-                    <div style="font-size: 12px; color: var(--color-green); font-weight: 600;">✅ รอบที่ 1 (Baseline)</div>
-                    <div style="font-size: 20px; font-weight: bold; color: var(--text-color); margin-top: 4px;"><?= number_format($r1All) ?> <span style="font-size: 13px; color: var(--color-green);">(<?= $pctR1 ?>%)</span></div>
+                <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.2); padding: 10px 14px; border-radius: 10px;">
+                    <div style="font-size: 11.5px; color: var(--color-green); font-weight: 700;">✅ รอบที่ 1 (Baseline)</div>
+                    <div style="font-size: 18px; font-weight: 800; color: var(--text-color); margin-top: 2px;"><?= number_format($r1All) ?> <span style="font-size: 12px; color: var(--color-green);">(<?= $pctR1 ?>%)</span></div>
                     <div style="font-size: 11px; color: var(--text-muted);">คัดกรองเสร็จจากเป้าหมาย <?= number_format($totAll) ?> ราย</div>
                 </div>
-                <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); padding: 12px 16px; border-radius: 12px;">
-                    <div style="font-size: 12px; color: #3b82f6; font-weight: 600;">🔄 รอบที่ 2 (คัดกรองติดตามซ้ำ)</div>
-                    <div style="font-size: 20px; font-weight: bold; color: var(--text-color); margin-top: 4px;"><?= number_format($r2CompAll) ?> <span style="font-size: 13px; color: #3b82f6;">(<?= $pctR2 ?>%)</span></div>
+                <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); padding: 10px 14px; border-radius: 10px;">
+                    <div style="font-size: 11.5px; color: #3b82f6; font-weight: 700;">🔄 รอบที่ 2 (คัดกรองติดตามซ้ำ)</div>
+                    <div style="font-size: 18px; font-weight: 800; color: var(--text-color); margin-top: 2px;"><?= number_format($r2CompAll) ?> <span style="font-size: 12px; color: #3b82f6;">(<?= $pctR2 ?>%)</span></div>
                     <div style="font-size: 11px; color: var(--text-muted);">คัดกรองเสร็จจากรอบแรก <?= number_format($r1All) ?> ราย</div>
                 </div>
-                <div style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2); padding: 12px 16px; border-radius: 12px;">
-                    <div style="font-size: 12px; color: #8b5cf6; font-weight: 600;">🔄 รอบที่ 3+ (ติดตามต่อเนื่อง)</div>
-                    <div style="font-size: 20px; font-weight: bold; color: var(--text-color); margin-top: 4px;"><?= number_format($r3CompAll) ?> <span style="font-size: 13px; color: #8b5cf6;">(<?= $pctR3 ?>%)</span></div>
+                <div style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2); padding: 10px 14px; border-radius: 10px;">
+                    <div style="font-size: 11.5px; color: #8b5cf6; font-weight: 700;">🔄 รอบที่ 3+ (ติดตามต่อเนื่อง)</div>
+                    <div style="font-size: 18px; font-weight: 800; color: var(--text-color); margin-top: 2px;"><?= number_format($r3CompAll) ?> <span style="font-size: 12px; color: #8b5cf6;">(<?= $pctR3 ?>%)</span></div>
                     <div style="font-size: 11px; color: var(--text-muted);">คัดกรองสำเร็จจากงานมอบหมาย <?= number_format($r3CompAll + $r3AssignedAll) ?> ราย</div>
                 </div>
             </div>
@@ -1144,34 +1270,32 @@ if (DemoDataProvider::isDemoMode()) {
             <div id="chart-rescreen"></div>
         </div>
 
-        <!-- Analytics Dashboard Section -->
+        <!-- ==================== BENTO GRID ANALYTICS (SCREENSHOT 1-4) ==================== -->
 
-        <!-- Top Analytics Row -->
-        <div class="grid-cols-4"
-            style="margin-bottom: 30px; gap: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));">
-            <!-- Overall Progress (Multi-Round Support) -->
-            <div class="card-dark">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
-                    <h3
-                        style="color: var(--color-accent); margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px;">
-                        <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: rgba(14, 165, 233, 0.15); color: #0ea5e9;">
+        <!-- Row 1: Overall Progress | Total vs Screened Pie | Cockpit Pipeline (Span 4 + 4 + 4) -->
+        <div class="admin-bento-grid">
+            <!-- 1. Overall Progress (Span 4) -->
+            <div class="bento-card bento-span-4">
+                <div class="bento-header">
+                    <h3 class="bento-title">
+                        <span class="bento-icon-badge" style="background: rgba(14, 165, 233, 0.15); color: #0ea5e9;">
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                             </svg>
                         </span>
                         <span id="overall-progress-title">Overall Progress</span>
                     </h3>
-                    <div style="display: inline-flex; gap: 4px; background: var(--bg-darker); padding: 3px; border-radius: 8px; border: 1px solid var(--border-color);">
-                        <button type="button" class="btn-progress-round active" onclick="switchOverallRound('all')" id="btn-ovr-all" style="padding: 4px 9px; font-size: 11.5px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; background: #0ea5e9; color: #ffffff; transition: all 0.2s;">
+                    <div style="display: inline-flex; gap: 3px; background: var(--bg-darker); padding: 2px; border-radius: 7px; border: 1px solid var(--border-color);">
+                        <button type="button" class="btn-progress-round active" onclick="switchOverallRound('all')" id="btn-ovr-all" style="padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; background: #0ea5e9; color: #ffffff; transition: all 0.2s;">
                             ทุกรอบ
                         </button>
-                        <button type="button" class="btn-progress-round" onclick="switchOverallRound('r1')" id="btn-ovr-r1" style="padding: 4px 9px; font-size: 11.5px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">
+                        <button type="button" class="btn-progress-round" onclick="switchOverallRound('r1')" id="btn-ovr-r1" style="padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">
                             รอบ 1
                         </button>
-                        <button type="button" class="btn-progress-round" onclick="switchOverallRound('r2')" id="btn-ovr-r2" style="padding: 4px 9px; font-size: 11.5px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">
+                        <button type="button" class="btn-progress-round" onclick="switchOverallRound('r2')" id="btn-ovr-r2" style="padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">
                             รอบ 2
                         </button>
-                        <button type="button" class="btn-progress-round" onclick="switchOverallRound('r3')" id="btn-ovr-r3" style="padding: 4px 9px; font-size: 11.5px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">
+                        <button type="button" class="btn-progress-round" onclick="switchOverallRound('r3')" id="btn-ovr-r3" style="padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">
                             รอบ 3+
                         </button>
                     </div>
@@ -1179,149 +1303,282 @@ if (DemoDataProvider::isDemoMode()) {
                 <div id="chart-overall-progress" style="display: flex; justify-content: center;"></div>
             </div>
 
-            <!-- Total vs Screened Pie Chart (NEW) -->
-            <div class="card-dark">
-                <h3
-                    style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; font-size: 15px; display: flex; align-items: center; gap: 8px;">
-                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: rgba(34, 197, 94, 0.15); color: #22c55e;">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.003 9.003 0 1020.945 13H11V3.055z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-                        </svg>
-                    </span>
-                    <span>สัดส่วนคัดกรอง / เป้าหมาย (แยกรอบ)</span>
-                </h3>
+            <!-- 2. Total vs Screened Pie Chart (Span 4) -->
+            <div class="bento-card bento-span-4">
+                <div class="bento-header">
+                    <h3 class="bento-title">
+                        <span class="bento-icon-badge" style="background: rgba(34, 197, 94, 0.15); color: #22c55e;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.003 9.003 0 1020.945 13H11V3.055z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                            </svg>
+                        </span>
+                        <span>สัดส่วนคัดกรอง / เป้าหมาย (แยกรอบ)</span>
+                    </h3>
+                </div>
                 <div id="chart-total-pie"></div>
             </div>
 
-            <!-- Cockpit Radar Chart (NEW) -->
-            <div class="card-dark">
-                <h3
-                    style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; font-size: 15px; display: flex; align-items: center; gap: 8px;">
-                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
-                    </span>
-                    <span>Cockpit ประสิทธิภาพการคัดกรองรายรอบ</span>
-                </h3>
-                <div id="chart-cockpit-radar"></div>
-            </div>
+            <!-- 3. Cockpit Multi-Round Pipeline (Span 4) -->
+            <div class="bento-card bento-span-4">
+                <div>
+                    <div class="bento-header">
+                        <h3 class="bento-title">
+                            <span class="bento-icon-badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
+                            </span>
+                            <span>Cockpit ประสิทธิภาพการคัดกรองรายรอบ</span>
+                        </h3>
+                        <span style="font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 9999px; background: rgba(34, 197, 94, 0.12); color: #10b981; border: 1px solid rgba(34, 197, 94, 0.25);">
+                            4 มิติรอบ
+                        </span>
+                    </div>
 
-            <!-- Screened Risk Pie Chart (NEW) -->
-            <div class="card-dark">
-                <h3
-                    style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; font-size: 15px; display: flex; align-items: center; gap: 8px;">
-                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: rgba(239, 68, 68, 0.15); color: #ef4444;">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                    </span>
-                    <span>สัดส่วนผลการคัดกรองแยกตามระดับความเสี่ยง</span>
-                </h3>
+                    <?php
+                    $cR1Pct = $totAll > 0 ? round(($r1All / $totAll) * 100, 1) : 0;
+                    $cR2AssignedTotal = $r2AssignedAll + $r2CompAll;
+                    $cR2ReachPct = $r1All > 0 ? round(($cR2AssignedTotal / $r1All) * 100, 1) : 0;
+                    $cR2CompPct = $cR2AssignedTotal > 0 ? round(($r2CompAll / $cR2AssignedTotal) * 100, 1) : 0;
+                    $cR3AssignedTotal = $r3AssignedAll + $r3CompAll;
+                    $cR3CompPct = $cR3AssignedTotal > 0 ? round(($r3CompAll / $cR3AssignedTotal) * 100, 1) : 0;
+                    ?>
+
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- 1. Round 1 Coverage -->
+                        <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 10px; padding: 7px 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="width: 17px; height: 17px; border-radius: 4px; background: #10b981; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900;">1</span>
+                                    <span style="font-size: 12px; font-weight: 700; color: var(--text-primary);">ครอบคลุมรอบ 1</span>
+                                </div>
+                                <div style="display: flex; align-items: baseline; gap: 3px;">
+                                    <span style="font-size: 13px; font-weight: 900; color: #10b981;"><?= $cR1Pct ?>%</span>
+                                    <span style="font-size: 10px; color: var(--text-muted);">(<?= number_format($r1All) ?>/<?= number_format($totAll) ?>)</span>
+                                </div>
+                            </div>
+                            <div style="height: 5px; background: var(--bg-darker); border-radius: 9999px; overflow: hidden;">
+                                <div style="height: 100%; width: <?= min(100, $cR1Pct) ?>%; background: linear-gradient(90deg, #10b981, #34d399); border-radius: 9999px;"></div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Round 2 Assigned -->
+                        <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 10px; padding: 7px 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="width: 17px; height: 17px; border-radius: 4px; background: #0ea5e9; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900;">2</span>
+                                    <span style="font-size: 12px; font-weight: 700; color: var(--text-primary);">มอบหมายติดตาม R2</span>
+                                </div>
+                                <div style="display: flex; align-items: baseline; gap: 3px;">
+                                    <span style="font-size: 13px; font-weight: 900; color: #0ea5e9;"><?= $cR2ReachPct ?>%</span>
+                                    <span style="font-size: 10px; color: var(--text-muted);">(<?= number_format($cR2AssignedTotal) ?>/<?= number_format($r1All) ?>)</span>
+                                </div>
+                            </div>
+                            <div style="height: 5px; background: var(--bg-darker); border-radius: 9999px; overflow: hidden;">
+                                <div style="height: 100%; width: <?= min(100, $cR2ReachPct) ?>%; background: linear-gradient(90deg, #0ea5e9, #38bdf8); border-radius: 9999px;"></div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Round 2 Completed -->
+                        <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 10px; padding: 7px 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="width: 17px; height: 17px; border-radius: 4px; background: #3b82f6; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900;">✓</span>
+                                    <span style="font-size: 12px; font-weight: 700; color: var(--text-primary);">ติดตามสำเร็จรอบ 2</span>
+                                </div>
+                                <div style="display: flex; align-items: baseline; gap: 3px;">
+                                    <span style="font-size: 13px; font-weight: 900; color: #3b82f6;"><?= $cR2CompPct ?>%</span>
+                                    <span style="font-size: 10px; color: var(--text-muted);">(<?= number_format($r2CompAll) ?>/<?= number_format(max(1, $cR2AssignedTotal)) ?>)</span>
+                                </div>
+                            </div>
+                            <div style="height: 5px; background: var(--bg-darker); border-radius: 9999px; overflow: hidden;">
+                                <div style="height: 100%; width: <?= min(100, $cR2CompPct) ?>%; background: linear-gradient(90deg, #3b82f6, #60a5fa); border-radius: 9999px;"></div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Round 3+ Completed -->
+                        <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 10px; padding: 7px 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="width: 17px; height: 17px; border-radius: 4px; background: #8b5cf6; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900;">3+</span>
+                                    <span style="font-size: 12px; font-weight: 700; color: var(--text-primary);">ติดตามสำเร็จรอบ 3+</span>
+                                </div>
+                                <div style="display: flex; align-items: baseline; gap: 3px;">
+                                    <span style="font-size: 13px; font-weight: 900; color: #8b5cf6;"><?= $cR3CompPct ?>%</span>
+                                    <span style="font-size: 10px; color: var(--text-muted);">(<?= number_format($r3CompAll) ?>/<?= number_format(max(1, $cR3AssignedTotal)) ?>)</span>
+                                </div>
+                            </div>
+                            <div style="height: 5px; background: var(--bg-darker); border-radius: 9999px; overflow: hidden;">
+                                <div style="height: 100%; width: <?= min(100, $cR3CompPct) ?>%; background: linear-gradient(90deg, #8b5cf6, #a78bfa); border-radius: 9999px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-secondary);">
+                    <span>⚡ อัตราส่งมอบงานติดตามต่อ:</span>
+                    <strong style="color: #2563eb;"><?= $cR2ReachPct ?>%</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 2: Screened Risk Distribution | Skipped Reasons | DPAC Enrollments (Span 4 + 4 + 4) -->
+        <div class="admin-bento-grid">
+            <!-- 4. Screened Risk Pie (Span 4) -->
+            <div class="bento-card bento-span-4">
+                <div class="bento-header">
+                    <h3 class="bento-title">
+                        <span class="bento-icon-badge" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </span>
+                        <span>สัดส่วนผลการคัดกรองแยกตามระดับความเสี่ยง</span>
+                    </h3>
+                </div>
                 <div id="chart-screened-risk-pie"></div>
             </div>
 
-            <!-- Skipped Reasons (Donut) -->
-            <div class="card-dark">
-                <h3
-                    style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; font-size: 15px; display: flex; align-items: center; gap: 8px;">
-                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: rgba(100, 116, 139, 0.15); color: #64748b;">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                        </svg>
-                    </span>
-                    <span>สาเหตุการข้ามเคส (เคสไม่สมบูรณ์)</span>
-                </h3>
+            <!-- 5. Skipped Reasons (Span 4) -->
+            <div class="bento-card bento-span-4">
+                <div class="bento-header">
+                    <h3 class="bento-title">
+                        <span class="bento-icon-badge" style="background: rgba(100, 116, 139, 0.15); color: #64748b;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                            </svg>
+                        </span>
+                        <span>สาเหตุการข้ามเคส (เคสไม่สมบูรณ์)</span>
+                    </h3>
+                </div>
                 <div id="chart-skipped"></div>
             </div>
 
-            <!-- DPAC Enrollments (Donut) -->
-            <div class="card-dark">
-                <h3
-                    style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; font-size: 15px; display: flex; align-items: center; gap: 8px;">
-                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: rgba(6, 182, 212, 0.15); color: #06b6d4;">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                        </svg>
-                    </span>
-                    <span>กลุ่มเสี่ยงเข้าร่วมโครงการปรับเปลี่ยนพฤติกรรม</span>
-                </h3>
+            <!-- 6. DPAC Enrollments (Span 4) -->
+            <div class="bento-card bento-span-4">
+                <div class="bento-header">
+                    <h3 class="bento-title">
+                        <span class="bento-icon-badge" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                        </span>
+                        <span>กลุ่มเสี่ยงเข้าร่วมโครงการปรับเปลี่ยนพฤติกรรม</span>
+                    </h3>
+                </div>
                 <div id="chart-dpac"></div>
             </div>
         </div>
 
-        <div class="grid-cols-2"
-            style="margin-bottom: 30px; gap: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));">
-            <!-- Chart 1: Coverage -->
-            <div class="card-dark">
-                <h3
-                    style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                        </svg>
-                    </span>
-                    <span>ความครอบคลุมการคัดกรอง แยกตาม รพ.สต.</span>
-                </h3>
+        <!-- Row 3: Coverage by Area | Risk by Area (Span 6 + 6) -->
+        <div class="admin-bento-grid">
+            <!-- 7. Chart Coverage (Span 6) -->
+            <div class="bento-card bento-span-6">
+                <div class="bento-header">
+                    <h3 class="bento-title">
+                        <span class="bento-icon-badge" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                            </svg>
+                        </span>
+                        <span id="coverage-chart-title">ความครอบคลุมการคัดกรอง แยกตาม <?= $admin_hoscode ? 'หมู่บ้าน' : 'รพ.สต.' ?></span>
+                    </h3>
+                    <div style="display: inline-flex; gap: 3px; background: var(--bg-darker); padding: 2px; border-radius: 7px; border: 1px solid var(--border-color);">
+                        <button type="button" class="btn-cov-round" onclick="switchCoverageRound('all')" id="btn-cov-all" style="padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; background: #8b5cf6; color: #ffffff; transition: all 0.2s;">
+                            ทุกรอบ
+                        </button>
+                        <button type="button" class="btn-cov-round" onclick="switchCoverageRound('r1')" id="btn-cov-r1" style="padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">
+                            รอบ 1
+                        </button>
+                        <button type="button" class="btn-cov-round" onclick="switchCoverageRound('r2')" id="btn-cov-r2" style="padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">
+                            รอบ 2
+                        </button>
+                        <button type="button" class="btn-cov-round" onclick="switchCoverageRound('r3')" id="btn-cov-r3" style="padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">
+                            รอบ 3+
+                        </button>
+                    </div>
+                </div>
                 <div id="chart-coverage"></div>
             </div>
 
-            <!-- Chart 2: Risk Distribution -->
-            <div class="card-dark">
-                <h3
-                    style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: rgba(244, 63, 94, 0.15); color: #f43f5e;">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                    </span>
-                    <span>ระดับความเสี่ยงประชากร แยกตาม รพ.สต.</span>
-                </h3>
+            <!-- 8. Chart Risk (Span 6) -->
+            <div class="bento-card bento-span-6">
+                <div class="bento-header">
+                    <h3 class="bento-title">
+                        <span class="bento-icon-badge" style="background: rgba(244, 63, 94, 0.15); color: #f43f5e;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </span>
+                        <span id="risk-chart-title">ระดับความเสี่ยงประชากร แยกตาม <?= $admin_hoscode ? 'หมู่บ้าน' : 'รพ.สต.' ?></span>
+                    </h3>
+                    <div style="display: inline-flex; gap: 3px; background: var(--bg-darker); padding: 2px; border-radius: 7px; border: 1px solid var(--border-color);">
+                        <button type="button" class="btn-risk-round" onclick="switchRiskRound('all')" id="btn-risk-all" style="padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; background: #f43f5e; color: #ffffff; transition: all 0.2s;">
+                            ล่าสุด
+                        </button>
+                        <button type="button" class="btn-risk-round" onclick="switchRiskRound('r1')" id="btn-risk-r1" style="padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">
+                            รอบ 1
+                        </button>
+                        <button type="button" class="btn-risk-round" onclick="switchRiskRound('r2')" id="btn-risk-r2" style="padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">
+                            รอบ 2
+                        </button>
+                        <button type="button" class="btn-risk-round" onclick="switchRiskRound('r3')" id="btn-risk-r3" style="padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">
+                            รอบ 3+
+                        </button>
+                    </div>
+                </div>
                 <div id="chart-risk"></div>
             </div>
+        </div>
 
-            <!-- Chart 3: Disease Breakdown -->
-            <div class="card-dark">
-                <h3
-                    style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: rgba(236, 72, 153, 0.15); color: #ec4899;">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                    </span>
-                    <span>ผลการคัดกรองแยกตามระดับความเสี่ยงและกลุ่มโรค</span>
-                </h3>
+        <!-- Row 4: Disease Breakdown | Daily Trend (Span 6 + 6) -->
+        <div class="admin-bento-grid">
+            <!-- 9. Disease Breakdown (Span 6) -->
+            <div class="bento-card bento-span-6">
+                <div class="bento-header">
+                    <h3 class="bento-title">
+                        <span class="bento-icon-badge" style="background: rgba(236, 72, 153, 0.15); color: #ec4899;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </span>
+                        <span>ผลการคัดกรองแยกตามระดับความเสี่ยงและกลุ่มโรค</span>
+                    </h3>
+                </div>
                 <div id="chart-disease"></div>
             </div>
 
-            <!-- Chart 4: Screening Trend -->
-            <div class="card-dark">
-                <h3
-                    style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: rgba(14, 165, 233, 0.15); color: #0ea5e9;">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                        </svg>
-                    </span>
-                    <span>แนวโน้มการคัดกรองรายวัน (14 วันล่าสุด)</span>
-                </h3>
+            <!-- 10. Screening Trend (Span 6) -->
+            <div class="bento-card bento-span-6">
+                <div class="bento-header">
+                    <h3 class="bento-title">
+                        <span class="bento-icon-badge" style="background: rgba(14, 165, 233, 0.15); color: #0ea5e9;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                            </svg>
+                        </span>
+                        <span>แนวโน้มการคัดกรองรายวัน (14 วันล่าสุด)</span>
+                    </h3>
+                </div>
                 <div id="chart-trend"></div>
             </div>
         </div>
 
         <!-- Recent Screenings Table -->
-        <div class="card-dark" style="margin-top: 30px;">
-            <h3
-                style="color: var(--color-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
-                <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: rgba(34, 197, 94, 0.15); color: #22c55e;">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                    </svg>
-                </span>
-                <span>ผลการคัดกรองล่าสุดในพื้นที่</span>
-            </h3>
-            <div class="table-responsive">
+        <div class="card-dark" style="margin-top: 14px; margin-bottom: 14px;">
+            <div class="bento-header">
+                <h3 class="bento-title">
+                    <span class="bento-icon-badge" style="background: rgba(34, 197, 94, 0.15); color: #22c55e;">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                    </span>
+                    <span>ผลการคัดกรองล่าสุดในพื้นที่</span>
+                </h3>
+
+            </div>
+            <div class="table-responsive recent-screenings-scroll">
                 <table class="admin-table">
                     <thead>
                         <tr>
@@ -1369,7 +1626,7 @@ if (DemoDataProvider::isDemoMode()) {
                                 JOIN target_population p ON combined.target_cid = p.cid
                                 JOIN vhv_users v ON combined.vhv_id = v.vhv_id
                                 WHERE p.hoscode IN ($inPlaceholders)
-                                ORDER BY combined.created_at DESC LIMIT 10
+                                ORDER BY combined.created_at DESC LIMIT 12
                             ");
                             $recentScreenQuery->execute($hoscodes);
                             $recentScreens = $recentScreenQuery->fetchAll();
@@ -1400,7 +1657,7 @@ if (DemoDataProvider::isDemoMode()) {
                                 ) AS combined
                                 JOIN target_population p ON combined.target_cid = p.cid
                                 JOIN vhv_users v ON combined.vhv_id = v.vhv_id
-                                ORDER BY combined.created_at DESC LIMIT 10
+                                ORDER BY combined.created_at DESC LIMIT 12
                             ");
                             $recentScreens = $recentScreenQuery->fetchAll();
                         }
@@ -1488,19 +1745,20 @@ if (DemoDataProvider::isDemoMode()) {
             </div>
         </div>
 
-        <!-- Heatmap Section -->
-        <div class="card-dark" style="margin-top: 30px;">
-            <h2
-                style="color: var(--color-accent); border-bottom: 2px solid var(--border-color); padding-bottom: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-                <span style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                </span>
-                <span>Geographic NCDs Hotspot Heatmap (แผนที่กลุ่มเสี่ยงสูง อำเภอตาลสุม)</span>
-            </h2>
-            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+        <!-- Heatmap Section (Bento Full Span) -->
+        <div class="bento-card" style="margin-top: 14px; margin-bottom: 24px;">
+            <div class="bento-header" style="border-bottom: 2px solid var(--border-color); padding-bottom: 12px; margin-bottom: 14px;">
+                <h2 class="bento-title" style="font-size: 16px;">
+                    <span class="bento-icon-badge" style="width: 32px; height: 32px; border-radius: 8px; background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </span>
+                    <span>Geographic NCDs Hotspot Heatmap (แผนที่กลุ่มเสี่ยงสูง อำเภอตาลสุม)</span>
+                </h2>
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 14px; font-size: 13.5px;">
                 แผนที่แสดงการกระจุกตัวของประชากรกลุ่มเป้าหมาย แบ่งตามระดับความเสี่ยง สามารถกรองตามกลุ่มเสี่ยง
                 และเขตรับผิดชอบ รพ.สต. ได้
             </p>
@@ -1615,24 +1873,88 @@ if (DemoDataProvider::isDemoMode()) {
 
             // Coverage Data
             const coverageRaw = <?= json_encode($chartCoverageData) ?>;
-            const covCategories = coverageRaw.map(d => isRegularAdmin ? (d.village_name || "หมู่ " + d.moo) : (hcNamesChart[d.hoscode] || d.hoscode));
-            const covTotal = coverageRaw.map(d => parseInt(d.total_targets));
-            const covScreened = coverageRaw.map(d => parseInt(d.screened));
+            const rescreenRaw = <?= json_encode($chartRescreenData ?? []) ?>;
+            const covCategories = (coverageRaw && coverageRaw.length > 0) ? 
+                coverageRaw.map(d => isRegularAdmin ? (d.village_name || "หมู่ " + d.moo) : (hcNamesChart[d.hoscode] || d.hoscode)) :
+                rescreenRaw.map(d => isRegularAdmin ? (d.village_name || "หมู่ " + d.moo) : (hcNamesChart[d.hoscode] || d.hoscode));
 
-            // Coverage Chart
-            const hasCoverageData = covTotal.reduce((a, b) => a + b, 0);
+            let chartCoverageInstance = null;
+
+            function getCoverageDataset(roundKey) {
+                const dataSource = (rescreenRaw && rescreenRaw.length > 0) ? rescreenRaw : coverageRaw;
+                const totals = [];
+                const screeneds = [];
+
+                dataSource.forEach(d => {
+                    const total = parseInt(d.total_targets) || 0;
+                    let sc = 0;
+                    if (roundKey === 'r1') {
+                        sc = parseInt(d.r1_completed) || 0;
+                    } else if (roundKey === 'r2') {
+                        sc = parseInt(d.r2_completed) || 0;
+                    } else if (roundKey === 'r3') {
+                        sc = parseInt(d.r3_completed) || 0;
+                    } else {
+                        const covMatch = (coverageRaw || []).find(c => isRegularAdmin ? (c.moo === d.moo) : (c.hoscode === d.hoscode));
+                        sc = covMatch ? (parseInt(covMatch.screened) || 0) : ((parseInt(d.r1_completed) || 0) + (parseInt(d.r2_completed) || 0) + (parseInt(d.r3_completed) || 0));
+                    }
+                    totals.push(total);
+                    screeneds.push(sc);
+                });
+
+                const screenedName = (roundKey === 'r1') ? 'คัดกรองรอบ 1' : ((roundKey === 'r2') ? 'ติดตามสำเร็จรอบ 2' : ((roundKey === 'r3') ? 'ติดตามสำเร็จรอบ 3+' : 'คัดกรองแล้ว (สะสม)'));
+                const screenedColor = (roundKey === 'r1') ? '#22c55e' : ((roundKey === 'r2') ? '#0ea5e9' : ((roundKey === 'r3') ? '#8b5cf6' : '#22c55e'));
+
+                return {
+                    series: [
+                        { name: 'เป้าหมายทั้งหมด', data: totals },
+                        { name: screenedName, data: screeneds }
+                    ],
+                    colors: ['#4b5563', screenedColor]
+                };
+            }
+
+            window.switchCoverageRound = function(roundKey) {
+                document.querySelectorAll('.btn-cov-round').forEach(b => {
+                    b.style.background = 'transparent';
+                    b.style.color = 'var(--text-secondary)';
+                });
+                const activeBtn = document.getElementById('btn-cov-' + roundKey);
+                if (activeBtn) {
+                    const activeColor = (roundKey === 'r1') ? '#22c55e' : ((roundKey === 'r2') ? '#0ea5e9' : ((roundKey === 'r3') ? '#8b5cf6' : '#8b5cf6'));
+                    activeBtn.style.background = activeColor;
+                    activeBtn.style.color = '#ffffff';
+                }
+
+                const roundTitles = {
+                    'all': 'ความครอบคลุมการคัดกรอง (ภาพรวมทุกรอบ)',
+                    'r1': 'ความครอบคลุมการคัดกรอง - รอบที่ 1 (Baseline)',
+                    'r2': 'ความครอบคลุมการคัดกรอง - ติดตามรอบที่ 2',
+                    'r3': 'ความครอบคลุมการคัดกรอง - ติดตามรอบที่ 3+'
+                };
+                const titleEl = document.getElementById('coverage-chart-title');
+                if (titleEl && roundTitles[roundKey]) {
+                    titleEl.innerText = roundTitles[roundKey];
+                }
+
+                const ds = getCoverageDataset(roundKey);
+                if (chartCoverageInstance) {
+                    chartCoverageInstance.updateOptions({
+                        colors: ds.colors
+                    });
+                    chartCoverageInstance.updateSeries(ds.series);
+                }
+            };
+
+            const initCovData = getCoverageDataset('all');
+            const hasCoverageData = initCovData.series[0].data.reduce((a, b) => a + b, 0);
+
             if (hasCoverageData > 0) {
                 var optionsCoverage = {
-                    series: [{
-                        name: 'เป้าหมายทั้งหมด',
-                        data: covTotal
-                    }, {
-                        name: 'คัดกรองแล้ว',
-                        data: covScreened
-                    }],
+                    series: initCovData.series,
                     chart: {
                         type: 'bar',
-                        height: 350,
+                        height: 310,
                         background: 'transparent',
                         toolbar: {
                             show: false
@@ -1641,7 +1963,7 @@ if (DemoDataProvider::isDemoMode()) {
                     theme: {
                         mode: localStorage.getItem('theme') || 'light'
                     },
-                    colors: ['#4b5563', '#22c55e'],
+                    colors: initCovData.colors,
                     legend: {
                         position: 'bottom',
                         labels: {
@@ -1674,71 +1996,148 @@ if (DemoDataProvider::isDemoMode()) {
                         }
                     },
                     tooltip: {
-                        theme: localStorage.getItem('theme') || 'light'
+                        theme: localStorage.getItem('theme') || 'light',
+                        y: {
+                            formatter: function(val, opts) {
+                                const targetVal = opts.w.config.series[0].data[opts.dataPointIndex] || 1;
+                                const pct = Math.round((val / targetVal) * 100);
+                                return val.toLocaleString() + " ราย" + (opts.seriesIndex === 1 ? (" (" + pct + "%)") : "");
+                            }
+                        }
                     }
                 };
-                new ApexCharts(document.querySelector("#chart-coverage"), optionsCoverage).render();
+                chartCoverageInstance = new ApexCharts(document.querySelector("#chart-coverage"), optionsCoverage);
+                chartCoverageInstance.render();
             } else {
                 document.querySelector("#chart-coverage").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 100px; font-size: 14px;">ยังไม่มีข้อมูลความครอบคลุมการคัดกรอง</div>';
             }
 
             // Risk Data
             const riskRaw = <?= json_encode($chartRiskData) ?>;
+            const riskByRoundRaw = <?= json_encode($chartRiskByRoundData ?? []) ?>;
 
             const riskCategories = isRegularAdmin ?
                 coverageRaw.map(d => d.village_name || "หมู่ " + d.moo) : [...new Set(coverageRaw.map(d => d.hoscode))].map(hc => hcNamesChart[hc] || hc);
 
-            const riskNormal = [];
-            const riskModerate = [];
-            const riskHigh = [];
-            const riskUnscreened = [];
+            let chartRiskInstance = null;
 
-            if (isRegularAdmin) {
-                coverageRaw.forEach(covRow => {
-                    const match = riskRaw.find(d => d.moo === covRow.moo && d.sub_district_code === covRow.sub_district_code) || {
-                        normal: 0,
-                        moderate_risk: 0,
-                        high_risk: 0,
-                        unscreened: 0
-                    };
-                    riskNormal.push(parseInt(match.normal) || 0);
-                    riskModerate.push(parseInt(match.moderate_risk) || 0);
-                    riskHigh.push(parseInt(match.high_risk) || 0);
-                    riskUnscreened.push(parseInt(match.unscreened) || 0);
-                });
-            } else {
-                const allHoscodesRaw = [...new Set(coverageRaw.map(d => d.hoscode))];
-                allHoscodesRaw.forEach(hc => {
-                    const match = riskRaw.find(d => d.hoscode === hc) || {
-                        normal: 0,
-                        moderate_risk: 0,
-                        high_risk: 0,
-                        unscreened: 0
-                    };
-                    riskNormal.push(parseInt(match.normal) || 0);
-                    riskModerate.push(parseInt(match.moderate_risk) || 0);
-                    riskHigh.push(parseInt(match.high_risk) || 0);
-                    riskUnscreened.push(parseInt(match.unscreened) || 0);
-                });
+            function getRiskDataset(roundKey) {
+                const normal = [];
+                const moderate = [];
+                const high = [];
+                const unscreened = [];
+
+                const categoriesSource = (coverageRaw && coverageRaw.length > 0) ? coverageRaw : rescreenRaw;
+
+                if (roundKey === 'all') {
+                    if (isRegularAdmin) {
+                        categoriesSource.forEach(covRow => {
+                            const match = riskRaw.find(d => d.moo === covRow.moo && d.sub_district_code === covRow.sub_district_code) || {
+                                normal: 0, moderate_risk: 0, high_risk: 0, unscreened: 0
+                            };
+                            normal.push(parseInt(match.normal) || 0);
+                            moderate.push(parseInt(match.moderate_risk) || 0);
+                            high.push(parseInt(match.high_risk) || 0);
+                            unscreened.push(parseInt(match.unscreened) || 0);
+                        });
+                    } else {
+                        const allHoscodesRaw = [...new Set(categoriesSource.map(d => d.hoscode))];
+                        allHoscodesRaw.forEach(hc => {
+                            const match = riskRaw.find(d => d.hoscode === hc) || {
+                                normal: 0, moderate_risk: 0, high_risk: 0, unscreened: 0
+                            };
+                            normal.push(parseInt(match.normal) || 0);
+                            moderate.push(parseInt(match.moderate_risk) || 0);
+                            high.push(parseInt(match.high_risk) || 0);
+                            unscreened.push(parseInt(match.unscreened) || 0);
+                        });
+                    }
+                } else {
+                    const targetRoundNum = (roundKey === 'r1') ? 1 : ((roundKey === 'r2') ? 2 : 3);
+                    if (isRegularAdmin) {
+                        categoriesSource.forEach(covRow => {
+                            const totalTarget = parseInt(covRow.total_targets) || 0;
+                            const match = riskByRoundRaw.find(d => (d.moo == covRow.moo) && (parseInt(d.round_number) === targetRoundNum || (targetRoundNum >= 3 && parseInt(d.round_number) >= 3))) || {
+                                normal: 0, moderate_risk: 0, high_risk: 0
+                            };
+                            const normVal = parseInt(match.normal) || 0;
+                            const modVal = parseInt(match.moderate_risk) || 0;
+                            const highVal = parseInt(match.high_risk) || 0;
+                            const screenedInRound = normVal + modVal + highVal;
+                            const unscVal = Math.max(0, totalTarget - screenedInRound);
+
+                            normal.push(normVal);
+                            moderate.push(modVal);
+                            high.push(highVal);
+                            unscreened.push(unscVal);
+                        });
+                    } else {
+                        const allHoscodesRaw = [...new Set(categoriesSource.map(d => d.hoscode))];
+                        allHoscodesRaw.forEach(hc => {
+                            const covItem = categoriesSource.find(c => c.hoscode === hc);
+                            const totalTarget = covItem ? (parseInt(covItem.total_targets) || 0) : 0;
+                            const match = riskByRoundRaw.find(d => (d.hoscode === hc) && (parseInt(d.round_number) === targetRoundNum || (targetRoundNum >= 3 && parseInt(d.round_number) >= 3))) || {
+                                normal: 0, moderate_risk: 0, high_risk: 0
+                            };
+                            const normVal = parseInt(match.normal) || 0;
+                            const modVal = parseInt(match.moderate_risk) || 0;
+                            const highVal = parseInt(match.high_risk) || 0;
+                            const screenedInRound = normVal + modVal + highVal;
+                            const unscVal = Math.max(0, totalTarget - screenedInRound);
+
+                            normal.push(normVal);
+                            moderate.push(modVal);
+                            high.push(highVal);
+                            unscreened.push(unscVal);
+                        });
+                    }
+                }
+
+                return [
+                    { name: 'ปกติ (เสี่ยงต่ำ)', data: normal },
+                    { name: 'เสี่ยงปานกลาง', data: moderate },
+                    { name: 'เสี่ยงสูง/สงสัยป่วย', data: high },
+                    { name: 'ยังไม่คัดกรอง', data: unscreened }
+                ];
             }
 
-            // Risk Chart (100% Stacked)
-            const hasRiskData = riskNormal.reduce((a, b) => a + b, 0) + riskModerate.reduce((a, b) => a + b, 0) + riskHigh.reduce((a, b) => a + b, 0) + riskUnscreened.reduce((a, b) => a + b, 0);
+            window.switchRiskRound = function(roundKey) {
+                document.querySelectorAll('.btn-risk-round').forEach(b => {
+                    b.style.background = 'transparent';
+                    b.style.color = 'var(--text-secondary)';
+                });
+                const activeBtn = document.getElementById('btn-risk-' + roundKey);
+                if (activeBtn) {
+                    activeBtn.style.background = '#f43f5e';
+                    activeBtn.style.color = '#ffffff';
+                }
+
+                const roundTitles = {
+                    'all': 'ระดับความเสี่ยงประชากร (ภาพรวมล่าสุด)',
+                    'r1': 'ระดับความเสี่ยงประชากร - รอบที่ 1 (Baseline)',
+                    'r2': 'ระดับความเสี่ยงประชากร - ติดตามรอบที่ 2',
+                    'r3': 'ระดับความเสี่ยงประชากร - ติดตามรอบที่ 3+'
+                };
+                const titleEl = document.getElementById('risk-chart-title');
+                if (titleEl && roundTitles[roundKey]) {
+                    titleEl.innerText = roundTitles[roundKey];
+                }
+
+                const newSeries = getRiskDataset(roundKey);
+                if (chartRiskInstance) {
+                    chartRiskInstance.updateSeries(newSeries);
+                }
+            };
+
+            const initRiskSeries = getRiskDataset('all');
+            const hasRiskData = initRiskSeries.reduce((sum, s) => sum + s.data.reduce((a, b) => a + b, 0), 0);
+
             if (hasRiskData > 0) {
                 var optionsRisk = {
-                    series: [{
-                        name: 'เสี่ยงปานกลาง',
-                        data: riskModerate
-                    }, {
-                        name: 'เสี่ยงสูง',
-                        data: riskHigh
-                    }, {
-                        name: 'ยังไม่คัดกรอง',
-                        data: riskUnscreened
-                    }],
+                    series: initRiskSeries,
                     chart: {
                         type: 'bar',
-                        height: 350,
+                        height: 310,
                         stacked: true,
                         stackType: '100%',
                         background: 'transparent',
@@ -1749,7 +2148,7 @@ if (DemoDataProvider::isDemoMode()) {
                     theme: {
                         mode: localStorage.getItem('theme') || 'light'
                     },
-                    colors: ['#f59e0b', '#ef4444', '#4b5563'],
+                    colors: ['#22c55e', '#f59e0b', '#ef4444', '#4b5563'],
                     legend: {
                         position: 'bottom',
                         labels: {
@@ -1777,13 +2176,19 @@ if (DemoDataProvider::isDemoMode()) {
                         }
                     },
                     tooltip: {
-                        theme: localStorage.getItem('theme') || 'light'
+                        theme: localStorage.getItem('theme') || 'light',
+                        y: {
+                            formatter: function(val, opts) {
+                                return val.toLocaleString() + " ราย";
+                            }
+                        }
                     },
                     fill: {
                         opacity: 1
                     }
                 };
-                new ApexCharts(document.querySelector("#chart-risk"), optionsRisk).render();
+                chartRiskInstance = new ApexCharts(document.querySelector("#chart-risk"), optionsRisk);
+                chartRiskInstance.render();
             } else {
                 document.querySelector("#chart-risk").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 100px; font-size: 14px;">ยังไม่มีข้อมูลระดับความเสี่ยงประชากร</div>';
             }
@@ -1805,7 +2210,7 @@ if (DemoDataProvider::isDemoMode()) {
                     series: diseaseSeries,
                     chart: {
                         type: 'donut',
-                        height: 350,
+                        height: 270,
                         background: 'transparent'
                     },
                     theme: {
@@ -1854,7 +2259,7 @@ if (DemoDataProvider::isDemoMode()) {
                     }],
                     chart: {
                         type: 'area',
-                        height: 350,
+                        height: 270,
                         background: 'transparent',
                         toolbar: {
                             show: false
@@ -1917,7 +2322,6 @@ if (DemoDataProvider::isDemoMode()) {
             }
 
             // Re-screening Multi-Round Chart
-            const rescreenRaw = <?= json_encode($chartRescreenData) ?>;
             const rescreenCategories = rescreenRaw.map(d => isRegularAdmin ? (d.village_name || "หมู่ " + d.moo) : (hcNamesChart[d.hoscode] || d.hoscode));
             const r1Completed = rescreenRaw.map(d => parseInt(d.r1_completed) || 0);
             const r2Completed = rescreenRaw.map(d => parseInt(d.r2_completed) || 0);
@@ -1937,7 +2341,7 @@ if (DemoDataProvider::isDemoMode()) {
                     }],
                     chart: {
                         type: 'bar',
-                        height: 350,
+                        height: 300,
                         background: 'transparent',
                         toolbar: {
                             show: false
@@ -2111,7 +2515,7 @@ if (DemoDataProvider::isDemoMode()) {
                         data: getProgressDataset('all')
                     }],
                     chart: {
-                        height: 350,
+                        height: 310,
                         type: 'bar',
                         background: 'transparent',
                         toolbar: {
@@ -2194,7 +2598,7 @@ if (DemoDataProvider::isDemoMode()) {
                     labels: ['ปกติ (เสี่ยงต่ำ)', 'เสี่ยงปานกลาง', 'เสี่ยงสูง (สงสัยป่วย)'],
                     chart: {
                         type: 'pie',
-                        height: 280,
+                        height: 270,
                         background: 'transparent'
                     },
                     theme: {
@@ -2228,7 +2632,7 @@ if (DemoDataProvider::isDemoMode()) {
                     labels: skippedRaw.map(d => d.skipped_reason || 'ไม่ระบุ'),
                     chart: {
                         type: 'donut',
-                        height: 280,
+                        height: 260,
                         background: 'transparent'
                     },
                     theme: {
@@ -2262,7 +2666,7 @@ if (DemoDataProvider::isDemoMode()) {
                     labels: dpacRaw.map(d => d.risk_type == '1' ? 'กลุ่มเสี่ยงเบาหวาน' : (d.risk_type == '2' ? 'กลุ่มเสี่ยงความดันฯ' : (d.risk_type == '3' ? 'กลุ่มป่วย/อื่นๆ' : 'ไม่ระบุ'))),
                     chart: {
                         type: 'pie',
-                        height: 280,
+                        height: 260,
                         background: 'transparent'
                     },
                     theme: {
@@ -2298,7 +2702,7 @@ if (DemoDataProvider::isDemoMode()) {
                 labels: ['คัดกรองรอบ 1', 'ติดตามสำเร็จรอบ 2', 'ติดตามสำเร็จรอบ 3+', 'ยังไม่คัดกรองรอบ 1'],
                 chart: {
                     type: 'pie',
-                    height: 280,
+                    height: 270,
                     background: 'transparent'
                 },
                 theme: {
@@ -2332,57 +2736,7 @@ if (DemoDataProvider::isDemoMode()) {
                 document.querySelector("#chart-total-pie").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 50px;">ไม่มีข้อมูล</div>';
             }
 
-            // Screening performance cockpit: comparable percentages instead of
-            // overlapping population counts.
-            const cockpitCoverageR1 = Math.min(100, <?= $totAll > 0 ? round(($r1All / $totAll) * 100, 1) : 0 ?>);
-            const cockpitReachR2 = Math.min(100, <?= $r1All > 0 ? round((($r2AssignedAll + $r2CompAll) / $r1All) * 100, 1) : 0 ?>);
-            const cockpitCompleteR2 = Math.min(100, <?= ($r2AssignedAll + $r2CompAll) > 0 ? round(($r2CompAll / ($r2AssignedAll + $r2CompAll)) * 100, 1) : 0 ?>);
-            const cockpitCompleteR3 = Math.min(100, <?= ($r3AssignedAll + $r3CompAll) > 0 ? round(($r3CompAll / ($r3AssignedAll + $r3CompAll)) * 100, 1) : 0 ?>);
-
-            var optionsRadar = {
-                series: [cockpitCoverageR1, cockpitReachR2, cockpitCompleteR2, cockpitCompleteR3],
-                chart: {
-                    height: 300,
-                    type: 'radialBar',
-                    background: 'transparent',
-                    toolbar: {
-                        show: false
-                    }
-                },
-                theme: {
-                    mode: localStorage.getItem('theme') || 'light'
-                },
-                labels: ['ครอบคลุมรอบ 1', 'ได้รับมอบหมายรอบ 2', 'สำเร็จรอบ 2', 'สำเร็จรอบ 3+'],
-                colors: ['#22c55e', '#0ea5e9', '#3b82f6', '#8b5cf6'],
-                plotOptions: {
-                    radialBar: {
-                        track: { background: '#374151', margin: 6 },
-                        dataLabels: {
-                            name: { fontSize: '12px', color: '#9ca3af' },
-                            value: {
-                                fontSize: '15px',
-                                color: '#9ca3af',
-                                formatter: function(val) { return Number(val).toFixed(1) + '%'; }
-                            },
-                            total: {
-                                show: true,
-                                label: 'ครอบคลุมรอบ 1',
-                                color: '#9ca3af',
-                                formatter: function() { return cockpitCoverageR1.toFixed(1) + '%'; }
-                            }
-                        }
-                    }
-                },
-                legend: {
-                    show: true,
-                    position: 'bottom',
-                    labels: { colors: '#9ca3af' }
-                },
-                tooltip: {
-                    y: { formatter: function(val) { return Number(val).toFixed(1) + '%'; } }
-                }
-            };
-            new ApexCharts(document.querySelector("#chart-cockpit-radar"), optionsRadar).render();
+            // Cockpit multi-round pipeline is rendered via native performance tracks widget.
         </script>
 
         <!-- Map Script Initialization -->

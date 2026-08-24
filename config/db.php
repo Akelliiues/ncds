@@ -2420,6 +2420,8 @@ try {
         `red_flags` TEXT DEFAULT NULL,
         `vhv_name` VARCHAR(150) DEFAULT NULL,
         `vhv_phone` VARCHAR(30) DEFAULT NULL,
+        `contact_phone` VARCHAR(30) DEFAULT NULL,
+        `contact_type` VARCHAR(50) DEFAULT 'vhv',
         `alert_status` VARCHAR(30) DEFAULT 'pending',
         `acknowledged_by` VARCHAR(100) DEFAULT NULL,
         `acknowledged_at` DATETIME DEFAULT NULL,
@@ -2432,6 +2434,13 @@ try {
         INDEX idx_hoscode_status (`hoscode`, `alert_status`),
         INDEX idx_created_at (`created_at`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+    // Auto-migrate new columns if table existed previously
+    $chkCol = $pdo->query("SHOW COLUMNS FROM `critical_alerts` LIKE 'contact_phone'")->fetchAll();
+    if (empty($chkCol)) {
+        $pdo->exec("ALTER TABLE `critical_alerts` ADD COLUMN `contact_phone` VARCHAR(30) DEFAULT NULL AFTER `vhv_phone`");
+        $pdo->exec("ALTER TABLE `critical_alerts` ADD COLUMN `contact_type` VARCHAR(50) DEFAULT 'vhv' AFTER `contact_phone`");
+    }
 } catch (\PDOException $e) {
     // Fail silently
 }

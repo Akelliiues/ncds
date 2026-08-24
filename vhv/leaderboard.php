@@ -9,6 +9,7 @@ if (!isset($_SESSION['vhv_id'])) {
 }
 
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/icons.php';
 
 $currentVhvId = $_SESSION['vhv_id'];
 $vhvName = $_SESSION['vhv_name'] ?? 'อสม.';
@@ -23,27 +24,27 @@ function getPositiveTitle($rank)
 
     // Top 5 are unique supreme titles
     if ($rank === 1)
-        return '🏆 สุดยอดขุนพลสาธารณสุข' . DISTRICT_NAME;
+        return '👑 สุดยอดขุนพลสาธารณสุข' . DISTRICT_NAME;
     if ($rank === 2)
-        return '🏆 ยอดอัศวินสุขภาพชุมชน';
+        return '⭐ ยอดอัศวินสุขภาพชุมชน';
     if ($rank === 3)
         return '🏆 ดาวรุ่งแห่งความห่วงใย';
     if ($rank === 4)
-        return '✨ ผู้พิทักษ์หัวใจไร้โรค';
+        return '🥇 ผู้พิทักษ์หัวใจไร้โรค';
     if ($rank === 5)
         return '🌟 ขวัญใจสุขภาพดีถ้วนหน้า';
 
     // Base titles for group tiers (ranks 6-50 in groups of 5)
     $baseTitles = [
-        1 => '💪 ยอดนักปราบเบาหวานและความดัน',
-        2 => '🛡️ ผู้ปกป้องสุขภาวะ' . DISTRICT_NAME,
-        3 => '❤️ เสาหลักสุขภาพดีชุมชน',
-        4 => '🌱 ผู้หว่านเมล็ดพันธุ์สุขภาพ',
-        5 => '🤝 พลังขับเคลื่อนตำบลสุขภาพดี',
-        6 => '🎉 ผู้จุดประกายรักตนเอง',
-        7 => '🍀 ทูตสุขภาพสร้างพลังบวก',
-        8 => '💡 ปราชญ์สุขภาพคู่บ้านคู่เมือง',
-        9 => '☀️ แสนสว่างนำทางชีวิตชีวา'
+        1 => '💎 ยอดนักปราบเบาหวานและความดัน',
+        2 => '🌿 ผู้ปกป้องสุขภาวะ' . DISTRICT_NAME,
+        3 => '🎖️ เสาหลักสุขภาพดีชุมชน',
+        4 => '🏅 ผู้หว่านเมล็ดพันธุ์สุขภาพ',
+        5 => '📜 พลังขับเคลื่อนตำบลสุขภาพดี',
+        6 => '🌟 ผู้จุดประกายรักตนเอง',
+        7 => '🏷️ ทูตสุขภาพสร้างพลังบวก',
+        8 => '🛡️ ปราชญ์สุขภาพคู่บ้านคู่เมือง',
+        9 => '✨ แสงสว่างนำทางชีวิตชีวา'
     ];
 
     // Thai traditional civil service / military tiers
@@ -63,6 +64,148 @@ function getPositiveTitle($rank)
     }
 
     return '';
+}
+
+// Visual identity for each rank title
+function getRankTitleTheme($rank)
+{
+    if ($rank === 1) return 'champion';
+    if ($rank === 2) return 'knight';
+    if ($rank === 3) return 'rising-star';
+    if ($rank === 4) return 'heart-guard';
+    if ($rank === 5) return 'sunshine';
+
+    $themes = ['ncd-guardian', 'health-shield', 'community-pillar', 'seedling', 'teamwork', 'spark', 'clover', 'wisdom', 'sunrise'];
+    $index = floor(($rank - 6) / 5);
+    return $themes[$index] ?? 'sunrise';
+}
+
+function renderRankTitleHeader($rank, $compact = false)
+{
+    $title = getPositiveTitle($rank);
+    if (!$title) return '';
+
+    $sizeClass = $compact ? ' rank-title-header--compact' : '';
+    return '<div class="rank-title-header rank-title-header--' . getRankTitleTheme($rank) . $sizeClass . '" aria-label="ฉายาอันดับ ' . (int)$rank . '">
+        <img class="rank-title-header__icon" src="rank_icon.php?rank=' . (int)$rank . '" alt="" aria-hidden="true">
+        <span class="rank-title-header__rank">#' . (int)$rank . '</span>
+        <span class="rank-title-header__label">ฉายาประจำอันดับ</span>
+        <span class="rank-title-header__title">' . htmlspecialchars($title) . '</span>
+    </div>';
+}
+
+// 👑 PRESTIGE LEADERBOARD RANK EMBLEM CONFIG (TOP 1 to 50+)
+function getRankEmblemConfig($rank)
+{
+    $rank = (int)$rank;
+    if ($rank === 1) {
+        return [
+            'icon' => 'rank-crown',
+            'discClass' => 'disc-gold-radiant',
+            'badgeTitle' => '👑 แชมเปี้ยนสูงสุด',
+            'tierName' => 'Grand Champion'
+        ];
+    } elseif ($rank === 2) {
+        return [
+            'icon' => 'rank-star-trophy',
+            'discClass' => 'disc-ruby-gold',
+            'badgeTitle' => '⭐ รองแชมป์อันดับ 1',
+            'tierName' => 'First Runner-Up'
+        ];
+    } elseif ($rank === 3) {
+        return [
+            'icon' => 'rank-cup-trophy',
+            'discClass' => 'disc-sapphire-gold',
+            'badgeTitle' => '🏆 รองแชมป์อันดับ 2',
+            'tierName' => 'Second Runner-Up'
+        ];
+    } elseif ($rank >= 4 && $rank <= 5) {
+        return [
+            'icon' => 'rank-rosette-medal',
+            'discClass' => 'disc-emerald-gold',
+            'badgeTitle' => '🥇 สุดยอด 5 อันดับแรก',
+            'tierName' => 'Top 5 Grand Masters'
+        ];
+    } elseif ($rank >= 6 && $rank <= 10) {
+        return [
+            'icon' => 'rank-diamond',
+            'discClass' => 'disc-diamond',
+            'badgeTitle' => '💎 ลีกยอดฝีมือ Top 10',
+            'tierName' => 'Diamond League'
+        ];
+    } elseif ($rank >= 11 && $rank <= 15) {
+        return [
+            'icon' => 'rank-laurel',
+            'discClass' => 'disc-navy-gold',
+            'badgeTitle' => '🌿 ช่อลอเรลเกียรติยศ',
+            'tierName' => 'Laurel League'
+        ];
+    } elseif ($rank >= 16 && $rank <= 20) {
+        return [
+            'icon' => 'rank-honor-cross',
+            'discClass' => 'disc-teal',
+            'badgeTitle' => '🎖️ กางเขนเกียรติคุณ',
+            'tierName' => 'Honor Cross'
+        ];
+    } elseif ($rank >= 21 && $rank <= 25) {
+        return [
+            'icon' => 'rank-neck-medal',
+            'discClass' => 'disc-amber',
+            'badgeTitle' => '🏅 เหรียญทองเกียรติยศ',
+            'tierName' => 'Olympic Ribbon'
+        ];
+    } elseif ($rank >= 26 && $rank <= 30) {
+        return [
+            'icon' => 'rank-certificate',
+            'discClass' => 'disc-purple-gold',
+            'badgeTitle' => '📜 ม้วนเกียรติบัตรเชิดชู',
+            'tierName' => 'Honor Scroll'
+        ];
+    } elseif ($rank >= 31 && $rank <= 35) {
+        return [
+            'icon' => 'rank-star-letter',
+            'discClass' => 'disc-golden',
+            'badgeTitle' => '🌟 ดวงดาวสร้างพลังบวก',
+            'tierName' => 'Star Letter'
+        ];
+    } elseif ($rank >= 36 && $rank <= 40) {
+        return [
+            'icon' => 'rank-merit-cert',
+            'discClass' => 'disc-cyan',
+            'badgeTitle' => '🏷️ ประกาศนียบัตรยอดเยี่ยม',
+            'tierName' => 'Merit Diploma'
+        ];
+    } elseif ($rank >= 41 && $rank <= 45) {
+        return [
+            'icon' => 'rank-shield-gold',
+            'discClass' => 'disc-shield',
+            'badgeTitle' => '🛡️ โล่ทองพิทักษ์สุขภาวะ',
+            'tierName' => 'Health Shield'
+        ];
+    } elseif ($rank >= 46 && $rank <= 50) {
+        return [
+            'icon' => 'rank-star-coin',
+            'discClass' => 'disc-silver',
+            'badgeTitle' => '✨ เหรียญดวงดาวเกียรติยศ',
+            'tierName' => 'Star Coin'
+        ];
+    } else {
+        return [
+            'icon' => 'rank-pin',
+            'discClass' => 'disc-soft',
+            'badgeTitle' => '🎗️ อสม. ผู้ร่วมขับเคลื่อน',
+            'tierName' => 'Active VHV'
+        ];
+    }
+}
+
+function renderVhvRankEmblem($rank, $size = 'md', $extraStyle = '')
+{
+    if (function_exists('render_50_rank_emblem')) {
+        return render_50_rank_emblem($rank, $size, $extraStyle);
+    }
+    $cfg = getRankEmblemConfig($rank);
+    return render_neu_icon($cfg['icon'], $size, $cfg['discClass'], $extraStyle);
 }
 
 require_once __DIR__ . '/../config/demo_data.php';
@@ -365,6 +508,85 @@ try {
     <link rel="apple-touch-icon" href="../assets/icon.png">
     <link rel="manifest" href="manifest.json">
     <style>
+        /* Rank-title headers: readable text plus a visual identity for every title family. */
+        .rank-title-header {
+            --rank-ink: #0d2c54;
+            --rank-glow: rgba(13, 44, 84, 0.14);
+            --rank-banner: linear-gradient(130deg, #f2f7fc 0%, #ffffff 55%, #eaf5f8 100%);
+            display: grid;
+            grid-template-columns: auto auto 1fr;
+            column-gap: 9px;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            margin-top: 12px;
+            padding: 12px 14px;
+            min-height: 54px;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 16px;
+            color: var(--rank-ink);
+            background: transparent;
+            box-shadow: 0 8px 22px var(--rank-glow);
+        }
+        .rank-title-header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            opacity: .75;
+            background: var(--rank-banner);
+        }
+        .rank-title-header::after {
+            content: '';
+            position: absolute;
+            right: -12px;
+            top: -36px;
+            width: 112px;
+            height: 112px;
+            border: 16px solid rgba(255, 255, 255, 0.55);
+            border-radius: 50%;
+        }
+        .rank-title-header__rank {
+            grid-row: span 2;
+            position: relative;
+            z-index: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 50px;
+            height: 42px;
+            border-radius: 13px;
+            color: #fff;
+            background: var(--rank-ink);
+            box-shadow: 0 7px 15px var(--rank-glow);
+            font-size: 17px;
+            font-weight: 900;
+        }
+        .rank-title-header__icon { grid-row: span 2; position: relative; z-index: 1; width: 42px; height: 42px; filter: drop-shadow(0 5px 8px rgba(13, 44, 84, .16)); }
+        .rank-title-header__label { position: relative; z-index: 1; font-size: 10px; font-weight: 800; letter-spacing: .04em; opacity: .72; }
+        .rank-title-header__title { position: relative; z-index: 1; font-size: 14px; font-weight: 900; line-height: 1.3; }
+        .rank-title-header--compact { margin-top: 7px; padding: 7px 9px; min-height: 39px; border-radius: 11px; column-gap: 7px; }
+        .rank-title-header--compact .rank-title-header__rank { min-width: 34px; height: 28px; border-radius: 9px; font-size: 11px; }
+        .rank-title-header--compact .rank-title-header__icon { width: 28px; height: 28px; }
+        .rank-title-header--compact .rank-title-header__label { display: none; }
+        .rank-title-header--compact .rank-title-header__title { font-size: 11px; }
+        .rank-title-header--compact::after { width: 62px; height: 62px; top: -24px; right: -12px; border-width: 9px; }
+
+        .rank-title-header--champion { --rank-ink: #8a5700; --rank-glow: rgba(226, 165, 30, .25); --rank-banner: linear-gradient(130deg, #fff8d9, #fffdf4 55%, #ffe39b); }
+        .rank-title-header--knight { --rank-ink: #50657d; --rank-glow: rgba(104, 126, 150, .22); --rank-banner: linear-gradient(130deg, #edf2f7, #ffffff 55%, #cfdbe6); }
+        .rank-title-header--rising-star { --rank-ink: #a95827; --rank-glow: rgba(191, 103, 51, .22); --rank-banner: linear-gradient(130deg, #fff0df, #fffaf5 55%, #f2bb8d); }
+        .rank-title-header--heart-guard { --rank-ink: #bc365a; --rank-glow: rgba(205, 66, 102, .20); --rank-banner: linear-gradient(130deg, #fff0f4, #fffafe 55%, #f5bdcd); }
+        .rank-title-header--sunshine { --rank-ink: #b56c00; --rank-glow: rgba(240, 169, 0, .22); --rank-banner: linear-gradient(130deg, #fff9df, #fffffa 55%, #ffe680); }
+        .rank-title-header--ncd-guardian { --rank-ink: #c1442f; --rank-glow: rgba(205, 80, 54, .20); --rank-banner: linear-gradient(130deg, #fff0eb, #fffafa 55%, #ffd0bf); }
+        .rank-title-header--health-shield { --rank-ink: #136b7c; --rank-glow: rgba(27, 131, 148, .20); --rank-banner: linear-gradient(130deg, #e8fafb, #fbffff 55%, #bde9ed); }
+        .rank-title-header--community-pillar { --rank-ink: #6b528f; --rank-glow: rgba(117, 86, 158, .20); --rank-banner: linear-gradient(130deg, #f4effd, #fffaff 55%, #d9caf0); }
+        .rank-title-header--seedling { --rank-ink: #3d8550; --rank-glow: rgba(66, 140, 82, .20); --rank-banner: linear-gradient(130deg, #effaed, #fbfffa 55%, #ccebc7); }
+        .rank-title-header--teamwork { --rank-ink: #1e7583; --rank-glow: rgba(35, 125, 140, .20); --rank-banner: linear-gradient(130deg, #e8f8fa, #fbffff 55%, #bde7eb); }
+        .rank-title-header--spark { --rank-ink: #b64d6d; --rank-glow: rgba(194, 82, 114, .20); --rank-banner: linear-gradient(130deg, #fff0f5, #fffaff 55%, #f4c1d0); }
+        .rank-title-header--clover { --rank-ink: #4d8a4c; --rank-glow: rgba(79, 142, 75, .20); --rank-banner: linear-gradient(130deg, #effbea, #fcfffa 55%, #cfebbc); }
+        .rank-title-header--wisdom { --rank-ink: #6957a0; --rank-glow: rgba(106, 85, 161, .20); --rank-banner: linear-gradient(130deg, #f3efff, #fffaff 55%, #d9cef8); }
+        .rank-title-header--sunrise { --rank-ink: #c06c27; --rank-glow: rgba(204, 113, 42, .20); --rank-banner: linear-gradient(130deg, #fff3df, #fffcf6 55%, #ffd49e); }
+
         .badge-icon {
             display: inline-block;
             width: 24px;
@@ -750,41 +972,52 @@ try {
         <!-- TAB 1: LEADERBOARD PANE                                 -->
         <!-- ======================================================= -->
         <div id="main-pane-leaderboard" class="main-tab-pane">
-            <!-- Current VHV Score Widget -->
-            <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat);">
-                <div
-                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: center; text-align: center;">
-                    <div style="border-right: 1px solid rgba(13, 44, 84, 0.1); padding-right: 8px;">
-                        <span
-                            style="color: var(--text-secondary); font-size: 13px; font-weight: bold; display: block; margin-bottom: 4px;">อันดับของคุณ</span>
-                        <div style="font-size: 32px; font-weight: 800; color: var(--color-accent);">
-                            #<?= $currentVhvRank ?: 'N/A' ?>
+            <!-- Current VHV Score Widget (Hero Split Prestige Emblem Card) -->
+            <div class="card-dark" style="padding: 18px 20px; box-shadow: var(--neumorph-flat); border-radius: var(--border-radius); position: relative; overflow: hidden;">
+                <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                    
+                    <!-- Left: Full-Height Prestige Emblem Icon -->
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; min-width: 80px;">
+                        <div style="position: relative; display: inline-flex;">
+                            <?= renderVhvRankEmblem($currentVhvRank, 'xl', 'width: 72px; height: 72px;') ?>
+                            <span style="position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); background: var(--bg-card); color: var(--color-accent); font-size: 11px; font-weight: 900; padding: 2px 8px; border-radius: 999px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color); white-space: nowrap;">
+                                #<?= $currentVhvRank ?: 'N/A' ?>
+                            </span>
                         </div>
                     </div>
-                    <div>
-                        <span
-                            style="color: var(--text-secondary); font-size: 13px; font-weight: bold; display: block; margin-bottom: 4px;">คะแนนผลงานสะสม</span>
-                        <div style="font-size: 32px; font-weight: 800; color: var(--text-primary);">
-                            <?= (float)$currentVhvPoints ?> <span
-                                style="font-size: 16px; color: var(--text-secondary); font-weight: normal;">แต้ม</span>
+
+                    <!-- Right: Performance Stats -->
+                    <div style="flex: 1; min-width: 180px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; text-align: center; background: rgba(13, 44, 84, 0.04); padding: 10px 12px; border-radius: 14px; box-shadow: var(--neumorph-inset);">
+                            <div style="border-right: 1px solid rgba(13, 44, 84, 0.1); padding-right: 6px;">
+                                <span style="color: var(--text-secondary); font-size: 11.5px; font-weight: 700; display: block; margin-bottom: 2px;">อันดับของคุณ</span>
+                                <div style="font-size: 26px; font-weight: 900; color: var(--color-accent); line-height: 1.1;">
+                                    #<?= $currentVhvRank ?: 'N/A' ?>
+                                </div>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-secondary); font-size: 11.5px; font-weight: 700; display: block; margin-bottom: 2px;">คะแนนผลงานสะสม</span>
+                                <div style="font-size: 26px; font-weight: 900; color: var(--text-primary); line-height: 1.1;">
+                                    <?= (float)$currentVhvPoints ?> <span style="font-size: 13px; color: var(--text-secondary); font-weight: normal;">แต้ม</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
+
                 </div>
-                <div
-                    style="margin-top: 16px; font-size: 14px; text-align: center; color: var(--text-primary); border-top: 1px solid rgba(13, 44, 84, 0.1); padding-top: 12px; font-weight: bold; line-height: 1.5;">
+
+                <!-- Footer Summary Text -->
+                <div style="margin-top: 14px; font-size: 13px; text-align: center; color: var(--text-primary); border-top: 1px solid rgba(13, 44, 84, 0.08); padding-top: 10px; font-weight: 700; line-height: 1.4;">
                     📊 คุณอยู่อันดับที่ <?= $currentVhvRank ?: 'N/A' ?> จาก อสม. ทั้งหมด <?= $totalVhvs ?> คน ของอำเภอ<?= DISTRICT_NAME ?>
                 </div>
                 <?php
                 $myTitle = getPositiveTitle($currentVhvRank);
                 if ($myTitle):
                 ?>
-                    <div
-                        style="margin-top: 10px; font-size: 14px; text-align: center; color: var(--color-accent); background: rgba(13, 44, 84, 0.05); padding: 8px; border-radius: 12px; font-weight: bold; box-shadow: var(--neumorph-inset);">
-                        🎯 ฉายาของคุณ: <?= $myTitle ?>
+                    <div style="margin-top: 8px;">
+                        <?= renderRankTitleHeader($currentVhvRank) ?>
                     </div>
                 <?php endif; ?>
-
-  
             </div>
 
             <!-- Tab Bar for Mobile Responsiveness (Icon-only to prevent horizontal scrolling) -->
@@ -962,19 +1195,9 @@ try {
                         }
                     ?>
                         <?php
-                        // Display trophy or medal or badge in rank area
-                        $trophyHtml = '';
-                        if ($rankNum === 1) {
-                            $trophyHtml = '<span class="trophy-icon" title="อันดับ 1" style="font-size: 32px; filter: drop-shadow(0 4px 8px rgba(251, 191, 36, 0.55));">🏆</span>';
-                        } elseif ($rankNum === 2) {
-                            $trophyHtml = '<span class="trophy-icon silver" title="อันดับ 2" style="font-size: 30px; filter: drop-shadow(0 4px 8px rgba(156, 163, 175, 0.55)) sepia(0.3) hue-rotate(180deg) saturate(0.3) brightness(1.5);">🏆</span>';
-                        } elseif ($rankNum === 3) {
-                            $trophyHtml = '<span class="trophy-icon bronze" title="อันดับ 3" style="font-size: 30px; filter: drop-shadow(0 4px 8px rgba(180, 100, 30, 0.55)) sepia(1) saturate(2) hue-rotate(5deg) brightness(0.85);">🏆</span>';
-                        } elseif ($rankNum >= 4 && $rankNum <= 10) {
-                            $trophyHtml = '<span class="trophy-icon medal" title="อันดับ ' . $rankNum . '" style="font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));">🏅</span>';
-                        } else {
-                            $trophyHtml = '<span style="font-size: 14px; font-weight: 800; color: var(--text-secondary); background: var(--bg-main); width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; box-shadow: var(--neumorph-inset);">#' . $rankNum . '</span>';
-                        }
+                        // Display prestige Neumorphic rank emblem based on tier
+                        $emblemSize = ($rankNum <= 3) ? 'lg' : (($rankNum <= 10) ? 'md' : 'sm');
+                        $trophyHtml = renderVhvRankEmblem($rankNum, $emblemSize);
                         ?>
                         <div class="leaderboard-row"
                             style="<?= $leader['vhv_id'] === $currentVhvId 
@@ -986,7 +1209,7 @@ try {
                                 <?= $rankNum ?>
                             </div>
 
-                            <div style="width: 55px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; position: relative; z-index: 2;">
+                            <div style="width: 58px; display: flex; align-items: center; justify-content: center; margin-right: 14px; flex-shrink: 0; position: relative; z-index: 2;">
                                 <?= $trophyHtml ?>
                             </div>
 
@@ -1016,10 +1239,7 @@ try {
                                 $rowTitle = getPositiveTitle($rankNum);
                                 if ($rowTitle):
                                 ?>
-                                    <div
-                                        style="margin-top: 6px; font-size: 12px; color: var(--color-accent); font-weight: bold; display: inline-block; background-color: rgba(13, 44, 84, 0.05); padding: 4px 8px; border-radius: 8px; box-shadow: var(--neumorph-inset);">
-                                        <?= $rowTitle ?>
-                                    </div>
+                                    <?= renderRankTitleHeader($rankNum, true) ?>
                                 <?php endif; ?>
                             </div>
 

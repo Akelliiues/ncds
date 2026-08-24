@@ -908,6 +908,99 @@ table.admin-table th, table.admin-table td {
     color: #7c3aed;
     border-color: rgba(124, 58, 237, 0.3);
 }
+.neu-disc-icon.disc-pink {
+    background: radial-gradient(circle at 35% 35%, #fdf2f8 0%, #fce7f3 70%, #fbcfe8 100%);
+    color: #db2777;
+    border-color: rgba(236, 72, 153, 0.3);
+}
+
+/* ==========================================
+   👑 PRESTIGE LEADERBOARD RANK DISCS
+   ========================================== */
+.neu-disc-icon.disc-gold-radiant {
+    background: radial-gradient(circle at 35% 35%, #fffbeb 0%, #fef08a 40%, #f59e0b 80%, #d97706 100%);
+    color: #78350f;
+    border: 2px solid #fbbf24;
+    box-shadow: 0 0 18px rgba(245, 158, 11, 0.5), inset 2px 2px 4px rgba(255, 255, 255, 0.9);
+}
+.neu-disc-icon.disc-ruby-gold {
+    background: radial-gradient(circle at 35% 35%, #fee2e2 0%, #ef4444 60%, #b91c1c 100%);
+    color: #fef08a;
+    border: 2px solid #f87171;
+    box-shadow: 0 0 14px rgba(239, 68, 68, 0.4), inset 2px 2px 4px rgba(255, 255, 255, 0.8);
+}
+.neu-disc-icon.disc-sapphire-gold {
+    background: radial-gradient(circle at 35% 35%, #dbeafe 0%, #3b82f6 60%, #1d4ed8 100%);
+    color: #fef08a;
+    border: 2px solid #60a5fa;
+    box-shadow: 0 0 14px rgba(59, 130, 246, 0.4), inset 2px 2px 4px rgba(255, 255, 255, 0.8);
+}
+.neu-disc-icon.disc-emerald-gold {
+    background: radial-gradient(circle at 35% 35%, #d1fae5 0%, #10b981 60%, #047857 100%);
+    color: #fef08a;
+    border: 1.5px solid #34d399;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+.neu-disc-icon.disc-diamond {
+    background: radial-gradient(circle at 35% 35%, #f0f9ff 0%, #bae6fd 50%, #38bdf8 80%, #0284c7 100%);
+    color: #0369a1;
+    border: 1.5px solid #7dd3fc;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
+}
+.neu-disc-icon.disc-navy-gold {
+    background: radial-gradient(circle at 35% 35%, #1e3a8a 0%, #0f172a 70%, #020617 100%);
+    color: #fbbf24;
+    border: 1.5px solid rgba(251, 191, 36, 0.4);
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.3);
+}
+.neu-disc-icon.disc-teal {
+    background: radial-gradient(circle at 35% 35%, #ccfbf1 0%, #14b8a6 60%, #0f766e 100%);
+    color: #ffffff;
+    border: 1px solid #2dd4bf;
+    box-shadow: 0 4px 10px rgba(20, 184, 166, 0.25);
+}
+.neu-disc-icon.disc-amber {
+    background: radial-gradient(circle at 35% 35%, #fff7ed 0%, #f97316 60%, #c2410c 100%);
+    color: #ffffff;
+    border: 1px solid #fb923c;
+    box-shadow: 0 4px 10px rgba(249, 115, 22, 0.25);
+}
+.neu-disc-icon.disc-purple-gold {
+    background: radial-gradient(circle at 35% 35%, #f3e8ff 0%, #8b5cf6 60%, #5b21b6 100%);
+    color: #fef08a;
+    border: 1px solid #a78bfa;
+    box-shadow: 0 4px 10px rgba(139, 92, 246, 0.25);
+}
+.neu-disc-icon.disc-golden {
+    background: radial-gradient(circle at 35% 35%, #fefce8 0%, #facc15 60%, #ca8a04 100%);
+    color: #713f12;
+    border: 1px solid #eab308;
+    box-shadow: 0 4px 10px rgba(234, 179, 8, 0.25);
+}
+.neu-disc-icon.disc-cyan {
+    background: radial-gradient(circle at 35% 35%, #ecfeff 0%, #06b6d4 60%, #0e7490 100%);
+    color: #ffffff;
+    border: 1px solid #22d3ee;
+    box-shadow: 0 4px 10px rgba(6, 182, 212, 0.25);
+}
+.neu-disc-icon.disc-shield {
+    background: radial-gradient(circle at 35% 35%, #f0fdf4 0%, #22c55e 60%, #15803d 100%);
+    color: #fef08a;
+    border: 1px solid #4ade80;
+    box-shadow: 0 4px 10px rgba(34, 197, 94, 0.25);
+}
+.neu-disc-icon.disc-silver {
+    background: radial-gradient(circle at 35% 35%, #ffffff 0%, #e2e8f0 60%, #94a3b8 100%);
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    box-shadow: 0 4px 8px rgba(148, 163, 184, 0.2);
+}
+.neu-disc-icon.disc-soft {
+    background: radial-gradient(circle at 35% 35%, #ffffff 0%, #f1f5f9 60%, #e2e8f0 100%);
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
 
 /* Dark Mode support */
 [data-theme="dark"] .neu-disc-icon {

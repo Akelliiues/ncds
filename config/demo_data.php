@@ -667,11 +667,12 @@ class DemoDataProvider {
             $trendDetails[] = 'บันทึกเป็นฐานข้อมูลประเมินสุขภาพประจำปีเรียบร้อย';
         }
 
-        // Action / Advice (Concise & Bold)
+        // Action / Advice (Concise & Bold with 3D Clay images)
         $adviceList = [];
         if ($sbp >= 130 || $dbp >= 85) {
             $adviceList[] = [
                 'icon' => '🧂',
+                'img' => '../assets/img/advice/reduce_salt.jpg',
                 'title' => 'ลดเค็ม เลี่ยงปลาร้า/แจ่วบอง',
                 'desc' => 'งดซดน้ำแกง เลี่ยงของเค็มจัด ช่วยลดความดันโลหิต'
             ];
@@ -679,6 +680,7 @@ class DemoDataProvider {
         if ($dtx >= 100 || $bmi >= 23) {
             $adviceList[] = [
                 'icon' => '🍬',
+                'img' => '../assets/img/clay/sweet.jpg',
                 'title' => 'ลดหวาน งดน้ำอัดลม/ชาหวาน',
                 'desc' => 'ลดแป้งและของหวาน ช่วยคุมระดับน้ำตาล'
             ];
@@ -686,6 +688,7 @@ class DemoDataProvider {
         if ($bmi >= 23 || $riskLevel === 'risk') {
             $adviceList[] = [
                 'icon' => '🚶‍♂️',
+                'img' => '../assets/img/clay/exercise.jpg',
                 'title' => 'ขยับกาย เดินวันละ 30 นาที',
                 'desc' => 'เดินสะสมก้าวต่อเนื่อง ช่วยเผาผลาญไขมันและคุมน้ำหนัก'
             ];
@@ -693,6 +696,7 @@ class DemoDataProvider {
         if ($riskLevel === 'high_risk' || $riskLevel === 'critical') {
             $adviceList[] = [
                 'icon' => '🩺',
+                'img' => '../assets/img/advice/meet_doctor.jpg',
                 'title' => 'ส่งต่อพบแพทย์ รพ.สต.',
                 'desc' => 'นัดติดตามตรวจยืนยันสภาวะโรคเพื่อรับการรักษาที่เหมาะสม'
             ];
@@ -700,6 +704,7 @@ class DemoDataProvider {
         if (empty($adviceList)) {
             $adviceList[] = [
                 'icon' => '🌟',
+                'img' => '../assets/img/clay/shield.jpg',
                 'title' => 'รักษาวินัย 3อ. 2ส. ยอดเยี่ยม',
                 'desc' => 'ปฏิบัติตัวดีเยี่ยม รักษาสุขภาพแข็งแรงต่อเนื่อง'
             ];

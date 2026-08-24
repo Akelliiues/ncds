@@ -1,6 +1,7 @@
 <?php
 // config/icons.php - คลังไอคอน Neumorphic Disc Medical Icons สไตล์ Soft-UI 3D ตามมาตรฐานระบบ
 // ให้ความสอดคล้อง (Consistent Visual Design) ทุกหน้ารายการ ปรับเข้ากับทั้ง Light & Dark Mode
+require_once __DIR__ . '/rank_icons.php';
 
 if (!function_exists('get_neu_svg_path')) {
     function get_neu_svg_path($name) {
@@ -108,7 +109,97 @@ if (!function_exists('get_neu_svg_path')) {
                 <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2L1 21h22L12 2zm0 4.5l8.5 14.5H3.5L12 6.5zm-1 6v4h2v-4h-2zm0 6v2h2v-2h-2z"/>',
 
             'search-inspect' => '
-                <path fill-rule="evenodd" clip-rule="evenodd" d="M10 4a6 6 0 100 12 6 6 0 000-12zm-8 6a8 8 0 1114.32 4.906l4.387 4.387a1 1 0 01-1.414 1.414l-4.387-4.387A8 8 0 012 10z"/>'
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M10 4a6 6 0 100 12 6 6 0 000-12zm-8 6a8 8 0 1114.32 4.906l4.387 4.387a1 1 0 01-1.414 1.414l-4.387-4.387A8 8 0 012 10z"/>',
+
+            'male' => '
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2a4 4 0 100 8 4 4 0 000-8zM7 14a5 5 0 0110 0v5a2 2 0 01-2 2H9a2 2 0 01-2-2v-5z"/>
+                <path d="M17.5 3.5h3v3m0-3l-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+
+            'female' => '
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2a4 4 0 100 8 4 4 0 000-8zM7 14a5 5 0 0110 0v5a2 2 0 01-2 2H9a2 2 0 01-2-2v-5z"/>
+                <path d="M12 18v4m-2-2h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+
+            // ==========================================
+            // 🏆 VHV PRESTIGE LEADERBOARD RANK EMBLEMS
+            // ==========================================
+            // 1. Imperial Gold Crown (Rank 1 - Grand Champion)
+            'rank-crown' => '
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M2 18.5h20v2.5H2v-2.5zm1.8-3.5l2.4-8.5 4.8 4.8 4-6.8 4 6.8 4.8-4.8 2.4 8.5H3.8z"/>
+                <circle cx="12" cy="4" r="1.6"/>
+                <circle cx="4.2" cy="6" r="1.4"/>
+                <circle cx="19.8" cy="6" r="1.4"/>
+                <circle cx="12" cy="14.5" r="1.8" fill="#10B981"/>
+                <circle cx="8" cy="15" r="1.2" fill="#EF4444"/>
+                <circle cx="16" cy="15" r="1.2" fill="#3B82F6"/>',
+
+            // 2. Golden Star Trophy (Rank 2 - First Runner-Up)
+            'rank-star-trophy' => '
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2l2.4 5.2 5.6.5-4.2 3.8 1.3 5.5L12 14.2l-5.1 2.8 1.3-5.5-4.2-3.8 5.6-.5L12 2z"/>
+                <path d="M8 18h8v2H8v-2zm-2 2.8h12V23H6v-2.2z"/>',
+
+            // 3. Grand Golden Victory Cup (Rank 3 - Second Runner-Up)
+            'rank-cup-trophy' => '
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M19 4h-2V3a1 1 0 00-1-1H8a1 1 0 00-1 1v1H5a3 3 0 00-3 3v2a4 4 0 004 4h.4a6 6 0 005.6 4.9V19H8a1 1 0 000 2h8a1 1 0 000-2h-4v-2.1a6 6 0 005.6-4.9H18a4 4 0 004-4V7a3 3 0 00-3-3zM4 9V7a1 1 0 011-1h2v4.8A2 2 0 014 9zm16 0a2 2 0 01-2 1.8V6h2a1 1 0 011 1v2z"/>',
+
+            // 4. Rosette Ribbon Gold Medal (Ranks 4-5 - Top 5 Grand Masters)
+            'rank-rosette-medal' => '
+                <circle cx="12" cy="9" r="6"/>
+                <path d="M7.5 13.5l-3 8 5.5-2 2 3.5 1-9.5H7.5zm9 0l3 8-5.5-2-2 3.5-1-9.5h5.5z"/>
+                <circle cx="12" cy="9" r="3.8" fill="#ffffff" opacity="0.3"/>
+                <path d="M12 6.8l.7 1.6 1.7.2-1.3 1.2.4 1.7-1.5-.9-1.5.9.4-1.7-1.3-1.2 1.7-.2.7-1.6z"/>',
+
+            // 5. Brilliant Cut Diamond (Ranks 6-10 - Diamond League)
+            'rank-diamond' => '
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M6 3.5L2 9l10 12.5L22 9l-4-5.5H6zM12 5.5l2.6 3.5H9.4L12 5.5zM7.2 5.5h2.6L7.4 9 4.2 5.5h3zm9.6 0h3l-3.2 3.5-2.4-3.5h2.6zM4.3 10.5l4.6 7.2-5.4-7.2h.8zm15.4 0l-5.4 7.2 4.6-7.2h.8zm-8.7 8.2l-4.2-7.2h10.4l-4.2 7.2-1 1.7-1-1.7z"/>',
+
+            // 6. Golden Laurel Wreath of Victory (Ranks 11-15 - Laurel League)
+            'rank-laurel' => '
+                <path d="M12 3.5l1.2 2.6 2.8.2-2.1 1.9.6 2.8-2.5-1.5-2.5 1.5.6-2.8-2.1-1.9 2.8-.2L12 3.5z"/>
+                <path d="M7 9.5c-.8-1.5-2-2.5-3.5-3 .2 1.8 1.2 3.2 2.5 4 .2-.4.6-.7 1-1zm10 0c.8-1.5 2-2.5 3.5-3-.2 1.8-1.2 3.2-2.5 4-.2-.4-.6-.7-1-1zm-9 4c-1.2-1.2-2.8-1.8-4.5-1.8.8 1.8 2.2 3 3.8 3.5.2-.6.4-1.1.7-1.7zm8 0c1.2-1.2 2.8-1.8 4.5-1.8-.8 1.8-2.2 3-3.8 3.5-.2-.6-.4-1.1-.7-1.7zm-6.5 4.5c-1.5-.8-3.2-.8-4.8-.2 1.2 1.5 3 2.2 4.8 2.2 0-.7 0-1.4 0-2zm5 0c1.5-.8 3.2-.8 4.8-.2-1.2 1.5-3 2.2-4.8 2.2 0-.7 0-1.4 0-2z"/>',
+
+            // 7. Military Honor Cross with Ribbon (Ranks 16-20 - Honor Cross)
+            'rank-honor-cross' => '
+                <path d="M7 2h10v6H7V2zm2 2v2h6V4H9z"/>
+                <path d="M12 8.5l2 3h3l-2.5 2.5 1 3.5-3.5-2-3.5 2 1-3.5L7 11.5h3l2-3z"/>
+                <circle cx="12" cy="14" r="2"/>',
+
+            // 8. Olympic Neck Ribbon Gold Medal (Ranks 21-25 - Olympic Ribbon)
+            'rank-neck-medal' => '
+                <path d="M6 2l4 7h4l4-7h-3l-3 5-3-5H6z"/>
+                <circle cx="12" cy="15" r="6"/>
+                <circle cx="12" cy="15" r="4.2" fill="#ffffff" opacity="0.3"/>
+                <path d="M12 12.8l.7 1.4 1.5.2-1.1 1 .3 1.5-1.4-.8-1.4.8.3-1.5-1.1-1 1.5-.2.7-1.4z"/>',
+
+            // 9. Honor Certificate Scroll (Ranks 26-30 - Honor Scroll)
+            'rank-certificate' => '
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M19 3H7a3 3 0 00-3 3v12a3 3 0 003 3h12a2 2 0 002-2V5a2 2 0 00-2-2zm-12 2h12v12H7a1 1 0 01-1-1V6a1 1 0 011-1zm2 3h8v1.5H9V8zm0 3h8v1.5H9V11zm0 3h5v1.5H9V14z"/>
+                <circle cx="16.5" cy="15.5" r="2.2" fill="#EF4444"/>',
+
+            // 10. Golden Star in Envelope (Ranks 31-35 - Star Letter)
+            'rank-star-letter' => '
+                <path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zm0 2v.5l8 5.3 8-5.3V6H4zm16 12V9l-8 5.3L4 9v9h16z"/>
+                <path d="M12 8.5l1 2 2.2.2-1.6 1.5.5 2.2L12 13.3l-2.1 1.1.5-2.2-1.6-1.5 2.2-.2L12 8.5z"/>',
+
+            // 11. Framed Merit Diploma (Ranks 36-40 - Merit Diploma)
+            'rank-merit-cert' => '
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M3 4a2 2 0 012-2h14a2 2 0 012 2v16a2 2 0 01-2 2H5a2 2 0 01-2-2V4zm2 0v16h14V4H5zm3 3h8v2H8V7zm0 4h8v2H8v-2zm0 4h5v2H8v-2z"/>
+                <circle cx="16" cy="16" r="2.2" fill="#F59E0B"/>',
+
+            // 12. Golden Protection Shield (Ranks 41-45 - Health Shield)
+            'rank-shield-gold' => '
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2L4 5.5v5.8c0 5.4 3.4 10.4 8 11.7 4.6-1.3 8-6.3 8-11.7V5.5L12 2zm0 3.2l5.5 2.4v4.7c0 4.2-2.5 8.1-5.5 9.3-3-1.2-5.5-5.1-5.5-9.3V7.6L12 5.2zm0 3.3l1.1 2.3 2.5.3-1.8 1.7.5 2.5-2.3-1.2-2.3 1.2.5-2.5-1.8-1.7 2.5-.3L12 8.5z"/>',
+
+            // 13. Star Honor Coin (Ranks 46-50 - Star Coin)
+            'rank-star-coin' => '
+                <circle cx="12" cy="12" r="9"/>
+                <circle cx="12" cy="12" r="6.8" fill="#ffffff" opacity="0.25"/>
+                <path d="M12 6.5l1.6 3.4 3.7.4-2.7 2.6.7 3.7-3.3-1.8-3.3 1.8.7-3.7-2.7-2.6 3.7-.4L12 6.5z"/>',
+
+            // 14. Active VHV Service Pin / Ribbon (Ranks 51+ - Active Contributor)
+            'rank-pin' => '
+                <circle cx="12" cy="9.5" r="5.5"/>
+                <path d="M8.5 13.5l-2.5 7.5 4.5-2 2 3 1-8.5h-5zm7 0l2.5 7.5-4.5-2-2 3-1-8.5h5z"/>
+                <circle cx="12" cy="9.5" r="3" fill="#ffffff" opacity="0.3"/>'
         ];
 
         return $icons[$name] ?? $icons['heart-pulse'];

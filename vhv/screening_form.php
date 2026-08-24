@@ -231,6 +231,20 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
     <script src="../assets/js/app.js?v=<?= time() ?>"></script>
     <script src="../assets/js/clinical_guidance.js?v=<?= time() ?>"></script>
     <style>
+        @keyframes emergencyBeaconPulse {
+            0% {
+                transform: scale(1);
+                box-shadow: inset 2px 2px 4px rgba(255,255,255,0.7), 0 0 0 0 rgba(255, 255, 255, 0.75), 0 6px 18px rgba(0,0,0,0.3);
+            }
+            50% {
+                transform: scale(1.08);
+                box-shadow: inset 2px 2px 4px rgba(255,255,255,0.9), 0 0 0 12px rgba(255, 255, 255, 0), 0 10px 25px rgba(220,38,38,0.6);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: inset 2px 2px 4px rgba(255,255,255,0.7), 0 0 0 0 rgba(255, 255, 255, 0), 0 6px 18px rgba(0,0,0,0.3);
+            }
+        }
         .resident-card {
             background-color: var(--bg-card);
             border: none;
@@ -2456,31 +2470,119 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
 
             const riskLevel = meta.risk_level || 'green';
             if (riskLevel === 'red' || riskLevel === 'critical') {
-                // RED (แดง - วิกฤตด่วน)
+                // RED (แดง - วิกฤตด่วน) - Large SOS Emergency Siren Beacon
                 heroCard.style.background = 'linear-gradient(135deg, #DC2626 0%, #991B1B 100%)';
-                heroCard.style.boxShadow = '0 10px 25px -5px rgba(220, 38, 38, 0.4)';
-                heroIcon.innerText = '🚨';
+                heroCard.style.boxShadow = '0 12px 32px -5px rgba(220, 38, 38, 0.55)';
+                heroIcon.style.width = '72px';
+                heroIcon.style.height = '72px';
+                heroIcon.style.minWidth = '72px';
+                heroIcon.style.background = 'radial-gradient(circle at 35% 35%, #EF4444 0%, #DC2626 70%, #991B1B 100%)';
+                heroIcon.style.border = '2.5px solid rgba(255, 255, 255, 0.85)';
+                heroIcon.style.boxShadow = 'inset 2px 2px 4px rgba(255,255,255,0.7), 0 6px 18px rgba(0,0,0,0.3)';
+                heroIcon.style.animation = 'emergencyBeaconPulse 1.8s infinite';
+                heroIcon.innerHTML = `
+                    <svg width="52" height="52" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.35));">
+                        <!-- Radiant Light Rays (Top & Sides) -->
+                        <line x1="24" y1="3" x2="24" y2="8" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+                        <line x1="10" y1="8" x2="14" y2="12" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+                        <line x1="38" y1="8" x2="34" y2="12" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+                        <line x1="3" y1="22" x2="8" y2="22" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+                        <line x1="45" y1="22" x2="40" y2="22" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+                        <!-- Siren Dome -->
+                        <path d="M14 26 C14 15, 34 15, 34 26 Z" fill="#FFFFFF"/>
+                        <!-- Dome Highlight Reflection -->
+                        <path d="M28 18 C31 20, 32 23, 31 25" stroke="rgba(220, 38, 38, 0.65)" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+                        <!-- Siren Base Stand -->
+                        <rect x="10" y="26" width="28" height="5" rx="2.5" fill="#1E293B"/>
+                        <!-- SOS Bold Text -->
+                        <text x="24" y="42" text-anchor="middle" font-family="'Outfit', 'Sarabun', sans-serif" font-weight="900" font-size="11.5" fill="#FFFFFF" letter-spacing="1.2">SOS</text>
+                    </svg>
+                `;
                 heroTitle.innerText = 'ระดับวิกฤต (ต้องพบแพทย์ทันที)';
                 heroDesc.innerText = 'พบค่าสัญญาณชีพสูงวิกฤต เสี่ยงภาวะแทรกซ้อน แนะนำส่งต่อแพทย์ รพ.สต. หรือโทร 1669 ด่วน';
             } else if (riskLevel === 'orange' || riskLevel === 'high_risk' || riskLevel === 'suspect') {
-                // ORANGE (ส้ม - เสี่ยงสูง สงสัยป่วย)
+                // ORANGE (ส้ม - เสี่ยงสูง สงสัยป่วย ควรพบแพทย์) - Doctor Stethoscope & Medical Cross
                 heroCard.style.background = 'linear-gradient(135deg, #EA580C 0%, #C2410C 100%)';
-                heroCard.style.boxShadow = '0 10px 25px -5px rgba(234, 88, 12, 0.4)';
-                heroIcon.innerText = '🟠';
+                heroCard.style.boxShadow = '0 12px 30px -5px rgba(234, 88, 12, 0.5)';
+                heroIcon.style.width = '72px';
+                heroIcon.style.height = '72px';
+                heroIcon.style.minWidth = '72px';
+                heroIcon.style.background = 'radial-gradient(circle at 35% 35%, #FB923C 0%, #EA580C 70%, #9A3412 100%)';
+                heroIcon.style.border = '2.5px solid rgba(255, 255, 255, 0.85)';
+                heroIcon.style.boxShadow = 'inset 2px 2px 4px rgba(255,255,255,0.7), 0 6px 18px rgba(0,0,0,0.25)';
+                heroIcon.style.animation = 'none';
+                heroIcon.innerHTML = `
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.25));">
+                        <!-- Stethoscope Headset -->
+                        <path d="M15 8 C15 5 17 4 19 4" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+                        <path d="M33 8 C33 5 31 4 29 4" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+                        <circle cx="19" cy="4" r="1.8" fill="#FFFFFF"/>
+                        <circle cx="29" cy="4" r="1.8" fill="#FFFFFF"/>
+                        <path d="M15 8 V16 C15 22 33 22 33 16 V8" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+                        <!-- Tube Loop -->
+                        <path d="M24 21 V30 C24 35 17 35 17 30 C17 26 27 26 27 34 C27 38 31 40 34 38" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+                        <!-- Chestpiece Sensor -->
+                        <circle cx="36" cy="36" r="6" fill="#FFFFFF"/>
+                        <circle cx="36" cy="36" r="3" fill="#EA580C"/>
+                        <!-- Medical Cross -->
+                        <rect x="22.5" y="11" width="3" height="9" rx="1.5" fill="#FFFFFF"/>
+                        <rect x="19.5" y="14" width="9" height="3" rx="1.5" fill="#FFFFFF"/>
+                    </svg>
+                `;
                 heroTitle.innerText = 'กลุ่มเสี่ยงสูง (สงสัยป่วย - ควรพบแพทย์)';
                 heroDesc.innerText = 'ความดันหรือน้ำตาลสูงเกินเกณฑ์มาตรฐาน ควรได้รับการตรวจยืนยันสภาวะโรคที่ รพ.สต.';
             } else if (riskLevel === 'yellow' || riskLevel === 'risk') {
-                // YELLOW (เหลือง - กลุ่มเสี่ยง เริ่มสูง)
+                // YELLOW (เหลือง - กลุ่มเสี่ยง เริ่มสูง) - Health Balance Scale
                 heroCard.style.background = 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)';
-                heroCard.style.boxShadow = '0 10px 25px -5px rgba(245, 158, 11, 0.35)';
-                heroIcon.innerText = '🟡';
+                heroCard.style.boxShadow = '0 12px 30px -5px rgba(245, 158, 11, 0.45)';
+                heroIcon.style.width = '72px';
+                heroIcon.style.height = '72px';
+                heroIcon.style.minWidth = '72px';
+                heroIcon.style.background = 'radial-gradient(circle at 35% 35%, #FDE047 0%, #F59E0B 70%, #B45309 100%)';
+                heroIcon.style.border = '2.5px solid rgba(255, 255, 255, 0.85)';
+                heroIcon.style.boxShadow = 'inset 2px 2px 4px rgba(255,255,255,0.7), 0 6px 18px rgba(0,0,0,0.2)';
+                heroIcon.style.animation = 'none';
+                heroIcon.innerHTML = `
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.25));">
+                        <!-- Stand Base -->
+                        <path d="M17 41 H31" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+                        <path d="M24 14 V41" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+                        <circle cx="24" cy="13" r="3.5" fill="#FFFFFF"/>
+                        <!-- Tilted Beam -->
+                        <path d="M9 19 L24 14 L39 9" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+                        <!-- Left Pan (Down) -->
+                        <line x1="9" y1="19" x2="5" y2="28" stroke="#FFFFFF" stroke-width="2"/>
+                        <line x1="9" y1="19" x2="13" y2="28" stroke="#FFFFFF" stroke-width="2"/>
+                        <path d="M4 28 C4 33 14 33 14 28 Z" fill="#FFFFFF"/>
+                        <!-- Right Pan (Up) -->
+                        <line x1="39" y1="9" x2="35" y2="18" stroke="#FFFFFF" stroke-width="2"/>
+                        <line x1="39" y1="9" x2="43" y2="18" stroke="#FFFFFF" stroke-width="2"/>
+                        <path d="M34 18 C34 23 44 23 44 18 Z" fill="#FFFFFF"/>
+                    </svg>
+                `;
                 heroTitle.innerText = 'กลุ่มเสี่ยง (เริ่มสูง - ปรับพฤติกรรม)';
                 heroDesc.innerText = 'ความดันหรือน้ำตาลเริ่มสูงกว่าเกณฑ์เล็กน้อย ควรปรับเปลี่ยนพฤติกรรมตามหลัก 3อ. 2ส.';
             } else {
-                // GREEN (เขียว - สุขภาพปกติ)
+                // GREEN (เขียว - สุขภาพปกติ เกณฑ์ดีเยี่ยม) - Health Shield with Checkmark ✓
                 heroCard.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
-                heroCard.style.boxShadow = '0 10px 25px -5px rgba(16, 185, 129, 0.35)';
-                heroIcon.innerText = '🟢';
+                heroCard.style.boxShadow = '0 12px 30px -5px rgba(16, 185, 129, 0.45)';
+                heroIcon.style.width = '72px';
+                heroIcon.style.height = '72px';
+                heroIcon.style.minWidth = '72px';
+                heroIcon.style.background = 'radial-gradient(circle at 35% 35%, #34D399 0%, #10B981 70%, #047857 100%)';
+                heroIcon.style.border = '2.5px solid rgba(255, 255, 255, 0.85)';
+                heroIcon.style.boxShadow = 'inset 2px 2px 4px rgba(255,255,255,0.7), 0 6px 18px rgba(0,0,0,0.2)';
+                heroIcon.style.animation = 'none';
+                heroIcon.innerHTML = `
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.25));">
+                        <!-- Shield Body -->
+                        <path d="M24 4 L40 10 V22 C40 32.5 33.2 41.8 24 45 C14.8 41.8 8 32.5 8 22 V10 L24 4 Z" fill="#FFFFFF"/>
+                        <!-- Shield Inner Accent Tint -->
+                        <path d="M24 8 L36 12.5 V22 C36 30.5 30.8 38 24 40.8 C17.2 38 12 30.5 12 22 V12.5 L24 8 Z" fill="#E6FDF5"/>
+                        <!-- Bold Green Checkmark ✓ -->
+                        <path d="M16 23 L22 29 L32 17" stroke="#059669" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                `;
                 heroTitle.innerText = 'สุขภาพปกติ (เกณฑ์ดีเยี่ยม)';
                 heroDesc.innerText = 'ค่าความดันโลหิตและระดับน้ำตาลอยู่ในเกณฑ์มาตรฐาน รักษาสุขภาพแข็งแรงต่อเนื่อง';
             }
@@ -2700,17 +2802,39 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             });
             trendDetailsContainer.innerHTML = detailHtml;
 
-            // Key Actions (3อ. 2ส.)
+            // Key Actions (3อ. 2ส.) with 3D Clay illustrations
             const adviceContainer = document.getElementById('summary-advice-container');
             const adviceList = meta.advice_list || [];
             let adviceHtml = '';
             adviceList.forEach(item => {
+                let imgPath = item.img || '';
+                if (!imgPath) {
+                    if (item.icon === '🧂' || item.title.includes('ลดเค็ม') || item.title.includes('เค็ม')) imgPath = '../assets/img/advice/reduce_salt.jpg';
+                    else if (item.icon === '🍬' || item.title.includes('ลดหวาน') || item.title.includes('หวาน')) imgPath = '../assets/img/clay/sweet.jpg';
+                    else if (item.icon === '🚶‍♂️' || item.icon === '🚶' || item.title.includes('ขยับกาย') || item.title.includes('ออกกำลัง')) imgPath = '../assets/img/clay/exercise.jpg';
+                    else if (item.icon === '🩺' || item.title.includes('แพทย์') || item.title.includes('รพ.สต.')) imgPath = '../assets/img/advice/meet_doctor.jpg';
+                    else if (item.icon === '🌟' || item.title.includes('วินัย')) imgPath = '../assets/img/clay/shield.jpg';
+                    else if (item.title.includes('น้ำ')) imgPath = '../assets/img/clay/water.jpg';
+                    else if (item.title.includes('ผัก')) imgPath = '../assets/img/clay/veggie.jpg';
+                    else if (item.title.includes('ผ่อนคลาย') || item.title.includes('นอน')) imgPath = '../assets/img/clay/sleep.jpg';
+                    else if (item.title.includes('บุหรี่') || item.title.includes('เหล้า')) imgPath = '../assets/img/advice/no_smoking_alcohol.jpg';
+                    else if (item.title.includes('ทอด') || item.title.includes('มัน')) imgPath = '../assets/img/advice/avoid_fried.jpg';
+                    else if (item.title.includes('ยา')) imgPath = '../assets/img/advice/take_medicine.jpg';
+                }
+
+                let iconContent = '';
+                if (imgPath) {
+                    iconContent = `<img src="${imgPath}" alt="${item.title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" onerror="this.outerHTML='<span style=\\'font-size:20px;\\'>${item.icon || '💡'}</span>'">`;
+                } else {
+                    iconContent = `<span style="font-size: 20px;">${item.icon || '💡'}</span>`;
+                }
+
                 adviceHtml += `
-                    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; background: var(--bg-card); border: 1px solid var(--border-color, transparent); margin-bottom: 8px; box-shadow: var(--neumorph-flat);">
-                        <div style="width: 40px; height: 40px; border-radius: 14px; background: var(--bg-darker); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; box-shadow: var(--neumorph-inset);">
-                            ${item.icon || '💡'}
+                    <div style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 20px; background: var(--bg-card); border: 1px solid var(--border-color, transparent); margin-bottom: 8px; box-shadow: var(--neumorph-flat);">
+                        <div class="neu-disc-icon" style="width: 46px; height: 46px; min-width: 46px; border-radius: 50%; padding: 2.5px; background: #ffffff; box-shadow: 4px 6px 14px rgba(0,0,0,0.08), -3px -3px 8px rgba(255,255,255,0.95); border: 1.5px solid rgba(255,255,255,0.9);">
+                            ${iconContent}
                         </div>
-                        <div>
+                        <div style="flex: 1;">
                             <div style="font-weight: 800; font-size: 13.5px; color: var(--text-primary); margin-bottom: 2px;">${item.title}</div>
                             <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.35;">${item.desc}</div>
                         </div>
@@ -2769,6 +2893,10 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                         dtx: dtxVal,
                         red_flags: meta.red_flags || ''
                     };
+                    if (document.getElementById('contact-choice-vhv')) {
+                        document.getElementById('contact-choice-vhv').checked = true;
+                        toggleEmergencyContactChoice('vhv');
+                    }
                 } else {
                     emergBox.style.display = 'none';
                     currentEmergencyData = null;
@@ -2781,10 +2909,105 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
 
         let currentEmergencyData = null;
 
+        const vhvDefaultPhone = '<?= addslashes($_SESSION["vhv_phone"] ?? "") ?>';
+
+        function formatPhoneAuto(val) {
+            if (!val) return '';
+            const digits = val.toString().replace(/\D/g, '').slice(0, 10);
+            if (digits.length <= 3) return digits;
+            return digits.slice(0, 3) + '-' + digits.slice(3);
+        }
+
+        function handleEmergencyPhoneInput(input) {
+            if (!input) return;
+            const digits = input.value.replace(/\D/g, '').slice(0, 10);
+            input.value = formatPhoneAuto(digits);
+            validateEmergencyPhoneInput();
+        }
+
+        function toggleEmergencyContactChoice(choice) {
+            const isVhv = (choice === 'vhv');
+            const lblVhv = document.getElementById('lbl-contact-choice-vhv');
+            const lblCustom = document.getElementById('lbl-contact-choice-custom');
+            const phoneInput = document.getElementById('emergency_contact_phone');
+            const boxContainer = document.getElementById('contact-input-box-container');
+            const inputLabel = document.getElementById('contact-input-label');
+            
+            if (isVhv) {
+                if (lblVhv) lblVhv.style.borderColor = '#10B981';
+                if (lblCustom) lblCustom.style.borderColor = 'var(--border-color, #CBD5E1)';
+                if (boxContainer) boxContainer.style.borderColor = '#10B981';
+                if (inputLabel) inputLabel.innerHTML = 'เบอร์โทร อสม. ที่จะส่งให้ รพ.สต. (<span style="color:#10B981; font-weight:800;">แตะแก้ไขได้</span>):';
+                if (phoneInput) {
+                    phoneInput.placeholder = 'เบอร์โทร อสม.';
+                    // Restore VHV phone auto-formatted e.g. 098-6624652
+                    if (!phoneInput.value || phoneInput.dataset.lastChoice === 'custom') {
+                        phoneInput.value = formatPhoneAuto(vhvDefaultPhone);
+                    }
+                    phoneInput.dataset.lastChoice = 'vhv';
+                }
+            } else {
+                if (lblVhv) lblVhv.style.borderColor = 'var(--border-color, #CBD5E1)';
+                if (lblCustom) lblCustom.style.borderColor = '#DC2626';
+                if (boxContainer) boxContainer.style.borderColor = '#DC2626';
+                if (inputLabel) inputLabel.innerHTML = 'เบอร์โทรญาติ / ผู้ป่วยที่อยู่หน้างาน (<span style="color:#DC2626; font-weight:800;">ระบุเบอร์</span>):';
+                if (phoneInput) {
+                    phoneInput.placeholder = 'เบอร์โทรญาติ/ผู้ป่วย';
+                    // Clear if it still has default VHV phone so volunteer can type easily
+                    if (phoneInput.value.replace(/\D/g, '') === vhvDefaultPhone.replace(/\D/g, '')) {
+                        phoneInput.value = '';
+                    }
+                    phoneInput.dataset.lastChoice = 'custom';
+                    phoneInput.focus();
+                }
+            }
+            validateEmergencyPhoneInput();
+        }
+
+        function validateEmergencyPhoneInput() {
+            const btn = document.getElementById('btn-send-emergency-alert');
+            const err = document.getElementById('custom-phone-error');
+            const phoneInput = document.getElementById('emergency_contact_phone');
+            const cleanPhone = (phoneInput?.value || '').replace(/\D/g, '');
+
+            if (cleanPhone.length >= 9 && cleanPhone.length <= 10) {
+                if (err) err.style.display = 'none';
+                if (btn) {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                }
+                return true;
+            } else {
+                if (err) err.style.display = 'block';
+                if (btn) {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                }
+                return false;
+            }
+        }
+
         function sendEmergencyAlertFromSummary() {
             if (!currentEmergencyData) return;
             const btn = document.getElementById('btn-send-emergency-alert');
             const fb = document.getElementById('emergency-alert-feedback');
+
+            const isVhvChoice = document.getElementById('contact-choice-vhv')?.checked;
+            const phoneInput = document.getElementById('emergency_contact_phone');
+            let contactPhone = (phoneInput?.value || '').trim();
+            let contactType = isVhvChoice ? 'vhv' : 'relative';
+
+            const cleanPhone = contactPhone.replace(/\D/g, '');
+            if (cleanPhone.length < 9) {
+                alert('⚠️ กรุณากรอกเบอร์โทรติดต่อกลับให้ถูกต้อง ก่อนส่งสัญญาณฉุกเฉิน');
+                phoneInput?.focus();
+                return;
+            }
+
+            let vhvPhone = isVhvChoice ? contactPhone : (vhvDefaultPhone || contactPhone);
+
             btn.disabled = true;
             btn.innerHTML = '⏳ กำลังส่งสัญญาณฉุกเฉินไปยัง รพ.สต....';
             
@@ -2806,7 +3029,9 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             formData.append('dtx', currentEmergencyData.dtx || '');
             formData.append('red_flags', currentEmergencyData.red_flags || '');
             formData.append('vhv_name', '<?= addslashes($_SESSION["vhv_name"] ?? "อสม. ผู้บันทึก") ?>');
-            formData.append('vhv_phone', '<?= addslashes($_SESSION["vhv_phone"] ?? "") ?>');
+            formData.append('vhv_phone', vhvPhone);
+            formData.append('contact_phone', contactPhone);
+            formData.append('contact_type', contactType);
 
             fetch('../api/emergency_alert.php', {
                 method: 'POST',
@@ -2895,7 +3120,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                                     <span>✅</span> <span>เจ้าหน้าที่ รพ.สต. รับเรื่องแล้ว</span>
                                 </div>
                                 <div style="font-size: 12.5px; color: var(--text-primary); line-height: 1.5;">
-                                    <div>👤 <strong>ผู้รับเรื่อง:</strong> ${res.acknowledged_by || 'เจ้าหน้าที่ รพ.สต. ดอนมดแดง'}</div>
+                                    <div>👤 <strong>ผู้รับเรื่อง:</strong> ${res.acknowledged_by || 'เจ้าหน้าที่ รพ.สต.คำหนามแท่ง'}</div>
                                     <div>🕒 <strong>เวลา:</strong> ${res.acknowledged_at || 'เมื่อสักครู่'}</div>
                                     <div style="margin-top: 4px; color: #047857; font-weight: 600;">💡 กำลังประสานงานช่วยเหลือ ขอให้ อสม. ดูแลผู้ป่วยให้อยู่ในท่านอนราบอย่างปลอดภัย</div>
                                 </div>
@@ -3058,40 +3283,102 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
 
             <!-- Hero Overall Health Status Banner (Risk-Themed Neumorphic Card) -->
             <div id="summary-hero-card" style="
-                border-radius: 22px; 
-                padding: 18px 16px; 
+                border-radius: 24px; 
+                padding: 20px 16px; 
                 margin-bottom: 16px; 
                 color: #FFFFFF; 
                 text-align: center;
                 transition: all 0.3s ease;
-                box-shadow: var(--neumorph-flat);
+                background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+                box-shadow: 0 12px 30px -5px rgba(16, 185, 129, 0.45);
             ">
-                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 5px;">
-                    <span id="summary-hero-icon" style="font-size: 24px;">🟢</span>
-                    <span id="summary-hero-title" style="font-size: 19px; font-weight: 900; letter-spacing: -0.3px; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">สุขภาพปกติ (เกณฑ์ดีเยี่ยม)</span>
+                <div style="display: flex; justify-content: center; margin-bottom: 10px;">
+                    <div id="summary-hero-icon" class="neu-disc-icon" style="width: 72px; height: 72px; min-width: 72px; background: radial-gradient(circle at 35% 35%, #34D399 0%, #10B981 70%, #047857 100%); color: #fff; border: 2.5px solid rgba(255, 255, 255, 0.85); box-shadow: inset 2px 2px 4px rgba(255,255,255,0.7), 0 6px 18px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center;">
+                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.25));">
+                            <!-- Shield Body -->
+                            <path d="M24 4 L40 10 V22 C40 32.5 33.2 41.8 24 45 C14.8 41.8 8 32.5 8 22 V10 L24 4 Z" fill="#FFFFFF"/>
+                            <!-- Shield Inner Accent Tint -->
+                            <path d="M24 8 L36 12.5 V22 C36 30.5 30.8 38 24 40.8 C17.2 38 12 30.5 12 22 V12.5 L24 8 Z" fill="#E6FDF5"/>
+                            <!-- Bold Green Checkmark ✓ -->
+                            <path d="M16 23 L22 29 L32 17" stroke="#059669" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
                 </div>
-                <div id="summary-hero-desc" style="font-size: 13px; opacity: 0.95; line-height: 1.5; font-weight: 600; text-wrap: balance; word-break: keep-all; text-shadow: 0 1px 2px rgba(0,0,0,0.15);">
-                    ค่าความดันและน้ำตาลอยู่ในเกณฑ์มาตรฐาน สุขภาพแข็งแรงดี
+                <div id="summary-hero-title" style="font-size: 21px; font-weight: 900; letter-spacing: -0.3px; text-shadow: 0 1px 3px rgba(0,0,0,0.25); margin-bottom: 5px;">สุขภาพปกติ (เกณฑ์ดีเยี่ยม)</div>
+                <div id="summary-hero-desc" style="font-size: 13.5px; opacity: 0.95; line-height: 1.5; font-weight: 600; text-wrap: balance; word-break: keep-all; text-shadow: 0 1px 2px rgba(0,0,0,0.15);">
+                    ค่าความดันโลหิตและระดับน้ำตาลอยู่ในเกณฑ์มาตรฐาน รักษาสุขภาพแข็งแรงต่อเนื่อง
                 </div>
             </div>
 
             <!-- Emergency Dispatch Alert Action Box (Shown for Critical/Red cases) -->
             <div id="summary-emergency-box" style="display: none; background: var(--bg-card); border: 1.5px solid rgba(239, 68, 68, 0.45); border-radius: 22px; padding: 16px; margin-bottom: 18px; box-shadow: var(--neumorph-flat);">
                 <!-- Header Title -->
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                    <div style="font-size: 15px; font-weight: 900; color: #DC2626; display: flex; align-items: center; gap: 6px;">
-                        <span style="font-size: 20px;">🚨</span> <span>แจ้งเหตุวิกฤต Fast-Track รพ.สต.</span>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <div style="font-size: 15px; font-weight: 900; color: #DC2626; display: flex; align-items: center; gap: 10px;">
+                        <span class="neu-disc-icon sm disc-red" style="font-size: 16px;">🚨</span>
+                        <span>แจ้งเหตุวิกฤต Fast-Track รพ.สต.</span>
                     </div>
                     <span style="background: rgba(220, 38, 38, 0.12); color: #DC2626; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 10px; box-shadow: var(--neumorph-flat);">ฉุกเฉินเร่งด่วน</span>
                 </div>
 
-                <p style="font-size: 12.5px; color: var(--text-secondary); margin: 0 0 14px 0; line-height: 1.45;">
-                    พบค่าสัญญาณชีพสูงวิกฤต สามารถยิงสัญญาณไซเรนเตือนไปยังหน้าจอคอมพิวเตอร์ รพ.สต. ได้ทันที
+                <p style="font-size: 12.5px; color: var(--text-secondary); margin: 0 0 12px 0; line-height: 1.45;">
+                    พบค่าสัญญาณชีพสูงวิกฤต ส่งสัญญาณแจ้งเหตุฉุกเฉินไปยัง รพ.สต. ได้ทันที
                 </p>
 
+                <!-- Emergency Callback Phone Selector Box -->
+                <div style="background: var(--bg-darker); border-radius: 18px; padding: 14px 16px; margin-bottom: 14px; box-shadow: var(--neumorph-inset); border: 1px solid var(--border-color, rgba(0,0,0,0.06));">
+                    <div style="font-size: 13px; font-weight: 800; color: var(--color-accent, #0d2c54); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        <span class="neu-disc-icon xs disc-blue" style="font-size: 13px;">📱</span>
+                        <span>เบอร์โทรติดต่อกลับด่วน (เจ้าหน้าที่จะโทรกลับเบอร์นี้):</span>
+                    </div>
+                    
+                    <!-- Radio Choices (2 Options) -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+                        <!-- Option 1: VHV Phone (Default) -->
+                        <label id="lbl-contact-choice-vhv" style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 14px; background: var(--bg-card); cursor: pointer; box-shadow: var(--neumorph-flat); border: 1.5px solid #10B981; transition: all 0.2s;">
+                            <input type="radio" name="emergency_contact_choice" id="contact-choice-vhv" value="vhv" checked onchange="toggleEmergencyContactChoice('vhv')" style="accent-color: #10B981; width: 16px; height: 16px;">
+                            <span class="neu-disc-icon xs disc-green" style="font-size: 12.5px;">👤</span>
+                            <span style="font-size: 12.5px; font-weight: 700; color: var(--text-primary);">
+                                อสม. ผู้แจ้ง
+                            </span>
+                        </label>
+
+                        <!-- Option 2: Custom Phone (Relative / Patient) -->
+                        <label id="lbl-contact-choice-custom" style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 14px; background: var(--bg-card); cursor: pointer; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color, #CBD5E1); transition: all 0.2s;">
+                            <input type="radio" name="emergency_contact_choice" id="contact-choice-custom" value="custom" onchange="toggleEmergencyContactChoice('custom')" style="accent-color: #DC2626; width: 16px; height: 16px;">
+                            <span class="neu-disc-icon xs disc-red" style="font-size: 12.5px;">📞</span>
+                            <span style="font-size: 12.5px; font-weight: 700; color: var(--text-primary);">
+                                ญาติ / ผู้ป่วย
+                            </span>
+                        </label>
+                    </div>
+
+                    <!-- Interactive Editable Phone Input Box -->
+                    <div style="background: var(--bg-card); border-radius: 14px; padding: 10px 12px; box-shadow: var(--neumorph-flat); border: 1.5px solid #10B981;" id="contact-input-box-container">
+                        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;" id="contact-input-label">
+                            เบอร์โทร อสม. ที่จะส่งให้ รพ.สต. (<span style="color:#10B981; font-weight:800;">แตะแก้ไขได้</span>):
+                        </div>
+                        <div style="position: relative; display: flex; align-items: center;">
+                            <span class="neu-disc-icon xs" style="position: absolute; left: 6px; font-size: 12.5px; width: 26px; height: 26px; z-index: 1;">📞</span>
+                            <?php
+                            $initVhvPhoneDigits = preg_replace('/\D/', '', $_SESSION['vhv_phone'] ?? '');
+                            $initVhvPhone = (strlen($initVhvPhoneDigits) > 3) ? substr($initVhvPhoneDigits, 0, 3) . '-' . substr($initVhvPhoneDigits, 3, 7) : $initVhvPhoneDigits;
+                            ?>
+                            <input type="tel" id="emergency_contact_phone" inputmode="numeric" pattern="[0-9]*" value="<?= htmlspecialchars($initVhvPhone) ?>" placeholder="เบอร์โทรติดต่อกลับ" maxlength="11"
+                                   oninput="handleEmergencyPhoneInput(this)"
+                                   onkeypress="return (event.charCode >= 48 && event.charCode <= 57)"
+                                   style="width: 100%; padding: 8px 12px 8px 38px; border-radius: 10px; border: 1px solid var(--border-color, #CBD5E1); font-size: 16px; font-weight: 800; background: var(--bg-darker); color: var(--text-primary); box-sizing: border-box; letter-spacing: 0.5px;">
+                        </div>
+                        <div id="custom-phone-error" style="display: none; font-size: 11px; color: #DC2626; margin-top: 4px; font-weight: bold;">
+                            ⚠️ กรุณากรอกเบอร์โทรติดต่อกลับให้ถูกต้อง ก่อนกดส่งสัญญาณ..
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Initial Big Dispatch Button -->
-                <button type="button" id="btn-send-emergency-alert" onclick="sendEmergencyAlertFromSummary()" style="width: 100%; padding: 14px; margin-bottom: 14px; background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); color: white; border: none; border-radius: 16px; font-weight: 800; font-size: 15px; cursor: pointer; box-shadow: 0 6px 18px rgba(220, 38, 38, 0.4); display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    <span>🆘 ส่งสัญญาณฉุกเฉินแจ้งไปยัง รพ.สต. ทันที</span>
+                <button type="button" id="btn-send-emergency-alert" onclick="sendEmergencyAlertFromSummary()" style="width: 100%; padding: 12px 14px; margin-bottom: 14px; background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); color: white; border: none; border-radius: 16px; font-weight: 800; font-size: 15px; cursor: pointer; box-shadow: 0 6px 18px rgba(220, 38, 38, 0.4); display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <span class="neu-disc-icon xs" style="background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.4); box-shadow: none;">🆘</span>
+                    <span>ส่งสัญญาณฉุกเฉินแจ้งไปยัง รพ.สต. ทันที</span>
                 </button>
 
                 <!-- Live 3-Step Progress Tracker for VHV -->
@@ -3119,8 +3406,9 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
 
                     <!-- Sandbox & Demo Testing Simulation Controls -->
                     <div id="demo-sim-controls" style="display: none; background: var(--bg-darker); border-radius: 16px; padding: 10px 12px; margin-bottom: 8px; box-shadow: var(--neumorph-inset);">
-                        <div style="font-size: 11px; font-weight: 800; color: #D97706; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">
-                            <span>🧪</span> <span>โหมดสาธิต: ทดลองจำลองการตอบรับจาก รพ.สต.</span>
+                        <div style="font-size: 11px; font-weight: 800; color: #D97706; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                            <span class="neu-disc-icon xs disc-yellow" style="font-size: 11px; width: 22px; height: 22px;">🧪</span>
+                            <span>โหมดสาธิต: ทดลองจำลองการตอบรับจาก รพ.สต.</span>
                         </div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                             <button type="button" onclick="triggerDemoSimulationAck()" style="background: #10B981; color: white; border: none; padding: 8px; border-radius: 10px; font-size: 11.5px; font-weight: 800; cursor: pointer; box-shadow: 0 3px 8px rgba(16, 185, 129, 0.3);">
@@ -3135,11 +3423,13 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
 
                 <!-- Emergency Call Row -->
                 <div style="display: flex; gap: 10px;">
-                    <a href="tel:1669" style="flex: 1; padding: 12px; background: #DC2626; color: white; text-decoration: none; border-radius: 14px; font-size: 13.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);">
-                        📞 โทร 1669 ด่วน
+                    <a href="tel:1669" style="flex: 1; padding: 12px; background: #DC2626; color: white; text-decoration: none; border-radius: 14px; font-size: 13.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);">
+                        <span class="neu-disc-icon xs" style="background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.4); box-shadow: none;">📞</span>
+                        <span>โทร 1669 ด่วน</span>
                     </a>
-                    <a href="tel:045251123" id="btn-call-pcu" style="flex: 1; padding: 12px; background: var(--bg-card); color: var(--text-primary); text-decoration: none; border-radius: 14px; font-size: 13.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: var(--neumorph-flat);">
-                        🏥 โทร รพ.สต.
+                    <a href="tel:045251123" id="btn-call-pcu" style="flex: 1; padding: 12px; background: var(--bg-card); color: var(--text-primary); text-decoration: none; border-radius: 14px; font-size: 13.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: var(--neumorph-flat);">
+                        <span class="neu-disc-icon xs disc-blue">🏥</span>
+                        <span>โทร รพ.สต.</span>
                     </a>
                 </div>
             </div>
@@ -3149,8 +3439,9 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
 
             <!-- 4 Health Cards Grid -->
             <div style="margin-bottom: 18px;">
-                <div style="font-size: 13px; font-weight: 800; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; margin-bottom: 10px;">
-                    <span>📊</span> <span>ผลตรวจสุขภาพ 4 ด้าน</span>
+                <div style="font-size: 13px; font-weight: 800; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                    <span class="neu-disc-icon xs disc-blue">📊</span>
+                    <span>ผลตรวจสุขภาพ 4 ด้าน</span>
                 </div>
                 <div id="summary-results-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                     <!-- 4 Neumorphic Metric Cards -->
@@ -3189,7 +3480,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
 
                 <div style="position: relative; z-index: 1;">
                     <div style="font-size: 12.5px; font-weight: 800; color: var(--text-secondary); display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                        <span style="display: flex; align-items: center; gap: 6px;"><span>🔄</span> <span>ผลเปรียบเทียบจากรอบก่อน</span></span>
+                        <span style="display: flex; align-items: center; gap: 8px;"><span class="neu-disc-icon xs disc-blue">🔄</span> <span>ผลเปรียบเทียบจากรอบก่อน</span></span>
                         <span id="summary-trend-badge" style="font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 12px; box-shadow: var(--neumorph-flat);">📈 ดีขึ้น</span>
                     </div>
                     <div id="summary-trend-details" style="display: flex; flex-direction: column; gap: 6px;">
@@ -3206,8 +3497,9 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 margin-bottom: 20px; 
                 box-shadow: var(--neumorph-inset);
             ">
-                <div style="font-size: 13px; font-weight: 800; color: var(--color-green, #10B981); display: flex; align-items: center; gap: 6px; margin-bottom: 12px;">
-                    <span>💡</span> <span>ข้อแนะนำการดูแลสุขภาพ (3อ. 2ส.)</span>
+                <div style="font-size: 13.5px; font-weight: 800; color: var(--color-green, #10B981); display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                    <span class="neu-disc-icon xs disc-green" style="font-size: 13px;">💡</span>
+                    <span>ข้อแนะนำการดูแลสุขภาพ (3อ. 2ส.)</span>
                 </div>
                 <div id="summary-advice-container" style="display: flex; flex-direction: column; gap: 8px;">
                     <!-- Advice Items -->
@@ -3217,15 +3509,20 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 <div style="
                     margin-top: 12px; 
                     background: var(--bg-card); 
-                    border-radius: 14px; 
+                    border-radius: 16px; 
                     padding: 10px 14px; 
                     box-shadow: var(--neumorph-flat); 
-                    font-size: 12.5px; 
+                    font-size: 13px; 
                     color: var(--text-secondary); 
                     text-align: center; 
                     font-weight: 700;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
                 ">
-                    📅 นัดติดตามผลครั้งถัดไป: <strong id="summary-next-date" style="color: var(--color-accent, #0d2c54); font-weight: 900;">-</strong>
+                    <span class="neu-disc-icon xs disc-blue" style="font-size: 13px; width: 26px; height: 26px;">🗓️</span>
+                    <span>นัดติดตามผลครั้งถัดไป:</span> <strong id="summary-next-date" style="color: var(--color-accent, #0d2c54); font-weight: 900;">-</strong>
                 </div>
             </div>
 

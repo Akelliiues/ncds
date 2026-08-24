@@ -103,6 +103,12 @@ if ($action === 'trigger_alert') {
     $redFlags = is_array($_POST['red_flags'] ?? null) ? implode(', ', $_POST['red_flags']) : trim($_POST['red_flags'] ?? '');
     $vhvName = trim($_POST['vhv_name'] ?? '');
     $vhvPhone = trim($_POST['vhv_phone'] ?? '');
+    $contactPhone = trim($_POST['contact_phone'] ?? '');
+    $contactType = trim($_POST['contact_type'] ?? 'vhv');
+
+    if (empty($contactPhone)) {
+        $contactPhone = !empty($vhvPhone) ? $vhvPhone : null;
+    }
 
     if (empty($patientName)) {
         $patientName = 'ผู้ป่วยฉุกเฉิน (ไม่ระบุนาม)';
@@ -118,12 +124,12 @@ if ($action === 'trigger_alert') {
                 screening_id, citizen_screening_id, hoscode, target_cid,
                 patient_name, age, house_no, moo, sub_district_code,
                 latitude, longitude, crisis_type, sbp, dbp, dtx,
-                red_flags, vhv_name, vhv_phone, alert_status, created_at
+                red_flags, vhv_name, vhv_phone, contact_phone, contact_type, alert_status, created_at
             ) VALUES (
                 ?, ?, ?, ?,
                 ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, 'pending', NOW()
+                ?, ?, ?, ?, ?, 'pending', NOW()
             )
         ");
 
@@ -131,7 +137,7 @@ if ($action === 'trigger_alert') {
             $screeningId, $citizenScreeningId, $hoscode, $targetCid,
             $patientName, $age, $houseNo, $moo, $subDistrictCode,
             $latitude, $longitude, $crisisType, $sbp, $dbp, $dtx,
-            $redFlags, $vhvName, $vhvPhone
+            $redFlags, $vhvName, $vhvPhone, $contactPhone, $contactType
         ]);
 
         $alertId = $pdo->lastInsertId();
@@ -143,6 +149,10 @@ if ($action === 'trigger_alert') {
             'hoscode' => $hoscode,
             'patient_name' => $patientName,
             'crisis_type' => $crisisType,
+            'vhv_name' => $vhvName,
+            'vhv_phone' => $vhvPhone,
+            'contact_phone' => $contactPhone,
+            'contact_type' => $contactType,
             'created_at' => date('Y-m-d H:i:s')
         ], JSON_UNESCAPED_UNICODE);
     } catch (\Throwable $e) {

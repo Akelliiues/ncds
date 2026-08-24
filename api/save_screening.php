@@ -481,6 +481,7 @@ try {
         if ($sys1 >= 130 || $dia1 >= 85) {
             $advice_list[] = [
                 'icon' => '🧂',
+                'img' => '../assets/img/advice/reduce_salt.jpg',
                 'title' => 'ลดเค็ม เลี่ยงปลาร้า/แจ่วบอง',
                 'desc' => 'งดอาหารรสจัด ซอส ปรุงรส อาหารหมักดอง และงดซดน้ำแกง'
             ];
@@ -488,6 +489,7 @@ try {
         if ($dtx >= 100 || $bmi >= 23) {
             $advice_list[] = [
                 'icon' => '🍬',
+                'img' => '../assets/img/clay/sweet.jpg',
                 'title' => 'ลดหวาน งดน้ำอัดลม/ชาหวาน',
                 'desc' => 'งดน้ำอัดลม ชาไข่มุก ขนมหวาน ลดปริมาณข้าวแป้งทานเน้นผักใบเขียว'
             ];
@@ -495,6 +497,7 @@ try {
         if ($bmi >= 23 || $hl_risk_level === 'yellow') {
             $advice_list[] = [
                 'icon' => '🚶‍♂️',
+                'img' => '../assets/img/clay/exercise.jpg',
                 'title' => 'ขยับกาย เดินวันละ 30 นาที',
                 'desc' => 'เดินสะสมก้าวอย่างน้อยวันละ 30 นาที 5 วัน/สัปดาห์'
             ];
@@ -502,6 +505,7 @@ try {
         if ($hl_risk_level === 'red') {
             $advice_list[] = [
                 'icon' => '🩺',
+                'img' => '../assets/img/advice/meet_doctor.jpg',
                 'title' => 'ส่งต่อพบแพทย์ รพ.สต.',
                 'desc' => 'นัดติดตามตรวจยืนยันสภาวะโรคเพื่อรับการรักษาที่เหมาะสม'
             ];
@@ -509,6 +513,7 @@ try {
         if (empty($advice_list)) {
             $advice_list[] = [
                 'icon' => '🌟',
+                'img' => '../assets/img/clay/shield.jpg',
                 'title' => 'รักษาวินัย 3อ. 2ส. ยอดเยี่ยม',
                 'desc' => 'ปฏิบัติตัวดีเยี่ยม รักษาสุขภาพแข็งแรงต่อเนื่อง'
             ];

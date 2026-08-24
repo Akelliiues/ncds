@@ -4,11 +4,26 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
 using System.Net;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Win32;
+
+[assembly: AssemblyTitle("NCDs Red Alert Station")]
+[assembly: AssemblyDescription("ศูนย์รับสัญญาณเตือนภัยวิกฤตฉุกเฉินและส่งต่อผู้ป่วย NCDs Portal")]
+[assembly: AssemblyConfiguration("")]
+[assembly: AssemblyCompany("สำนักงานสาธารณสุขอำเภอตาลสุม")]
+[assembly: AssemblyProduct("NCDs Portal Red Alert Station")]
+[assembly: AssemblyCopyright("Copyright © 2026 SSO Tan Sum")]
+[assembly: AssemblyTrademark("SSO Tan Sum NCDs")]
+[assembly: AssemblyCulture("")]
+[assembly: ComVisible(false)]
+[assembly: Guid("e5f6a7b8-1234-4567-890a-bcdef0123456")]
+[assembly: AssemblyVersion("2.2.0.0")]
+[assembly: AssemblyFileVersion("2.2.0.0")]
 
 namespace NCDsRedAlertStation
 {
@@ -237,10 +252,11 @@ namespace NCDsRedAlertStation
         private Label lblCid;
         private Label lblAddress;
         private Label lblVhv;
+        private Label lblContact;
+        private Button btnCopyPhone;
         private Label lblCrisisBadge;
         private Label lblRedFlags;
         private Label lblBpSys;
-        private Label lblBpDia;
         private Label lblDtx;
         private Label lblTime;
         private Button btnAck;
@@ -393,9 +409,32 @@ namespace NCDsRedAlertStation
                 Text = "👩‍⚕️ อสม. ผู้แจ้ง: อสม. สมชาย มีสุข (โทร 081-999-8888)",
                 Font = ConfigManager.GetSystemFont(10, FontStyle.Bold),
                 ForeColor = Color.FromArgb(52, 211, 153), // Emerald 400
-                Location = new Point(16, 275),
+                Location = new Point(16, 270),
                 AutoSize = true
             };
+
+            lblContact = new Label
+            {
+                Text = "📱 ติดต่อกลับด่วน: 081-999-8888 (อสม.)",
+                Font = ConfigManager.GetSystemFont(10.5f, FontStyle.Bold),
+                ForeColor = Color.FromArgb(56, 189, 248), // Sky 400
+                Location = new Point(16, 302),
+                AutoSize = true
+            };
+
+            btnCopyPhone = new Button
+            {
+                Text = "📋 คัดลอกเบอร์โทรกลับ",
+                Font = ConfigManager.GetSystemFont(9, FontStyle.Bold),
+                BackColor = Color.FromArgb(16, 185, 129),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Location = new Point(16, 335),
+                Size = new Size(180, 32),
+                Cursor = Cursors.Hand
+            };
+            btnCopyPhone.FlatAppearance.BorderSize = 0;
+            btnCopyPhone.Click += BtnCopyPhone_Click;
 
             cardLeft.Controls.Add(lblPatientHeader);
             cardLeft.Controls.Add(lblPatientName);
@@ -404,6 +443,8 @@ namespace NCDsRedAlertStation
             cardLeft.Controls.Add(lblCrisisBadge);
             cardLeft.Controls.Add(lblRedFlags);
             cardLeft.Controls.Add(lblVhv);
+            cardLeft.Controls.Add(lblContact);
+            cardLeft.Controls.Add(btnCopyPhone);
 
             // --- RIGHT COLUMN: VITALS MONITOR CARD ---
             var cardRight = new Panel
@@ -591,6 +632,9 @@ namespace NCDsRedAlertStation
             string redFlags = alert.ContainsKey("red_flags") && alert["red_flags"] != null ? alert["red_flags"].ToString() : "";
             string vhvName = alert.ContainsKey("vhv_name") ? alert["vhv_name"].ToString() : "-";
             string vhvPhone = alert.ContainsKey("vhv_phone") ? alert["vhv_phone"].ToString() : "";
+            string contactPhone = alert.ContainsKey("contact_phone") && alert["contact_phone"] != null ? alert["contact_phone"].ToString() : vhvPhone;
+            string contactType = alert.ContainsKey("contact_type") && alert["contact_type"] != null ? alert["contact_type"].ToString() : "vhv";
+            string contactTypeStr = contactType == "relative" ? "ญาติ/ผู้ป่วย" : "อสม.";
             string hc = alert.ContainsKey("hoscode") ? alert["hoscode"].ToString() : "";
 
             lblPatientName.Text = name;
@@ -599,6 +643,11 @@ namespace NCDsRedAlertStation
             lblCrisisBadge.Text = string.Format("⚠️ ภาวะวิกฤต: {0}", crisisType);
             lblRedFlags.Text = string.Format("🚨 อาการสำคัญ: {0}", !string.IsNullOrEmpty(redFlags) ? redFlags : "พบค่าสัญญาณชีพสูงเกินเกณฑ์วิกฤต Fast-Track");
             lblVhv.Text = string.Format("👩‍⚕️ อสม. ผู้แจ้ง: {0} {1}", vhvName, !string.IsNullOrEmpty(vhvPhone) ? "(โทร " + vhvPhone + ")" : "");
+            lblContact.Text = string.Format("📱 โทรติดต่อกลับ: {0} ({1})", !string.IsNullOrEmpty(contactPhone) ? contactPhone : "ไม่มีเบอร์", contactTypeStr);
+            
+            btnCopyPhone.Tag = contactPhone;
+            btnCopyPhone.Visible = !string.IsNullOrEmpty(contactPhone);
+            btnCopyPhone.Text = "📋 คัดลอกเบอร์โทรกลับ";
 
             lblBpSys.Text = string.Format("{0} / {1}", sbp, dbp);
             lblDtx.Text = dtx;
@@ -617,6 +666,31 @@ namespace NCDsRedAlertStation
             this.BringToFront();
             this.Activate();
             this.Focus();
+        }
+
+        private void BtnCopyPhone_Click(object sender, EventArgs e)
+        {
+            if (btnCopyPhone.Tag != null)
+            {
+                string phone = btnCopyPhone.Tag.ToString();
+                if (!string.IsNullOrEmpty(phone))
+                {
+                    try
+                    {
+                        Clipboard.SetText(phone);
+                        btnCopyPhone.Text = "✅ คัดลอกแล้ว!";
+                        var t = new System.Windows.Forms.Timer { Interval = 2000 };
+                        t.Tick += (s, ev) =>
+                        {
+                            btnCopyPhone.Text = "📋 คัดลอกเบอร์โทรกลับ";
+                            t.Stop();
+                            t.Dispose();
+                        };
+                        t.Start();
+                    }
+                    catch { }
+                }
+            }
         }
 
         private void BtnAck_Click(object sender, EventArgs e)
