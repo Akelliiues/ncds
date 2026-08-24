@@ -288,19 +288,15 @@ if (DemoDataProvider::isDemoMode()) {
                 p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
                 s1.sys_bp1 AS sbp_r1, s1.dia_bp1 AS dbp_r1, s1.dtx_value AS dtx_r1, s1.bmi AS bmi_r1, s1.created_at AS date_r1,
                 sl.sys_bp1 AS sbp_latest, sl.dia_bp1 AS dbp_latest, sl.dtx_value AS dtx_latest, sl.bmi AS bmi_latest, sl.created_at AS date_latest,
-                al.round_number AS latest_round
+                COALESCE(sl.round_number, al.round_number, 2) AS latest_round
             FROM target_population p
-            JOIN task_assignments a1 ON p.cid = a1.target_cid AND a1.round_number = 1 AND a1.assignment_status = 'completed' AND a1.is_sandbox = ?
-            JOIN screening_results s1 ON a1.assignment_id = s1.assignment_id AND s1.is_sandbox = ?
-            JOIN task_assignments al ON p.cid = al.target_cid AND al.round_number > 1 AND al.assignment_status = 'completed' AND al.budget_year = ? AND al.is_sandbox = ?
-            JOIN screening_results sl ON al.assignment_id = sl.assignment_id AND sl.is_sandbox = ?
-            JOIN (
-                SELECT target_cid, MAX(round_number) as max_round
-                FROM task_assignments
-                WHERE assignment_status = 'completed' AND budget_year = ? AND is_sandbox = ?
-                GROUP BY target_cid
-            ) max_a ON al.target_cid = max_a.target_cid AND al.round_number = max_a.max_round
-            WHERE (? = 0 OR al.round_number = ?)
+            JOIN screening_results sl ON (sl.target_cid = p.cid OR sl.assignment_id IN (SELECT a_sub.assignment_id FROM task_assignments a_sub WHERE a_sub.target_cid = p.cid))
+            LEFT JOIN task_assignments al ON al.assignment_id = sl.assignment_id
+            LEFT JOIN screening_results s1 ON (s1.target_cid = p.cid OR s1.assignment_id IN (SELECT a1_sub.assignment_id FROM task_assignments a1_sub WHERE a1_sub.target_cid = p.cid)) AND COALESCE(s1.round_number, 1) = 1
+            WHERE COALESCE(sl.round_number, al.round_number, 1) >= 2
+              AND (sl.is_sandbox = ? OR (sl.is_sandbox IS NULL AND ? = 0))
+              AND (al.budget_year = ? OR al.budget_year IS NULL OR ? = 0)
+              AND (? = 0 OR COALESCE(sl.round_number, al.round_number) = ?)
               AND (? = '' OR DATE(sl.created_at) >= ?)
               AND (? = '' OR DATE(sl.created_at) <= ?)
               AND p.hoscode IN ($inPlaceholders)
@@ -308,10 +304,10 @@ if (DemoDataProvider::isDemoMode()) {
         ");
         $ncdBeforeAfterStmt->execute(array_merge([
             $isSandboxVal, $isSandboxVal,
-            $selectedBudgetYear, $isSandboxVal, $isSandboxVal,
-            $selectedBudgetYear, $isSandboxVal,
+            $selectedBudgetYear, $selectedBudgetYear,
             $selectedRound, $selectedRound,
-            $dateFrom, $dateFrom, $dateTo, $dateTo
+            $dateFrom, $dateFrom,
+            $dateTo, $dateTo
         ], $hoscodes));
         $ncdBeforeAfterData = $ncdBeforeAfterStmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (\Throwable $e) {}
@@ -1019,50 +1015,120 @@ $topConversionRisks = array_slice($conversionRiskList, 0, 10);
 // 7. VHV Quality & Impact Analytics
 // =========================================================================
 $vhvImpactData = [];
+
+// Tier 1: Query registered VHVs from vhv_users with subqueries
 try {
     $vhvImpactStmt = $pdo->prepare("
         SELECT 
-            COALESCE(v.vhv_id, a.vhv_id, a.assigned_vhv) AS vhv_id,
-            COALESCE(MAX(v.vhv_name), MAX(a.assigned_vhv), 'อสม.') AS vhv_name,
-            COALESCE(MAX(v.hoscode), MAX(p.hoscode)) AS hoscode,
-            COALESCE(MAX(vil.village_name), CONCAT('หมู่ ', MAX(p.moo))) AS village,
-            COUNT(DISTINCT a.assignment_id) AS total_screened,
-            SUM(CASE WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN 1 ELSE 0 END) AS risk_found,
-            COUNT(DISTINCT CASE WHEN a.round_number >= 2 THEN a.target_cid END) AS total_followups,
-            SUM(CASE 
-                WHEN a.round_number >= 2 AND (
-                    (s.sys_bp1 < s1.sys_bp1 AND s1.sys_bp1 >= 140) OR
-                    (s.dtx_value < s1.dtx_value AND s1.dtx_value >= 126) OR
-                    (s.sys_bp1 < 140 AND s.dia_bp1 < 90 AND (s1.sys_bp1 >= 140 OR s1.dia_bp1 >= 90))
-                ) THEN 1 ELSE 0
-            END) AS dpac_improved_count
-        FROM task_assignments a
-        JOIN target_population p ON a.target_cid = p.cid
-        LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
-        LEFT JOIN vhv_users v ON (a.vhv_id = v.vhv_id OR a.assigned_vhv = v.vhv_name OR a.assigned_vhv = v.vhv_id)
-        LEFT JOIN villages vil ON (vil.vhid_code = p.vhid_code OR (vil.moo = p.moo AND vil.sub_district_code = p.sub_district_code))
-        LEFT JOIN task_assignments a1 ON a1.target_cid = a.target_cid AND a1.round_number = 1 AND a1.assignment_status = 'completed'
-        LEFT JOIN screening_results s1 ON a1.assignment_id = s1.assignment_id
-        WHERE a.assignment_status = 'completed'
-          AND (a.is_sandbox = ? OR (a.is_sandbox IS NULL AND ? = 0))
-          AND (a.budget_year = ? OR a.budget_year IS NULL OR ? = 0)
-          AND (a.vhv_id IS NOT NULL OR (a.assigned_vhv IS NOT NULL AND a.assigned_vhv != ''))
-          AND (? = '' OR DATE(s.created_at) >= ?)
-          AND (? = '' OR DATE(s.created_at) <= ?)
-          AND p.hoscode IN ($inPlaceholders)
-        GROUP BY COALESCE(v.vhv_id, a.vhv_id, a.assigned_vhv)
+            v.vhv_id,
+            v.vhv_name,
+            v.hoscode,
+            COALESCE(vil.village_name, CONCAT('หมู่ ', v.vhv_moo)) AS village,
+            (
+                SELECT COUNT(DISTINCT a.assignment_id)
+                FROM task_assignments a
+                JOIN target_population p ON a.target_cid = p.cid
+                WHERE (a.vhv_id = v.vhv_id OR a.assigned_vhv = v.vhv_name)
+                  AND a.assignment_status = 'completed'
+                  AND (a.is_sandbox = ? OR (a.is_sandbox IS NULL AND ? = 0))
+                  AND (a.budget_year = ? OR a.budget_year IS NULL OR ? = 0)
+            ) AS total_screened,
+            (
+                SELECT COUNT(DISTINCT s.screening_id)
+                FROM screening_results s
+                JOIN task_assignments a ON s.assignment_id = a.assignment_id
+                JOIN target_population p ON a.target_cid = p.cid
+                WHERE (a.vhv_id = v.vhv_id OR a.assigned_vhv = v.vhv_name)
+                  AND a.assignment_status = 'completed'
+                  AND (a.is_sandbox = ? OR (a.is_sandbox IS NULL AND ? = 0))
+                  AND (a.budget_year = ? OR a.budget_year IS NULL OR ? = 0)
+                  AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126)
+            ) AS risk_found,
+            (
+                SELECT COUNT(DISTINCT a.target_cid)
+                FROM task_assignments a
+                WHERE (a.vhv_id = v.vhv_id OR a.assigned_vhv = v.vhv_name)
+                  AND a.assignment_status = 'completed'
+                  AND a.round_number >= 2
+                  AND (a.is_sandbox = ? OR (a.is_sandbox IS NULL AND ? = 0))
+                  AND (a.budget_year = ? OR a.budget_year IS NULL OR ? = 0)
+            ) AS total_followups,
+            (
+                SELECT COUNT(DISTINCT al.target_cid)
+                FROM task_assignments al
+                JOIN screening_results sl ON al.assignment_id = sl.assignment_id
+                LEFT JOIN task_assignments a1 ON a1.target_cid = al.target_cid AND a1.round_number = 1 AND a1.assignment_status = 'completed'
+                LEFT JOIN screening_results s1 ON a1.assignment_id = s1.assignment_id
+                WHERE (al.vhv_id = v.vhv_id OR al.assigned_vhv = v.vhv_name)
+                  AND al.assignment_status = 'completed'
+                  AND al.round_number >= 2
+                  AND (al.is_sandbox = ? OR (al.is_sandbox IS NULL AND ? = 0))
+                  AND (al.budget_year = ? OR al.budget_year IS NULL OR ? = 0)
+                  AND (
+                      (sl.sys_bp1 < s1.sys_bp1 AND s1.sys_bp1 >= 140) OR
+                      (sl.dtx_value < s1.dtx_value AND s1.dtx_value >= 126) OR
+                      (sl.sys_bp1 < 140 AND sl.dia_bp1 < 90 AND (s1.sys_bp1 >= 140 OR s1.dia_bp1 >= 90))
+                  )
+            ) AS dpac_improved_count
+        FROM vhv_users v
+        LEFT JOIN villages vil ON (vil.vhid_code = v.vhid_code OR (vil.moo = v.vhv_moo AND vil.hoscode = v.hoscode))
+        WHERE v.hoscode IN ($inPlaceholders)
         HAVING total_screened > 0
         ORDER BY dpac_improved_count DESC, risk_found DESC, total_screened DESC
         LIMIT 5
     ");
     $vhvImpactStmt->execute(array_merge([
-        $isSandboxVal, $isSandboxVal,
-        $selectedBudgetYear, $selectedBudgetYear,
-        $dateFrom, $dateFrom,
-        $dateTo, $dateTo
+        $isSandboxVal, $isSandboxVal, $selectedBudgetYear, $selectedBudgetYear,
+        $isSandboxVal, $isSandboxVal, $selectedBudgetYear, $selectedBudgetYear,
+        $isSandboxVal, $isSandboxVal, $selectedBudgetYear, $selectedBudgetYear,
+        $isSandboxVal, $isSandboxVal, $selectedBudgetYear, $selectedBudgetYear
     ], $hoscodes));
     $vhvImpactData = $vhvImpactStmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (\Throwable $e) {}
+
+// Tier 2: Fallback querying directly from task_assignments if vhv_users subquery returned empty
+if (empty($vhvImpactData)) {
+    try {
+        $fallbackStmt = $pdo->prepare("
+            SELECT 
+                COALESCE(a.vhv_id, a.assigned_vhv, 'VHV') AS vhv_id,
+                COALESCE(MAX(v.vhv_name), MAX(a.assigned_vhv), MAX(a.vhv_id), 'อสม.') AS vhv_name,
+                COALESCE(MAX(v.hoscode), MAX(p.hoscode)) AS hoscode,
+                COALESCE(MAX(vil.village_name), CONCAT('หมู่ ', MAX(p.moo))) AS village,
+                COUNT(DISTINCT a.assignment_id) AS total_screened,
+                SUM(CASE WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN 1 ELSE 0 END) AS risk_found,
+                COUNT(DISTINCT CASE WHEN a.round_number >= 2 THEN a.target_cid END) AS total_followups,
+                SUM(CASE 
+                    WHEN a.round_number >= 2 AND (
+                        (s.sys_bp1 < s1.sys_bp1 AND s1.sys_bp1 >= 140) OR
+                        (s.dtx_value < s1.dtx_value AND s1.dtx_value >= 126) OR
+                        (s.sys_bp1 < 140 AND s.dia_bp1 < 90 AND (s1.sys_bp1 >= 140 OR s1.dia_bp1 >= 90))
+                    ) THEN 1 ELSE 0
+                END) AS dpac_improved_count
+            FROM task_assignments a
+            JOIN target_population p ON a.target_cid = p.cid
+            LEFT JOIN screening_results s ON a.assignment_id = s.assignment_id
+            LEFT JOIN vhv_users v ON (a.vhv_id = v.vhv_id OR a.assigned_vhv = v.vhv_name OR a.assigned_vhv = v.vhv_id)
+            LEFT JOIN villages vil ON (vil.vhid_code = p.vhid_code OR (vil.moo = p.moo AND vil.sub_district_code = p.sub_district_code))
+            LEFT JOIN task_assignments a1 ON a1.target_cid = a.target_cid AND a1.round_number = 1 AND a1.assignment_status = 'completed'
+            LEFT JOIN screening_results s1 ON a1.assignment_id = s1.assignment_id
+            WHERE a.assignment_status = 'completed'
+              AND (a.is_sandbox = ? OR (a.is_sandbox IS NULL AND ? = 0))
+              AND (a.budget_year = ? OR a.budget_year IS NULL OR ? = 0)
+              AND (a.vhv_id IS NOT NULL OR a.assigned_vhv IS NOT NULL)
+              AND p.hoscode IN ($inPlaceholders)
+            GROUP BY COALESCE(a.vhv_id, a.assigned_vhv)
+            HAVING total_screened > 0
+            ORDER BY dpac_improved_count DESC, risk_found DESC, total_screened DESC
+            LIMIT 5
+        ");
+        $fallbackStmt->execute(array_merge([
+            $isSandboxVal, $isSandboxVal,
+            $selectedBudgetYear, $selectedBudgetYear
+        ], $hoscodes));
+        $vhvImpactData = $fallbackStmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (\Throwable $e) {}
+}
 
 $totalScreenedAll = 0;
 $totalRiskFoundAll = 0;
@@ -1077,15 +1143,11 @@ try {
         WHERE a.assignment_status = 'completed'
           AND (a.is_sandbox = ? OR (a.is_sandbox IS NULL AND ? = 0))
           AND (a.budget_year = ? OR a.budget_year IS NULL OR ? = 0)
-          AND (? = '' OR DATE(s.created_at) >= ?)
-          AND (? = '' OR DATE(s.created_at) <= ?)
           AND p.hoscode IN ($inPlaceholders)
     ");
     $overallYieldStmt->execute(array_merge([
         $isSandboxVal, $isSandboxVal,
-        $selectedBudgetYear, $selectedBudgetYear,
-        $dateFrom, $dateFrom,
-        $dateTo, $dateTo
+        $selectedBudgetYear, $selectedBudgetYear
     ], $hoscodes));
     $overallYield = $overallYieldStmt->fetch(PDO::FETCH_ASSOC);
     if ($overallYield) {
