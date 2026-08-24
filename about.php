@@ -575,9 +575,35 @@ function get_time_diff_display($timestamp) {
         }
 
         .verified-badge {
-            font-size: 13px;
-            color: var(--color-accent);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 17px;
+            height: 17px;
+            background: radial-gradient(circle at 35% 35%, #38bdf8 0%, #0284c7 100%);
+            color: #ffffff;
+            border-radius: 50%;
+            font-size: 10.5px;
+            font-weight: 900;
+            line-height: 1;
+            box-shadow: 0 2px 5px rgba(2, 132, 199, 0.35), inset 1px 1px 2px rgba(255, 255, 255, 0.8), inset -1px -1px 2px rgba(0, 0, 0, 0.2);
             cursor: help;
+            vertical-align: middle;
+            margin-left: 3px;
+            border: 1.5px solid #ffffff;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .verified-badge:hover {
+            transform: scale(1.18);
+            box-shadow: 0 0 10px rgba(14, 165, 233, 0.6), inset 1px 1px 2px rgba(255, 255, 255, 0.9);
+        }
+
+        [data-theme="dark"] .verified-badge {
+            background: radial-gradient(circle at 35% 35%, #38bdf8 0%, #0369a1 100%);
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.5), inset 1px 1px 2px rgba(255, 255, 255, 0.7);
+            border-color: rgba(255, 255, 255, 0.4);
         }
 
         .dev-role {
@@ -916,7 +942,7 @@ function get_time_diff_display($timestamp) {
                         <span class="verified-badge" title="ผู้พัฒนาระบบที่ได้รับการรับรอง">✓</span>
                     </div>
                     <div class="dev-role">
-                        <span style="display: inline-block; background: rgba(13, 44, 84, 0.08); color: var(--color-primary); padding: 2px 8px; border-radius: 6px; font-weight: 800; font-size: 11.5px; margin-bottom: 4px;">🚀 Solo Developer</span><br>
+                        <span style="display: inline-block; background: rgba(13, 44, 84, 0.08); color: var(--color-primary); padding: 2px 8px; border-radius: 6px; font-weight: 800; font-size: 11.5px; margin-bottom: 4px;">Solo Developer</span><br>
                         นักวิชาการคอมพิวเตอร์ • สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?>
                     </div>
                 </div>

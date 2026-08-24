@@ -228,6 +228,38 @@ if (file_exists('assets/aboutus.png')) {
         margin: 0;
         color: var(--text-primary, #0f172a);
         line-height: 1.3;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .verified-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 17px;
+        height: 17px;
+        background: radial-gradient(circle at 35% 35%, #38bdf8 0%, #0284c7 100%);
+        color: #ffffff;
+        border-radius: 50%;
+        font-size: 10.5px;
+        font-weight: 900;
+        line-height: 1;
+        box-shadow: 0 2px 5px rgba(2, 132, 199, 0.35), inset 1px 1px 2px rgba(255, 255, 255, 0.8), inset -1px -1px 2px rgba(0, 0, 0, 0.2);
+        cursor: help;
+        border: 1.5px solid #ffffff;
+        transition: transform 0.2s ease;
+        flex-shrink: 0;
+    }
+
+    .verified-badge:hover {
+        transform: scale(1.18);
+    }
+
+    [data-theme="dark"] .verified-badge {
+        background: radial-gradient(circle at 35% 35%, #38bdf8 0%, #0369a1 100%);
+        box-shadow: 0 0 8px rgba(56, 189, 248, 0.5), inset 1px 1px 2px rgba(255, 255, 255, 0.7);
+        border-color: rgba(255, 255, 255, 0.4);
     }
 
     .dev-title {
@@ -283,8 +315,8 @@ if (file_exists('assets/aboutus.png')) {
         <div class="dev-profile-section">
             <img src="<?= $path_prefix ?>assets/developer.jpg" alt="Developer Avatar" class="dev-avatar">
             <div class="dev-profile-info">
-                <span class="dev-badge">🚀 Solo Developer • ผู้พัฒนาระบบ</span>
-                <h4 class="dev-name">นายบุญธรรม พันธ์ใหญ่</h4>
+                <span class="dev-badge">Solo Developer • ผู้พัฒนาระบบ</span>
+                <h4 class="dev-name">นายบุญธรรม พันธ์ใหญ่ <span class="verified-badge" title="ผู้พัฒนาระบบที่ได้รับการรับรอง">✓</span></h4>
                 <p class="dev-title">นักวิชาการคอมพิวเตอร์ </p>
                 <p class="dev-title">สำนักงานสาธารณสุขอำเภอตาลสุม</p>
                 <p class="dev-title">จังหวัดอุบลราชธานี</p>
@@ -292,8 +324,7 @@ if (file_exists('assets/aboutus.png')) {
         </div>
 
         <div class="dev-footer-info">
-            <span class="dev-version-tag">v2.0 (Stable Version 2 - Build <?= htmlspecialchars($build_number) ?>)</span>
-            <span class="dev-dismiss-hint">⏱️ หายไปเองใน 5 วินาที (หรือแตะที่ใดก็ได้เพื่อปิด)</span>
+            <span class="dev-version-tag">v2.1 (Stable Version 2.1 - Build <?= htmlspecialchars($build_number) ?>)</span>
         </div>
     </div>
 </div>
