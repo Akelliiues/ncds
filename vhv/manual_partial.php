@@ -818,8 +818,6 @@ $province = defined('PROVINCE_NAME') ? PROVINCE_NAME : 'อุบลราชธ
             </div>
 
         </div>
-
-    </div>
 </div>
 
 <script>
