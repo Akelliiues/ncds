@@ -1272,20 +1272,20 @@ try {
                                     $vStatusDesc = "✅ ดูแลและคัดกรองประชากรครบถ้วน ({$r1Dn} ราย)";
                                 }
                             ?>
-                                <div style="background: rgba(13, 44, 84, 0.02); border: 1px solid rgba(13, 44, 84, 0.06); padding: 12px 14px; border-radius: 14px;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                                        <span style="font-size: 13.5px; font-weight: 800; color: var(--text-primary);">
+                                <div class="leaderboard-row" style="background: var(--bg-card); box-shadow: var(--neumorph-flat); padding: 14px 14px; border-radius: var(--border-radius); margin-bottom: 12px; position: relative; overflow: hidden;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                        <strong style="font-size: 14.5px; font-weight: 800; color: var(--text-primary);">
                                             หมู่ที่ <?= htmlspecialchars($vStat['moo']) ?> <?= !empty($vStat['village_name']) ? htmlspecialchars($vStat['village_name']) : '' ?>
-                                        </span>
-                                        <span style="background: <?= $vBadgeBg ?>; color: <?= $vBadgeColor ?>; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px;">
+                                        </strong>
+                                        <span style="background: <?= $vBadgeBg ?>; color: <?= $vBadgeColor ?>; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);">
                                             <?= $vBadge ?>
                                         </span>
                                     </div>
-                                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">
+                                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
                                         <span><?= $vStatusDesc ?></span>
                                     </div>
-                                    <div style="width: 100%; height: 8px; background: rgba(13, 44, 84, 0.08); border-radius: 4px; overflow: hidden; box-shadow: var(--neumorph-inset);">
-                                        <div style="width: 100%; height: 100%; background: <?= $vBarGradient ?>; border-radius: 4px;"></div>
+                                    <div style="width: 100%; height: 6px; background: rgba(13, 44, 84, 0.08); border-radius: 3px; overflow: hidden; box-shadow: var(--neumorph-inset);">
+                                        <div style="width: 100%; height: 100%; background: <?= $vBarGradient ?>; border-radius: 3px;"></div>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -1364,28 +1364,49 @@ try {
                                     $statusDesc = "✅ บรรลุเป้าหมายรอบแรกครบ 100%";
                                 }
                             ?>
-                                <div style="<?= $isMyHos ? 'background: rgba(13, 110, 253, 0.05); border: 1.5px solid var(--color-accent); padding: 12px 14px; border-radius: 14px; box-shadow: 0 4px 12px rgba(13, 110, 253, 0.08);' : 'background: rgba(13, 44, 84, 0.02); border: 1px solid rgba(13, 44, 84, 0.06); padding: 12px 14px; border-radius: 14px;' ?>">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                            <span style="font-size: 16px;"><?= $rankIcon ?></span>
-                                            <span style="font-size: 14px; font-weight: 800; color: var(--text-primary);">
+                                <div class="leaderboard-row"
+                                    style="<?= $isMyHos 
+                                        ? 'background: rgba(13, 110, 253, 0.08) !important; border: 2px solid var(--color-accent) !important; box-shadow: var(--neumorph-inset) !important;' 
+                                        : 'background: var(--bg-card); box-shadow: var(--neumorph-flat);' ?> display: flex; align-items: center; padding: 14px 14px; border-radius: var(--border-radius); margin-bottom: 12px; position: relative; overflow: hidden;">
+
+                                    <!-- Faded background watermark rank number -->
+                                    <div style="position: absolute; right: 18px; bottom: -15px; font-size: 64px; font-weight: 900; color: rgba(13, 44, 84, 0.04); pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif;">
+                                        <?= $hRank ?>
+                                    </div>
+
+                                    <!-- Left: Rank Trophy / Medal Icon -->
+                                    <div style="width: 44px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; position: relative; z-index: 2;">
+                                        <?= renderVhvRankEmblem($hRank, ($hRank <= 3 ? 'md' : 'sm')) ?>
+                                    </div>
+
+                                    <!-- Center & Main: Hospital Title + Badge + Status + Progress -->
+                                    <div class="leader-info" style="position: relative; z-index: 2; flex: 1; min-width: 0;">
+                                        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                            <strong style="color: var(--text-primary); font-size: 15px; font-weight: 800; line-height: 1.3;">
                                                 #<?= $hRank ?> <?= htmlspecialchars($hName) ?>
-                                            </span>
+                                            </strong>
                                             <?php if ($isMyHos): ?>
-                                                <span style="background: var(--color-accent); color: #fff; font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px;">
+                                                <span style="background: var(--color-accent); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px;">
                                                     รพ.สต. ของคุณ
                                                 </span>
                                             <?php endif; ?>
                                         </div>
-                                        <span style="background: <?= $tierBg ?>; color: <?= $tierColor ?>; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; white-space: nowrap;">
-                                            <?= $tierBadge ?>
-                                        </span>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">
-                                        <span><?= $statusDesc ?></span>
-                                    </div>
-                                    <div style="width: 100%; height: 8px; background: rgba(13, 44, 84, 0.08); border-radius: 4px; overflow: hidden; box-shadow: var(--neumorph-inset);">
-                                        <div style="width: <?= $barPct ?>%; height: 100%; background: <?= $barGradient ?>; border-radius: 4px; transition: width 0.8s ease-in-out;"></div>
+
+                                        <!-- Realm Tier Badge Pill -->
+                                        <div style="margin-top: 4px; margin-bottom: 4px;">
+                                            <span style="display: inline-flex; align-items: center; gap: 4px; background: <?= $tierBg ?>; color: <?= $tierColor ?>; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);">
+                                                <?= $tierBadge ?>
+                                            </span>
+                                        </div>
+
+                                        <p style="margin: 0; font-size: 12px; color: var(--text-secondary); line-height: 1.3;">
+                                            <?= $statusDesc ?>
+                                        </p>
+
+                                        <!-- Mini Relative Bar -->
+                                        <div style="width: 100%; height: 6px; background: rgba(13, 44, 84, 0.08); border-radius: 3px; overflow: hidden; box-shadow: var(--neumorph-inset); margin-top: 8px;">
+                                            <div style="width: <?= $barPct ?>%; height: 100%; background: <?= $barGradient ?>; border-radius: 3px; transition: width 0.8s ease-in-out;"></div>
+                                        </div>
                                     </div>
                                 </div>
                             <?php
