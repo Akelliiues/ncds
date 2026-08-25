@@ -865,7 +865,7 @@ $tamScoreTotal = 4.74; // Mean Out of 5.00
                 <select name="budget_year" id="filter-budget-year" class="filter-select">
                     <?php foreach ($availableBudgetYears as $by): ?>
                         <option value="<?= $by ?>" <?= $selectedBudgetYear == $by ? 'selected' : '' ?>>
-                            ปีงบประมาณ <?= $by ?> (<?= $by + 543 ?>)
+                            ปีงบประมาณ <?= $by + 543 ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
