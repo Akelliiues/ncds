@@ -465,9 +465,9 @@ if (DemoDataProvider::isDemoMode()) {
                         <p style="font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.4; text-size-adjust: none; -webkit-text-size-adjust: none;">ขอบคุณที่เป็นส่วนสำคัญในการร่วมดูแลสุขภาพชุมชนอำเภอ<?= DISTRICT_NAME ?></p>
                     </div>
 
-                    <!-- Shortcut Action -->
-                    <a href="leaderboard.php" style="margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; background: rgba(30, 64, 175, 0.08); border-radius: 50px; text-decoration: none; color: var(--color-accent); font-weight: 800; font-size: 13px; box-shadow: var(--neumorph-flat); transition: all 0.3s ease; text-size-adjust: none; -webkit-text-size-adjust: none;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
-                        🥇 ดูแต้มสะสมและตรารางวัล อสม.
+                    <!-- Shortcut Action: Self-Health Assessment for VHV -->
+                    <a href="../self_screening.php" onclick="if(typeof showPageLoading==='function'){showPageLoading('ประเมินความเสี่ยงตนเอง', 'กำลังเตรียมแบบคัดกรองสุขภาพ อสม....', '🌱', '../self_screening.php'); return false;}" style="margin-top: 6px; display: inline-flex; align-items: center; gap: 8px; padding: 11px 22px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(59, 130, 246, 0.12)); border: 1.5px solid rgba(16, 185, 129, 0.35); border-radius: 50px; text-decoration: none; color: var(--color-green, #10b981); font-weight: 800; font-size: 14px; box-shadow: var(--neumorph-flat); transition: all 0.3s ease; text-size-adjust: none; -webkit-text-size-adjust: none;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
+                        🌱 ประเมินความเสี่ยงสุขภาพตนเอง
                     </a>
                 </div>
             <?php else: ?>

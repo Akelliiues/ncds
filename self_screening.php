@@ -1,6 +1,9 @@
 <?php
 // self_screening.php - แบบประเมินสุขภาพและพฤติกรรมเสี่ยง NCDs ด้วยตนเองสำหรับประชาชน (Claymorphism & Overlay Navigation)
+require_once __DIR__ . '/config/session.php';
 require_once __DIR__ . '/config/db.php';
+
+$exitUrl = isset($_SESSION['vhv_id']) ? 'vhv/index.php' : 'index.php';
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -831,7 +834,7 @@ require_once __DIR__ . '/config/db.php';
         <!-- Top Nav & Progress Bar -->
         <div id="top-nav-section">
             <div class="top-nav-bar">
-                <a href="index.php" style="color: var(--text-secondary); text-decoration: none; font-size: 13.5px; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                <a href="<?= htmlspecialchars($exitUrl) ?>" style="color: var(--text-secondary); text-decoration: none; font-size: 13.5px; font-weight: 700; display: flex; align-items: center; gap: 4px;">
                     ✕ ออก
                 </a>
                 <span id="step-badge" class="progress-pill">🌱 เริ่มต้นง่ายๆ</span>
