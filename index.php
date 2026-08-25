@@ -169,12 +169,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="th">
 
 <head>
-    <script>
-        (function() {
-            const theme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', theme);
-        })();
-    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="mobile-web-app-capable" content="yes">
@@ -217,37 +211,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             --text-muted: #8c9ba8;
         }
 
-        [data-theme="dark"] {
-            --public-primary: #38bdf8;
-            --public-accent: #0ea5e9;
-            --public-cyan: #22d3ee;
-            --public-green: #34d399;
-            --public-amber: #fbbf24;
-            --public-rose: #fb7185;
-
-            /* Neumorphic Dark Palette */
-            --neu-base: #121924;
-            --neu-card-bg: #16202e;
-            --neu-sunken-bg: #0e141d;
-            --neu-surface-subtle: #1a2535;
-            --neu-border: rgba(255, 255, 255, 0.04);
-            
-            --neu-raised: 8px 8px 18px #0a0e15, -8px -8px 18px #223044;
-            --neu-raised-sm: 4px 4px 10px #0a0e15, -4px -4px 10px #223044;
-            --neu-raised-xs: 3px 3px 6px #0a0e15, -3px -3px 6px #223044;
-            --neu-inset: inset 3.5px 3.5px 7px #0a0e15, inset -3.5px -3.5px 7px #223044;
-            --neu-inset-sm: inset 2px 2px 4px #0a0e15, inset -2px -2px 4px #223044;
-            
-            --text-primary: #f8fafc;
-            --text-secondary: #cbd5e1;
-            --text-muted: #64748b;
-        }
-
+        /* ซ่อน scrollbar แนวตั้ง แต่ยังคง scroll หน้าจอได้ตามปกติ */
         html, body {
             min-height: 100vh;
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE and Edge */
+        }
+
+        html::-webkit-scrollbar,
+        body::-webkit-scrollbar,
+        *::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
         }
 
         body {
@@ -258,7 +237,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             align-items: center;
             justify-content: center;
             padding: 24px 16px;
-            transition: background 0.3s ease, color 0.3s ease;
         }
 
         .login-container {
@@ -622,21 +600,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <body>
     <div class="login-container">
-        <!-- Top Theme Switcher -->
-        <div class="login-top-bar">
-            <button id="theme-toggle-btn" class="neu-icon-btn" onclick="toggleTheme()" title="สลับโหมด มืด/สว่าง">
-                <!-- Sun Icon -->
-                <svg id="theme-toggle-sun" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display: none;">
-                    <circle cx="12" cy="12" r="5"></circle>
-                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
-                </svg>
-                <!-- Moon Icon -->
-                <svg id="theme-toggle-moon" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
-                </svg>
-            </button>
-        </div>
-
         <!-- Brand Header -->
         <div class="login-brand" onclick="openDevModal(event)" title="คลิกเพื่อดูรายละเอียดระบบและทีมพัฒนา"
             style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 16px; cursor: pointer;">
@@ -795,34 +758,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-        // Theme toggle matching main system
-        function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeIcons(newTheme);
-        }
-
-        function updateThemeIcons(theme) {
-            const sunIcon = document.getElementById('theme-toggle-sun');
-            const moonIcon = document.getElementById('theme-toggle-moon');
-            if (sunIcon && moonIcon) {
-                if (theme === 'dark') {
-                    sunIcon.style.display = 'block';
-                    moonIcon.style.display = 'none';
-                } else {
-                    sunIcon.style.display = 'none';
-                    moonIcon.style.display = 'block';
-                }
-            }
-        }
-
-        // Initialize theme state on DOM ready
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        updateThemeIcons(savedTheme);
-
         function showPageLoading(title, subtitle, icon, targetUrl) {
             const overlay = document.getElementById('page-loading-overlay');
             if (!overlay) return;

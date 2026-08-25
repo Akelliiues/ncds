@@ -72,11 +72,23 @@ html, body {
     overflow-y: scroll;
     max-width: 100%;
     
+    /* ซ่อน scrollbar แนวตั้ง แต่ยังคงเลื่อน scroll ได้ตามปกติ */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    
     /* Disable browser dynamic text autoscaling to permanently lock layout proportions */
     text-size-adjust: none;
     -webkit-text-size-adjust: none;
     -moz-text-size-adjust: none;
     -ms-text-size-adjust: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
 }
 
 body {

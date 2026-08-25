@@ -742,11 +742,11 @@ if (!function_exists('renderKpiGenderSplit')) {
             --neu-card-bg: #ebf0f7;
             --neu-sunken-bg: #e2eaf4;
             --neu-surface-subtle: #f0f5fc;
-            --neu-border: rgba(255, 255, 255, 0.7);
+            --neu-border: rgba(255, 255, 255, 0.75);
             
             --neu-raised: 8px 8px 18px #cad5e2, -8px -8px 18px #ffffff;
             --neu-raised-sm: 4px 4px 10px #cad5e2, -4px -4px 10px #ffffff;
-            --neu-raised-lg: 12px 12px 24px #cad5e2, -12px -12px 24px #ffffff;
+            --neu-raised-lg: 14px 14px 28px #cad5e2, -14px -14px 28px #ffffff;
             --neu-inset: inset 4px 4px 8px #cad5e2, inset -4px -4px 8px #ffffff;
             --neu-inset-sm: inset 2.5px 2.5px 5px #cad5e2, inset -2.5px -2.5px 5px #ffffff;
             --neu-inset-xs: inset 1.5px 1.5px 3px #cad5e2, inset -1.5px -1.5px 3px #ffffff;
@@ -784,6 +784,20 @@ if (!function_exists('renderKpiGenderSplit')) {
             --text-primary: #f8fafc;
             --text-secondary: #cbd5e1;
             --text-muted: #64748b;
+        }
+
+        /* ซ่อน scrollbar แนวตั้ง แต่ยังคง scroll หน้าจอได้ตามปกติ */
+        html, body {
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE and Edge */
+        }
+
+        html::-webkit-scrollbar,
+        body::-webkit-scrollbar,
+        *::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
         }
 
         body {

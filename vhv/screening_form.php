@@ -768,7 +768,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                     </div>
 
                     <!-- Behavior Toggles (3อ. 2ส.) -->
-                    <span class="form-label-big" style="font-size: 18px; margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 15px;">🥗 พฤติกรรมสุขภาพ (3อ. 2ส.)</span>
+                    <span class="form-label-big" style="font-size: 18px; margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 15px;">🥗 พฤติกรรมสุขภาพ (3อ. 2ส. 1น.)</span>
 
                     <!-- 1. อาหาร (Food Behavior - 2x2 Grid) -->
                     <div style="margin-bottom: 20px;">
