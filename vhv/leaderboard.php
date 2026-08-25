@@ -1083,8 +1083,8 @@ try {
                 <button onclick="switchTab('hospitals')" id="btn-hospitals" class="tab-btn" title="ลีก รพ.สต.">
                     <img src="../assets/icons/tab_hospital_league.png" alt="ลีก รพ.สต." class="tab-icon-img">
                 </button>
-                <button onclick="switchTab('badges')" id="btn-badges" class="tab-btn" title="เกณฑ์ตราเกียรติยศ">
-                    <img src="../assets/icons/tab_badge_criteria.png" alt="เกณฑ์ตราเกียรติยศ" class="tab-icon-img">
+                <button onclick="switchTab('badges')" id="btn-badges" class="tab-btn" title="ตราเกียรติยศ">
+                    <img src="../assets/icons/tab_badge_criteria.png" alt="ตราเกียรติยศ" class="tab-icon-img">
                 </button>
             </div>
 
