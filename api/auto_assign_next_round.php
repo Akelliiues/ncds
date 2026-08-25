@@ -82,9 +82,9 @@ try {
     if ($group === 'suspect') {
         $targetQuery .= " AND p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35";
     } elseif ($group === 'under_35_risk') {
-        $targetQuery .= " AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) < 35 AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1 OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH') OR COALESCE(p.is_manual, 0) = 1)";
+        $targetQuery .= " AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) < 35 AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)";
     } else {
-        $targetQuery .= " AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1 OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH') OR COALESCE(p.is_manual, 0) = 1)";
+        $targetQuery .= " AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)";
     }
 
     if (!$isSandboxVal) {
