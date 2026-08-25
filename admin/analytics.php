@@ -1447,6 +1447,26 @@ try {
 <body class="admin-body dashboard-page">
     <?php include 'navbar.php'; ?>
 
+    <!-- Dedicated Analytics Preloader (Active while preparing charts & GIS maps) -->
+    <div id="analytics-preloader" class="ncd-page-overlay active" style="display: flex; position: fixed; inset: 0; z-index: 999999; background: var(--bg-main, #f8fafc); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); align-items: center; justify-content: center; transition: opacity 0.35s ease, visibility 0.35s ease;">
+        <div class="loading-modal-card" style="box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+            <div class="loading-spinner-ring" style="width: 64px; height: 64px;">
+                <span class="loading-pulse-icon" style="font-size: 28px;">📈</span>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 16.5px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">
+                    ระบบวิเคราะห์ข้อมูลเชิงลึก (Advanced Analytics)
+                </div>
+                <div style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;">
+                    กำลังคำนวณสถิติสุขภาพ แผนภูมิ และประมวลผลแผนที่ GIS...
+                </div>
+            </div>
+            <div class="loading-progress-track" style="width: 100%; height: 5px;">
+                <div class="loading-progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
     <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
         <h2 style="margin-bottom: 4px; display: flex; align-items: center; gap: 12px;">
             <?= render_neu_icon('analytics-bars', 'lg', 'text-navy') ?>
@@ -3109,6 +3129,29 @@ try {
                 alert('ไม่สามารถคัดลอกข้อมูลได้: ' + err);
             });
         }
+
+        // Auto-dismiss analytics preloader once all charts & GIS are rendered
+        function dismissAnalyticsPreloader() {
+            var ap = document.getElementById('analytics-preloader');
+            if (ap) {
+                ap.style.opacity = '0';
+                ap.style.visibility = 'hidden';
+                setTimeout(function() {
+                    if (ap && ap.parentNode) ap.parentNode.removeChild(ap);
+                }, 350);
+            }
+            if (window.hidePageLoading) window.hidePageLoading();
+        }
+
+        // Trigger dismissal when charts are rendered and page loads
+        window.addEventListener('load', function() {
+            setTimeout(dismissAnalyticsPreloader, 150);
+        });
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(dismissAnalyticsPreloader, 400);
+        });
+        // Fallback safety dismissal
+        setTimeout(dismissAnalyticsPreloader, 3500);
     </script>
 </body>
 

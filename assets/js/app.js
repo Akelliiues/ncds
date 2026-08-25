@@ -546,9 +546,8 @@ window.getDeterministicPrivacyJitter = function(lat, lng, seedStr) {
         if (icon && iconEl) iconEl.innerText = icon;
 
         overlay.style.display = 'flex';
-        requestAnimationFrame(() => {
-            overlay.classList.add('active');
-        });
+        overlay.classList.add('active');
+        overlay.style.opacity = '1';
 
         // Safety Auto-Dismiss after 4.5 seconds to guarantee it NEVER freezes
         if (safetyTimeout) clearTimeout(safetyTimeout);
@@ -559,7 +558,7 @@ window.getDeterministicPrivacyJitter = function(lat, lng, seedStr) {
         if (targetUrl) {
             setTimeout(() => {
                 window.location.href = targetUrl;
-            }, 60);
+            }, 40);
         }
     };
 

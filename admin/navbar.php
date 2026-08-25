@@ -478,7 +478,7 @@ try {
                     </svg>
                     สถิติสุขภาพประชาชน
                 </a>
-                <a href="analytics.php" onclick="showPageLoading('วิเคราะห์เชิงลึก (Analytics)', 'กำลังคำนวณสถิติและประมวลผลแผนที่ GIS...', '📈');" class="<?= $current_page == 'analytics.php' ? 'active' : '' ?>">
+                <a href="analytics.php" onclick="showPageLoading('วิเคราะห์เชิงลึก (Analytics)', 'กำลังคำนวณสถิติและประมวลผลแผนที่ GIS...', '📈', 'analytics.php'); return false;" class="<?= $current_page == 'analytics.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16 8v8m-4-5v5m-4-2v2M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12z" />
                     </svg>
