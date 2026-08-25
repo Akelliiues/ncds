@@ -344,62 +344,90 @@ function getBadgesList($total_assigned, $completed, $waiting_rewards)
 $hoscode = $_SESSION['hoscode'] ?? '';
 $villageStats = [];
 if (!empty($hoscode)) {
-    $villQuery = "
-        SELECT 
-            p.moo,
-            MAX(v.village_name) as village_name,
-            -- Round 1 Targets
-            COUNT(DISTINCT CASE WHEN (a.round_number = 1 OR a.round_number IS NULL OR a.round_number = 0) THEN COALESCE(a.target_cid, s.target_cid, p.cid) END) as r1_total,
-            -- Round 1 Completed
-            COUNT(DISTINCT CASE WHEN (a.round_number = 1 OR a.round_number IS NULL OR a.round_number = 0) AND (
-                a.assignment_status = 'completed' 
-                OR s.screening_id IS NOT NULL 
-                OR r.reward_id IS NOT NULL
-            ) THEN COALESCE(a.target_cid, s.target_cid, p.cid) END) as r1_done,
-            -- Round 2 Targets
-            COUNT(DISTINCT CASE WHEN a.round_number >= 2 THEN a.assignment_id END) as r2_total,
-            -- Round 2 Completed
-            COUNT(DISTINCT CASE WHEN a.round_number >= 2 AND (
-                a.assignment_status = 'completed' 
-                OR s.screening_id IS NOT NULL 
-                OR r.reward_id IS NOT NULL
-            ) THEN a.assignment_id END) as r2_done,
-            -- Combined Mission Targets
-            (
-                COUNT(DISTINCT CASE WHEN (a.round_number = 1 OR a.round_number IS NULL OR a.round_number = 0) THEN COALESCE(a.target_cid, s.target_cid, p.cid) END) 
-                + 
-                COUNT(DISTINCT CASE WHEN a.round_number >= 2 THEN a.assignment_id END)
-            ) as total_targets,
-            (
-                COUNT(DISTINCT CASE WHEN (a.round_number = 1 OR a.round_number IS NULL OR a.round_number = 0) AND (
-                    a.assignment_status = 'completed' 
-                    OR s.screening_id IS NOT NULL 
-                    OR r.reward_id IS NOT NULL
-                ) THEN COALESCE(a.target_cid, s.target_cid, p.cid) END) 
-                + 
-                COUNT(DISTINCT CASE WHEN a.round_number >= 2 AND (
-                    a.assignment_status = 'completed' 
-                    OR s.screening_id IS NOT NULL 
-                    OR r.reward_id IS NOT NULL
-                ) THEN a.assignment_id END)
-            ) as completed_targets
-        FROM task_assignments a
-        JOIN target_population p ON a.target_cid = p.cid
-        LEFT JOIN villages v ON p.moo = v.moo AND (p.hoscode = v.hoscode OR CAST(p.hoscode AS UNSIGNED) = CAST(v.hoscode AS UNSIGNED))
-        LEFT JOIN screening_results s ON (s.assignment_id = a.assignment_id OR (s.target_cid = a.target_cid AND COALESCE(s.round_number, 1) = COALESCE(a.round_number, 1))) AND COALESCE(s.is_sandbox, 0) = ?
-        LEFT JOIN vhv_rewards r ON (r.assignment_id = a.assignment_id OR r.screening_id = s.screening_id) AND r.approval_status IN ('approved', 'waiting') AND COALESCE(r.is_sandbox, 0) = ?
-        WHERE (p.hoscode = ? OR CAST(p.hoscode AS UNSIGNED) = CAST(? AS UNSIGNED) OR LPAD(p.hoscode, 5, '0') = LPAD(?, 5, '0'))
-          AND (a.budget_year = ? OR a.budget_year IS NULL) 
-          AND COALESCE(a.is_sandbox, 0) = ?
-          AND p.moo > 0 
-          AND p.moo IS NOT NULL
-        GROUP BY p.moo
-        HAVING total_targets > 0
-        ORDER BY p.moo ASC
-    ";
-    $villStmt = $pdo->prepare($villQuery);
-    $villStmt->execute([$isSandboxVal, $isSandboxVal, $hoscode, $hoscode, $hoscode, $currentBudgetYear, $isSandboxVal]);
-    $villageStats = $villStmt->fetchAll();
+    try {
+        $villQuery = "
+            SELECT 
+                p.moo,
+                MAX(v.village_name) as village_name,
+                COUNT(DISTINCT p.cid) as total_targets,
+                -- Round 1 Completed
+                (SELECT COUNT(DISTINCT s1.target_cid) 
+                 FROM screening_results s1 
+                 LEFT JOIN task_assignments a1 ON s1.assignment_id = a1.assignment_id 
+                 JOIN target_population p1 ON (s1.target_cid = p1.cid OR a1.target_cid = p1.cid) 
+                 LEFT JOIN villages v1 ON p1.sub_district_code = v1.sub_district_code AND CAST(p1.moo AS UNSIGNED) = v1.moo 
+                 WHERE (p1.need_screen_dm = 1 OR p1.need_screen_ht = 1) 
+                   AND (COALESCE(v1.hoscode, p1.hoscode) = ? OR CAST(COALESCE(v1.hoscode, p1.hoscode) AS UNSIGNED) = CAST(? AS UNSIGNED))
+                   AND p1.moo = p.moo 
+                   AND (IFNULL(s1.round_number, a1.round_number) = 1 OR (s1.round_number IS NULL AND a1.round_number IS NULL))
+                   AND COALESCE(s1.is_sandbox, 0) = ?
+                ) as r1_done,
+                -- Round 2 Completed
+                (SELECT COUNT(DISTINCT s2.target_cid) 
+                 FROM screening_results s2 
+                 LEFT JOIN task_assignments a2 ON s2.assignment_id = a2.assignment_id 
+                 JOIN target_population p2 ON (s2.target_cid = p2.cid OR a2.target_cid = p2.cid) 
+                 LEFT JOIN villages v2 ON p2.sub_district_code = v2.sub_district_code AND CAST(p2.moo AS UNSIGNED) = v2.moo 
+                 WHERE (p2.need_screen_dm = 1 OR p2.need_screen_ht = 1) 
+                   AND (COALESCE(v2.hoscode, p2.hoscode) = ? OR CAST(COALESCE(v2.hoscode, p2.hoscode) AS UNSIGNED) = CAST(? AS UNSIGNED))
+                   AND p2.moo = p.moo 
+                   AND IFNULL(s2.round_number, a2.round_number) = 2
+                   AND COALESCE(s2.is_sandbox, 0) = ?
+                ) as r2_done,
+                -- Round 3+ Completed
+                (SELECT COUNT(DISTINCT s3.target_cid) 
+                 FROM screening_results s3 
+                 LEFT JOIN task_assignments a3 ON s3.assignment_id = a3.assignment_id 
+                 JOIN target_population p3 ON (s3.target_cid = p3.cid OR a3.target_cid = p3.cid) 
+                 LEFT JOIN villages v3 ON p3.sub_district_code = v3.sub_district_code AND CAST(p3.moo AS UNSIGNED) = v3.moo 
+                 WHERE (p3.need_screen_dm = 1 OR p3.need_screen_ht = 1) 
+                   AND (COALESCE(v3.hoscode, p3.hoscode) = ? OR CAST(COALESCE(v3.hoscode, p3.hoscode) AS UNSIGNED) = CAST(? AS UNSIGNED))
+                   AND p3.moo = p.moo 
+                   AND IFNULL(s3.round_number, a3.round_number) >= 3
+                   AND COALESCE(s3.is_sandbox, 0) = ?
+                ) as r3_done
+            FROM target_population p
+            LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
+            WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+              AND (COALESCE(v.hoscode, p.hoscode) = ? OR CAST(COALESCE(v.hoscode, p.hoscode) AS UNSIGNED) = CAST(? AS UNSIGNED))
+              AND p.moo > 0 
+              AND p.moo IS NOT NULL
+            GROUP BY p.moo
+            ORDER BY p.moo ASC
+        ";
+        $villStmt = $pdo->prepare($villQuery);
+        $villStmt->execute([
+            $hoscode, $hoscode, $isSandboxVal,
+            $hoscode, $hoscode, $isSandboxVal,
+            $hoscode, $hoscode, $isSandboxVal,
+            $hoscode, $hoscode
+        ]);
+        $rawVillageStats = $villStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($rawVillageStats as $row) {
+            $tot = (int)$row['total_targets'];
+            $r1 = (int)$row['r1_done'];
+            $r2 = (int)$row['r2_done'];
+            $r3 = (int)$row['r3_done'];
+            $comp = $r1 + $r2 + $r3;
+            $pct = $tot > 0 ? round(($comp / $tot) * 100, 1) : 0;
+
+            $villageStats[] = [
+                'moo' => $row['moo'],
+                'village_name' => $row['village_name'],
+                'total_targets' => $tot,
+                'r1_total' => $tot,
+                'r1_done' => $r1,
+                'r2_total' => $r2,
+                'r2_done' => $r2,
+                'r3_done' => $r3,
+                'completed_targets' => $comp,
+                'pct' => $pct
+            ];
+        }
+    } catch (\Exception $e) {
+        $villageStats = [];
+    }
 }
 
 // 2. Query hospital progress comparison (Tansum Health Center League - Multi-Round Mission Progress)
@@ -407,122 +435,114 @@ $hospitalStats = [];
 try {
     $hosQuery = "
         SELECT 
-            u.hoscode,
-            -- Round 1 Targets
-            COUNT(DISTINCT CASE WHEN (a.round_number = 1 OR a.round_number IS NULL OR a.round_number = 0) THEN COALESCE(a.target_cid, s.target_cid, p.cid) END) as r1_total,
+            COALESCE(v.hoscode, p.hoscode) as hoscode,
+            COUNT(DISTINCT p.cid) as total_targets,
             -- Round 1 Completed
-            COUNT(DISTINCT CASE WHEN (a.round_number = 1 OR a.round_number IS NULL OR a.round_number = 0) AND (
-                a.assignment_status = 'completed' 
-                OR s.screening_id IS NOT NULL 
-                OR r.reward_id IS NOT NULL
-            ) THEN COALESCE(a.target_cid, s.target_cid, p.cid) END) as r1_done,
-            -- Round 2 Targets (from task_assignments)
-            COUNT(DISTINCT CASE WHEN a.round_number >= 2 THEN a.assignment_id END) as r2_total,
-            -- Round 2 Completed
-            COUNT(DISTINCT CASE WHEN a.round_number >= 2 AND (
-                a.assignment_status = 'completed' 
-                OR s.screening_id IS NOT NULL 
-                OR r.reward_id IS NOT NULL
-            ) THEN a.assignment_id END) as r2_done,
-            -- Combined Mission Targets
-            (
-                COUNT(DISTINCT CASE WHEN (a.round_number = 1 OR a.round_number IS NULL OR a.round_number = 0) THEN COALESCE(a.target_cid, s.target_cid, p.cid) END) 
-                + 
-                COUNT(DISTINCT CASE WHEN a.round_number >= 2 THEN a.assignment_id END)
-            ) as total_targets,
-            (
-                COUNT(DISTINCT CASE WHEN (a.round_number = 1 OR a.round_number IS NULL OR a.round_number = 0) AND (
-                    a.assignment_status = 'completed' 
-                    OR s.screening_id IS NOT NULL 
-                    OR r.reward_id IS NOT NULL
-                ) THEN COALESCE(a.target_cid, s.target_cid, p.cid) END) 
-                + 
-                COUNT(DISTINCT CASE WHEN a.round_number >= 2 AND (
-                    a.assignment_status = 'completed' 
-                    OR s.screening_id IS NOT NULL 
-                    OR r.reward_id IS NOT NULL
-                ) THEN a.assignment_id END)
-            ) as completed_targets
-        FROM health_units u
-        JOIN target_population p ON (
-            u.hoscode = p.hoscode 
-            OR CAST(u.hoscode AS UNSIGNED) = CAST(p.hoscode AS UNSIGNED) 
-            OR LPAD(u.hoscode, 5, '0') = LPAD(p.hoscode, 5, '0')
-        )
-        JOIN task_assignments a ON p.cid = a.target_cid AND (a.budget_year = ? OR a.budget_year IS NULL) AND COALESCE(a.is_sandbox, 0) = ?
-        LEFT JOIN screening_results s ON (s.assignment_id = a.assignment_id OR (s.target_cid = a.target_cid AND COALESCE(s.round_number, 1) = COALESCE(a.round_number, 1))) AND COALESCE(s.is_sandbox, 0) = ?
-        LEFT JOIN vhv_rewards r ON (r.assignment_id = a.assignment_id OR r.screening_id = s.screening_id) AND r.approval_status IN ('approved', 'waiting') AND COALESCE(r.is_sandbox, 0) = ?
-        GROUP BY u.hoscode
-        HAVING total_targets > 0
-        ORDER BY (
-            (
-                COUNT(DISTINCT CASE WHEN (a.round_number = 1 OR a.round_number IS NULL OR a.round_number = 0) AND (a.assignment_status = 'completed' OR s.screening_id IS NOT NULL OR r.reward_id IS NOT NULL) THEN COALESCE(a.target_cid, s.target_cid, p.cid) END) 
-                + 
-                COUNT(DISTINCT CASE WHEN a.round_number >= 2 AND (a.assignment_status = 'completed' OR s.screening_id IS NOT NULL OR r.reward_id IS NOT NULL) THEN a.assignment_id END)
-            )
-            / 
-            (
-                COUNT(DISTINCT CASE WHEN (a.round_number = 1 OR a.round_number IS NULL OR a.round_number = 0) THEN COALESCE(a.target_cid, s.target_cid, p.cid) END) 
-                + 
-                COUNT(DISTINCT CASE WHEN a.round_number >= 2 THEN a.assignment_id END)
-            )
-        ) DESC, u.hoscode ASC
+            (SELECT COUNT(DISTINCT s1.target_cid) 
+             FROM screening_results s1 
+             LEFT JOIN task_assignments a1 ON s1.assignment_id = a1.assignment_id 
+             JOIN target_population p1 ON (s1.target_cid = p1.cid OR a1.target_cid = p1.cid) 
+             LEFT JOIN villages v1 ON p1.sub_district_code = v1.sub_district_code AND CAST(p1.moo AS UNSIGNED) = v1.moo 
+             WHERE (p1.need_screen_dm = 1 OR p1.need_screen_ht = 1) 
+               AND COALESCE(v1.hoscode, p1.hoscode) = COALESCE(v.hoscode, p.hoscode) 
+               AND (IFNULL(s1.round_number, a1.round_number) = 1 OR (s1.round_number IS NULL AND a1.round_number IS NULL))
+               AND COALESCE(s1.is_sandbox, 0) = ?
+            ) as r1_done,
+            -- Round 2 Completed (Screenings)
+            (SELECT COUNT(DISTINCT s2.target_cid) 
+             FROM screening_results s2 
+             LEFT JOIN task_assignments a2 ON s2.assignment_id = a2.assignment_id 
+             JOIN target_population p2 ON (s2.target_cid = p2.cid OR a2.target_cid = p2.cid) 
+             LEFT JOIN villages v2 ON p2.sub_district_code = v2.sub_district_code AND CAST(p2.moo AS UNSIGNED) = v2.moo 
+             WHERE (p2.need_screen_dm = 1 OR p2.need_screen_ht = 1) 
+               AND COALESCE(v2.hoscode, p2.hoscode) = COALESCE(v.hoscode, p.hoscode) 
+               AND IFNULL(s2.round_number, a2.round_number) = 2
+               AND COALESCE(s2.is_sandbox, 0) = ?
+            ) as r2_done,
+            -- Round 3+ Completed
+            (SELECT COUNT(DISTINCT s3.target_cid) 
+             FROM screening_results s3 
+             LEFT JOIN task_assignments a3 ON s3.assignment_id = a3.assignment_id 
+             JOIN target_population p3 ON (s3.target_cid = p3.cid OR a3.target_cid = p3.cid) 
+             LEFT JOIN villages v3 ON p3.sub_district_code = v3.sub_district_code AND CAST(p3.moo AS UNSIGNED) = v3.moo 
+             WHERE (p3.need_screen_dm = 1 OR p3.need_screen_ht = 1) 
+               AND COALESCE(v3.hoscode, p3.hoscode) = COALESCE(v.hoscode, p.hoscode) 
+               AND IFNULL(s3.round_number, a3.round_number) >= 3
+               AND COALESCE(s3.is_sandbox, 0) = ?
+            ) as r3_done
+        FROM target_population p
+        LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
+        WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+          AND COALESCE(v.hoscode, p.hoscode) IS NOT NULL
+        GROUP BY COALESCE(v.hoscode, p.hoscode)
     ";
     $hosStmt = $pdo->prepare($hosQuery);
-    $hosStmt->execute([$currentBudgetYear, $isSandboxVal, $isSandboxVal, $isSandboxVal]);
-    $hospitalStats = $hosStmt->fetchAll();
+    $hosStmt->execute([$isSandboxVal, $isSandboxVal, $isSandboxVal]);
+    $rawHosStats = $hosStmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Check if dpac_followups has additional records per hospital
+    // Merge DPAC Round 2 followups if any
     try {
-        $dpacHosStmt = $pdo->prepare("
+        $dpacStmt = $pdo->prepare("
             SELECT 
-                COALESCE(p.hoscode, v.hoscode) as hoscode,
+                COALESCE(v.hoscode, p.hoscode) as hoscode,
                 COUNT(DISTINCT f.followup_id) as dpac_total,
                 COUNT(DISTINCT CASE WHEN (
                     LOWER(TRIM(COALESCE(f.status, ''))) IN ('completed', 'done', 'approved', 'pass') 
                     OR f.completed_at IS NOT NULL 
                     OR f.bp_sys IS NOT NULL 
                     OR f.fbs IS NOT NULL
-                    OR r.reward_id IS NOT NULL
                 ) THEN f.followup_id END) as dpac_done
             FROM dpac_followups f
             JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
             JOIN target_population p ON e.cid = p.cid
-            LEFT JOIN users_vhv v ON f.vhv_id = v.vhv_id
-            LEFT JOIN vhv_rewards r ON (r.followup_id = f.followup_id) AND r.approval_status IN ('approved', 'waiting') AND COALESCE(r.is_sandbox, 0) = ?
+            LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
             WHERE COALESCE(f.is_sandbox, 0) = ?
-            GROUP BY COALESCE(p.hoscode, v.hoscode)
+            GROUP BY COALESCE(v.hoscode, p.hoscode)
         ");
-        $dpacHosStmt->execute([$isSandboxVal, $isSandboxVal]);
-        $dpacHosMap = [];
-        while ($dp = $dpacHosStmt->fetch(PDO::FETCH_ASSOC)) {
-            $dpacHosMap[$dp['hoscode']] = $dp;
+        $dpacStmt->execute([$isSandboxVal]);
+        $dpacMap = [];
+        while ($dp = $dpacStmt->fetch(PDO::FETCH_ASSOC)) {
+            $dpacMap[$dp['hoscode']] = (int)$dp['dpac_done'];
         }
+    } catch (\Throwable $e) {
+        $dpacMap = [];
+    }
 
-        if (!empty($dpacHosMap)) {
-            foreach ($hospitalStats as &$hStat) {
-                $uHc = $hStat['hoscode'];
-                foreach ($dpacHosMap as $dpHc => $dpVal) {
-                    if ($uHc === $dpHc || (int)$uHc === (int)$dpHc || str_pad($uHc, 5, '0', STR_PAD_LEFT) === str_pad($dpHc, 5, '0', STR_PAD_LEFT)) {
-                        $hStat['r2_total'] = (int)($hStat['r2_total'] ?? 0) + (int)$dpVal['dpac_total'];
-                        $hStat['r2_done'] = (int)($hStat['r2_done'] ?? 0) + (int)$dpVal['dpac_done'];
-                        $hStat['total_targets'] = (int)$hStat['total_targets'] + (int)$dpVal['dpac_total'];
-                        $hStat['completed_targets'] = (int)$hStat['completed_targets'] + (int)$dpVal['dpac_done'];
-                    }
-                }
-            }
-            unset($hStat);
+    $hospitalStats = [];
+    foreach ($rawHosStats as $row) {
+        $hc = $row['hoscode'];
+        $tot = (int)$row['total_targets'];
+        $r1 = (int)$row['r1_done'];
+        $r2 = (int)$row['r2_done'] + ($dpacMap[$hc] ?? 0);
+        $r3 = (int)$row['r3_done'];
+        $comp = $r1 + $r2 + $r3;
+        $pct = $tot > 0 ? round(($comp / $tot) * 100, 1) : 0;
 
-            usort($hospitalStats, function($a, $b) {
-                $pctA = $a['total_targets'] > 0 ? ($a['completed_targets'] / $a['total_targets']) : 0;
-                $pctB = $b['total_targets'] > 0 ? ($b['completed_targets'] / $b['total_targets']) : 0;
-                if ($pctA == $pctB) return strcmp($a['hoscode'], $b['hoscode']);
-                return ($pctA < $pctB) ? 1 : -1;
-            });
+        $hospitalStats[] = [
+            'hoscode' => $hc,
+            'total_targets' => $tot,
+            'r1_total' => $tot,
+            'r1_done' => $r1,
+            'r2_total' => $r2,
+            'r2_done' => $r2,
+            'r3_done' => $r3,
+            'completed_targets' => $comp,
+            'pct' => $pct
+        ];
+    }
+
+    // Sort by Project Performance % descending, then completed count descending
+    usort($hospitalStats, function($a, $b) {
+        if ($a['pct'] != $b['pct']) {
+            return ($a['pct'] < $b['pct']) ? 1 : -1;
         }
-    } catch (\Throwable $e) {}
+        if ($a['completed_targets'] != $b['completed_targets']) {
+            return ($a['completed_targets'] < $b['completed_targets']) ? 1 : -1;
+        }
+        return strcmp($a['hoscode'], $b['hoscode']);
+    });
 } catch (\Exception $e) {
-    // Fail silently
+    $hospitalStats = [];
 }
 $hcNames = get_health_units();
 
@@ -1238,7 +1258,7 @@ try {
                                     </div>
                                     <div style="display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-secondary); margin-bottom: 6px;">
                                         <span>รวม <?= $done ?>/<?= $total ?> เคส</span>
-                                        <span><?= $r2Tot > 0 ? "รอบ 1: {$r1Dn}/{$r1Tot} | รอบ 2: {$r2Dn}/{$r2Tot}" : "รอบ 1: {$r1Dn}/{$r1Tot}" ?></span>
+                                        <span><?= $r2Dn > 0 ? "รอบ 1: {$r1Dn}/{$r1Tot} | รอบ 2: {$r2Dn} เคส" : "รอบ 1: {$r1Dn}/{$r1Tot}" ?></span>
                                     </div>
                                     <div style="width: 100%; height: 10px; background: rgba(13, 44, 84, 0.08); border-radius: 5px; overflow: hidden; box-shadow: var(--neumorph-inset);">
                                         <div style="width: <?= min(100, $pct) ?>%; height: 100%; background: <?= $barColor ?>; border-radius: 5px; transition: width 0.8s ease-in-out;"></div>
@@ -1296,7 +1316,7 @@ try {
                                     </div>
                                     <div style="display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-secondary); margin-bottom: 6px;">
                                         <span>รวม <?= $done ?>/<?= $total ?> เคส</span>
-                                        <span><?= $r2Tot > 0 ? "รอบ 1: {$r1Dn}/{$r1Tot} | รอบ 2: {$r2Dn}/{$r2Tot}" : "รอบ 1: {$r1Dn}/{$r1Tot}" ?></span>
+                                        <span><?= $r2Dn > 0 ? "รอบ 1: {$r1Dn}/{$r1Tot} | รอบ 2: {$r2Dn} เคส" : "รอบ 1: {$r1Dn}/{$r1Tot}" ?></span>
                                     </div>
                                     <div style="width: 100%; height: 10px; background: rgba(13, 44, 84, 0.08); border-radius: 5px; overflow: hidden; box-shadow: var(--neumorph-inset);">
                                         <div style="width: <?= min(100, $pct) ?>%; height: 100%; background: <?= $barColor ?>; border-radius: 5px; transition: width 0.8s ease-in-out;"></div>
