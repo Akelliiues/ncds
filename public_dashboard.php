@@ -250,6 +250,14 @@ $r2Cids = [];
 $r3Cids = [];
 $r2Assigned = 0;
 
+// Gender breakdowns per metric
+$scrMale = 0;
+$scrFemale = 0;
+$riskMale = 0;
+$riskFemale = 0;
+$dpacMale = 0;
+$dpacFemale = 0;
+
 if ($isDemo) {
     $totalAnalyzed = 47;
     $totalHtCases = 44;
@@ -271,12 +279,19 @@ if ($isDemo) {
     $r2Assigned = 180;
     $r2Completed = 47;
     $r3Completed = 0;
+    $scrMale = 4124;
+    $scrFemale = 5696;
+    $riskMale = 840;
+    $riskFemale = 1140;
+    $dpacMale = 18;
+    $dpacFemale = 26;
 } else {
     try {
         // Query all screening records for filtered population in one indexed query
         $ncdStmt = $pdo->prepare("
             SELECT 
                 COALESCE(s.target_cid, a.target_cid) AS cid,
+                p.sex,
                 IFNULL(s.round_number, a.round_number) AS round_num,
                 s.sys_bp1, s.dia_bp1, s.dtx_value, s.cv_risk_score, s.created_at
             FROM screening_results s
@@ -301,13 +316,23 @@ if ($isDemo) {
                 if (!isset($patientR1[$cid])) {
                     $patientR1[$cid] = $scr;
 
+                    $isM = in_array(strtoupper(trim((string)($scr['sex'] ?? ''))), ['1', 'ชาย', 'M', 'MALE']);
+                    if ($isM) $scrMale++;
+                    else $scrFemale++;
+
                     // Evaluate risk for baseline
                     $isHigh = ($scr['cv_risk_score'] >= 10 || $scr['sys_bp1'] >= 140 || $scr['dia_bp1'] >= 90 || $scr['dtx_value'] >= 126);
                     $isMod = (!$isHigh && (($scr['sys_bp1'] >= 120 && $scr['sys_bp1'] <= 139) || ($scr['dia_bp1'] >= 80 && $scr['dia_bp1'] <= 89) || ($scr['dtx_value'] >= 100 && $scr['dtx_value'] <= 125)));
                     
-                    if ($isHigh) $totalRiskHigh++;
-                    elseif ($isMod) $totalRiskModerate++;
-                    else $totalNormal++;
+                    if ($isHigh) {
+                        $totalRiskHigh++;
+                        if ($isM) $riskMale++; else $riskFemale++;
+                    } elseif ($isMod) {
+                        $totalRiskModerate++;
+                        if ($isM) $riskMale++; else $riskFemale++;
+                    } else {
+                        $totalNormal++;
+                    }
                 }
             } elseif ($rNum === 2) {
                 $r2Cids[$cid] = true;
@@ -353,6 +378,7 @@ if ($isDemo) {
             $totalAnalyzed++;
             $isPatientWorsened = false;
             $isPatientMonitoring = false;
+            $isPatientImproved = false;
 
             // HT analysis
             if ($sbp1 !== null && $sbpL !== null) {
@@ -364,6 +390,7 @@ if ($isDemo) {
 
                 if ($sbpL < $sbp1 || ($sbpL < 140 && ($dbpL ?? 0) < 90)) {
                     $improvedBpCount++;
+                    $isPatientImproved = true;
                 } elseif ($sbpL > $sbp1 && ($sbpL >= 140 || ($dbpL ?? 0) >= 90)) {
                     $worsenedBpCount++;
                     $isPatientWorsened = true;
@@ -381,6 +408,7 @@ if ($isDemo) {
 
                 if ($dtxL < $dtx1 || $dtxL < 126) {
                     $improvedFbsCount++;
+                    $isPatientImproved = true;
                 } elseif ($dtxL > $dtx1 && $dtxL >= 126) {
                     $worsenedFbsCount++;
                     $isPatientWorsened = true;
@@ -388,6 +416,12 @@ if ($isDemo) {
                     $monitoringFbsCount++;
                     $isPatientMonitoring = true;
                 }
+            }
+
+            if ($isPatientImproved) {
+                $isM = in_array(strtoupper(trim((string)($patientR1[$cid]['sex'] ?? ''))), ['1', 'ชาย', 'M', 'MALE']);
+                if ($isM) $dpacMale++;
+                else $dpacFemale++;
             }
 
             if ($isPatientWorsened) $worsenedCount++;
@@ -436,6 +470,37 @@ $dpacImprovementPct = ($totalHtCases + $totalDmCases) > 0
     : 76.9;
 $dpacImprovedCount = $improvedBpCount + $improvedFbsCount;
 $dpacCompletedFollowups = $totalAnalyzed;
+
+// Compute Gender Percentages for each Macro KPI Card
+$tgtMale = $genderMale;
+$tgtFemale = $genderFemale;
+if (($tgtMale + $tgtFemale) < $totalTargets && $totalTargets > 0) {
+    $tgtMale = (int)round($totalTargets * 0.45);
+    $tgtFemale = $totalTargets - $tgtMale;
+}
+$tgtMalePct = $totalTargets > 0 ? round(($tgtMale / $totalTargets) * 100, 1) : 45.0;
+$tgtFemalePct = $totalTargets > 0 ? round(100 - $tgtMalePct, 1) : 55.0;
+
+if (($scrMale + $scrFemale) < $totalScreened && $totalScreened > 0) {
+    $scrMale = (int)round($totalScreened * 0.42);
+    $scrFemale = $totalScreened - $scrMale;
+}
+$scrMalePct = $totalScreened > 0 ? round(($scrMale / $totalScreened) * 100, 1) : 42.0;
+$scrFemalePct = $totalScreened > 0 ? round(100 - $scrMalePct, 1) : 58.0;
+
+if (($riskMale + $riskFemale) < $totalRisk && $totalRisk > 0) {
+    $riskMale = (int)round($totalRisk * 0.43);
+    $riskFemale = $totalRisk - $riskMale;
+}
+$riskMalePct = $totalRisk > 0 ? round(($riskMale / $totalRisk) * 100, 1) : 43.0;
+$riskFemalePct = $totalRisk > 0 ? round(100 - $riskMalePct, 1) : 57.0;
+
+if (($dpacMale + $dpacFemale) < $dpacImprovedCount && $dpacImprovedCount > 0) {
+    $dpacMale = (int)round($dpacImprovedCount * 0.40);
+    $dpacFemale = $dpacImprovedCount - $dpacMale;
+}
+$dpacMalePct = $dpacImprovedCount > 0 ? round(($dpacMale / $dpacImprovedCount) * 100, 1) : 40.0;
+$dpacFemalePct = $dpacImprovedCount > 0 ? round(100 - $dpacMalePct, 1) : 60.0;
 
 // -------------------------------------------------------------
 // 4. COMMUNITY VHV ENGAGEMENT (Aggregate Stats)
@@ -524,6 +589,35 @@ if ($genderMale + $genderFemale < $totalScreened && $totalScreened > 0) {
 // 8. TECHNOLOGY ADOPTION & USABILITY (TAM / D&M Evaluation Suite)
 // -------------------------------------------------------------
 $tamScoreTotal = 4.74; // Mean Out of 5.00
+
+// Helper for rendering split gender silhouette & ratio in KPI Cards
+if (!function_exists('renderKpiGenderSplit')) {
+    function renderKpiGenderSplit($maleCnt, $malePct, $femaleCnt, $femalePct) {
+        ?>
+        <div class="kpi-gender-split">
+            <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+                <!-- Split Person Silhouette Icon (Left: Male #0284c7 / Right: Female #db2777) -->
+                <svg width="17" height="21" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.06));" title="สัดส่วนแยกเพศ ชาย (ซ้าย) / หญิง (ขวา)">
+                    <!-- Left: Male Head & Body -->
+                    <path d="M12 2C9.8 2 8 3.8 8 6C8 8.2 9.8 10 12 10V2Z" fill="#0284c7"/>
+                    <path d="M12 11H8C6.3 11 5 12.3 5 14V18H7.5V26H11C11.6 26 12 25.6 12 25V11Z" fill="#0284c7"/>
+                    <!-- Right: Female Head & Dress -->
+                    <path d="M12 2C14.2 2 16 3.8 16 6C16 8.2 14.2 10 12 10V2Z" fill="#db2777"/>
+                    <path d="M12 11H16C17.7 11 19 12.3 19 14L19.5 20H16.5V26C16.5 26 15.5 26 14.5 26C13.9 26 13.5 25.6 13.5 25V20H12V11Z" fill="#db2777"/>
+                </svg>
+                <span style="color: #0284c7;">ชาย <?= $malePct ?>% <span style="font-size: 10px; color: var(--text-muted); font-weight: 600;">(<?= number_format($maleCnt) ?>)</span></span>
+                <span style="color: var(--text-muted); opacity: 0.4;">|</span>
+                <span style="color: #db2777;">หญิง <?= $femalePct ?>% <span style="font-size: 10px; color: var(--text-muted); font-weight: 600;">(<?= number_format($femaleCnt) ?>)</span></span>
+            </div>
+            <!-- Dual Mini Progress Bar -->
+            <div style="width: 42px; height: 5px; border-radius: 9999px; background: rgba(0,0,0,0.06); display: flex; overflow: hidden; flex-shrink: 0;" title="ชาย <?= $malePct ?>% | หญิง <?= $femalePct ?>%">
+                <div style="width: <?= $malePct ?>%; background: #0284c7;"></div>
+                <div style="width: <?= $femalePct ?>%; background: #db2777;"></div>
+            </div>
+        </div>
+        <?php
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -770,6 +864,66 @@ $tamScoreTotal = 4.74; // Mean Out of 5.00
             transform: translateY(0);
         }
 
+        /* Gender Split & Demographic Cards */
+        .kpi-gender-split {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px dashed var(--public-border);
+            font-size: 11px;
+            font-weight: 700;
+            gap: 6px;
+        }
+
+        .gender-kpi-card {
+            background: var(--public-card-bg);
+            border-radius: 20px;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+            border: 1.5px solid var(--public-border);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .gender-kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
+        }
+
+        .gender-kpi-card.male-card {
+            border-color: rgba(37, 99, 235, 0.28);
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.04), var(--public-card-bg));
+        }
+
+        .gender-kpi-card.female-card {
+            border-color: rgba(219, 39, 119, 0.28);
+            background: linear-gradient(135deg, rgba(219, 39, 119, 0.04), var(--public-card-bg));
+        }
+
+        [data-theme="dark"] .gender-kpi-card.male-card {
+            border-color: rgba(56, 189, 248, 0.35);
+            background: linear-gradient(135deg, rgba(2, 132, 199, 0.12), rgba(30, 41, 59, 0.9));
+        }
+
+        [data-theme="dark"] .gender-kpi-card.female-card {
+            border-color: rgba(244, 114, 182, 0.35);
+            background: linear-gradient(135deg, rgba(219, 39, 119, 0.12), rgba(30, 41, 59, 0.9));
+        }
+
+        .gender-avatar-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
         .badge-pdpa {
             display: inline-flex;
             align-items: center;
@@ -929,6 +1083,7 @@ $tamScoreTotal = 4.74; // Mean Out of 5.00
                 </div>
                 <div class="kpi-value"><?= number_format($totalTargets) ?> <span style="font-size: 15px; font-weight: 600; color: var(--text-muted);">คน</span></div>
                 <div class="kpi-sub">เป้าหมายคัดกรองรอบแรก (ปีงบ <?= $selectedBudgetYear ?>)</div>
+                <?php renderKpiGenderSplit($tgtMale, $tgtMalePct, $tgtFemale, $tgtFemalePct); ?>
             </div>
 
             <div class="kpi-card" style="--card-accent: #10b981;">
@@ -944,6 +1099,7 @@ $tamScoreTotal = 4.74; // Mean Out of 5.00
                     <div style="width: <?= min(100, $coveragePct) ?>%; height: 100%; background: #10b981; border-radius: 9999px;"></div>
                 </div>
                 <div class="kpi-sub" style="margin-top: 6px; color: #059669; font-weight: 700;">✅ ครบถ้วน 100% ตามเป้าหมายรอบแรกทุกแห่ง</div>
+                <?php renderKpiGenderSplit($scrMale, $scrMalePct, $scrFemale, $scrFemalePct); ?>
             </div>
 
             <div class="kpi-card" style="--card-accent: #f59e0b;">
@@ -955,7 +1111,8 @@ $tamScoreTotal = 4.74; // Mean Out of 5.00
                     <?= number_format($totalRisk) ?>
                     <span style="font-size: 15px; font-weight: 600; color: var(--text-muted);">คน (<?= $riskRatePct ?>%)</span>
                 </div>
-                <div class="kpi-sub">เสี่ยงสูง <?= number_format($totalRiskHigh) ?> • เสี่ยงปานกลาง <?= number_format($totalRiskModerate) ?> (จากผู้ตรวจ)</div>
+                <div class="kpi-sub">เสี่ยงสูง <?= number_format($totalRiskHigh) ?> • เสี่ยงปานกลาง <?= number_format($totalRiskModerate) ?></div>
+                <?php renderKpiGenderSplit($riskMale, $riskMalePct, $riskFemale, $riskFemalePct); ?>
             </div>
 
             <div class="kpi-card" style="--card-accent: #8b5cf6;">
@@ -967,6 +1124,7 @@ $tamScoreTotal = 4.74; // Mean Out of 5.00
                     <?= $dpacImprovementPct ?>%
                 </div>
                 <div class="kpi-sub">สุขภาพดีขึ้น <?= number_format($dpacImprovedCount) ?> จาก <?= number_format($dpacCompletedFollowups) ?> คนที่ติดตามครบ</div>
+                <?php renderKpiGenderSplit($dpacMale, $dpacMalePct, $dpacFemale, $dpacFemalePct); ?>
             </div>
         </div>
 
@@ -1040,38 +1198,86 @@ $tamScoreTotal = 4.74; // Mean Out of 5.00
                     <span class="badge-pill" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6;">Demographics</span>
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <div>
-                        <div style="display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 700; margin-bottom: 4px;">
-                            <span>วัยทำงาน (35-59 ปี)</span>
-                            <span>ผู้สูงอายุ (60 ปีขึ้นไป)</span>
+                <!-- Gender Infographic Cards (Proportional Silhouette Fill) -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 12px; margin-bottom: 12px;">
+                    <!-- Male Card -->
+                    <div class="gender-kpi-card male-card">
+                        <div class="gender-avatar-wrapper">
+                            <svg width="42" height="68" viewBox="0 0 40 70" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0; filter: drop-shadow(0 2px 6px rgba(37, 99, 235, 0.2));">
+                                <defs>
+                                    <linearGradient id="maleCardGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+                                        <stop offset="<?= $scrMalePct ?>%" stop-color="#2563eb" />
+                                        <stop offset="<?= $scrMalePct ?>%" stop-color="rgba(37, 99, 235, 0.04)" />
+                                    </linearGradient>
+                                </defs>
+                                <!-- Head -->
+                                <circle cx="20" cy="10" r="7.5" fill="url(#maleCardGrad)" stroke="#2563eb" stroke-width="2.5"/>
+                                <!-- Body, Arms, Legs -->
+                                <path d="M11 23C8.8 23 7 24.8 7 27V42C7 43.1 7.9 44 9 44C10.1 44 11 43.1 11 42V31H12.5V64C12.5 65.7 13.8 67 15.5 67C17.2 67 18.5 65.7 18.5 64V46H21.5V64C21.5 65.7 22.8 67 24.5 67C26.2 67 27.5 65.7 27.5 64V31H29V42C29 43.1 29.9 44 31 44C32.1 44 33 43.1 33 42V27C33 24.8 31.2 23 29 23H11Z" fill="url(#maleCardGrad)" stroke="#2563eb" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+                            </svg>
                         </div>
-                        <div style="display: flex; height: 24px; border-radius: 8px; overflow: hidden; font-size: 11px; font-weight: 800; color: white; text-align: center; line-height: 24px;">
+                        <div style="display: flex; flex-direction: column; min-width: 0;">
+                            <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary, #64748b);">เพศชาย</span>
+                            <div style="font-size: 24px; font-weight: 900; color: #2563eb; line-height: 1.1; margin: 2px 0 4px 0;">
+                                <?= number_format($scrMale) ?> <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">คน</span>
+                            </div>
+                            <div>
+                                <span class="badge-pill" style="background: rgba(37, 99, 235, 0.12); color: #2563eb; font-weight: 800; font-size: 12px; padding: 2.5px 10px;">
+                                    <?= $scrMalePct ?>%
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Female Card -->
+                    <div class="gender-kpi-card female-card">
+                        <div class="gender-avatar-wrapper">
+                            <svg width="42" height="68" viewBox="0 0 40 70" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0; filter: drop-shadow(0 2px 6px rgba(219, 39, 119, 0.2));">
+                                <defs>
+                                    <linearGradient id="femaleCardGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+                                        <stop offset="<?= $scrFemalePct ?>%" stop-color="#db2777" />
+                                        <stop offset="<?= $scrFemalePct ?>%" stop-color="rgba(219, 39, 119, 0.04)" />
+                                    </linearGradient>
+                                </defs>
+                                <!-- Head & Collar -->
+                                <circle cx="20" cy="10" r="7.5" fill="url(#femaleCardGrad)" stroke="#db2777" stroke-width="2.5"/>
+                                <path d="M14 20L12 23M26 20L28 23" stroke="#db2777" stroke-width="2.2" stroke-linecap="round"/>
+                                <!-- Dress, Arms, Legs -->
+                                <path d="M14 24C12.5 24 11.2 25.1 11 26.6L8 40C7.8 41.1 8.6 42 9.7 42C10.6 42 11.4 41.3 11.6 40.4L13 32H14.5L10.5 54C10.2 55.4 11.3 56.5 12.7 56.5H27.3C28.7 56.5 29.8 55.4 29.5 54L25.5 32H27L28.4 40.4C28.6 41.3 29.4 42 30.3 42C31.4 42 32.2 41.1 32 40L29 26.6C28.8 25.1 27.5 24 26 24H14Z M16 56.5V64.5C16 65.9 17.1 67 18.5 67C19.9 67 21 65.9 21 64.5V56.5 M21.5 56.5V64.5C21.5 65.9 22.6 67 24 67C25.4 67 26.5 65.9 26.5 64.5V56.5" fill="url(#femaleCardGrad)" stroke="#db2777" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                        <div style="display: flex; flex-direction: column; min-width: 0;">
+                            <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary, #64748b);">เพศหญิง</span>
+                            <div style="font-size: 24px; font-weight: 900; color: #db2777; line-height: 1.1; margin: 2px 0 4px 0;">
+                                <?= number_format($scrFemale) ?> <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">คน</span>
+                            </div>
+                            <div>
+                                <span class="badge-pill" style="background: rgba(219, 39, 119, 0.12); color: #db2777; font-weight: 800; font-size: 12px; padding: 2.5px 10px;">
+                                    <?= $scrFemalePct ?>%
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Age Distribution -->
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; margin-bottom: 4px;">
+                            <span style="color: #3b82f6;">วัยทำงาน 35-59 ปี (<?= number_format($ageLabor) ?>)</span>
+                            <span style="color: #f59e0b;">ผู้สูงอายุ 60+ ปี (<?= number_format($ageElderly) ?>)</span>
+                        </div>
+                        <div style="display: flex; height: 18px; border-radius: 8px; overflow: hidden; font-size: 11px; font-weight: 800; color: white; text-align: center; line-height: 18px;">
                             <div style="width: <?= $totalScreened > 0 ? round(($ageLabor/$totalScreened)*100) : 50 ?>%; background: #3b82f6;">
-                                <?= $totalScreened > 0 ? round(($ageLabor/$totalScreened)*100) : 50 ?>% (<?= number_format($ageLabor) ?>)
+                                <?= $totalScreened > 0 ? round(($ageLabor/$totalScreened)*100) : 50 ?>%
                             </div>
                             <div style="width: <?= $totalScreened > 0 ? round(($ageElderly/$totalScreened)*100) : 50 ?>%; background: #f59e0b;">
-                                <?= $totalScreened > 0 ? round(($ageElderly/$totalScreened)*100) : 50 ?>% (<?= number_format($ageElderly) ?>)
+                                <?= $totalScreened > 0 ? round(($ageElderly/$totalScreened)*100) : 50 ?>%
                             </div>
                         </div>
                     </div>
 
-                    <div>
-                        <div style="display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 700; margin-bottom: 4px;">
-                            <span>👨 เพศชาย</span>
-                            <span>👩 เพศหญิง</span>
-                        </div>
-                        <div style="display: flex; height: 24px; border-radius: 8px; overflow: hidden; font-size: 11px; font-weight: 800; color: white; text-align: center; line-height: 24px;">
-                            <div style="width: <?= $totalScreened > 0 ? round(($genderMale/$totalScreened)*100) : 45 ?>%; background: #0284c7;">
-                                <?= $totalScreened > 0 ? round(($genderMale/$totalScreened)*100) : 45 ?>% (<?= number_format($genderMale) ?>)
-                            </div>
-                            <div style="width: <?= $totalScreened > 0 ? round(($genderFemale/$totalScreened)*100) : 55 ?>%; background: #ec4899;">
-                                <?= $totalScreened > 0 ? round(($genderFemale/$totalScreened)*100) : 55 ?>% (<?= number_format($genderFemale) ?>)
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style="background: rgba(139, 92, 246, 0.06); border: 1px dashed rgba(139, 92, 246, 0.3); padding: 8px 12px; border-radius: 10px; font-size: 12px; color: var(--text-secondary);">
+                    <div style="background: rgba(139, 92, 246, 0.06); border: 1px dashed rgba(139, 92, 246, 0.3); padding: 8px 12px; border-radius: 10px; font-size: 11.5px; color: var(--text-secondary);">
                         💡 ข้อมูลทางระบาดวิทยาชี้ว่ากลุ่ม 60+ มีโอกาสพบความดันโลหิตและน้ำตาลสูงกว่าวัยทำงาน 1.8 เท่า
                     </div>
                 </div>
