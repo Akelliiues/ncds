@@ -636,12 +636,6 @@ if (DemoDataProvider::isDemoMode()) {
 
         <!-- User Manual Tab Content -->
         <div id="manual-tab" class="tab-content" style="display: none;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 4px 2px;">
-                <button type="button" onclick="switchTab('pending-list', document.getElementById('tab-btn-pending'))" class="btn-back-pill" style="border: none; cursor: pointer; padding: 6px 14px; font-size: 13px; color: var(--color-accent); background: var(--bg-card); border-radius: 50px; font-weight: 800; box-shadow: var(--neumorph-flat);">
-                    ← กลับไปหน้ารายการงาน
-                </button>
-                <span style="font-size: 13px; font-weight: 800; color: var(--color-accent);">📖 คู่มือการใช้งานระบบ</span>
-            </div>
             <?php include __DIR__ . '/manual_partial.php'; ?>
         </div>
 
