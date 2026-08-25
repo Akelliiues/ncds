@@ -287,6 +287,38 @@ if (DemoDataProvider::isDemoMode()) {
             </div>
         </div>
 
+        <!-- Smart Next-Round Auto-Assignment Banner -->
+        <div id="smart-auto-assign-card" class="filter-card" style="margin-bottom: 20px; padding: 18px 22px; border-radius: 16px; border: 1.5px solid var(--border-color); background: var(--bg-card); display: none; transition: all 0.3s ease; box-shadow: var(--neumorph-flat);">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+                <!-- Left: Status Info & Round Progress -->
+                <div style="display: flex; align-items: center; gap: 14px; flex: 1; min-width: 280px;">
+                    <div id="auto-assign-icon-badge" style="width: 48px; height: 48px; border-radius: 14px; background: rgba(59, 130, 246, 0.12); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; box-shadow: var(--neumorph-flat);">
+                        ⚡
+                    </div>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <span style="font-size: 15px; font-weight: 800; color: var(--text-primary);" id="auto-assign-title">
+                                ระบบมอบหมายงานคัดกรองอัตโนมัติ (Smart Auto-Assign Engine)
+                            </span>
+                            <span id="auto-assign-status-badge" style="font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 20px; background: rgba(100, 116, 139, 0.15); color: var(--text-secondary);">
+                                กำลังตรวจสอบ...
+                            </span>
+                        </div>
+                        <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 4px; line-height: 1.4;" id="auto-assign-desc">
+                            เลือกหมู่บ้านเพื่อตรวจสอบสถานะรอบการคัดกรอง
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Action Button -->
+                <div id="auto-assign-action-container">
+                    <button type="button" id="btn-smart-auto-assign" onclick="openAutoAssignModal()" disabled class="btn-control" style="padding: 10px 22px; border-radius: 12px; font-size: 14px; font-weight: 800; border: none; cursor: not-allowed; opacity: 0.6; display: inline-flex; align-items: center; gap: 8px; box-shadow: var(--neumorph-flat); transition: all 0.25s;">
+                        <span>🔒 กำลังตรวจสอบสถานะ...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Target Group Tabs -->
         <div class="tabs"
             style="display: flex; gap: 8px; margin: 20px 0; background-color: var(--bg-card); padding: 6px; border-radius: 16px; box-shadow: var(--neumorph-inset); width: fit-content; flex-wrap: wrap;">
@@ -503,6 +535,63 @@ if (DemoDataProvider::isDemoMode()) {
         </div>
     </div>
 
+    <!-- Smart Auto-Assignment Confirmation & Preview Modal -->
+    <div class="modal-overlay" id="auto-assign-modal" onclick="if(event.target === this) closeAutoAssignModal()">
+        <div class="modal-content" style="max-width: 680px; width: 92%; max-height: 85vh; display: flex; flex-direction: column; padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                <div>
+                    <h3 style="margin: 0; color: var(--color-accent); font-size: 18px; display: flex; align-items: center; gap: 8px;" id="auto-assign-modal-title">
+                        🚀 ยืนยันการมอบหมายงานคัดกรองรอบถัดไปอัตโนมัติ
+                    </h3>
+                    <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 13px;" id="auto-assign-modal-subtitle">
+                        ระบบจะส่งมอบงานติดตามให้ อสม. คนเดิมที่เคยรับผิดชอบในรอบก่อนหน้าโดยอัตโนมัติ
+                    </p>
+                </div>
+                <button type="button" onclick="closeAutoAssignModal()" style="background: none; border: none; font-size: 24px; color: var(--text-muted); cursor: pointer; line-height: 1; padding: 0 4px;">&times;</button>
+            </div>
+
+            <div style="flex: 1; overflow-y: auto; padding-right: 4px;">
+                <!-- KPI Summary Cards -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px;">
+                    <div style="background: rgba(59, 130, 246, 0.08); border-left: 4px solid #3b82f6; padding: 10px 14px; border-radius: 10px;">
+                        <span style="font-size: 11.5px; color: var(--text-secondary); font-weight: bold;">🎯 รอบที่จะมอบหมาย</span>
+                        <div style="font-size: 20px; font-weight: 900; color: #3b82f6;" id="modal-target-round-text">รอบที่ 2</div>
+                    </div>
+                    <div style="background: rgba(16, 185, 129, 0.08); border-left: 4px solid #10b981; padding: 10px 14px; border-radius: 10px;">
+                        <span style="font-size: 11.5px; color: var(--text-secondary); font-weight: bold;">👥 จำนวนที่จะมอบหมาย</span>
+                        <div style="font-size: 20px; font-weight: 900; color: #10b981;" id="modal-eligible-count-text">0 ราย</div>
+                    </div>
+                    <div style="background: rgba(245, 158, 11, 0.08); border-left: 4px solid #f59e0b; padding: 10px 14px; border-radius: 10px;">
+                        <span style="font-size: 11.5px; color: var(--text-secondary); font-weight: bold;">⏭️ ข้ามอัตโนมัติ (มีงานแล้ว)</span>
+                        <div style="font-size: 20px; font-weight: 900; color: #f59e0b;" id="modal-already-assigned-text">0 ราย</div>
+                    </div>
+                </div>
+
+                <!-- VHV Breakdown Table -->
+                <h4 style="margin: 0 0 8px 0; color: var(--text-primary); font-size: 14px;">
+                    📋 สรุปการจัดสรรงานให้ อสม. แต่ละท่าน (ตามผู้รับผิดชอบเดิม):
+                </h4>
+                <div id="modal-vhv-breakdown-container" style="border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; margin-bottom: 14px; max-height: 220px; overflow-y: auto;">
+                    <!-- Injected via JS -->
+                </div>
+
+                <!-- Notice / Rule badge -->
+                <div style="background: rgba(13, 44, 84, 0.05); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px; font-size: 12px; color: var(--text-secondary); line-height: 1.45;">
+                    💡 <b>ข้อกำหนดความปลอดภัย:</b> ระบบจะจัดสรรงานให้ อสม. คนเดิมที่เคยดูแลในรอบก่อนหน้าเท่านั้น และข้ามรายชื่อที่มีใบงานรอบนี้อยู่แล้วเพื่อป้องกันการมอบหมายซ้ำซ้อน
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-color); gap: 12px;">
+                <button type="button" onclick="closeAutoAssignModal()" class="btn-giant btn-giant-secondary" style="flex: 1; margin: 0; padding: 10px 20px; font-size: 14px;">
+                    ยกเลิก
+                </button>
+                <button type="button" id="btn-confirm-auto-assign" onclick="executeSmartAutoAssign()" class="btn-giant btn-giant-primary" style="flex: 2; margin: 0; padding: 10px 20px; font-size: 14px; background: linear-gradient(135deg, #059669, #10b981); border: none; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">
+                    🚀 ยืนยันมอบหมายงานรอบถัดไปทันที
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Load Tambon Data & Scripts -->
     <script>
         // Data logic from register.php
@@ -595,6 +684,8 @@ if (DemoDataProvider::isDemoMode()) {
                 document.getElementById('vhv-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">กรุณาเลือกหมู่บ้าน</div>';
                 document.getElementById('target-count').innerText = 'พบ 0 ราย';
                 document.getElementById('vhv-count').innerText = 'พบ 0 ราย';
+                const autoCard = document.getElementById('smart-auto-assign-card');
+                if (autoCard) autoCard.style.display = 'none';
                 return;
             }
 
@@ -606,7 +697,10 @@ if (DemoDataProvider::isDemoMode()) {
 
             const vhidCode = tambon + moo.padStart(2, '0');
 
-            // Fetch Targets
+            // 1. Check Smart Auto-Assignment Status for this village
+            checkSmartAutoAssignStatus(tambon, moo, hoscode, currentTargetGroup);
+
+            // 2. Fetch Targets
             fetch(`../api/get_assignment_data.php?type=targets&moo=${moo}&vhid=${vhidCode}&hoscode=${hoscode}&group=${currentTargetGroup}&budget_year=<?= $selectedBudgetYear ?>`)
                 .then(r => r.json())
                 .then(data => {
@@ -614,12 +708,237 @@ if (DemoDataProvider::isDemoMode()) {
                     renderTargets();
                 });
 
-            // Fetch VHVs
+            // 3. Fetch VHVs
             fetch(`../api/get_assignment_data.php?type=vhvs&moo=${moo}&vhid=${vhidCode}&hoscode=${hoscode}&group=${currentTargetGroup}&budget_year=<?= $selectedBudgetYear ?>`)
                 .then(r => r.json())
                 .then(data => {
                     renderVhvs(data);
                 });
+        }
+
+        // =========================================================================
+        // Smart Auto-Assign Next-Round Logic & Handlers
+        // =========================================================================
+        let currentAutoAssignData = null;
+
+        function checkSmartAutoAssignStatus(tambon, moo, hoscode, group) {
+            const card = document.getElementById('smart-auto-assign-card');
+            const badge = document.getElementById('auto-assign-status-badge');
+            const iconBadge = document.getElementById('auto-assign-icon-badge');
+            const titleEl = document.getElementById('auto-assign-title');
+            const descEl = document.getElementById('auto-assign-desc');
+            const btn = document.getElementById('btn-smart-auto-assign');
+
+            if (!card || !btn) return;
+            card.style.display = 'block';
+
+            // Reset loading state
+            badge.innerText = 'กำลังตรวจสอบสถานะ...';
+            badge.style.background = 'rgba(100, 116, 139, 0.15)';
+            badge.style.color = 'var(--text-secondary)';
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+            btn.style.cursor = 'not-allowed';
+            btn.style.background = 'var(--bg-card)';
+            btn.style.color = 'var(--text-secondary)';
+            btn.innerHTML = '<span>🔒 กำลังตรวจสอบสถานะ...</span>';
+
+            fetch(`../api/auto_assign_next_round.php?action=check_status&tambon=${tambon}&moo=${moo}&hoscode=${hoscode}&group=${group}&budget_year=<?= $selectedBudgetYear ?>`)
+                .then(r => r.json())
+                .then(res => {
+                    currentAutoAssignData = res;
+                    if (res.status === 'ready') {
+                        badge.innerText = `✨ พร้อมมอบหมายรอบที่ ${res.target_round}`;
+                        badge.style.background = 'rgba(16, 185, 129, 0.15)';
+                        badge.style.color = '#10b981';
+                        
+                        iconBadge.innerText = '🚀';
+                        iconBadge.style.color = '#10b981';
+                        iconBadge.style.background = 'rgba(16, 185, 129, 0.12)';
+
+                        titleEl.innerText = `มอบหมายงานคัดกรองติดตามอัตโนมัติ (รอบที่ ${res.target_round})`;
+                        descEl.innerHTML = `รอบที่ ${res.current_round} คัดกรองครบ 100% แล้ว • พร้อมจัดสรรงานให้ <strong>อสม. คนเดิม</strong> จำนวน <strong style="color: #10b981;">${res.eligible_count} ราย</strong>`;
+
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                        btn.style.cursor = 'pointer';
+                        btn.style.background = 'linear-gradient(135deg, #059669, #10b981)';
+                        btn.style.color = '#ffffff';
+                        btn.innerHTML = `<span>✨ มอบหมายรอบที่ ${res.target_round} อัตโนมัติ (${res.eligible_count} ราย)</span>`;
+                    } else if (res.status === 'locked') {
+                        badge.innerText = `🔒 รอบที่ ${res.current_round} ยังไม่ครบ 100%`;
+                        badge.style.background = 'rgba(245, 158, 11, 0.15)';
+                        badge.style.color = '#f59e0b';
+
+                        iconBadge.innerText = '🔒';
+                        iconBadge.style.color = '#f59e0b';
+                        iconBadge.style.background = 'rgba(245, 158, 11, 0.12)';
+
+                        titleEl.innerText = `ระบบมอบหมายงานคัดกรองอัตโนมัติ (รอบที่ ${res.target_round})`;
+                        descEl.innerHTML = `รอบที่ ${res.current_round} ดำเนินการแล้ว <strong>${res.prev_round_completed}/${res.total_targets} ราย (${res.prev_round_pct}%)</strong> • <span style="color: #f59e0b;">ต้องคัดกรองให้ครบ 100% ก่อนจึงจะเปิดรอบถัดไปได้</span>`;
+
+                        btn.disabled = true;
+                        btn.style.opacity = '0.65';
+                        btn.style.cursor = 'not-allowed';
+                        btn.style.background = 'var(--bg-main)';
+                        btn.style.color = 'var(--text-secondary)';
+                        btn.innerHTML = `<span>🔒 มอบหมายรอบที่ ${res.target_round} (${res.prev_round_pct}% - รอครบ 100%)</span>`;
+                    } else if (res.status === 'in_progress') {
+                        badge.innerText = `⏳ กำลังคัดกรองรอบที่ ${res.current_round}`;
+                        badge.style.background = 'rgba(59, 130, 246, 0.15)';
+                        badge.style.color = '#3b82f6';
+
+                        iconBadge.innerText = '⏳';
+                        iconBadge.style.color = '#3b82f6';
+                        iconBadge.style.background = 'rgba(59, 130, 246, 0.12)';
+
+                        titleEl.innerText = `รอบที่ ${res.current_round} มอบหมายงานครบทุกคนแล้ว`;
+                        descEl.innerHTML = `ประชากร ${res.total_targets} รายได้รับใบงานครบถ้วนแล้ว ขณะนี้คัดกรองแล้ว <strong>${res.round_completed}/${res.total_targets} ราย (${res.round_pct}%)</strong>`;
+
+                        btn.disabled = true;
+                        btn.style.opacity = '0.65';
+                        btn.style.cursor = 'not-allowed';
+                        btn.style.background = 'var(--bg-main)';
+                        btn.style.color = 'var(--text-secondary)';
+                        btn.innerHTML = `<span>⏳ มอบหมายรอบที่ ${res.current_round} ครบแล้ว (${res.round_pct}%)</span>`;
+                    } else if (res.status === 'completed_all') {
+                        badge.innerText = `🏆 คัดกรองครบถ้วนแล้ว`;
+                        badge.style.background = 'rgba(16, 185, 129, 0.15)';
+                        badge.style.color = '#10b981';
+
+                        iconBadge.innerText = '🏆';
+                        iconBadge.style.color = '#10b981';
+                        iconBadge.style.background = 'rgba(16, 185, 129, 0.12)';
+
+                        titleEl.innerText = `ประชากรเป้าหมายได้รับการคัดกรองครบถ้วนสมบูรณ์แล้ว`;
+                        descEl.innerHTML = `ทุกรอบการคัดกรองได้รับการตรวจติดตามครบ 100% เรียบร้อยแล้ว`;
+
+                        btn.disabled = true;
+                        btn.style.opacity = '0.65';
+                        btn.style.cursor = 'not-allowed';
+                        btn.style.background = 'var(--bg-main)';
+                        btn.style.color = 'var(--text-secondary)';
+                        btn.innerHTML = `<span>✅ มอบหมายงานครบถ้วนแล้ว</span>`;
+                    } else {
+                        card.style.display = 'none';
+                    }
+                })
+                .catch(() => {
+                    card.style.display = 'none';
+                });
+        }
+
+        function openAutoAssignModal() {
+            if (!currentAutoAssignData || currentAutoAssignData.status !== 'ready') return;
+            const d = currentAutoAssignData;
+
+            document.getElementById('auto-assign-modal-title').innerHTML = `🚀 มอบหมายงานคัดกรองติดตามรอบที่ ${d.target_round} อัตโนมัติ`;
+            document.getElementById('modal-target-round-text').innerText = `รอบที่ ${d.target_round}`;
+            document.getElementById('modal-eligible-count-text').innerText = `${d.eligible_count} ราย`;
+            document.getElementById('modal-already-assigned-text').innerText = `${d.already_assigned_count} ราย`;
+
+            const breakdownContainer = document.getElementById('modal-vhv-breakdown-container');
+            if (d.vhv_breakdown && d.vhv_breakdown.length > 0) {
+                let tableHtml = `
+                    <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                        <thead>
+                            <tr style="background: var(--bg-card); text-align: left;">
+                                <th style="padding: 8px 12px;">อสม. ผู้รับผิดชอบเดิม</th>
+                                <th style="padding: 8px 12px; text-align: right;">จำนวนเคสที่ได้รับ (ราย)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                d.vhv_breakdown.forEach(v => {
+                    tableHtml += `
+                        <tr style="border-bottom: 1px solid var(--border-color);">
+                            <td style="padding: 8px 12px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                                <span>👩‍⚕️</span> <span>${v.vhv_name}</span>
+                            </td>
+                            <td style="padding: 8px 12px; text-align: right; font-weight: 800; color: #10b981;">
+                                + ${v.count} ราย
+                            </td>
+                        </tr>
+                    `;
+                });
+                if (d.unassigned_vhv_count > 0) {
+                    tableHtml += `
+                        <tr style="border-bottom: 1px solid var(--border-color); background: rgba(245, 158, 11, 0.05);">
+                            <td style="padding: 8px 12px; font-weight: 700; color: #f59e0b;">
+                                ⚠️ เคสไม่มี อสม. เดิม (จะจัดสรรให้ อสม. ประจำหมู่บ้าน)
+                            </td>
+                            <td style="padding: 8px 12px; text-align: right; font-weight: 800; color: #f59e0b;">
+                                ${d.unassigned_vhv_count} ราย
+                            </td>
+                        </tr>
+                    `;
+                }
+                tableHtml += `</tbody></table>`;
+                breakdownContainer.innerHTML = tableHtml;
+            } else {
+                breakdownContainer.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--text-muted);">ไม่มีรายการจัดสรร</div>';
+            }
+
+            document.getElementById('auto-assign-modal').style.display = 'flex';
+        }
+
+        function closeAutoAssignModal() {
+            document.getElementById('auto-assign-modal').style.display = 'none';
+        }
+
+        function executeSmartAutoAssign() {
+            if (!currentAutoAssignData || currentAutoAssignData.status !== 'ready') return;
+
+            const tambon = document.getElementById('tambon').value;
+            const moo = document.getElementById('moo').value;
+            let hoscode = '';
+            if (tambonData[tambon].hasSubUnits) {
+                hoscode = document.getElementById('hoscode').value;
+            } else {
+                hoscode = tambonData[tambon].hoscode;
+            }
+
+            const targetRound = currentAutoAssignData.target_round;
+            const btnConfirm = document.getElementById('btn-confirm-auto-assign');
+            btnConfirm.disabled = true;
+            btnConfirm.innerHTML = '⏳ กำลังมอบหมายงาน...';
+
+            if (window.showPageLoading) {
+                showPageLoading(`มอบหมายงานรอบที่ ${targetRound} อัตโนมัติ`, 'กำลังสร้างใบงานและจัดสรรให้ อสม. คนเดิม...', '🚀');
+            }
+
+            fetch('../api/auto_assign_next_round.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'execute',
+                    tambon: tambon,
+                    moo: moo,
+                    hoscode: hoscode,
+                    group: currentTargetGroup,
+                    budget_year: <?= $selectedBudgetYear ?>
+                })
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (window.hidePageLoading) hidePageLoading();
+                closeAutoAssignModal();
+                btnConfirm.disabled = false;
+                btnConfirm.innerHTML = '🚀 ยืนยันมอบหมายงานรอบถัดไปทันที';
+
+                if (res.status === 'success') {
+                    alert(`🎉 ${res.message}`);
+                    fetchData();
+                } else {
+                    alert(`เกิดข้อผิดพลาด: ${res.message || 'ไม่สามารถมอบหมายงานได้'}`);
+                }
+            })
+            .catch(err => {
+                if (window.hidePageLoading) hidePageLoading();
+                btnConfirm.disabled = false;
+                btnConfirm.innerHTML = '🚀 ยืนยันมอบหมายงานรอบถัดไปทันที';
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย');
+            });
         }
 
         function onSearchInput() {

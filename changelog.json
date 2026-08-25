@@ -1,5 +1,10 @@
 [
   {
+    "title": "เพิ่มฟีเจอร์ Smart Next-Round Auto-Assignment มอบหมายงานคัดกรองรอบถัดไป (รอบ 2, 3...) อัตโนมัติให้ อสม. คนเดิม พร้อมกฎความปลอดภัย 100% Gated Progression และข้ามเคสที่มีงานแล้ว",
+    "date": "2026-08-25",
+    "type": "feature"
+  },
+  {
     "title": "🎉 ปล่อยเวอร์ชันเสถียร Stable Version 2.13 (v2.13-stable) ติดตั้งระบบ Universal Preloading & Zero-Freeze Page Transitions ทั่วทั้งระบบ พร้อมเร่งความเร็วประมวลผล Open Data Portal ด้วย Query Optimization",
     "date": "2026-08-25",
     "type": "release"
