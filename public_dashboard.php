@@ -669,28 +669,36 @@ if (!function_exists('renderKpiGenderSplit')) {
     function renderKpiGenderSplit($maleCnt, $malePct, $femaleCnt, $femalePct, $uid = '') {
         ?>
         <div class="kpi-gender-split">
-            <!-- Male Full Avatar + Count -->
-            <div style="display: flex; align-items: center; gap: 5px;">
-                <?= getFilledAvatarSvg('male', $malePct, 15, 23, $uid . '_m') ?>
+            <!-- Male Side (Large, High Contrast) -->
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <?= getFilledAvatarSvg('male', $malePct, 22, 34, $uid . '_m') ?>
                 <div style="display: flex; flex-direction: column; line-height: 1.15;">
-                    <span style="color: #0284c7; font-size: 11.5px; font-weight: 800;">ชาย <?= $malePct ?>%</span>
-                    <span style="color: var(--text-muted); font-size: 10px; font-weight: 600;"><?= number_format($maleCnt) ?> คน</span>
+                    <div style="color: #0284c7; font-size: 14.5px; font-weight: 900; letter-spacing: -0.2px;">
+                        <?= $malePct ?>%
+                    </div>
+                    <div style="color: var(--text-secondary); font-size: 11.5px; font-weight: 700;">
+                        ชาย <?= number_format($maleCnt) ?> คน
+                    </div>
                 </div>
             </div>
 
-            <!-- Mini Proportion Bar -->
-            <div style="flex: 1; max-width: 44px; height: 5px; border-radius: 9999px; background: rgba(0,0,0,0.06); display: flex; overflow: hidden; margin: 0 4px;" title="ชาย <?= $malePct ?>% | หญิง <?= $femalePct ?>%">
-                <div style="width: <?= $malePct ?>%; background: #0284c7;"></div>
-                <div style="width: <?= $femalePct ?>%; background: #db2777;"></div>
+            <!-- Central Dual Progress Pill -->
+            <div style="flex: 1; max-width: 48px; height: 7px; border-radius: 9999px; background: rgba(0,0,0,0.06); display: flex; overflow: hidden; margin: 0 4px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);" title="ชาย <?= $malePct ?>% | หญิง <?= $femalePct ?>%">
+                <div style="width: <?= $malePct ?>%; background: linear-gradient(90deg, #0284c7, #38bdf8);"></div>
+                <div style="width: <?= $femalePct ?>%; background: linear-gradient(90deg, #f472b6, #db2777);"></div>
             </div>
 
-            <!-- Female Full Avatar + Count -->
-            <div style="display: flex; align-items: center; gap: 5px;">
+            <!-- Female Side (Large, High Contrast) -->
+            <div style="display: flex; align-items: center; gap: 8px;">
                 <div style="display: flex; flex-direction: column; line-height: 1.15; text-align: right;">
-                    <span style="color: #db2777; font-size: 11.5px; font-weight: 800;">หญิง <?= $femalePct ?>%</span>
-                    <span style="color: var(--text-muted); font-size: 10px; font-weight: 600;"><?= number_format($femaleCnt) ?> คน</span>
+                    <div style="color: #db2777; font-size: 14.5px; font-weight: 900; letter-spacing: -0.2px;">
+                        <?= $femalePct ?>%
+                    </div>
+                    <div style="color: var(--text-secondary); font-size: 11.5px; font-weight: 700;">
+                        หญิง <?= number_format($femaleCnt) ?> คน
+                    </div>
                 </div>
-                <?= getFilledAvatarSvg('female', $femalePct, 15, 23, $uid . '_f') ?>
+                <?= getFilledAvatarSvg('female', $femalePct, 22, 34, $uid . '_f') ?>
             </div>
         </div>
         <?php
@@ -947,22 +955,22 @@ if (!function_exists('renderKpiGenderSplit')) {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-top: 10px;
-            padding-top: 8px;
-            border-top: 1px dashed var(--public-border);
-            font-size: 11px;
-            font-weight: 700;
-            gap: 6px;
+            margin-top: 12px;
+            padding: 8px 12px;
+            background: var(--public-container-bg, rgba(2, 132, 199, 0.03));
+            border: 1px solid var(--public-border);
+            border-radius: 14px;
+            gap: 10px;
         }
 
         .gender-kpi-card {
             background: var(--public-card-bg);
-            border-radius: 20px;
-            padding: 16px 18px;
+            border-radius: 22px;
+            padding: 20px 22px;
             display: flex;
             align-items: center;
-            gap: 14px;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+            gap: 18px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
             border: 1.5px solid var(--public-border);
             position: relative;
             overflow: hidden;
@@ -971,27 +979,27 @@ if (!function_exists('renderKpiGenderSplit')) {
 
         .gender-kpi-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 10px 26px rgba(0, 0, 0, 0.07);
         }
 
         .gender-kpi-card.male-card {
-            border-color: rgba(37, 99, 235, 0.28);
-            background: linear-gradient(135deg, rgba(37, 99, 235, 0.04), var(--public-card-bg));
+            border-color: rgba(2, 132, 199, 0.32);
+            background: linear-gradient(135deg, rgba(2, 132, 199, 0.06), var(--public-card-bg));
         }
 
         .gender-kpi-card.female-card {
-            border-color: rgba(219, 39, 119, 0.28);
-            background: linear-gradient(135deg, rgba(219, 39, 119, 0.04), var(--public-card-bg));
+            border-color: rgba(219, 39, 119, 0.32);
+            background: linear-gradient(135deg, rgba(219, 39, 119, 0.06), var(--public-card-bg));
         }
 
         [data-theme="dark"] .gender-kpi-card.male-card {
-            border-color: rgba(56, 189, 248, 0.35);
-            background: linear-gradient(135deg, rgba(2, 132, 199, 0.12), rgba(30, 41, 59, 0.9));
+            border-color: rgba(56, 189, 248, 0.4);
+            background: linear-gradient(135deg, rgba(2, 132, 199, 0.16), rgba(30, 41, 59, 0.95));
         }
 
         [data-theme="dark"] .gender-kpi-card.female-card {
-            border-color: rgba(244, 114, 182, 0.35);
-            background: linear-gradient(135deg, rgba(219, 39, 119, 0.12), rgba(30, 41, 59, 0.9));
+            border-color: rgba(244, 114, 182, 0.4);
+            background: linear-gradient(135deg, rgba(219, 39, 119, 0.16), rgba(30, 41, 59, 0.95));
         }
 
         .gender-avatar-wrapper {
@@ -1000,6 +1008,7 @@ if (!function_exists('renderKpiGenderSplit')) {
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
+            padding: 4px;
         }
 
         .badge-pdpa {
@@ -1277,20 +1286,23 @@ if (!function_exists('renderKpiGenderSplit')) {
                 </div>
 
                 <!-- Gender Infographic Cards (Proportional Silhouette Fill) -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 12px; margin-bottom: 12px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 16px;">
                     <!-- Male Card -->
                     <div class="gender-kpi-card male-card">
                         <div class="gender-avatar-wrapper">
-                            <?= getFilledAvatarSvg('male', $scrMalePct, 42, 64, 'demo_m') ?>
+                            <?= getFilledAvatarSvg('male', $scrMalePct, 54, 84, 'demo_m') ?>
                         </div>
-                        <div style="display: flex; flex-direction: column; min-width: 0;">
-                            <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary, #64748b);">เพศชาย</span>
-                            <div style="font-size: 24px; font-weight: 900; color: #2563eb; line-height: 1.1; margin: 2px 0 4px 0;">
-                                <?= number_format($scrMale) ?> <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">คน</span>
+                        <div style="display: flex; flex-direction: column; min-width: 0; gap: 3px;">
+                            <div style="font-size: 13.5px; font-weight: 800; color: #0284c7; display: flex; align-items: center; gap: 4px;">
+                                <span>เพศชาย</span>
+                                <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">(MALE)</span>
+                            </div>
+                            <div style="font-size: 32px; font-weight: 900; color: #0284c7; line-height: 1; letter-spacing: -0.5px; margin: 3px 0 5px 0;">
+                                <?= $scrMalePct ?>%
                             </div>
                             <div>
-                                <span class="badge-pill" style="background: rgba(37, 99, 235, 0.12); color: #2563eb; font-weight: 800; font-size: 12px; padding: 2.5px 10px;">
-                                    <?= $scrMalePct ?>%
+                                <span class="badge-pill" style="background: rgba(2, 132, 199, 0.14); color: #0284c7; font-weight: 800; font-size: 13px; padding: 4px 12px; border-radius: 12px;">
+                                    👥 <?= number_format($scrMale) ?> คน
                                 </span>
                             </div>
                         </div>
@@ -1299,16 +1311,19 @@ if (!function_exists('renderKpiGenderSplit')) {
                     <!-- Female Card -->
                     <div class="gender-kpi-card female-card">
                         <div class="gender-avatar-wrapper">
-                            <?= getFilledAvatarSvg('female', $scrFemalePct, 42, 64, 'demo_f') ?>
+                            <?= getFilledAvatarSvg('female', $scrFemalePct, 54, 84, 'demo_f') ?>
                         </div>
-                        <div style="display: flex; flex-direction: column; min-width: 0;">
-                            <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary, #64748b);">เพศหญิง</span>
-                            <div style="font-size: 24px; font-weight: 900; color: #db2777; line-height: 1.1; margin: 2px 0 4px 0;">
-                                <?= number_format($scrFemale) ?> <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">คน</span>
+                        <div style="display: flex; flex-direction: column; min-width: 0; gap: 3px;">
+                            <div style="font-size: 13.5px; font-weight: 800; color: #db2777; display: flex; align-items: center; gap: 4px;">
+                                <span>เพศหญิง</span>
+                                <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">(FEMALE)</span>
+                            </div>
+                            <div style="font-size: 32px; font-weight: 900; color: #db2777; line-height: 1; letter-spacing: -0.5px; margin: 3px 0 5px 0;">
+                                <?= $scrFemalePct ?>%
                             </div>
                             <div>
-                                <span class="badge-pill" style="background: rgba(219, 39, 119, 0.12); color: #db2777; font-weight: 800; font-size: 12px; padding: 2.5px 10px;">
-                                    <?= $scrFemalePct ?>%
+                                <span class="badge-pill" style="background: rgba(219, 39, 119, 0.14); color: #db2777; font-weight: 800; font-size: 13px; padding: 4px 12px; border-radius: 12px;">
+                                    👥 <?= number_format($scrFemale) ?> คน
                                 </span>
                             </div>
                         </div>
