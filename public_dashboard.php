@@ -1002,13 +1002,33 @@ if (!function_exists('renderKpiGenderSplit')) {
             background: linear-gradient(135deg, rgba(219, 39, 119, 0.16), rgba(30, 41, 59, 0.95));
         }
 
-        .gender-avatar-wrapper {
-            position: relative;
+        .demographic-infographic-panel {
+            background: linear-gradient(180deg, rgba(2, 132, 199, 0.03) 0%, rgba(219, 39, 119, 0.03) 100%);
+            border: 1px solid var(--public-border);
+            border-radius: 20px;
+            padding: 16px 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
-            padding: 4px;
+            margin-bottom: 14px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-figure-stroke {
+            stroke: var(--text-primary, #334155);
+        }
+
+        .hero-figure-bg {
+            fill: var(--public-card-bg, #ffffff);
+        }
+
+        [data-theme="dark"] .hero-figure-stroke {
+            stroke: #94a3b8;
+        }
+
+        [data-theme="dark"] .hero-figure-bg {
+            fill: #1e293b;
         }
 
         .badge-pdpa {
@@ -1285,47 +1305,120 @@ if (!function_exists('renderKpiGenderSplit')) {
                     <span class="badge-pill" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6;">Demographics</span>
                 </div>
 
-                <!-- Gender Infographic Cards (Proportional Silhouette Fill) -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 16px;">
-                    <!-- Male Card -->
-                    <div class="gender-kpi-card male-card">
-                        <div class="gender-avatar-wrapper">
-                            <?= getFilledAvatarSvg('male', $scrMalePct, 54, 84, 'demo_m') ?>
-                        </div>
-                        <div style="display: flex; flex-direction: column; min-width: 0; gap: 3px;">
-                            <div style="font-size: 13.5px; font-weight: 800; color: #0284c7; display: flex; align-items: center; gap: 4px;">
-                                <span>เพศชาย</span>
-                                <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">(MALE)</span>
-                            </div>
-                            <div style="font-size: 32px; font-weight: 900; color: #0284c7; line-height: 1; letter-spacing: -0.5px; margin: 3px 0 5px 0;">
-                                <?= $scrMalePct ?>%
-                            </div>
+                <!-- Exact Mockup Hero Infographic: Standing Figures with Wavy Liquid Fills & Curved % Gauges -->
+                <div class="demographic-infographic-panel">
+                    <div style="width: 100%; max-width: 520px; margin: 0 auto;">
+                        <svg viewBox="0 0 500 220" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style="overflow: visible; display: block; margin: 0 auto;">
+                            <defs>
+                                <!-- Female Pink Wave Gradient -->
+                                <linearGradient id="heroFemaleGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+                                    <stop offset="0%" stop-color="#db2777" />
+                                    <stop offset="100%" stop-color="#f43f5e" />
+                                </linearGradient>
+                                <clipPath id="heroFemaleClip">
+                                    <rect x="115" y="<?= max(15, round(195 - (176 * ($scrFemalePct / 100)), 1)) ?>" width="120" height="<?= round((176 * ($scrFemalePct / 100)) + 10, 1) ?>" />
+                                </clipPath>
+
+                                <!-- Male Cyan/Blue Wave Gradient -->
+                                <linearGradient id="heroMaleGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+                                    <stop offset="0%" stop-color="#0284c7" />
+                                    <stop offset="100%" stop-color="#38bdf8" />
+                                </linearGradient>
+                                <clipPath id="heroMaleClip">
+                                    <rect x="265" y="<?= max(15, round(195 - (176 * ($scrMalePct / 100)), 1)) ?>" width="120" height="<?= round((176 * ($scrMalePct / 100)) + 10, 1) ?>" />
+                                </clipPath>
+                            </defs>
+
+                            <!-- 1. LEFT ARC GAUGE (FEMALE) -->
+                            <g>
+                                <!-- Track -->
+                                <path d="M 68 62 A 48 48 0 0 0 68 158" fill="none" stroke="rgba(219, 39, 119, 0.15)" stroke-width="8.5" stroke-linecap="round" />
+                                <!-- Active Arc -->
+                                <path d="M 68 62 A 48 48 0 0 0 68 158" fill="none" stroke="#db2777" stroke-width="8.5" stroke-linecap="round" />
+                                <!-- Centered % and % Symbol -->
+                                <text x="68" y="104" text-anchor="middle" font-size="27" font-weight="900" fill="#db2777" font-family="Inter, Prompt, sans-serif" letter-spacing="-0.5"><?= $scrFemalePct ?></text>
+                                <text x="68" y="125" text-anchor="middle" font-size="16" font-weight="800" fill="#db2777" font-family="Inter, Prompt, sans-serif">%</text>
+                            </g>
+
+                            <!-- 2. FEMALE STANDING FIGURE (Wavy Liquid Level) -->
+                            <g transform="translate(175, 0)">
+                                <!-- Head Base -->
+                                <circle cx="0" cy="35" r="16" class="hero-figure-bg hero-figure-stroke" stroke-width="3" />
+                                
+                                <!-- Body / Dress / Legs Base -->
+                                <path d="M -8 58 C -18 72 -28 88 -36 108 C -37 111 -34 114 -30 114 C -26 114 -24 111 -22 106 L -16 86 L -12 86 L -32 144 C -34 148 -30 152 -25 152 L -20 152 L -20 190 C -20 195 -12 195 -12 190 L -12 152 L 12 152 L 12 190 C 12 195 20 195 20 190 L 20 152 L 25 152 C 30 152 34 148 32 144 L 12 86 L 16 86 L 22 106 C 24 111 26 114 30 114 C 34 114 37 111 36 108 C 28 88 18 72 8 58 Z" class="hero-figure-bg hero-figure-stroke" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" />
+
+                                <!-- Filled Liquid Layer (Clipped strictly by percentage) -->
+                                <g clip-path="url(#heroFemaleClip)">
+                                    <circle cx="0" cy="35" r="16" fill="url(#heroFemaleGrad)" />
+                                    <path d="M -8 58 C -18 72 -28 88 -36 108 C -37 111 -34 114 -30 114 C -26 114 -24 111 -22 106 L -16 86 L -12 86 L -32 144 C -34 148 -30 152 -25 152 L -20 152 L -20 190 C -20 195 -12 195 -12 190 L -12 152 L 12 152 L 12 190 C 12 195 20 195 20 190 L 20 152 L 25 152 C 30 152 34 148 32 144 L 12 86 L 16 86 L 22 106 C 24 111 26 114 30 114 C 34 114 37 111 36 108 C 28 88 18 72 8 58 Z" fill="url(#heroFemaleGrad)" />
+                                </g>
+
+                                <!-- Outer Silhouette Outline Overlay -->
+                                <circle cx="0" cy="35" r="16" fill="none" class="hero-figure-stroke" stroke-width="3" />
+                                <path d="M -8 58 C -18 72 -28 88 -36 108 C -37 111 -34 114 -30 114 C -26 114 -24 111 -22 106 L -16 86 L -12 86 L -32 144 C -34 148 -30 152 -25 152 L -20 152 L -20 190 C -20 195 -12 195 -12 190 L -12 152 L 12 152 L 12 190 C 12 195 20 195 20 190 L 20 152 L 25 152 C 30 152 34 148 32 144 L 12 86 L 16 86 L 22 106 C 24 111 26 114 30 114 C 34 114 37 111 36 108 C 28 88 18 72 8 58 Z" fill="none" class="hero-figure-stroke" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" />
+                            </g>
+
+                            <!-- 3. MALE STANDING FIGURE (Wavy Liquid Level) -->
+                            <g transform="translate(325, 0)">
+                                <!-- Head Base -->
+                                <circle cx="0" cy="35" r="16" class="hero-figure-bg hero-figure-stroke" stroke-width="3" />
+                                
+                                <!-- Body / Arms / Legs Base -->
+                                <path d="M -26 58 C -27 58 -28 59 -28 60 L -28 112 C -28 116 -22 116 -22 112 L -22 76 L -16 76 L -16 128 L -16 190 C -16 195 -7 195 -7 190 L -7 128 L 7 128 L 7 190 C 7 195 16 195 16 190 L 16 128 L 16 76 L 22 76 L 22 112 C 22 116 28 116 28 112 L 28 60 C 28 59 27 58 26 58 Z" class="hero-figure-bg hero-figure-stroke" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" />
+
+                                <!-- Filled Liquid Layer (Clipped strictly by percentage) -->
+                                <g clip-path="url(#heroMaleClip)">
+                                    <circle cx="0" cy="35" r="16" fill="url(#heroMaleGrad)" />
+                                    <path d="M -26 58 C -27 58 -28 59 -28 60 L -28 112 C -28 116 -22 116 -22 112 L -22 76 L -16 76 L -16 128 L -16 190 C -16 195 -7 195 -7 190 L -7 128 L 7 128 L 7 190 C 7 195 16 195 16 190 L 16 128 L 16 76 L 22 76 L 22 112 C 22 116 28 116 28 112 L 28 60 C 28 59 27 58 26 58 Z" fill="url(#heroMaleGrad)" />
+                                </g>
+
+                                <!-- Outer Silhouette Outline Overlay -->
+                                <circle cx="0" cy="35" r="16" fill="none" class="hero-figure-stroke" stroke-width="3" />
+                                <path d="M -26 58 C -27 58 -28 59 -28 60 L -28 112 C -28 116 -22 116 -22 112 L -22 76 L -16 76 L -16 128 L -16 190 C -16 195 -7 195 -7 190 L -7 128 L 7 128 L 7 190 C 7 195 16 195 16 190 L 16 128 L 16 76 L 22 76 L 22 112 C 22 116 28 116 28 112 L 28 60 C 28 59 27 58 26 58 Z" fill="none" class="hero-figure-stroke" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" />
+                            </g>
+
+                            <!-- 4. RIGHT ARC GAUGE (MALE) -->
+                            <g>
+                                <!-- Track -->
+                                <path d="M 432 62 A 48 48 0 0 1 432 158" fill="none" stroke="rgba(2, 132, 199, 0.15)" stroke-width="8.5" stroke-linecap="round" />
+                                <!-- Active Arc -->
+                                <path d="M 432 62 A 48 48 0 0 1 432 158" fill="none" stroke="#0284c7" stroke-width="8.5" stroke-linecap="round" />
+                                <!-- Centered % and % Symbol -->
+                                <text x="432" y="104" text-anchor="middle" font-size="27" font-weight="900" fill="#0284c7" font-family="Inter, Prompt, sans-serif" letter-spacing="-0.5"><?= $scrMalePct ?></text>
+                                <text x="432" y="125" text-anchor="middle" font-size="16" font-weight="800" fill="#0284c7" font-family="Inter, Prompt, sans-serif">%</text>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Flanking Gender Metric Cards -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px;">
+                    <!-- Female Info Card -->
+                    <div style="background: rgba(219, 39, 119, 0.06); border: 1.5px solid rgba(219, 39, 119, 0.25); border-radius: 14px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 7px;">
+                            <span style="font-size: 18px;">👩</span>
                             <div>
-                                <span class="badge-pill" style="background: rgba(2, 132, 199, 0.14); color: #0284c7; font-weight: 800; font-size: 13px; padding: 4px 12px; border-radius: 12px;">
-                                    👥 <?= number_format($scrMale) ?> คน
-                                </span>
+                                <div style="font-size: 12.5px; font-weight: 800; color: #db2777;">เพศหญิง</div>
+                                <div style="font-size: 10.5px; color: var(--text-muted);"><?= $scrFemalePct ?>%</div>
                             </div>
+                        </div>
+                        <div style="font-size: 16px; font-weight: 900; color: #db2777;">
+                            <?= number_format($scrFemale) ?> <span style="font-size: 11px; font-weight: 600; color: var(--text-muted);">คน</span>
                         </div>
                     </div>
 
-                    <!-- Female Card -->
-                    <div class="gender-kpi-card female-card">
-                        <div class="gender-avatar-wrapper">
-                            <?= getFilledAvatarSvg('female', $scrFemalePct, 54, 84, 'demo_f') ?>
-                        </div>
-                        <div style="display: flex; flex-direction: column; min-width: 0; gap: 3px;">
-                            <div style="font-size: 13.5px; font-weight: 800; color: #db2777; display: flex; align-items: center; gap: 4px;">
-                                <span>เพศหญิง</span>
-                                <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">(FEMALE)</span>
-                            </div>
-                            <div style="font-size: 32px; font-weight: 900; color: #db2777; line-height: 1; letter-spacing: -0.5px; margin: 3px 0 5px 0;">
-                                <?= $scrFemalePct ?>%
-                            </div>
+                    <!-- Male Info Card -->
+                    <div style="background: rgba(2, 132, 199, 0.06); border: 1.5px solid rgba(2, 132, 199, 0.25); border-radius: 14px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 7px;">
+                            <span style="font-size: 18px;">👨</span>
                             <div>
-                                <span class="badge-pill" style="background: rgba(219, 39, 119, 0.14); color: #db2777; font-weight: 800; font-size: 13px; padding: 4px 12px; border-radius: 12px;">
-                                    👥 <?= number_format($scrFemale) ?> คน
-                                </span>
+                                <div style="font-size: 12.5px; font-weight: 800; color: #0284c7;">เพศชาย</div>
+                                <div style="font-size: 10.5px; color: var(--text-muted);"><?= $scrMalePct ?>%</div>
                             </div>
+                        </div>
+                        <div style="font-size: 16px; font-weight: 900; color: #0284c7;">
+                            <?= number_format($scrMale) ?> <span style="font-size: 11px; font-weight: 600; color: var(--text-muted);">คน</span>
                         </div>
                     </div>
                 </div>
