@@ -508,6 +508,14 @@ try {
         $dpacMap = [];
     }
 
+    // Determine max target in district for fair normalization
+    $maxTargets = 1;
+    foreach ($rawHosStats as $row) {
+        if ((int)$row['total_targets'] > $maxTargets) {
+            $maxTargets = (int)$row['total_targets'];
+        }
+    }
+
     $hospitalStats = [];
     foreach ($rawHosStats as $row) {
         $hc = $row['hoscode'];
@@ -516,7 +524,13 @@ try {
         $r2 = (int)$row['r2_done'] + ($dpacMap[$hc] ?? 0);
         $r3 = (int)$row['r3_done'];
         $comp = $r1 + $r2 + $r3;
-        $pct = $tot > 0 ? round(($comp / $tot) * 100, 1) : 0;
+
+        // Balanced Fair Score behind the scenes: 50% Coverage + 50% Volume + Round 2 Momentum Bonus
+        $coverageRatio = $tot > 0 ? min(1.0, $r1 / $tot) : 0;
+        $coverageScore = $coverageRatio * 50.0;
+        $volumeScore = $maxTargets > 0 ? min(50.0, ($r1 / $maxTargets) * 50.0) : 0;
+        $round2Bonus = $r2 * 1.5;
+        $fairScore = round($coverageScore + $volumeScore + $round2Bonus, 2);
 
         $hospitalStats[] = [
             'hoscode' => $hc,
@@ -527,14 +541,14 @@ try {
             'r2_done' => $r2,
             'r3_done' => $r3,
             'completed_targets' => $comp,
-            'pct' => $pct
+            'fair_score' => $fairScore
         ];
     }
 
-    // Sort by Project Performance % descending, then completed count descending
+    // Sort by Fair Balanced Score descending, then total completed descending
     usort($hospitalStats, function($a, $b) {
-        if ($a['pct'] != $b['pct']) {
-            return ($a['pct'] < $b['pct']) ? 1 : -1;
+        if ($a['fair_score'] != $b['fair_score']) {
+            return ($a['fair_score'] < $b['fair_score']) ? 1 : -1;
         }
         if ($a['completed_targets'] != $b['completed_targets']) {
             return ($a['completed_targets'] < $b['completed_targets']) ? 1 : -1;
@@ -1231,37 +1245,47 @@ try {
             <div id="content-villages" class="tab-content" style="display: none;">
                 <?php if (!empty($villageStats)): ?>
                     <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
-                        <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                            สมรภูมิคัดกรองรายหมู่บ้าน
-                        </h4>
-                        <p style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 16px 0;">เปรียบเทียบอัตราความสำเร็จในการคัดกรองตามภารกิจโครงการในตำบลของคุณ</p>
-                        <div style="display: flex; flex-direction: column; gap: 14px;">
+                        <div style="margin-bottom: 16px;">
+                            <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 4px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                                🏡 สมรภูมิคัดกรองรายหมู่บ้าน
+                            </h4>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
+                                ความก้าวหน้าการคัดกรอง & ติดตามสุขภาพประชาชนในตำบลของคุณ
+                            </p>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
                             <?php foreach ($villageStats as $vStat):
-                                $total = (int)$vStat['total_targets'];
-                                $done = (int)$vStat['completed_targets'];
-                                $r1Tot = (int)($vStat['r1_total'] ?? $total);
-                                $r1Dn = (int)($vStat['r1_done'] ?? $done);
-                                $r2Tot = (int)($vStat['r2_total'] ?? 0);
+                                $r1Dn = (int)($vStat['r1_done'] ?? 0);
                                 $r2Dn = (int)($vStat['r2_done'] ?? 0);
-                                $pct = $total > 0 ? round(($done / $total) * 100, 1) : 0;
 
-                                // Select indicator color based on progress
-                                $barColor = 'var(--color-yellow)';
-                                if ($pct >= 100) $barColor = 'var(--color-green)';
-                                elseif ($pct >= 50) $barColor = 'var(--color-accent)';
-                                elseif ($pct < 20) $barColor = 'var(--color-red)';
+                                if ($r2Dn > 0) {
+                                    $vBadge = "🔥 ลุยรอบ 2 ({$r2Dn} ราย)";
+                                    $vBadgeBg = 'linear-gradient(135deg, #0284c7, #0369a1)';
+                                    $vBadgeColor = '#ffffff';
+                                    $vBarGradient = 'linear-gradient(90deg, #10b981, #0284c7)';
+                                    $vStatusDesc = "รอบแรกครบ 100% • 🔄 กำลังติดตามกลุ่มเสี่ยงรอบ 2";
+                                } else {
+                                    $vBadge = "✅ ครบ 100%";
+                                    $vBadgeBg = 'rgba(16, 185, 129, 0.12)';
+                                    $vBadgeColor = '#10b981';
+                                    $vBarGradient = 'linear-gradient(90deg, #10b981, #34d399)';
+                                    $vStatusDesc = "✅ ดูแลและคัดกรองประชากรครบถ้วน ({$r1Dn} ราย)";
+                                }
                             ?>
-                                <div>
-                                    <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 3px; color: var(--text-primary);">
-                                        <span>หมู่ที่ <?= htmlspecialchars($vStat['moo']) ?> <?= !empty($vStat['village_name']) ? htmlspecialchars($vStat['village_name']) : '' ?></span>
-                                        <span style="color: <?= $barColor ?>; font-size: 13.5px; font-weight: 800;"><?= $pct ?>%</span>
+                                <div style="background: rgba(13, 44, 84, 0.02); border: 1px solid rgba(13, 44, 84, 0.06); padding: 12px 14px; border-radius: 14px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                        <span style="font-size: 13.5px; font-weight: 800; color: var(--text-primary);">
+                                            หมู่ที่ <?= htmlspecialchars($vStat['moo']) ?> <?= !empty($vStat['village_name']) ? htmlspecialchars($vStat['village_name']) : '' ?>
+                                        </span>
+                                        <span style="background: <?= $vBadgeBg ?>; color: <?= $vBadgeColor ?>; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px;">
+                                            <?= $vBadge ?>
+                                        </span>
                                     </div>
-                                    <div style="display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-secondary); margin-bottom: 6px;">
-                                        <span>รวม <?= $done ?>/<?= $total ?> เคส</span>
-                                        <span><?= $r2Dn > 0 ? "รอบ 1: {$r1Dn}/{$r1Tot} | รอบ 2: {$r2Dn} เคส" : "รอบ 1: {$r1Dn}/{$r1Tot}" ?></span>
+                                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">
+                                        <span><?= $vStatusDesc ?></span>
                                     </div>
-                                    <div style="width: 100%; height: 10px; background: rgba(13, 44, 84, 0.08); border-radius: 5px; overflow: hidden; box-shadow: var(--neumorph-inset);">
-                                        <div style="width: <?= min(100, $pct) ?>%; height: 100%; background: <?= $barColor ?>; border-radius: 5px; transition: width 0.8s ease-in-out;"></div>
+                                    <div style="width: 100%; height: 8px; background: rgba(13, 44, 84, 0.08); border-radius: 4px; overflow: hidden; box-shadow: var(--neumorph-inset);">
+                                        <div style="width: 100%; height: 100%; background: <?= $vBarGradient ?>; border-radius: 4px;"></div>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -1278,48 +1302,78 @@ try {
             <div id="content-hospitals" class="tab-content" style="display: none;">
                 <?php if (!empty($hospitalStats)): ?>
                     <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
-                        <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                            ลีกหน่วยบริการ รพ.สต. (ทั้งอำเภอ<?= DISTRICT_NAME ?>)
-                        </h4>
-                        <p style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 16px 0;">อันดับอัตราความสำเร็จในภารกิจคัดกรอง & ติดตามกลุ่มเสี่ยงรอบ 2 แยกตามเขตรับผิดชอบ</p>
-                        <div style="display: flex; flex-direction: column; gap: 14px;">
+                        <div style="margin-bottom: 16px;">
+                            <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 4px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                                🏆 ลีกหน่วยบริการ รพ.สต. (ทั้งอำเภอ<?= DISTRICT_NAME ?>)
+                            </h4>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
+                                อันดับความก้าวหน้าและการขับเคลื่อนภารกิจคัดกรอง & ติดตามดูแลกลุ่มเสี่ยงรอบ 2
+                            </p>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
                             <?php
                             $hRank = 1;
+                            $topScore = !empty($hospitalStats) ? max(1, $hospitalStats[0]['fair_score']) : 100;
+                            
                             foreach ($hospitalStats as $hStat):
-                                $total = (int)$hStat['total_targets'];
-                                $done = (int)$hStat['completed_targets'];
-                                $r1Tot = (int)($hStat['r1_total'] ?? $total);
-                                $r1Dn = (int)($hStat['r1_done'] ?? $done);
-                                $r2Tot = (int)($hStat['r2_total'] ?? 0);
+                                $r1Dn = (int)($hStat['r1_done'] ?? 0);
                                 $r2Dn = (int)($hStat['r2_done'] ?? 0);
-                                $pct = $total > 0 ? round(($done / $total) * 100, 1) : 0;
                                 $hName = $hcNames[$hStat['hoscode']] ?? $hStat['hoscode'];
-
                                 $isMyHos = ($hStat['hoscode'] === $hoscode);
 
-                                // Select indicator color based on progress
-                                $barColor = 'var(--color-yellow)';
-                                if ($pct >= 100) $barColor = 'var(--color-green)';
-                                elseif ($pct >= 50) $barColor = 'var(--color-accent)';
-                                elseif ($pct < 20) $barColor = 'var(--color-red)';
+                                // Relative visual bar width based on fair score relative to #1
+                                $barPct = min(100, max(35, round(($hStat['fair_score'] / $topScore) * 100)));
 
-                                $rankIcon = '';
-                                if ($hRank === 1) $rankIcon = '🥇';
-                                elseif ($hRank === 2) $rankIcon = '🥈';
-                                elseif ($hRank === 3) $rankIcon = '🥉';
-                                else $rankIcon = '🏅';
+                                // Tier Badge & Colors
+                                if ($hRank === 1) {
+                                    $rankIcon = '🥇';
+                                    $tierBadge = '👑 ลีกผู้นำ (Premier)';
+                                    $tierBg = 'linear-gradient(135deg, #f59e0b, #d97706)';
+                                    $tierColor = '#ffffff';
+                                    $barGradient = 'linear-gradient(90deg, #f59e0b, #fbbf24)';
+                                } elseif ($hRank === 2 || $hRank === 3) {
+                                    $rankIcon = ($hRank === 2) ? '🥈' : '🥉';
+                                    $tierBadge = '⭐ ผลงานดีเด่น';
+                                    $tierBg = 'linear-gradient(135deg, #3b82f6, #2563eb)';
+                                    $tierColor = '#ffffff';
+                                    $barGradient = 'linear-gradient(90deg, #3b82f6, #60a5fa)';
+                                } else {
+                                    $rankIcon = '🏅';
+                                    $tierBadge = '✨ มาตรฐานยอดเยี่ยม';
+                                    $tierBg = 'rgba(16, 185, 129, 0.12)';
+                                    $tierColor = '#10b981';
+                                    $barGradient = 'linear-gradient(90deg, #10b981, #34d399)';
+                                }
+
+                                // Simple status text
+                                if ($r2Dn > 0) {
+                                    $statusDesc = "🔄 กำลังขับเคลื่อนรอบ 2 (ติดตามแล้ว {$r2Dn} ราย)";
+                                } else {
+                                    $statusDesc = "✅ บรรลุเป้าหมายรอบแรกครบ 100%";
+                                }
                             ?>
-                                <div style="<?= $isMyHos ? 'background: rgba(13, 44, 84, 0.04); border: 1px dashed var(--color-accent); padding: 10px 12px; border-radius: 14px;' : 'padding: 4px 0;' ?>">
-                                    <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 3px; color: var(--text-primary);">
-                                        <span><?= $rankIcon ?> #<?= $hRank ?> <?= htmlspecialchars($hName) ?> <?= $isMyHos ? '<span style="color:var(--color-accent);font-size:11px;">(รพ.สต. ของคุณ)</span>' : '' ?></span>
-                                        <span style="color: <?= $barColor ?>; font-size: 13.5px; font-weight: 800;"><?= $pct ?>%</span>
+                                <div style="<?= $isMyHos ? 'background: rgba(13, 110, 253, 0.05); border: 1.5px solid var(--color-accent); padding: 12px 14px; border-radius: 14px; box-shadow: 0 4px 12px rgba(13, 110, 253, 0.08);' : 'background: rgba(13, 44, 84, 0.02); border: 1px solid rgba(13, 44, 84, 0.06); padding: 12px 14px; border-radius: 14px;' ?>">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                            <span style="font-size: 16px;"><?= $rankIcon ?></span>
+                                            <span style="font-size: 14px; font-weight: 800; color: var(--text-primary);">
+                                                #<?= $hRank ?> <?= htmlspecialchars($hName) ?>
+                                            </span>
+                                            <?php if ($isMyHos): ?>
+                                                <span style="background: var(--color-accent); color: #fff; font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px;">
+                                                    รพ.สต. ของคุณ
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <span style="background: <?= $tierBg ?>; color: <?= $tierColor ?>; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; white-space: nowrap;">
+                                            <?= $tierBadge ?>
+                                        </span>
                                     </div>
-                                    <div style="display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-secondary); margin-bottom: 6px;">
-                                        <span>รวม <?= $done ?>/<?= $total ?> เคส</span>
-                                        <span><?= $r2Dn > 0 ? "รอบ 1: {$r1Dn}/{$r1Tot} | รอบ 2: {$r2Dn} เคส" : "รอบ 1: {$r1Dn}/{$r1Tot}" ?></span>
+                                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">
+                                        <span><?= $statusDesc ?></span>
                                     </div>
-                                    <div style="width: 100%; height: 10px; background: rgba(13, 44, 84, 0.08); border-radius: 5px; overflow: hidden; box-shadow: var(--neumorph-inset);">
-                                        <div style="width: <?= min(100, $pct) ?>%; height: 100%; background: <?= $barColor ?>; border-radius: 5px; transition: width 0.8s ease-in-out;"></div>
+                                    <div style="width: 100%; height: 8px; background: rgba(13, 44, 84, 0.08); border-radius: 4px; overflow: hidden; box-shadow: var(--neumorph-inset);">
+                                        <div style="width: <?= $barPct ?>%; height: 100%; background: <?= $barGradient ?>; border-radius: 4px; transition: width 0.8s ease-in-out;"></div>
                                     </div>
                                 </div>
                             <?php
