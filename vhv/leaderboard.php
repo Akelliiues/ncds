@@ -206,6 +206,14 @@ function renderVhvRankEmblem($rank, $size = 'md', $extraStyle = '')
     return render_neu_icon($cfg['icon'], $size, $cfg['discClass'], $extraStyle);
 }
 
+function get_hospital_kingdom_badge_url($rank)
+{
+    $r = (int)$rank;
+    if ($r < 1) $r = 1;
+    if ($r > 16) $r = 16;
+    return "../assets/icons/kingdom_ranks/rank_{$r}.png";
+}
+
 require_once __DIR__ . '/../config/demo_data.php';
 
 if (DemoDataProvider::isDemoMode()) {
@@ -1307,7 +1315,7 @@ try {
                                 🏆 ลีกหน่วยบริการ รพ.สต. (ทั้งอำเภอ<?= DISTRICT_NAME ?>)
                             </h4>
                             <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
-                                อันดับความก้าวหน้าและการขับเคลื่อนภารกิจคัดกรอง & ติดตามดูแลกลุ่มเสี่ยงรอบ 2
+                                อันดับความก้าวหน้า การขับเคลื่อนภารกิจคัดกรองและการติดตามดูแลกลุ่มเสี่ยง
                             </p>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 12px;">
@@ -1370,20 +1378,20 @@ try {
                                         : 'background: var(--bg-card); box-shadow: var(--neumorph-flat);' ?> display: flex; align-items: center; padding: 14px 14px; border-radius: var(--border-radius); margin-bottom: 12px; position: relative; overflow: hidden;">
 
                                     <!-- Faded background watermark rank number -->
-                                    <div style="position: absolute; right: 18px; bottom: -15px; font-size: 64px; font-weight: 900; color: rgba(13, 44, 84, 0.04); pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif;">
+                                    <div style="position: absolute; right: 18px; bottom: -15px; font-size: 70px; font-weight: 900; color: rgba(13, 44, 84, 0.04); pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif;">
                                         <?= $hRank ?>
                                     </div>
 
-                                    <!-- Left: Rank Trophy / Medal Icon -->
-                                    <div style="width: 44px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; position: relative; z-index: 2;">
-                                        <?= renderVhvRankEmblem($hRank, ($hRank <= 3 ? 'md' : 'sm')) ?>
+                                    <!-- Left: Kingdom Rank Emblem Badge -->
+                                    <div style="width: 54px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; position: relative; z-index: 2;">
+                                        <img src="<?= get_hospital_kingdom_badge_url($hRank) ?>" alt="อันดับที่ <?= $hRank ?>" style="width: 52px; height: 52px; object-fit: contain; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.12));">
                                     </div>
 
                                     <!-- Center & Main: Hospital Title + Badge + Status + Progress -->
                                     <div class="leader-info" style="position: relative; z-index: 2; flex: 1; min-width: 0;">
                                         <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                                             <strong style="color: var(--text-primary); font-size: 15px; font-weight: 800; line-height: 1.3;">
-                                                #<?= $hRank ?> <?= htmlspecialchars($hName) ?>
+                                                <?= htmlspecialchars($hName) ?>
                                             </strong>
                                             <?php if ($isMyHos): ?>
                                                 <span style="background: var(--color-accent); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px;">
