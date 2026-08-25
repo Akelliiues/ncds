@@ -819,12 +819,46 @@ if (DemoDataProvider::isDemoMode()) {
                         btn.style.background = 'var(--bg-main)';
                         btn.style.color = 'var(--text-secondary)';
                         btn.innerHTML = `<span>✅ มอบหมายงานครบถ้วนแล้ว</span>`;
+                    } else if (res.status === 'empty') {
+                        badge.innerText = `⚠️ ไม่พบประชากรเป้าหมาย`;
+                        badge.style.background = 'rgba(100, 116, 139, 0.15)';
+                        badge.style.color = 'var(--text-secondary)';
+
+                        iconBadge.innerText = 'ℹ️';
+                        iconBadge.style.color = 'var(--text-secondary)';
+                        iconBadge.style.background = 'rgba(100, 116, 139, 0.12)';
+
+                        titleEl.innerText = `ระบบมอบหมายงานคัดกรองอัตโนมัติ`;
+                        descEl.innerHTML = res.message || `ไม่พบประชากรเป้าหมายในหมู่บ้านที่เลือก`;
+
+                        btn.disabled = true;
+                        btn.style.opacity = '0.6';
+                        btn.style.cursor = 'not-allowed';
+                        btn.style.background = 'var(--bg-main)';
+                        btn.style.color = 'var(--text-secondary)';
+                        btn.innerHTML = `<span>🔒 ไม่มีเป้าหมาย</span>`;
                     } else {
-                        card.style.display = 'none';
+                        badge.innerText = `⚠️ ${res.message || 'ไม่สามารถตรวจสอบได้'}`;
+                        badge.style.background = 'rgba(239, 68, 68, 0.15)';
+                        badge.style.color = '#ef4444';
+
+                        titleEl.innerText = `ระบบมอบหมายงานคัดกรองอัตโนมัติ`;
+                        descEl.innerHTML = res.message || `เกิดข้อผิดพลาดในการตรวจสอบข้อมูล`;
+
+                        btn.disabled = true;
+                        btn.style.opacity = '0.6';
+                        btn.style.cursor = 'not-allowed';
+                        btn.innerHTML = `<span>🔒 ไม่สามารถดำเนินการได้</span>`;
                     }
                 })
-                .catch(() => {
-                    card.style.display = 'none';
+                .catch(err => {
+                    console.error('checkSmartAutoAssignStatus error:', err);
+                    badge.innerText = `⚠️ ขัดข้อง`;
+                    badge.style.background = 'rgba(239, 68, 68, 0.15)';
+                    badge.style.color = '#ef4444';
+                    descEl.innerText = 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
+                    btn.disabled = true;
+                    btn.innerHTML = '<span>🔒 ตรวจสอบไม่สำเร็จ</span>';
                 });
         }
 

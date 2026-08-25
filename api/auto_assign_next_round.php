@@ -54,7 +54,7 @@ $postData = json_decode($rawInput, true) ?: [];
 $action = $_GET['action'] ?? ($postData['action'] ?? 'check_status');
 $tambon = $_GET['tambon'] ?? ($postData['tambon'] ?? '');
 $moo = $_GET['moo'] ?? ($postData['moo'] ?? '');
-$hoscode = $admin_hoscode ?: ($_GET['hoscode'] ?? ($postData['hoscode'] ?? ''));
+$hoscode = !empty($_GET['hoscode']) ? $_GET['hoscode'] : ($admin_hoscode ?: ($postData['hoscode'] ?? ''));
 $group = $_GET['group'] ?? ($postData['group'] ?? 'main');
 if (isset($_GET['budget_year']) && is_numeric($_GET['budget_year'])) {
     $selectedBudgetYear = (int)$_GET['budget_year'];
@@ -68,6 +68,7 @@ if (!$tambon || $moo === '') {
 }
 
 $vhidCode = $tambon . str_pad($moo, 2, '0', STR_PAD_LEFT);
+$legacyVhid = str_replace('3420', '3418', $vhidCode);
 $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
 
 try {
@@ -76,7 +77,7 @@ try {
         SELECT p.cid, p.first_name, p.last_name, p.house_no, p.hoscode, p.vhid_code, p.moo,
                TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) AS age
         FROM target_population p
-        WHERE (p.vhid_code = ? OR (CAST(p.moo AS UNSIGNED) = CAST(? AS UNSIGNED) AND p.hoscode = ?))
+        WHERE (p.vhid_code = :vhid OR p.vhid_code = :legacy_vhid OR (CAST(p.moo AS UNSIGNED) = CAST(:moo AS UNSIGNED) AND (:target_hoscode = '' OR p.hoscode = :target_hoscode2)))
     ";
 
     if ($group === 'suspect') {
@@ -91,13 +92,24 @@ try {
         $targetQuery .= " AND p.cid NOT IN ('1234567890111', '1234567890112', '1234567890113', '1234567890114')";
     }
 
+    $params = [
+        'vhid' => $vhidCode,
+        'legacy_vhid' => $legacyVhid,
+        'moo' => $moo,
+        'target_hoscode' => $hoscode ?: '',
+        'target_hoscode2' => $hoscode ?: ''
+    ];
+
     if ($hoscode) {
         $hoscodes = get_query_hoscodes($hoscode);
-        $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
+        $inKeys = [];
+        foreach ($hoscodes as $i => $code) {
+            $key = "hoscode_" . $i;
+            $inKeys[] = ":" . $key;
+            $params[$key] = $code;
+        }
+        $inPlaceholders = implode(',', $inKeys);
         $targetQuery .= " AND p.hoscode IN ($inPlaceholders)";
-        $params = array_merge([$vhidCode, $moo, $hoscode], $hoscodes);
-    } else {
-        $params = [$vhidCode, $moo, $hoscode ?: ''];
     }
 
     $tStmt = $pdo->prepare($targetQuery);
