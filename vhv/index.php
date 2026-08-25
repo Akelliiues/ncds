@@ -212,9 +212,9 @@ if (DemoDataProvider::isDemoMode()) {
             background: none;
             border: none;
             color: var(--text-secondary);
-            font-size: 15px;
+            font-size: clamp(12px, 3.2vw, 14px);
             font-weight: 800;
-            padding: 12px 6px;
+            padding: 10px 4px;
             cursor: pointer;
             border-radius: calc(var(--border-radius) - 6px);
             transition: all var(--transition-speed);
@@ -351,9 +351,9 @@ if (DemoDataProvider::isDemoMode()) {
                             🔔
                             <span id="unread-msg-badge" style="display:none; position:absolute; top:-4px; right:-4px; background:#EF4444; color:white; font-size:9px; font-weight:800; border-radius:50%; width:16px; height:16px; line-height:16px; text-align:center;">0</span>
                         </button>
-                        <a href="manual.php" style="color: var(--color-accent); text-decoration: none; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px; background: rgba(30, 64, 175, 0.08); padding: 3px 8px; border-radius: 50px; white-space: nowrap;">
+                        <button type="button" onclick="switchTab('manual-tab', document.getElementById('tab-btn-manual'))" style="color: var(--color-accent); font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px; background: rgba(30, 64, 175, 0.08); padding: 3px 8px; border-radius: 50px; white-space: nowrap; border: none; cursor: pointer;">
                             📖 คู่มือ
-                        </a>
+                        </button>
                     </div>
                 </div>
 
@@ -430,14 +430,17 @@ if (DemoDataProvider::isDemoMode()) {
 
         <!-- Task Tabs -->
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('pending-list', this)">
+            <button class="tab-btn active" id="tab-btn-pending" onclick="switchTab('pending-list', this)">
                 งานค้าง (<?= count($pendingTasks) ?>)
             </button>
-            <button class="tab-btn" onclick="switchTab('dpac-list', this)" style="color: #b91c1c;">
+            <button class="tab-btn" id="tab-btn-dpac" onclick="switchTab('dpac-list', this)" style="color: #b91c1c;">
                 DPAC (<?= count($dpacTasks) ?>)
             </button>
-            <button class="tab-btn" onclick="switchTab('completed-list', this)">
+            <button class="tab-btn" id="tab-btn-completed" onclick="switchTab('completed-list', this)">
                 เสร็จสิ้น/ข้าม (<?= count($completedTasks) + count($completedDpacTasks) ?>)
+            </button>
+            <button class="tab-btn" id="tab-btn-manual" onclick="switchTab('manual-tab', this)" style="color: var(--color-accent);">
+                📖 คู่มือ
             </button>
         </div>
 
@@ -634,6 +637,11 @@ if (DemoDataProvider::isDemoMode()) {
             <?php endif; ?>
         </div>
 
+        <!-- User Manual Tab Content -->
+        <div id="manual-tab" class="tab-content" style="display: none;">
+            <?php include __DIR__ . '/manual_partial.php'; ?>
+        </div>
+
         <!-- Bottom Navigation Bar -->
         <div class="bottom-nav">
             <a href="index.php" class="nav-link active">
@@ -705,9 +713,26 @@ if (DemoDataProvider::isDemoMode()) {
                 b.classList.remove('active');
             });
             // Show selected tab & set button active
-            document.getElementById(tabId).style.display = 'block';
-            btn.classList.add('active');
+            const target = document.getElementById(tabId);
+            if (target) target.style.display = 'block';
+            if (btn) btn.classList.add('active');
         }
+
+        // Auto-select tab if specified in URL query
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tabParam = urlParams.get('tab');
+            if (tabParam === 'manual' || tabParam === 'manual-tab') {
+                const btn = document.getElementById('tab-btn-manual');
+                if (btn) switchTab('manual-tab', btn);
+            } else if (tabParam === 'dpac' || tabParam === 'dpac-list') {
+                const btn = document.getElementById('tab-btn-dpac');
+                if (btn) switchTab('dpac-list', btn);
+            } else if (tabParam === 'completed' || tabParam === 'completed-list') {
+                const btn = document.getElementById('tab-btn-completed');
+                if (btn) switchTab('completed-list', btn);
+            }
+        })();
 
         function resetPassword() {
             const vhvId = document.getElementById('reset_target_vhv').value;
