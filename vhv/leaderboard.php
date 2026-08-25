@@ -86,10 +86,8 @@ function renderRankTitleHeader($rank, $compact = false)
     if (!$title) return '';
 
     $sizeClass = $compact ? ' rank-title-header--compact' : '';
-    return '<div class="rank-title-header rank-title-header--' . getRankTitleTheme($rank) . $sizeClass . '" aria-label="ฉายาอันดับ ' . (int)$rank . '">
+    return '<div class="rank-title-header rank-title-header--' . getRankTitleTheme($rank) . $sizeClass . '" aria-label="ฉายา ' . htmlspecialchars($title) . '">
         <img class="rank-title-header__icon" src="rank_icon.php?rank=' . (int)$rank . '" alt="" aria-hidden="true">
-        <span class="rank-title-header__rank">#' . (int)$rank . '</span>
-        <span class="rank-title-header__label">ฉายาประจำอันดับ</span>
         <span class="rank-title-header__title">' . htmlspecialchars($title) . '</span>
     </div>';
 }
@@ -513,20 +511,19 @@ try {
             --rank-ink: #0d2c54;
             --rank-glow: rgba(13, 44, 84, 0.14);
             --rank-banner: linear-gradient(130deg, #f2f7fc 0%, #ffffff 55%, #eaf5f8 100%);
-            display: grid;
-            grid-template-columns: auto auto 1fr;
-            column-gap: 9px;
+            display: inline-flex;
             align-items: center;
+            gap: 8px;
             position: relative;
             overflow: hidden;
-            margin-top: 12px;
-            padding: 12px 14px;
-            min-height: 54px;
+            margin-top: 10px;
+            padding: 8px 12px;
+            min-height: 40px;
             border: 1px solid rgba(255, 255, 255, 0.7);
-            border-radius: 16px;
+            border-radius: 14px;
             color: var(--rank-ink);
             background: transparent;
-            box-shadow: 0 8px 22px var(--rank-glow);
+            box-shadow: 0 4px 14px var(--rank-glow);
         }
         .rank-title-header::before {
             content: '';
@@ -546,31 +543,49 @@ try {
             border: 16px solid rgba(255, 255, 255, 0.55);
             border-radius: 50%;
         }
-        .rank-title-header__rank {
-            grid-row: span 2;
+        .rank-title-header__icon {
             position: relative;
             z-index: 1;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 50px;
-            height: 42px;
-            border-radius: 13px;
-            color: #fff;
-            background: var(--rank-ink);
-            box-shadow: 0 7px 15px var(--rank-glow);
-            font-size: 17px;
-            font-weight: 900;
+            width: 28px;
+            height: 28px;
+            flex-shrink: 0;
+            filter: drop-shadow(0 3px 6px rgba(13, 44, 84, .16));
         }
-        .rank-title-header__icon { grid-row: span 2; position: relative; z-index: 1; width: 42px; height: 42px; filter: drop-shadow(0 5px 8px rgba(13, 44, 84, .16)); }
-        .rank-title-header__label { position: relative; z-index: 1; font-size: 10px; font-weight: 800; letter-spacing: .04em; opacity: .72; }
-        .rank-title-header__title { position: relative; z-index: 1; font-size: 14px; font-weight: 900; line-height: 1.3; }
-        .rank-title-header--compact { margin-top: 7px; padding: 7px 9px; min-height: 39px; border-radius: 11px; column-gap: 7px; }
-        .rank-title-header--compact .rank-title-header__rank { min-width: 34px; height: 28px; border-radius: 9px; font-size: 11px; }
-        .rank-title-header--compact .rank-title-header__icon { width: 28px; height: 28px; }
-        .rank-title-header--compact .rank-title-header__label { display: none; }
-        .rank-title-header--compact .rank-title-header__title { font-size: 11px; }
-        .rank-title-header--compact::after { width: 62px; height: 62px; top: -24px; right: -12px; border-width: 9px; }
+        .rank-title-header__title {
+            position: relative;
+            z-index: 1;
+            font-size: 13.5px;
+            font-weight: 800;
+            line-height: 1.25;
+        }
+        .rank-title-header--compact {
+            margin-top: 5px;
+            padding: 4px 8px;
+            min-height: 26px;
+            border-radius: 8px;
+            gap: 6px;
+            display: inline-flex;
+            max-width: 100%;
+        }
+        .rank-title-header--compact .rank-title-header__icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+        .rank-title-header--compact .rank-title-header__title {
+            font-size: 11.5px;
+            font-weight: 800;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .rank-title-header--compact::after {
+            width: 50px;
+            height: 50px;
+            top: -20px;
+            right: -10px;
+            border-width: 7px;
+        }
 
         .rank-title-header--champion { --rank-ink: #8a5700; --rank-glow: rgba(226, 165, 30, .25); --rank-banner: linear-gradient(130deg, #fff8d9, #fffdf4 55%, #ffe39b); }
         .rank-title-header--knight { --rank-ink: #50657d; --rank-glow: rgba(104, 126, 150, .22); --rank-banner: linear-gradient(130deg, #edf2f7, #ffffff 55%, #cfdbe6); }
@@ -1202,39 +1217,31 @@ try {
                         <div class="leaderboard-row"
                             style="<?= $leader['vhv_id'] === $currentVhvId 
                                 ? 'background: rgba(13, 110, 253, 0.09) !important; border: 2px solid var(--color-accent); box-shadow: var(--neumorph-inset) !important;' 
-                                : 'background: var(--bg-card); box-shadow: var(--neumorph-flat);' ?> display: flex; align-items: center; padding: 18px 16px; border-radius: var(--border-radius); margin-bottom: 16px; position: relative; overflow: hidden;">
+                                : 'background: var(--bg-card); box-shadow: var(--neumorph-flat);' ?> display: flex; align-items: center; padding: 16px 14px; border-radius: var(--border-radius); margin-bottom: 14px; position: relative; overflow: hidden;">
+
+                            <?php if (!empty($leader['is_hl_coach'])): ?>
+                                <!-- HL-Coach Badge in Top-Right Corner -->
+                                <div style="position: absolute; top: 10px; right: 12px; font-size: 10.5px; font-weight: 800; color: #d97706; background: linear-gradient(135deg, rgba(251, 191, 36, 0.22), rgba(245, 158, 11, 0.12)); border: 1px solid rgba(245, 158, 11, 0.35); padding: 2px 8px; border-radius: 6px; z-index: 3; display: inline-flex; align-items: center; gap: 3px; box-shadow: 0 1px 4px rgba(245,158,11,0.12);" title="HL-Coach">
+                                    <span>✨</span> <span>HL-Coach</span>
+                                </div>
+                            <?php endif; ?>
 
                             <!-- Faded background watermark rank number -->
-                            <div style="position: absolute; right: 80px; bottom: -20px; font-size: 80px; font-weight: 900; color: rgba(13, 44, 84, 0.18); pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif;">
+                            <div style="position: absolute; right: 70px; bottom: -20px; font-size: 76px; font-weight: 900; color: rgba(13, 44, 84, 0.06); pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif;">
                                 <?= $rankNum ?>
                             </div>
 
-                            <div style="width: 58px; display: flex; align-items: center; justify-content: center; margin-right: 14px; flex-shrink: 0; position: relative; z-index: 2;">
+                            <div style="width: 52px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; position: relative; z-index: 2;">
                                 <?= $trophyHtml ?>
                             </div>
 
-                            <?php
-                            $badges = getBadgesList($leader['total_assigned'], $leader['completed'], $leader['waiting_rewards']);
-                            ?>
-                            <div class="leader-info" style="position: relative; z-index: 2;">
-                                <strong
-                                    style="color: var(--text-primary); font-size: 16px;">
+                            <div class="leader-info" style="position: relative; z-index: 2; flex: 1; min-width: 0;">
+                                <strong style="color: var(--text-primary); font-size: 15.5px; font-weight: 800; display: block; line-height: 1.3;">
                                     <?= htmlspecialchars($leader['vhv_name']) ?>
-                                    <?php foreach ($badges as $badge): ?>
-                                        <span class="badge-icon" style="background: rgba(13,44,84,0.05); font-size: 14px;" title="<?= htmlspecialchars($badge['title']) ?>: <?= htmlspecialchars($badge['desc']) ?>">
-                                            <?= $badge['icon'] ?>
-                                        </span>
-                                    <?php endforeach; ?>
                                 </strong>
-                                <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">
+                                <p style="margin: 2px 0 0 0; font-size: 12.5px; color: var(--text-secondary);">
                                     หมู่ที่ <?= $leader['vhv_moo'] ?><?= !empty($leader['village_name']) ? ' ' . htmlspecialchars($leader['village_name']) : '' ?>
                                 </p>
-                                <?php if (!empty($leader['is_hl_coach'])): ?>
-                                    <div
-                                        style="margin-top: 6px; font-size: 12px; color: #fbbf24; font-weight: bold; display: inline-block; background-color: rgba(251, 191, 36, 0.1); padding: 4px 8px; border-radius: 8px; border: 1px solid rgba(251,191,36,0.3);">
-                                        ✨ HL-Coach
-                                    </div>
-                                <?php endif; ?>
                                 <?php
                                 $rowTitle = getPositiveTitle($rankNum);
                                 if ($rowTitle):
@@ -1243,9 +1250,9 @@ try {
                                 <?php endif; ?>
                             </div>
 
-                            <div class="leader-score" style="flex-shrink: 0; position: relative; z-index: 2;">
-                                <div style="font-size: 20px; color: var(--color-accent);"><?= (float)$points ?></div>
-                                <span style="font-size: 12px; color: var(--text-muted);">แต้ม</span>
+                            <div class="leader-score" style="flex-shrink: 0; position: relative; z-index: 2; text-align: right; margin-top: <?= !empty($leader['is_hl_coach']) ? '12px' : '0' ?>; margin-left: 8px;">
+                                <div style="font-size: 22px; font-weight: 900; color: var(--color-accent); line-height: 1;"><?= (float)$points ?></div>
+                                <span style="font-size: 11px; color: var(--text-muted); font-weight: 700;">แต้ม</span>
                                 <?= $shinyBadge ?>
                             </div>
                         </div>
