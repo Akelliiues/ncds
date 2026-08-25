@@ -197,10 +197,9 @@ if (DemoDataProvider::isDemoMode()) {
             display: flex;
             background-color: var(--bg-card);
             border-radius: var(--border-radius);
-            padding: 4px;
+            padding: 6px;
             margin-bottom: 20px;
             box-shadow: var(--neumorph-inset);
-            gap: 2px;
 
             /* Prevent accessibility text scaling from breaking main tab selectors */
             text-size-adjust: none;
@@ -213,9 +212,9 @@ if (DemoDataProvider::isDemoMode()) {
             background: none;
             border: none;
             color: var(--text-secondary);
-            font-size: clamp(11.5px, 3.2vw, 13.5px);
+            font-size: 15px;
             font-weight: 800;
-            padding: 10px 2px;
+            padding: 12px 6px;
             cursor: pointer;
             border-radius: calc(var(--border-radius) - 6px);
             transition: all var(--transition-speed);
@@ -353,7 +352,7 @@ if (DemoDataProvider::isDemoMode()) {
                             🔔
                             <span id="unread-msg-badge" style="display:none; position:absolute; top:-4px; right:-4px; background:#EF4444; color:white; font-size:9px; font-weight:800; border-radius:50%; width:16px; height:16px; line-height:16px; text-align:center;">0</span>
                         </button>
-                        <button type="button" onclick="switchTab('manual-list', document.getElementById('tab-btn-manual'))" style="color: var(--color-accent); font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px; background: rgba(30, 64, 175, 0.08); padding: 3px 8px; border-radius: 50px; white-space: nowrap; border: none; cursor: pointer;">
+                        <button type="button" id="btn-top-manual" onclick="showManualView()" style="color: var(--color-accent); font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px; background: rgba(30, 64, 175, 0.08); padding: 4px 10px; border-radius: 50px; white-space: nowrap; border: none; cursor: pointer; transition: all 0.2s;" title="เปิดคู่มือการใช้งาน">
                             📖 คู่มือ
                         </button>
                     </div>
@@ -430,7 +429,7 @@ if (DemoDataProvider::isDemoMode()) {
         </div>
         <?php endif; ?>
 
-        <!-- Task Tabs -->
+        <!-- Task Tabs (Original 3 Tabs) -->
         <div class="tabs">
             <button class="tab-btn active" id="tab-btn-pending" onclick="switchTab('pending-list', this)">
                 งานค้าง (<?= count($pendingTasks) ?>)
@@ -440,9 +439,6 @@ if (DemoDataProvider::isDemoMode()) {
             </button>
             <button class="tab-btn" id="tab-btn-completed" onclick="switchTab('completed-list', this)">
                 เสร็จสิ้น/ข้าม (<?= count($completedTasks) + count($completedDpacTasks) ?>)
-            </button>
-            <button class="tab-btn" id="tab-btn-manual" onclick="switchTab('manual-list', this)" style="color: var(--color-accent);">
-                📖 คู่มือ
             </button>
         </div>
 
@@ -851,18 +847,47 @@ if (DemoDataProvider::isDemoMode()) {
             }
         };
         function switchTab(tabId, btn) {
-            // Hide all tabs
+            // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.style.display = 'none';
             });
-            // Remove active from all buttons
+            // Remove active from task tab buttons
             document.querySelectorAll('.tab-btn').forEach(b => {
                 b.classList.remove('active');
             });
+            // Reset top manual button
+            const topManualBtn = document.getElementById('btn-top-manual');
+            if (topManualBtn) {
+                topManualBtn.style.background = 'rgba(30, 64, 175, 0.08)';
+                topManualBtn.style.boxShadow = 'none';
+            }
             // Show selected tab & set button active
             const target = document.getElementById(tabId);
             if (target) target.style.display = 'block';
             if (btn) btn.classList.add('active');
+        }
+
+        function showManualView() {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            // Remove active from task tab buttons
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                b.classList.remove('active');
+            });
+            // Highlight top manual button
+            const topManualBtn = document.getElementById('btn-top-manual');
+            if (topManualBtn) {
+                topManualBtn.style.background = 'var(--bg-main)';
+                topManualBtn.style.boxShadow = 'var(--neumorph-flat)';
+            }
+            // Show manual list pane
+            const mList = document.getElementById('manual-list');
+            if (mList) {
+                mList.style.display = 'block';
+                mList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         }
 
         // Auto-select tab if specified in URL query
@@ -870,8 +895,7 @@ if (DemoDataProvider::isDemoMode()) {
             const urlParams = new URLSearchParams(window.location.search);
             const tabParam = urlParams.get('tab');
             if (tabParam === 'manual' || tabParam === 'manual-list') {
-                const btn = document.getElementById('tab-btn-manual');
-                if (btn) switchTab('manual-list', btn);
+                showManualView();
             } else if (tabParam === 'dpac' || tabParam === 'dpac-list') {
                 const btn = document.getElementById('tab-btn-dpac');
                 if (btn) switchTab('dpac-list', btn);
