@@ -1324,23 +1324,35 @@ try {
                                 // Relative visual bar width based on fair score relative to #1
                                 $barPct = min(100, max(35, round(($hStat['fair_score'] / $topScore) * 100)));
 
-                                // Tier Badge & Colors
+                                // Tier Badge & Colors: 8 Realms & Citadels Theme
                                 if ($hRank === 1) {
                                     $rankIcon = '🥇';
-                                    $tierBadge = '👑 ลีกผู้นำ (Premier)';
+                                    $tierBadge = '👑 มหาจักรวรรดิครอง 8 แดนดิน';
                                     $tierBg = 'linear-gradient(135deg, #f59e0b, #d97706)';
                                     $tierColor = '#ffffff';
                                     $barGradient = 'linear-gradient(90deg, #f59e0b, #fbbf24)';
-                                } elseif ($hRank === 2 || $hRank === 3) {
-                                    $rankIcon = ($hRank === 2) ? '🥈' : '🥉';
-                                    $tierBadge = '⭐ ผลงานดีเด่น';
-                                    $tierBg = 'linear-gradient(135deg, #3b82f6, #2563eb)';
+                                } elseif ($hRank === 2) {
+                                    $rankIcon = '🥈';
+                                    $tierBadge = '⚔️ มหาป้อมปราการทัพหน้า';
+                                    $tierBg = 'linear-gradient(135deg, #0284c7, #0369a1)';
                                     $tierColor = '#ffffff';
-                                    $barGradient = 'linear-gradient(90deg, #3b82f6, #60a5fa)';
+                                    $barGradient = 'linear-gradient(90deg, #0284c7, #38bdf8)';
+                                } elseif ($hRank === 3) {
+                                    $rankIcon = '🥉';
+                                    $tierBadge = '🛡️ มหาปราการศิลาเหล็กกล้า';
+                                    $tierBg = 'linear-gradient(135deg, #7c3aed, #6d28d9)';
+                                    $tierColor = '#ffffff';
+                                    $barGradient = 'linear-gradient(90deg, #7c3aed, #a78bfa)';
+                                } elseif ($hRank <= 5) {
+                                    $rankIcon = '🏅';
+                                    $tierBadge = '🔥 ดินแดนอัศวินแนวรบหน้า';
+                                    $tierBg = 'linear-gradient(135deg, #ea580c, #c2410c)';
+                                    $tierColor = '#ffffff';
+                                    $barGradient = 'linear-gradient(90deg, #ea580c, #fb923c)';
                                 } else {
                                     $rankIcon = '🏅';
-                                    $tierBadge = '✨ มาตรฐานยอดเยี่ยม';
-                                    $tierBg = 'rgba(16, 185, 129, 0.12)';
+                                    $tierBadge = '🌿 แดนดินผู้พิทักษ์สุขภาพ';
+                                    $tierBg = 'rgba(16, 185, 129, 0.15)';
                                     $tierColor = '#10b981';
                                     $barGradient = 'linear-gradient(90deg, #10b981, #34d399)';
                                 }
