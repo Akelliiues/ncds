@@ -721,8 +721,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <!-- Footer Info -->
         <div style="text-align: center; margin-top: 18px; color: var(--text-muted); font-size: 11.5px; line-height: 1.5;">
-            ระบบจัดการคัดกรองโรคเรื้อรังเชิงรุก NCDs 2026<br>
-            อำเภอ<?= DISTRICT_NAME ?> จังหวัด<?= PROVINCE_NAME ?><br>
+
             <div style="margin-top: 8px; display: flex; justify-content: center; gap: 12px; align-items: center; flex-wrap: wrap;">
                 <a href="about.php" style="color: var(--color-accent); text-decoration: none; font-weight: 700;">
                     ℹ️ เกี่ยวกับผู้พัฒนา & ข้อมูลระบบ

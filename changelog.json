@@ -1,5 +1,30 @@
 [
   {
+    "title": "🎉 ปล่อยเวอร์ชันเสถียร Stable Version 2.5 (v2.5-stable) ยกระดับดีไซน์ Neumorphism UI บน Public Open Data Dashboard และหน้า Login, เพิ่มโหมดผู้บริหาร (Executive Read-Only View), อัปเกรดระบบพรางข้อมูลส่วนบุคคลขั้นสูง (Advanced PDPA Masking) และระบบ Universal Clean Scroll",
+    "date": "2026-08-26",
+    "type": "release"
+  },
+  {
+    "title": "ปรับโฉมศูนย์ข้อมูลสถิติสุขภาพเปิดเผยแพร่สาธารณะ (public_dashboard.php) และหน้า Login (index.php) สู่รูปแบบ Neumorphism UI นุ่มนวล มีมิติแสงเงานูน-จม 2 ทิศทาง (Convex & Inset)",
+    "date": "2026-08-26",
+    "type": "ui"
+  },
+  {
+    "title": "เพิ่มบทบาทโหมดผู้บริหาร (Executive Read-Only View) เข้าดูภาพรวมและสถิติได้ครบทุกเมนู พร้อม ExecutiveSecurityInterceptor บล็อกการแก้ไขข้อมูลและ ETL",
+    "date": "2026-08-26",
+    "type": "feature"
+  },
+  {
+    "title": "ยกระดับระบบพรางข้อมูลส่วนบุคคล (Advanced PDPA Masking) พรางชื่อ-นามสกุลโดยคงคำนำหน้าชื่อ, เลขบัตร ปชช. 13 หลัก และเบอร์โทรศัพท์อย่างสมบูรณ์",
+    "date": "2026-08-26",
+    "type": "security"
+  },
+  {
+    "title": "ติดตั้งระบบ Universal Clean Scroll ซ่อน Scrollbar แนวตั้งทั่วทั้งระบบเพื่อความสวยงามเรียบหรูไร้รอยต่อ โดยยังคงเลื่อนหน้าจอได้ปกติ 100%",
+    "date": "2026-08-26",
+    "type": "ui"
+  },
+  {
     "title": "🎉 ปล่อยเวอร์ชันเสถียร Stable Version 2.3 (v2.3-stable) ลีกหน่วยบริการ รพ.สต. และสมรภูมิคัดกรองรายหมู่บ้าน (Tansum Health Center League & Village Battleground) ระบบคำนวณคะแนนถ่วงน้ำหนักหลังบ้านอย่างเป็นธรรม (Fair Balanced Scoring Engine), ตราสัญลักษณ์เกียรติยศ 8 อาณาจักรแบบโปร่งใส 16 อันดับ พร้อมระบบพรีวิวตราขยายใหญ่ (Enlarged Kingdom Badge Modal) และการ์ดดีไซน์ Mobile-First ตามปรัชญา Simple & Easy",
     "date": "2026-08-25",
     "type": "release"

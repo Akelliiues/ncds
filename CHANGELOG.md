@@ -4,6 +4,40 @@
 
 ---
 
+## [v2.5-stable] - Stable Release 2.5: Neumorphism UI Suite, Executive Read-Only View, Advanced PDPA Masking & Universal Clean Scroll (2026-08-26) 🚀
+
+### 🎨 Neumorphism UI Design Suite (การยกระดับดีไซน์สู่รูปแบบ Neumorphic Soft Light & Inset UI)
+- **ปรับโฉมศูนย์ข้อมูลสถิติสุขภาพเปิดเผยแพร่สาธารณะ ([public_dashboard.php](file:///d:/_Site/ssotansum/ncd/public_dashboard.php))**:
+  - แผงนูนลอยนุ่มนวล (Convex Raised Plates) สำหรับบัตร KPI, Cockpit ความก้าวหน้ารายรอบ (R1/R2/R3+) และตารางสรุปผลงาน 8 หน่วยบริการ
+  - ร่องฝังจมลึก (Inset Sunken Wells) สำหรับตัวกรองค้นหา, ช่องเลือกปีงบประมาณ, และแท่งสัดส่วนประชากร
+  - แท่นรองรับไอคอน 3 มิติ (Embossed Icon Pads) และอวตารเพศจำลองสเกลของเหลว (Proportional Liquid Fill Avatars)
+  - รองรับ Dark Mode Neumorphism อย่างสมบูรณ์แบบ
+- **ปรับโฉมหน้าเข้าสู่ระบบ ([index.php](file:///d:/_Site/ssotansum/ncd/index.php))**:
+  - การ์ด Login สไตล์ Neumorphism พร้อม Brand Logo Plate นูน 3 มิติ
+  - ช่องกรอก Username และ Password แบบ Inset Well พร้อมไอคอนนำทางและ Glow Focus
+  - ปุ่มกด "เข้าสู่ระบบ" ทรงนูน Gradient พร้อมเอฟเฟกต์ยุบตัวเมื่อกด (Active Depress Effect)
+  - การ์ดทางลัดตรวจสุขภาพตนเอง, ศูนย์ข้อมูล Open Data, และระบบจำลอง Virtual Sandbox
+
+### 👔 โหมดผู้บริหาร & การพรางข้อมูลส่วนบุคคลขั้นสูง (Executive Read-Only View & Enhanced PDPA Masking)
+- **เพิ่มบทบาทผู้บริหาร (Executive Role)**:
+  - สิทธิ์เข้าชมภาพรวม สถิติ กราฟ รายงาน และกระบวนการของระบบได้ครบทุกเมนูเสมือนแอดมิน
+  - ระบบความปลอดภัย `ExecutiveSecurityInterceptor` บล็อกคำสั่งแก้ไข/ลบ/บันทึกข้อมูล (Write/Update/Delete) และบล็อกการประมวลผล ETL / ส่งออกข้อมูล
+  - แสดงแถบสถานะ `👔 โหมดผู้บริหาร (Executive Read-Only View)` ชัดเจนใน Navbar
+- **ยกระดับระบบพรางข้อมูลส่วนบุคคล (PDPA Masking Engine)**:
+  - พรางชื่อ-นามสกุลโดยคงคำนำหน้าชื่อ (`นาย สุ*** ใจ***`)
+  - พรางเลขประจำตัวประชาชน 13 หลัก (`3-34XX-XXXXX-XX-6`)
+  - พรางหมายเลขโทรศัพท์ (`081-XXX-678`)
+
+### 📱 คู่มือ อสม. หน้าบ้าน & ประสบการณ์ใช้งานที่ลื่นไหล (VHV Manual Tab & UX Polish)
+- **ระบบคู่มือ อสม. หน้าบ้าน (Tab-Integrated Manual)**:
+  - ปรับปุ่มคู่มือมุมขวาบนให้ทำหน้าที่เสมือนแท็บนำทางในตัว ไม่ต้องสลับหน้าใหม่ ใช้งานง่าย รวดเร็ว
+- **ซ่อน Scrollbar แนวตั้งทั่วทั้งระบบ (Universal Clean Scroll)**:
+  - ซ่อนแถบเลื่อน Scrollbar แนวตั้งเพื่อความเนียนตาและมิติการแสดงผลที่หรูหราไร้รอยต่อ โดยยังคงเลื่อนหน้าจอ Scroll ได้ปกติ 100%
+- **ปรับปรุงการจัดกลุ่มคำภาษาไทย (Word Wrapping)**:
+  - จัดการตัดคำไม่ให้ขาดช่วง (เช่น *"พลังการขับเคลื่อน"*) และเพิ่มชื่อจังหวัดอุบลราชธานีในจุดสำคัญ
+
+---
+
 ## [v2.3-stable] - Stable Release 2.3: Tansum Health Center League, 8 Realms Kingdom Badges & Fair Balanced Scoring Engine (2026-08-25) 🚀
 
 ### 🏆 ลีกหน่วยบริการ รพ.สต. และสมรภูมิคัดกรองรายหมู่บ้าน (Tansum Health Center League & Village Battleground)
