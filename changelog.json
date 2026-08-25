@@ -1,5 +1,10 @@
 [
   {
+    "title": "🎉 ปล่อยเวอร์ชันเสถียร Stable Version 2.20 (v2.20-stable) ระบบมอบหมายงานคัดกรองรอบถัดไปอัตโนมัติ (Smart Next-Round Auto-Assignment Engine) พร้อมกฎความปลอดภัย 100% Gated Progression, รองรับการดึง อสม. ครบถ้วน, ปรับปรุงระบบตัวกรองและการคำนวณใน Open Data Portal แบบความเร็วสูง",
+    "date": "2026-08-25",
+    "type": "release"
+  },
+  {
     "title": "เพิ่มฟีเจอร์ Smart Next-Round Auto-Assignment มอบหมายงานคัดกรองรอบถัดไป (รอบ 2, 3...) อัตโนมัติให้ อสม. คนเดิม พร้อมกฎความปลอดภัย 100% Gated Progression และข้ามเคสที่มีงานแล้ว",
     "date": "2026-08-25",
     "type": "feature"
