@@ -670,27 +670,31 @@ if (!function_exists('renderKpiGenderSplit')) {
         ?>
         <div class="kpi-gender-split">
             <!-- Male Side -->
-            <div style="display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap;">
-                <?= getFilledAvatarSvg('male', $malePct, 18, 28, $uid . '_m') ?>
+            <div style="display: flex; align-items: center; gap: 8px; min-width: 0; white-space: nowrap;">
+                <div class="neu-avatar-well">
+                    <?= getFilledAvatarSvg('male', $malePct, 18, 28, $uid . '_m') ?>
+                </div>
                 <div style="display: flex; flex-direction: column; line-height: 1.15; min-width: 0;">
                     <span style="color: #0284c7; font-size: 13.5px; font-weight: 900; letter-spacing: -0.2px; white-space: nowrap;"><?= $malePct ?>%</span>
                     <span style="color: var(--text-secondary); font-size: 11px; font-weight: 700; white-space: nowrap;">ชาย <?= number_format($maleCnt) ?> คน</span>
                 </div>
             </div>
 
-            <!-- Central Dual Progress Pill -->
-            <div style="flex: 1; min-width: 24px; max-width: 42px; height: 6px; border-radius: 9999px; background: rgba(0,0,0,0.06); display: flex; overflow: hidden; margin: 0 4px; flex-shrink: 0;" title="ชาย <?= $malePct ?>% | หญิง <?= $femalePct ?>%">
-                <div style="width: <?= $malePct ?>%; background: #0284c7;"></div>
-                <div style="width: <?= $femalePct ?>%; background: #db2777;"></div>
+            <!-- Central Dual Progress Pill (Sunken Track with Rounded Gradient Pills) -->
+            <div class="neu-dual-track" title="ชาย <?= $malePct ?>% | หญิง <?= $femalePct ?>%">
+                <div style="width: <?= $malePct ?>%; background: linear-gradient(90deg, #38bdf8, #0284c7); border-radius: 9999px 0 0 9999px;"></div>
+                <div style="width: <?= $femalePct ?>%; background: linear-gradient(90deg, #db2777, #f472b6); border-radius: 0 9999px 9999px 0;"></div>
             </div>
 
             <!-- Female Side -->
-            <div style="display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; justify-content: flex-end;">
+            <div style="display: flex; align-items: center; gap: 8px; min-width: 0; white-space: nowrap; justify-content: flex-end;">
                 <div style="display: flex; flex-direction: column; line-height: 1.15; text-align: right; min-width: 0;">
                     <span style="color: #db2777; font-size: 13.5px; font-weight: 900; letter-spacing: -0.2px; white-space: nowrap;"><?= $femalePct ?>%</span>
                     <span style="color: var(--text-secondary); font-size: 11px; font-weight: 700; white-space: nowrap;">หญิง <?= number_format($femaleCnt) ?> คน</span>
                 </div>
-                <?= getFilledAvatarSvg('female', $femalePct, 18, 28, $uid . '_f') ?>
+                <div class="neu-avatar-well">
+                    <?= getFilledAvatarSvg('female', $femalePct, 18, 28, $uid . '_f') ?>
+                </div>
             </div>
         </div>
         <?php
@@ -727,330 +731,513 @@ if (!function_exists('renderKpiGenderSplit')) {
         :root {
             --public-primary: #0284c7;
             --public-accent: #0ea5e9;
-            --public-card-bg: rgba(255, 255, 255, 0.92);
-            --public-border: rgba(226, 232, 240, 0.8);
+            --public-cyan: #06b6d4;
+            --public-pink: #ec4899;
+            --public-green: #10b981;
+            --public-amber: #f59e0b;
+            --public-purple: #8b5cf6;
+
+            /* Neumorphic Soft Light Palette */
+            --neu-base: #ebf0f7;
+            --neu-card-bg: #ebf0f7;
+            --neu-sunken-bg: #e2eaf4;
+            --neu-surface-subtle: #f0f5fc;
+            --neu-border: rgba(255, 255, 255, 0.7);
+            
+            --neu-raised: 8px 8px 18px #cad5e2, -8px -8px 18px #ffffff;
+            --neu-raised-sm: 4px 4px 10px #cad5e2, -4px -4px 10px #ffffff;
+            --neu-raised-lg: 12px 12px 24px #cad5e2, -12px -12px 24px #ffffff;
+            --neu-inset: inset 4px 4px 8px #cad5e2, inset -4px -4px 8px #ffffff;
+            --neu-inset-sm: inset 2.5px 2.5px 5px #cad5e2, inset -2.5px -2.5px 5px #ffffff;
+            --neu-inset-xs: inset 1.5px 1.5px 3px #cad5e2, inset -1.5px -1.5px 3px #ffffff;
+            --neu-inset-deep: inset 5px 5px 10px #c2cfde, inset -5px -5px 10px #ffffff;
+            
+            --text-primary: #0d2c54;
+            --text-secondary: #4b5563;
+            --text-muted: #8c9ba8;
         }
 
-        [data-theme="dark"] :root {
+        [data-theme="dark"] {
             --public-primary: #38bdf8;
             --public-accent: #0ea5e9;
-            --public-card-bg: rgba(30, 41, 59, 0.85);
-            --public-border: rgba(51, 65, 85, 0.8);
+            --public-cyan: #22d3ee;
+            --public-pink: #f472b6;
+            --public-green: #34d399;
+            --public-amber: #fbbf24;
+            --public-purple: #a78bfa;
+
+            /* Neumorphic Dark Palette */
+            --neu-base: #121924;
+            --neu-card-bg: #16202e;
+            --neu-sunken-bg: #0e141d;
+            --neu-surface-subtle: #1a2535;
+            --neu-border: rgba(255, 255, 255, 0.04);
+            
+            --neu-raised: 6px 6px 14px #0a0e15, -6px -6px 14px #223044;
+            --neu-raised-sm: 4px 4px 8px #0a0e15, -4px -4px 8px #223044;
+            --neu-raised-lg: 10px 10px 20px #0a0e15, -10px -10px 20px #223044;
+            --neu-inset: inset 4px 4px 8px #0a0e15, inset -4px -4px 8px #223044;
+            --neu-inset-sm: inset 2.5px 2.5px 5px #0a0e15, inset -2.5px -2.5px 5px #223044;
+            --neu-inset-xs: inset 1.5px 1.5px 3px #0a0e15, inset -1.5px -1.5px 3px #223044;
+            --neu-inset-deep: inset 5px 5px 10px #080b11, inset -5px -5px 10px #223044;
+            
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #64748b;
         }
 
         body {
-            background: var(--bg-main, #f8fafc);
-            color: var(--text-primary, #0f172a);
-            font-family: 'Prompt', 'Kanit', system-ui, -apple-system, sans-serif;
+            background: var(--neu-base);
+            color: var(--text-primary);
+            font-family: 'Prompt', 'Outfit', 'Sarabun', system-ui, -apple-system, sans-serif;
             margin: 0;
             padding: 0;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            transition: background 0.3s ease, color 0.3s ease;
         }
 
+        /* Neumorphic Navigation */
         .public-nav {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--public-border);
+            background: var(--neu-card-bg);
+            box-shadow: 0 10px 24px rgba(166, 180, 200, 0.35);
+            border-radius: 0 0 24px 24px;
             position: sticky;
             top: 0;
             z-index: 100;
-            padding: 12px 20px;
+            padding: 14px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            transition: all 0.3s ease;
         }
 
         [data-theme="dark"] .public-nav {
-            background: rgba(15, 23, 42, 0.85);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
         }
 
         .public-container {
             max-width: 1200px;
             margin: 0 auto;
             width: 100%;
-            padding: 20px 16px 60px 16px;
+            padding: 24px 16px 64px 16px;
             box-sizing: border-box;
         }
 
+        /* Neumorphic Hero Panel */
         .hero-banner {
-            background: linear-gradient(135deg, rgba(2, 132, 199, 0.12), rgba(16, 185, 129, 0.12));
-            border: 1.5px solid rgba(2, 132, 199, 0.25);
-            border-radius: 20px;
-            padding: 24px;
+            background: var(--neu-card-bg);
+            box-shadow: var(--neu-raised);
+            border-radius: 28px;
+            padding: 28px 30px;
             margin-bottom: 24px;
             display: flex;
             flex-wrap: wrap;
             align-items: center;
             justify-content: space-between;
-            gap: 16px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-        }
-
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        .kpi-card {
-            background: var(--public-card-bg);
-            backdrop-filter: blur(10px);
-            border: 1.5px solid var(--public-border);
-            border-radius: 18px;
-            padding: 18px 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            gap: 20px;
             position: relative;
             overflow: hidden;
+            border: 1px solid var(--neu-border);
         }
 
-        .kpi-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
-        }
-
-        .kpi-card::before {
+        .hero-banner::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 5px;
-            height: 100%;
-            background: var(--card-accent, #0284c7);
+            top: -50%;
+            right: -10%;
+            width: 320px;
+            height: 320px;
+            background: radial-gradient(circle, rgba(2, 132, 199, 0.08) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
         }
 
-        .kpi-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--text-secondary, #64748b);
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .kpi-value {
-            font-size: 30px;
-            font-weight: 900;
-            color: var(--text-primary, #0f172a);
-            line-height: 1.1;
-            margin-bottom: 6px;
-        }
-
-        .kpi-sub {
-            font-size: 12px;
-            color: var(--text-muted, #94a3b8);
-            font-weight: 600;
-        }
-
-        .chart-box {
-            background: var(--public-card-bg);
-            border: 1.5px solid var(--public-border);
-            border-radius: 18px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-            margin-bottom: 24px;
-        }
-
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-            border-radius: 14px;
-            border: 1px solid var(--public-border);
-        }
-
-        .public-table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-            font-size: 13.5px;
-        }
-
-        .public-table th {
-            background: rgba(2, 132, 199, 0.08);
-            color: var(--text-primary);
-            font-weight: 800;
-            padding: 12px 14px;
-            border-bottom: 2px solid var(--public-border);
-        }
-
-        .public-table td {
-            padding: 12px 14px;
-            border-bottom: 1px solid var(--public-border);
-            color: var(--text-secondary);
-        }
-
-        .public-table tr:hover td {
-            background: rgba(2, 132, 199, 0.03);
-        }
-
-        .badge-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 4px 10px;
-            border-radius: 9999px;
-            font-size: 11.5px;
-            font-weight: 800;
-        }
-
+        /* Neumorphic Inset Filter Inputs */
         .filter-select {
-            padding: 8.5px 14px;
-            border-radius: 12px;
-            border: 1.5px solid var(--public-border);
-            background: var(--public-card-bg);
+            padding: 10px 16px;
+            border-radius: 16px;
+            border: 1px solid transparent;
+            background: var(--neu-sunken-bg);
+            box-shadow: var(--neu-inset-sm);
             color: var(--text-primary);
             font-size: 13.5px;
             font-weight: 700;
             outline: none;
             cursor: pointer;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            transition: box-shadow 0.2s ease, border-color 0.2s ease;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 34px;
         }
 
         .filter-select:focus {
-            border-color: var(--public-primary, #0284c7);
-            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+            box-shadow: var(--neu-inset), 0 0 0 2px rgba(2, 132, 199, 0.35);
         }
 
         .btn-filter-submit {
             background: linear-gradient(135deg, var(--public-primary, #0284c7), #0ea5e9);
             color: #ffffff;
             border: none;
-            padding: 8.5px 18px;
-            border-radius: 12px;
+            padding: 10px 20px;
+            border-radius: 16px;
             font-size: 13.5px;
             font-weight: 800;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.28);
-            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+            gap: 8px;
+            box-shadow: 4px 4px 10px rgba(2, 132, 199, 0.4), -3px -3px 8px rgba(255, 255, 255, 0.8);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        [data-theme="dark"] .btn-filter-submit {
+            box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.5), -2px -2px 6px rgba(255, 255, 255, 0.05);
         }
 
         .btn-filter-submit:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(2, 132, 199, 0.38);
-            opacity: 0.95;
+            transform: translateY(-2px);
+            box-shadow: 6px 6px 14px rgba(2, 132, 199, 0.5), -4px -4px 10px rgba(255, 255, 255, 0.9);
         }
 
         .btn-filter-submit:active {
-            transform: translateY(0);
+            transform: scale(0.97);
+            box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.3);
         }
 
-        /* Gender Split & Demographic Cards */
+        /* Neumorphic KPI Grid & Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: var(--neu-card-bg);
+            border-radius: 24px;
+            padding: 22px 24px;
+            box-shadow: var(--neu-raised);
+            border: 1px solid var(--neu-border);
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--neu-raised-lg);
+        }
+
+        .kpi-icon-plate {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: var(--neu-card-bg);
+            box-shadow: var(--neu-raised-sm);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        .kpi-title {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .kpi-value {
+            font-size: 32px;
+            font-weight: 900;
+            color: var(--text-primary);
+            line-height: 1.1;
+            margin-bottom: 6px;
+            letter-spacing: -0.5px;
+        }
+
+        .kpi-sub {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        /* Neumorphic Gender Split Card Component */
         .kpi-gender-split {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-top: 12px;
-            padding: 8px 10px;
-            background: var(--public-container-bg, rgba(2, 132, 199, 0.03));
-            border: 1px solid var(--public-border);
-            border-radius: 14px;
-            gap: 6px;
+            margin-top: 14px;
+            padding: 10px 14px;
+            background: var(--neu-sunken-bg);
+            box-shadow: var(--neu-inset-xs);
+            border-radius: 18px;
+            gap: 8px;
             white-space: nowrap;
         }
 
+        .neu-avatar-well {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            background: var(--neu-card-bg);
+            box-shadow: var(--neu-raised-sm);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .neu-dual-track {
+            flex: 1;
+            min-width: 30px;
+            max-width: 48px;
+            height: 8px;
+            border-radius: 9999px;
+            background: var(--neu-sunken-bg);
+            box-shadow: var(--neu-inset-sm);
+            display: flex;
+            overflow: hidden;
+            margin: 0 4px;
+            flex-shrink: 0;
+        }
+
+        /* Neumorphic Inset Progress Bars */
+        .neu-progress-track {
+            width: 100%;
+            height: 10px;
+            background: var(--neu-sunken-bg);
+            box-shadow: var(--neu-inset-sm);
+            border-radius: 9999px;
+            overflow: hidden;
+            margin-top: 8px;
+            margin-bottom: 6px;
+            position: relative;
+        }
+
+        .neu-progress-bar {
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* Neumorphic Chart & Cockpit Boxes */
+        .chart-box {
+            background: var(--neu-card-bg);
+            box-shadow: var(--neu-raised);
+            border: 1px solid var(--neu-border);
+            border-radius: 26px;
+            padding: 24px;
+            margin-bottom: 24px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .chart-canvas-well {
+            background: var(--neu-sunken-bg);
+            box-shadow: var(--neu-inset-xs);
+            border-radius: 20px;
+            padding: 16px;
+            position: relative;
+        }
+
+        /* Neumorphic Gender KPI Cards */
         .gender-kpi-card {
-            background: var(--public-card-bg);
-            border-radius: 22px;
-            padding: 20px 22px;
+            background: var(--neu-card-bg);
+            border-radius: 24px;
+            padding: 22px 24px;
             display: flex;
             align-items: center;
-            gap: 18px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
-            border: 1.5px solid var(--public-border);
+            gap: 20px;
+            box-shadow: var(--neu-raised);
+            border: 1px solid var(--neu-border);
             position: relative;
             overflow: hidden;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .gender-kpi-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 26px rgba(0, 0, 0, 0.07);
+            transform: translateY(-3px);
+            box-shadow: var(--neu-raised-lg);
         }
 
-        .gender-kpi-card.male-card {
-            border-color: rgba(2, 132, 199, 0.32);
-            background: linear-gradient(135deg, rgba(2, 132, 199, 0.06), var(--public-card-bg));
-        }
-
-        .gender-kpi-card.female-card {
-            border-color: rgba(219, 39, 119, 0.32);
-            background: linear-gradient(135deg, rgba(219, 39, 119, 0.06), var(--public-card-bg));
-        }
-
-        [data-theme="dark"] .gender-kpi-card.male-card {
-            border-color: rgba(56, 189, 248, 0.4);
-            background: linear-gradient(135deg, rgba(2, 132, 199, 0.16), rgba(30, 41, 59, 0.95));
-        }
-
-        [data-theme="dark"] .gender-kpi-card.female-card {
-            border-color: rgba(244, 114, 182, 0.4);
-            background: linear-gradient(135deg, rgba(219, 39, 119, 0.16), rgba(30, 41, 59, 0.95));
-        }
-
-        .demographic-infographic-panel {
-            background: linear-gradient(180deg, rgba(2, 132, 199, 0.03) 0%, rgba(219, 39, 119, 0.03) 100%);
-            border: 1px solid var(--public-border);
+        .gender-avatar-wrapper {
+            width: 74px;
+            height: 104px;
             border-radius: 20px;
-            padding: 16px 14px;
+            background: var(--neu-card-bg);
+            box-shadow: var(--neu-raised-sm);
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 14px;
-            position: relative;
-            overflow: hidden;
+            flex-shrink: 0;
         }
 
-        .hero-figure-stroke {
-            stroke: var(--text-primary, #334155);
+        /* Neumorphic Tables */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 20px;
+            background: var(--neu-card-bg);
+            box-shadow: var(--neu-inset-sm);
+            padding: 6px;
         }
 
-        .hero-figure-bg {
-            fill: var(--public-card-bg, #ffffff);
+        .public-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 4px;
+            text-align: left;
+            font-size: 13.5px;
         }
 
-        [data-theme="dark"] .hero-figure-stroke {
-            stroke: #94a3b8;
+        .public-table th {
+            background: transparent;
+            color: var(--text-secondary);
+            font-weight: 800;
+            padding: 14px 16px;
+            border-bottom: 2px solid rgba(166, 180, 200, 0.2);
+            font-size: 12.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
 
-        [data-theme="dark"] .hero-figure-bg {
-            fill: #1e293b;
+        .public-table td {
+            padding: 13px 16px;
+            background: var(--neu-card-bg);
+            color: var(--text-primary);
+            transition: background 0.2s ease;
+        }
+
+        .public-table tr td:first-child {
+            border-radius: 12px 0 0 12px;
+        }
+
+        .public-table tr td:last-child {
+            border-radius: 0 12px 12px 0;
+        }
+
+        .public-table tr:hover td {
+            background: var(--neu-surface-subtle);
+            box-shadow: inset 1px 1px 3px rgba(0,0,0,0.02);
+        }
+
+        /* Neumorphic Badge Pills */
+        .badge-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 12px;
+            border-radius: 9999px;
+            font-size: 11.5px;
+            font-weight: 800;
+            box-shadow: var(--neu-raised-sm);
+            background: var(--neu-card-bg);
+        }
+
+        .badge-pill-inset {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 12px;
+            border-radius: 9999px;
+            font-size: 11.5px;
+            font-weight: 800;
+            box-shadow: var(--neu-inset-xs);
+            background: var(--neu-sunken-bg);
         }
 
         .badge-pdpa {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: rgba(16, 185, 129, 0.1);
+            background: var(--neu-card-bg);
             color: #059669;
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            padding: 6px 12px;
-            border-radius: 20px;
+            box-shadow: var(--neu-raised-sm);
+            padding: 6px 14px;
+            border-radius: 50px;
             font-size: 12px;
             font-weight: 800;
         }
 
         [data-theme="dark"] .badge-pdpa {
-            background: rgba(16, 185, 129, 0.2);
             color: #34d399;
+        }
+
+        /* Icon Button Neumorphic Style */
+        .neu-icon-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            background: var(--neu-card-bg);
+            box-shadow: var(--neu-raised-sm);
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .neu-icon-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--neu-raised);
+        }
+
+        .neu-icon-btn:active {
+            transform: scale(0.96);
+            box-shadow: var(--neu-inset-sm);
+        }
+
+        /* Neumorphic Navigation Action Button */
+        .neu-btn-primary {
+            background: linear-gradient(135deg, var(--public-primary, #0284c7), #0ea5e9);
+            color: #ffffff;
+            padding: 9px 18px;
+            border-radius: 14px;
+            font-size: 13.5px;
+            font-weight: 800;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 4px 4px 10px rgba(2, 132, 199, 0.35), -3px -3px 8px rgba(255, 255, 255, 0.8);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        [data-theme="dark"] .neu-btn-primary {
+            box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.5), -2px -2px 6px rgba(255, 255, 255, 0.05);
+        }
+
+        .neu-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 6px 6px 14px rgba(2, 132, 199, 0.45);
+        }
+
+        .neu-btn-primary:active {
+            transform: scale(0.97);
+            box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.3);
         }
     </style>
 </head>
 
 <body>
     <!-- Initial Page Preloader (Smooth App-like Entry) -->
-    <div id="dashboard-preloader" style="position: fixed; inset: 0; z-index: 999999; background: var(--public-bg); display: flex; align-items: center; justify-content: center; flex-direction: column; transition: opacity 0.35s ease, visibility 0.35s ease;">
-        <div style="background: var(--public-container-bg); border: 1px solid var(--public-border); border-radius: 24px; padding: 28px 36px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; box-shadow: 0 20px 40px rgba(0,0,0,0.12); max-width: 320px; width: 85%;">
-            <div style="position: relative; width: 62px; height: 62px; display: flex; align-items: center; justify-content: center;">
-                <div style="position: absolute; inset: 0; border-radius: 50%; border: 3.5px solid rgba(2, 132, 199, 0.15); border-top-color: var(--public-primary, #0284c7); border-right-color: #38bdf8; animation: spin 0.85s linear infinite;"></div>
-                <span style="font-size: 26px;">📊</span>
+    <div id="dashboard-preloader" style="position: fixed; inset: 0; z-index: 999999; background: var(--neu-base); display: flex; align-items: center; justify-content: center; flex-direction: column; transition: opacity 0.35s ease, visibility 0.35s ease;">
+        <div style="background: var(--neu-card-bg); border-radius: 28px; padding: 32px 40px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 16px; box-shadow: var(--neu-raised-lg); max-width: 320px; width: 85%; border: 1px solid var(--neu-border);">
+            <div style="position: relative; width: 66px; height: 66px; display: flex; align-items: center; justify-content: center;">
+                <div style="position: absolute; inset: 0; border-radius: 50%; border: 4px solid rgba(2, 132, 199, 0.15); border-top-color: var(--public-primary, #0284c7); border-right-color: #38bdf8; animation: spin 0.85s linear infinite;"></div>
+                <span style="font-size: 28px;">📊</span>
             </div>
             <div>
                 <div style="font-size: 15px; font-weight: 800; color: var(--text-primary);">กำลังโหลดข้อมูล NCDs Open Data</div>
@@ -1061,10 +1248,12 @@ if (!function_exists('renderKpiGenderSplit')) {
 
     <!-- Top Navbar -->
     <header class="public-nav">
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <img src="assets/icon.png" alt="Logo" style="width: 38px; height: 38px; border-radius: 10px; object-fit: contain;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="padding: 4px; border-radius: 14px; background: var(--neu-card-bg); box-shadow: var(--neu-raised-sm); display: inline-flex;">
+                <img src="assets/icon.png" alt="Logo" style="width: 38px; height: 38px; border-radius: 10px; object-fit: contain;">
+            </div>
             <div>
-                <div style="font-size: 15px; font-weight: 800; color: var(--text-primary);">
+                <div style="font-size: 16px; font-weight: 900; color: var(--text-primary); letter-spacing: -0.2px;">
                     NCDs Open Data Portal
                 </div>
                 <div style="font-size: 11.5px; color: var(--color-accent); font-weight: 700;">
@@ -1073,9 +1262,9 @@ if (!function_exists('renderKpiGenderSplit')) {
             </div>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <!-- Theme Toggle Button (Matching Main System Style) -->
-            <button id="theme-toggle-btn" class="btn-theme-toggle" onclick="toggleTheme()" style="background: none; border: none; cursor: pointer; color: var(--text-primary); display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; transition: background 0.3s; box-sizing: border-box;" title="สลับโหมด มืด/สว่าง">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <!-- Theme Toggle Button -->
+            <button id="theme-toggle-btn" class="neu-icon-btn" onclick="toggleTheme()" title="สลับโหมด มืด/สว่าง">
                 <!-- Sun Icon -->
                 <svg id="theme-toggle-sun" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display: none;">
                     <circle cx="12" cy="12" r="5"></circle>
@@ -1087,7 +1276,7 @@ if (!function_exists('renderKpiGenderSplit')) {
                 </svg>
             </button>
 
-            <a href="index.php" style="background: var(--public-primary); color: #ffffff; padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);">
+            <a href="index.php" class="neu-btn-primary">
                 <span>เข้าสู่ระบบ</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
             </a>
@@ -1099,23 +1288,23 @@ if (!function_exists('renderKpiGenderSplit')) {
         <!-- Hero Header -->
         <div class="hero-banner">
             <div>
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                     <span class="badge-pdpa">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                         PDPA Zero-PII Certified • สถิติเปิดเผยแพร่สาธารณะ
                     </span>
-                    <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">(Stable v<?= APP_VERSION ?>)</span>
+                    <span class="badge-pill-inset" style="color: var(--text-muted); font-size: 11.5px;">v<?= APP_VERSION ?></span>
                 </div>
-                <h1 style="margin: 4px 0 8px 0; font-size: 24px; font-weight: 900; color: var(--text-primary);">
+                <h1 style="margin: 6px 0 10px 0; font-size: 25px; font-weight: 900; color: var(--text-primary); letter-spacing: -0.3px;">
                     ศูนย์ข้อมูลสุขภาพและผลลัพธ์การคัดกรอง NCDs อำเภอ<?= DISTRICT_NAME ?>
                 </h1>
-                <p style="margin: 0; font-size: 13.5px; color: var(--text-secondary); max-width: 680px; line-height: 1.5;">
+                <p style="margin: 0; font-size: 14px; color: var(--text-secondary); max-width: 680px; line-height: 1.6;">
                     สรุปผลการดำเนินงานตรวจคัดกรองโรคเบาหวานและความดันโลหิตสูงเชิงรุก การปรับเปลี่ยนพฤติกรรม DPAC และพลังการขับเคลื่อนของภาคีสุขภาพชุมชน
                 </p>
             </div>
 
-            <!-- Filters Form -->
-            <form id="public-filter-form" method="GET" action="public_dashboard.php" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;" onsubmit="if(typeof showPageLoading==='function'){showPageLoading('กำลังโหลดข้อมูล', 'กำลังประมวลผลสถิติสุขภาพ...', '🔍');}">
+            <!-- Filters Form (Neumorphic Inset Form) -->
+            <form id="public-filter-form" method="GET" action="public_dashboard.php" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;" onsubmit="if(typeof showPageLoading==='function'){showPageLoading('กำลังโหลดข้อมูล', 'กำลังประมวลผลสถิติสุขภาพ...', '🔍');}">
                 <select name="budget_year" id="filter-budget-year" class="filter-select">
                     <?php foreach ($availableBudgetYears as $by): ?>
                         <option value="<?= $by ?>" <?= $selectedBudgetYear == $by ? 'selected' : '' ?>>
@@ -1162,144 +1351,160 @@ if (!function_exists('renderKpiGenderSplit')) {
         </div>
 
         <!-- Project Model Context Banner -->
-        <div style="background: var(--public-card-bg); border-left: 4px solid #10b981; border-radius: 14px; padding: 14px 18px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; border: 1px solid var(--public-border); border-left-width: 4px;">
-            <div style="font-size: 13.5px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 20px;">🎉</span>
+        <div style="background: var(--neu-card-bg); box-shadow: var(--neu-raised-sm); border-radius: 20px; padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; border: 1px solid var(--neu-border);">
+            <div style="font-size: 13.5px; color: var(--text-secondary); display: flex; align-items: center; gap: 10px;">
+                <span class="neu-avatar-well" style="width: 36px; height: 36px; font-size: 18px;">🎉</span>
                 <span>
                     <strong>ผลลัพธ์รอบแรกบรรลุเป้าหมาย:</strong> ทุกหน่วยบริการ (8 แห่ง) ดำเนินการคัดกรองกลุ่มเป้าหมายเชิงรุกรอบแรกครบ <strong>100% (<?= number_format($totalTargets) ?> คน)</strong> เพื่อตัดวงจรกลุ่มเสี่ยงเข้าสู่คลินิก DPAC
                 </span>
             </div>
-            <div style="font-size: 12px; color: var(--text-muted); font-weight: 700; background: rgba(16, 185, 129, 0.08); padding: 4px 10px; border-radius: 8px; color: #059669;">
+            <div class="badge-pill-inset" style="color: #059669; font-size: 12px;">
                 ฐานข้อมูลประชากรในพื้นที่: <?= number_format($totalRegistryPopulation) ?> คน
             </div>
         </div>
 
         <!-- Section 1: Macro KPIs -->
         <div class="kpi-grid">
-            <div class="kpi-card" style="--card-accent: #3b82f6;">
-                <div class="kpi-title">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-                    กลุ่มเป้าหมายโครงการ (รอบแรก)
+            <div class="kpi-card">
+                <div>
+                    <div class="kpi-title">
+                        <span class="kpi-icon-plate">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.3"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                        </span>
+                        <span>กลุ่มเป้าหมายโครงการ (รอบแรก)</span>
+                    </div>
+                    <div class="kpi-value"><?= number_format($totalTargets) ?> <span style="font-size: 15px; font-weight: 600; color: var(--text-muted);">คน</span></div>
+                    <div class="kpi-sub">เป้าหมายคัดกรองรอบแรก (ปีงบ <?= $selectedBudgetYear ?>)</div>
                 </div>
-                <div class="kpi-value"><?= number_format($totalTargets) ?> <span style="font-size: 15px; font-weight: 600; color: var(--text-muted);">คน</span></div>
-                <div class="kpi-sub">เป้าหมายคัดกรองรอบแรก (ปีงบ <?= $selectedBudgetYear ?>)</div>
                 <?php renderKpiGenderSplit($tgtMale, $tgtMalePct, $tgtFemale, $tgtFemalePct, 'kpi_tgt'); ?>
             </div>
 
-            <div class="kpi-card" style="--card-accent: #10b981;">
-                <div class="kpi-title">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                    ผลงานการคัดกรองแล้ว
+            <div class="kpi-card">
+                <div>
+                    <div class="kpi-title">
+                        <span class="kpi-icon-plate">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.3"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        </span>
+                        <span>ผลงานการคัดกรองแล้ว</span>
+                    </div>
+                    <div class="kpi-value" style="color: #10b981;">
+                        <?= number_format($totalScreened) ?> 
+                        <span style="font-size: 18px; font-weight: 800; color: #10b981;">(<?= $coveragePct ?>%)</span>
+                    </div>
+                    <div class="neu-progress-track">
+                        <div class="neu-progress-bar" style="width: <?= min(100, $coveragePct) ?>%; background: linear-gradient(90deg, #34d399, #10b981);"></div>
+                    </div>
+                    <div class="kpi-sub" style="color: #059669; font-weight: 700;">✅ ครบถ้วน 100% ตามเป้าหมาย</div>
                 </div>
-                <div class="kpi-value" style="color: #10b981;">
-                    <?= number_format($totalScreened) ?> 
-                    <span style="font-size: 18px; font-weight: 800; color: #10b981;">(<?= $coveragePct ?>%)</span>
-                </div>
-                <div style="width: 100%; height: 6px; background: rgba(16, 185, 129, 0.15); border-radius: 9999px; margin-top: 6px; overflow: hidden;">
-                    <div style="width: <?= min(100, $coveragePct) ?>%; height: 100%; background: #10b981; border-radius: 9999px;"></div>
-                </div>
-                <div class="kpi-sub" style="margin-top: 6px; color: #059669; font-weight: 700;">✅ ครบถ้วน 100% ตามเป้าหมาย</div>
                 <?php renderKpiGenderSplit($scrMale, $scrMalePct, $scrFemale, $scrFemalePct, 'kpi_scr'); ?>
             </div>
 
-            <div class="kpi-card" style="--card-accent: #f59e0b;">
-                <div class="kpi-title">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                    ค้นพบกลุ่มเสี่ยง NCDs
+            <div class="kpi-card">
+                <div>
+                    <div class="kpi-title">
+                        <span class="kpi-icon-plate">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.3"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        </span>
+                        <span>ค้นพบกลุ่มเสี่ยง NCDs</span>
+                    </div>
+                    <div class="kpi-value" style="color: #f59e0b;">
+                        <?= number_format($totalRisk) ?>
+                        <span style="font-size: 15px; font-weight: 600; color: var(--text-muted);">คน (<?= $riskRatePct ?>%)</span>
+                    </div>
+                    <div class="kpi-sub">เสี่ยงสูง <?= number_format($totalRiskHigh) ?> • เสี่ยงปานกลาง <?= number_format($totalRiskModerate) ?></div>
                 </div>
-                <div class="kpi-value" style="color: #f59e0b;">
-                    <?= number_format($totalRisk) ?>
-                    <span style="font-size: 15px; font-weight: 600; color: var(--text-muted);">คน (<?= $riskRatePct ?>%)</span>
-                </div>
-                <div class="kpi-sub">เสี่ยงสูง <?= number_format($totalRiskHigh) ?> • เสี่ยงปานกลาง <?= number_format($totalRiskModerate) ?></div>
                 <?php renderKpiGenderSplit($riskMale, $riskMalePct, $riskFemale, $riskFemalePct, 'kpi_risk'); ?>
             </div>
 
-            <div class="kpi-card" style="--card-accent: #8b5cf6;">
-                <div class="kpi-title">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2.2"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg>
-                    ประสิทธิผลปรับพฤติกรรม DPAC
+            <div class="kpi-card">
+                <div>
+                    <div class="kpi-title">
+                        <span class="kpi-icon-plate">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2.3"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg>
+                        </span>
+                        <span>ประสิทธิผลปรับพฤติกรรม DPAC</span>
+                    </div>
+                    <div class="kpi-value" style="color: #8b5cf6;">
+                        <?= $dpacImprovementPct ?>%
+                    </div>
+                    <div class="kpi-sub">สุขภาพดีขึ้น <?= number_format($dpacImprovedCount) ?> จาก <?= number_format($dpacCompletedFollowups) ?> คนที่ติดตามครบ</div>
                 </div>
-                <div class="kpi-value" style="color: #8b5cf6;">
-                    <?= $dpacImprovementPct ?>%
-                </div>
-                <div class="kpi-sub">สุขภาพดีขึ้น <?= number_format($dpacImprovedCount) ?> จาก <?= number_format($dpacCompletedFollowups) ?> คนที่ติดตามครบ</div>
                 <?php renderKpiGenderSplit($dpacMale, $dpacMalePct, $dpacFemale, $dpacFemalePct, 'kpi_dpac'); ?>
             </div>
         </div>
 
         <!-- Section 2: Executive Cockpit & Multi-Round Pipeline (Bento Grid) -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 24px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 24px;">
             <!-- Card A: Multi-round Progression Pipeline -->
             <div class="chart-box" style="margin-bottom: 0;">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                    <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                    <div style="font-size: 16px; font-weight: 900; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
                         <span>🔄 Cockpit ประสิทธิภาพการคัดกรองรายรอบ</span>
                     </div>
-                    <span class="badge-pill" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">3 มิติรอบ</span>
+                    <span class="badge-pill" style="color: #10b981;">3 มิติรอบ</span>
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; flex-direction: column; gap: 14px;">
                     <!-- 1. Round 1 Coverage -->
-                    <div style="background: var(--public-container-bg, rgba(2, 132, 199, 0.04)); border: 1px solid var(--public-border); border-radius: 12px; padding: 10px 14px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <span style="width: 20px; height: 20px; border-radius: 6px; background: #10b981; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900;">1</span>
-                                <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">รอบที่ 1 (Baseline)</span>
+                    <div style="background: var(--neu-card-bg); box-shadow: var(--neu-raised-sm); border-radius: 18px; padding: 14px 16px; border: 1px solid var(--neu-border);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="neu-avatar-well" style="width: 26px; height: 26px; font-size: 12px; font-weight: 900; color: #10b981;">1</span>
+                                <span style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);">รอบที่ 1 (Baseline)</span>
                             </div>
                             <span style="font-size: 14px; font-weight: 900; color: #10b981;"><?= number_format($r1Completed) ?> <span style="font-size: 11.5px; font-weight: 700;">(100.0%)</span></span>
                         </div>
-                        <div style="height: 6px; background: rgba(16, 185, 129, 0.15); border-radius: 9999px; overflow: hidden; margin-bottom: 4px;">
-                            <div style="height: 100%; width: 100%; background: #10b981; border-radius: 9999px;"></div>
+                        <div class="neu-progress-track">
+                            <div class="neu-progress-bar" style="width: 100%; background: linear-gradient(90deg, #34d399, #10b981);"></div>
                         </div>
-                        <div style="font-size: 11px; color: var(--text-muted);">คัดกรองเสร็จจากเป้าหมาย <?= number_format($totalTargets) ?> ราย</div>
+                        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">คัดกรองเสร็จจากเป้าหมาย <?= number_format($totalTargets) ?> ราย</div>
                     </div>
 
                     <!-- 2. Round 2 Followup -->
                     <?php $pctR2 = $r1Completed > 0 ? round(($r2Completed / $r1Completed) * 100, 1) : 0; ?>
-                    <div style="background: var(--public-container-bg, rgba(2, 132, 199, 0.04)); border: 1px solid var(--public-border); border-radius: 12px; padding: 10px 14px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <span style="width: 20px; height: 20px; border-radius: 6px; background: #0ea5e9; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900;">2</span>
-                                <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">รอบที่ 2 (คัดกรองติดตามซ้ำ)</span>
+                    <div style="background: var(--neu-card-bg); box-shadow: var(--neu-raised-sm); border-radius: 18px; padding: 14px 16px; border: 1px solid var(--neu-border);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="neu-avatar-well" style="width: 26px; height: 26px; font-size: 12px; font-weight: 900; color: #0ea5e9;">2</span>
+                                <span style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);">รอบที่ 2 (คัดกรองติดตามซ้ำ)</span>
                             </div>
                             <span style="font-size: 14px; font-weight: 900; color: #0ea5e9;"><?= number_format($r2Completed) ?> <span style="font-size: 11.5px; font-weight: 700;">(<?= $pctR2 ?>%)</span></span>
                         </div>
-                        <div style="height: 6px; background: rgba(14, 165, 233, 0.15); border-radius: 9999px; overflow: hidden; margin-bottom: 4px;">
-                            <div style="height: 100%; width: <?= min(100, $pctR2) ?>%; background: #0ea5e9; border-radius: 9999px;"></div>
+                        <div class="neu-progress-track">
+                            <div class="neu-progress-bar" style="width: <?= min(100, $pctR2) ?>%; background: linear-gradient(90deg, #38bdf8, #0ea5e9);"></div>
                         </div>
-                        <div style="font-size: 11px; color: var(--text-muted);">คัดกรองเสร็จจากรอบแรก <?= number_format($r1Completed) ?> ราย</div>
+                        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">คัดกรองเสร็จจากรอบแรก <?= number_format($r1Completed) ?> ราย</div>
                     </div>
 
                     <!-- 3. Round 3+ Continuous Followup -->
                     <?php $pctR3 = $r2Completed > 0 ? round(($r3Completed / $r2Completed) * 100, 1) : 0; ?>
-                    <div style="background: var(--public-container-bg, rgba(2, 132, 199, 0.04)); border: 1px solid var(--public-border); border-radius: 12px; padding: 10px 14px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <span style="width: 20px; height: 20px; border-radius: 6px; background: #8b5cf6; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900;">3+</span>
-                                <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">รอบที่ 3+ (ติดตามต่อเนื่อง)</span>
+                    <div style="background: var(--neu-card-bg); box-shadow: var(--neu-raised-sm); border-radius: 18px; padding: 14px 16px; border: 1px solid var(--neu-border);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="neu-avatar-well" style="width: 26px; height: 26px; font-size: 12px; font-weight: 900; color: #8b5cf6;">3+</span>
+                                <span style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);">รอบที่ 3+ (ติดตามต่อเนื่อง)</span>
                             </div>
                             <span style="font-size: 14px; font-weight: 900; color: #8b5cf6;"><?= number_format($r3Completed) ?> <span style="font-size: 11.5px; font-weight: 700;">(<?= $pctR3 ?>%)</span></span>
                         </div>
-                        <div style="height: 6px; background: rgba(139, 92, 246, 0.15); border-radius: 9999px; overflow: hidden; margin-bottom: 4px;">
-                            <div style="height: 100%; width: <?= min(100, $pctR3) ?>%; background: #8b5cf6; border-radius: 9999px;"></div>
+                        <div class="neu-progress-track">
+                            <div class="neu-progress-bar" style="width: <?= min(100, $pctR3) ?>%; background: linear-gradient(90deg, #a78bfa, #8b5cf6);"></div>
                         </div>
-                        <div style="font-size: 11px; color: var(--text-muted);">คัดกรองต่อเนื่องจากรอบสอง <?= number_format($r2Completed) ?> ราย</div>
+                        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">คัดกรองต่อเนื่องจากรอบสอง <?= number_format($r2Completed) ?> ราย</div>
                     </div>
                 </div>
             </div>
 
             <!-- Card B: Demographic Distribution -->
             <div class="chart-box" style="margin-bottom: 0;">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                    <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                    <div style="font-size: 16px; font-weight: 900; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
                         <span>👥 โครงสร้างประชากรที่ได้รับการคัดกรอง</span>
                     </div>
-                    <span class="badge-pill" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6;">Demographics</span>
+                    <span class="badge-pill" style="color: #3b82f6;">Demographics</span>
                 </div>
 
                 <!-- Gender Infographic Cards (Proportional Liquid Fill Avatars) -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 16px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 18px;">
                     <!-- Male Card -->
                     <div class="gender-kpi-card male-card">
                         <div class="gender-avatar-wrapper">
@@ -1313,7 +1518,7 @@ if (!function_exists('renderKpiGenderSplit')) {
                                 <?= $scrMalePct ?>%
                             </div>
                             <div>
-                                <span class="badge-pill" style="background: rgba(2, 132, 199, 0.14); color: #0284c7; font-weight: 800; font-size: 13px; padding: 4px 12px; border-radius: 12px; white-space: nowrap;">
+                                <span class="badge-pill-inset" style="color: #0284c7; font-weight: 800; font-size: 12.5px; padding: 4px 12px; white-space: nowrap;">
                                     <?= number_format($scrMale) ?> คน
                                 </span>
                             </div>
@@ -1333,7 +1538,7 @@ if (!function_exists('renderKpiGenderSplit')) {
                                 <?= $scrFemalePct ?>%
                             </div>
                             <div>
-                                <span class="badge-pill" style="background: rgba(219, 39, 119, 0.14); color: #db2777; font-weight: 800; font-size: 13px; padding: 4px 12px; border-radius: 12px; white-space: nowrap;">
+                                <span class="badge-pill-inset" style="color: #db2777; font-weight: 800; font-size: 12.5px; padding: 4px 12px; white-space: nowrap;">
                                     <?= number_format($scrFemale) ?> คน
                                 </span>
                             </div>
@@ -1341,24 +1546,24 @@ if (!function_exists('renderKpiGenderSplit')) {
                     </div>
                 </div>
 
-                <!-- Age Distribution -->
-                <div style="display: flex; flex-direction: column; gap: 8px;">
+                <!-- Age Distribution (Neumorphic Sunken Track) -->
+                <div style="display: flex; flex-direction: column; gap: 10px;">
                     <div>
-                        <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; margin-bottom: 4px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 700; margin-bottom: 6px;">
                             <span style="color: #3b82f6;">วัยทำงาน 35-59 ปี (<?= number_format($ageLabor) ?>)</span>
                             <span style="color: #f59e0b;">ผู้สูงอายุ 60+ ปี (<?= number_format($ageElderly) ?>)</span>
                         </div>
-                        <div style="display: flex; height: 18px; border-radius: 8px; overflow: hidden; font-size: 11px; font-weight: 800; color: white; text-align: center; line-height: 18px;">
-                            <div style="width: <?= $totalScreened > 0 ? round(($ageLabor/$totalScreened)*100) : 50 ?>%; background: #3b82f6;">
+                        <div class="neu-progress-track" style="height: 20px; display: flex; padding: 2px;">
+                            <div style="width: <?= $totalScreened > 0 ? round(($ageLabor/$totalScreened)*100) : 50 ?>%; background: linear-gradient(90deg, #60a5fa, #3b82f6); border-radius: 9999px 0 0 9999px; font-size: 11px; font-weight: 900; color: white; text-align: center; line-height: 16px;">
                                 <?= $totalScreened > 0 ? round(($ageLabor/$totalScreened)*100) : 50 ?>%
                             </div>
-                            <div style="width: <?= $totalScreened > 0 ? round(($ageElderly/$totalScreened)*100) : 50 ?>%; background: #f59e0b;">
+                            <div style="width: <?= $totalScreened > 0 ? round(($ageElderly/$totalScreened)*100) : 50 ?>%; background: linear-gradient(90deg, #fbbf24, #f59e0b); border-radius: 0 9999px 9999px 0; font-size: 11px; font-weight: 900; color: white; text-align: center; line-height: 16px;">
                                 <?= $totalScreened > 0 ? round(($ageElderly/$totalScreened)*100) : 50 ?>%
                             </div>
                         </div>
                     </div>
 
-                    <div style="background: rgba(139, 92, 246, 0.06); border: 1px dashed rgba(139, 92, 246, 0.3); padding: 8px 12px; border-radius: 10px; font-size: 11.5px; color: var(--text-secondary);">
+                    <div class="badge-pill-inset" style="padding: 10px 14px; font-size: 12px; color: var(--text-secondary); width: 100%; box-sizing: border-box; justify-content: flex-start; line-height: 1.5;">
                         💡 ข้อมูลทางระบาดวิทยาชี้ว่ากลุ่ม 60+ มีโอกาสพบความดันโลหิตและน้ำตาลสูงกว่าวัยทำงาน 1.8 เท่า
                     </div>
                 </div>
@@ -1367,7 +1572,7 @@ if (!function_exists('renderKpiGenderSplit')) {
 
         <!-- Section 3: Multi-Round & DPAC Intervention Outcomes -->
         <div class="chart-box" style="margin-bottom: 24px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; border-bottom: 1px solid var(--public-border); padding-bottom: 12px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid rgba(166, 180, 200, 0.25);">
                 <div>
                     <div style="font-size: 17px; font-weight: 900; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
                         <span>🔄 ประสิทธิผลการปรับเปลี่ยนพฤติกรรมและการติดตามกลุ่มเสี่ยง</span>
@@ -1378,26 +1583,26 @@ if (!function_exists('renderKpiGenderSplit')) {
                     </div>
                 </div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <span class="badge-pill" style="background: rgba(245, 158, 11, 0.1); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 12px; padding: 6px 12px; font-weight: 700;">
+                    <span class="badge-pill" style="color: #d97706; font-size: 12px; padding: 6px 14px;">
                         📋 กลุ่มต้องเฝ้าระวัง (<?= number_format($monitoringCount) ?> ราย)
                     </span>
-                    <span class="badge-pill" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 12px; padding: 6px 12px; font-weight: 700;">
+                    <span class="badge-pill" style="color: #ef4444; font-size: 12px; padding: 6px 14px;">
                         ⚠️ กลุ่มค่าสุขภาพแย่ลง (<?= number_format($worsenedCount) ?> ราย)
                     </span>
                 </div>
             </div>
 
             <!-- 1. Population Averages (SBP & FBS) -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 20px;">
-                <div style="background: var(--public-card-bg); border-left: 4px solid var(--public-primary, #0284c7); border-radius: 14px; padding: 18px; border: 1px solid var(--public-border); border-left-width: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; margin-bottom: 20px;">
+                <div style="background: var(--neu-card-bg); box-shadow: var(--neu-raised-sm); border-radius: 20px; padding: 20px; border: 1px solid var(--neu-border);">
                     <div style="color: var(--text-secondary); font-size: 13px; font-weight: 700; margin-bottom: 8px;">ค่าความดันตัวบนเฉลี่ย (Systolic BP)</div>
-                    <div style="display: flex; align-items: baseline; gap: 8px;">
-                        <span style="font-size: 26px; font-weight: 900; color: var(--text-primary);"><?= $avgSbpBefore ?></span>
-                        <span style="color: var(--text-muted); font-size: 14px;">→</span>
-                        <span style="font-size: 26px; font-weight: 900; color: <?= $sbpDiff <= 0 ? '#10b981' : '#ef4444' ?>;"><?= $avgSbpAfter ?></span>
+                    <div style="display: flex; align-items: baseline; gap: 10px;">
+                        <span style="font-size: 28px; font-weight: 900; color: var(--text-primary);"><?= $avgSbpBefore ?></span>
+                        <span style="color: var(--text-muted); font-size: 16px;">→</span>
+                        <span style="font-size: 28px; font-weight: 900; color: <?= $sbpDiff <= 0 ? '#10b981' : '#ef4444' ?>;"><?= $avgSbpAfter ?></span>
                         <span style="font-size: 13px; color: var(--text-muted); margin-left: 4px;">mmHg</span>
                     </div>
-                    <div style="font-size: 12px; margin-top: 8px; font-weight: 800; color: <?= $sbpDiff <= 0 ? '#10b981' : '#ef4444' ?>;">
+                    <div style="font-size: 12.5px; margin-top: 10px; font-weight: 800; color: <?= $sbpDiff <= 0 ? '#10b981' : '#ef4444' ?>;">
                         <?php if ($sbpDiff < 0): ?>
                             📉 ลดลงเฉลี่ย <?= abs($sbpDiff) ?> mmHg
                         <?php elseif ($sbpDiff > 0): ?>
@@ -1408,15 +1613,15 @@ if (!function_exists('renderKpiGenderSplit')) {
                     </div>
                 </div>
 
-                <div style="background: var(--public-card-bg); border-left: 4px solid #8b5cf6; border-radius: 14px; padding: 18px; border: 1px solid var(--public-border); border-left-width: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                <div style="background: var(--neu-card-bg); box-shadow: var(--neu-raised-sm); border-radius: 20px; padding: 20px; border: 1px solid var(--neu-border);">
                     <div style="color: var(--text-secondary); font-size: 13px; font-weight: 700; margin-bottom: 8px;">ค่าน้ำตาลในเลือดเฉลี่ย (FBS)</div>
-                    <div style="display: flex; align-items: baseline; gap: 8px;">
-                        <span style="font-size: 26px; font-weight: 900; color: var(--text-primary);"><?= $avgFbsBefore ?></span>
-                        <span style="color: var(--text-muted); font-size: 14px;">→</span>
-                        <span style="font-size: 26px; font-weight: 900; color: <?= $fbsDiff <= 0 ? '#10b981' : '#f59e0b' ?>;"><?= $avgFbsAfter ?></span>
+                    <div style="display: flex; align-items: baseline; gap: 10px;">
+                        <span style="font-size: 28px; font-weight: 900; color: var(--text-primary);"><?= $avgFbsBefore ?></span>
+                        <span style="color: var(--text-muted); font-size: 16px;">→</span>
+                        <span style="font-size: 28px; font-weight: 900; color: <?= $fbsDiff <= 0 ? '#10b981' : '#f59e0b' ?>;"><?= $avgFbsAfter ?></span>
                         <span style="font-size: 13px; color: var(--text-muted); margin-left: 4px;">mg/dL</span>
                     </div>
-                    <div style="font-size: 12px; margin-top: 8px; font-weight: 800; color: <?= $fbsDiff <= 0 ? '#10b981' : '#f59e0b' ?>;">
+                    <div style="font-size: 12.5px; margin-top: 10px; font-weight: 800; color: <?= $fbsDiff <= 0 ? '#10b981' : '#f59e0b' ?>;">
                         <?php if ($fbsDiff < 0): ?>
                             📉 ลดลงเฉลี่ย <?= abs($fbsDiff) ?> mg/dL
                         <?php elseif ($fbsDiff > 0): ?>
@@ -1429,50 +1634,50 @@ if (!function_exists('renderKpiGenderSplit')) {
             </div>
 
             <!-- 2. HT Outcomes Grid (3 Status Cards) -->
-            <div style="margin-bottom: 20px;">
-                <div style="font-size: 14px; font-weight: 800; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+            <div style="margin-bottom: 22px;">
+                <div style="font-size: 14.5px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
                     <span>🩺 ผลลัพธ์กลุ่มติดตามความดันโลหิต (HT Outcomes)</span>
                     <span style="font-size: 12px; font-weight: 600; color: var(--text-muted);">(รวม <?= number_format($totalHtCases) ?> ราย)</span>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
                     <!-- BP Improved -->
-                    <div style="background: var(--public-card-bg); border-left: 4px solid #10b981; border-radius: 12px; padding: 14px; border: 1px solid var(--public-border); border-left-width: 4px;">
+                    <div style="background: var(--neu-card-bg); box-shadow: var(--neu-raised-sm); border-radius: 18px; padding: 16px; border: 1px solid var(--neu-border);">
                         <div style="color: var(--text-secondary); font-size: 13px; font-weight: 700; margin-bottom: 4px;">
                             🟢 ควบคุมความดันสำเร็จ / ดีขึ้น
                         </div>
-                        <div style="font-size: 22px; font-weight: 900; color: #10b981;">
+                        <div style="font-size: 24px; font-weight: 900; color: #10b981;">
                             <?= $pctBpImprovement ?>%
                             <span style="font-size: 12.5px; color: var(--text-secondary); font-weight: 600;">(<?= $improvedBpCount ?>/<?= $totalHtCases ?> ราย)</span>
                         </div>
-                        <div style="font-size: 11.5px; margin-top: 4px; color: var(--text-muted); line-height: 1.4;">
+                        <div style="font-size: 11.5px; margin-top: 6px; color: var(--text-muted); line-height: 1.4;">
                             ความดันลดลงจากเดิม หรือกลับสู่สภาวะปกติ (&lt;140/90)
                         </div>
                     </div>
 
                     <!-- BP Monitoring -->
-                    <div style="background: var(--public-card-bg); border-left: 4px solid #f59e0b; border-radius: 12px; padding: 14px; border: 1px solid var(--public-border); border-left-width: 4px;">
+                    <div style="background: var(--neu-card-bg); box-shadow: var(--neu-raised-sm); border-radius: 18px; padding: 16px; border: 1px solid var(--neu-border);">
                         <div style="color: #f59e0b; font-size: 13px; font-weight: 700; margin-bottom: 4px;">
                             🟡 ความดันทรงตัว / ต้องเฝ้าระวัง
                         </div>
-                        <div style="font-size: 22px; font-weight: 900; color: #f59e0b;">
+                        <div style="font-size: 24px; font-weight: 900; color: #f59e0b;">
                             <?= $pctBpMonitoring ?>%
                             <span style="font-size: 12.5px; color: var(--text-secondary); font-weight: 600;">(<?= $monitoringBpCount ?>/<?= $totalHtCases ?> ราย)</span>
                         </div>
-                        <div style="font-size: 11.5px; margin-top: 4px; color: var(--text-muted); line-height: 1.4;">
+                        <div style="font-size: 11.5px; margin-top: 6px; color: var(--text-muted); line-height: 1.4;">
                             ระดับความดันยังทรงตัว หรือปริ่มเกณฑ์เสี่ยง
                         </div>
                     </div>
 
                     <!-- BP Worsened -->
-                    <div style="background: var(--public-card-bg); border-left: 4px solid #ef4444; border-radius: 12px; padding: 14px; border: 1px solid var(--public-border); border-left-width: 4px;">
+                    <div style="background: var(--neu-card-bg); box-shadow: var(--neu-raised-sm); border-radius: 18px; padding: 16px; border: 1px solid var(--neu-border);">
                         <div style="color: #ef4444; font-size: 13px; font-weight: 700; margin-bottom: 4px;">
                             🔴 ความดันสูงขึ้น / แย่ลง
                         </div>
-                        <div style="font-size: 22px; font-weight: 900; color: #ef4444;">
+                        <div style="font-size: 24px; font-weight: 900; color: #ef4444;">
                             <?= $pctBpWorsened ?>%
                             <span style="font-size: 12.5px; color: var(--text-secondary); font-weight: 600;">(<?= $worsenedBpCount ?>/<?= $totalHtCases ?> ราย)</span>
                         </div>
-                        <div style="font-size: 11.5px; margin-top: 4px; color: var(--text-muted); line-height: 1.4;">
+                        <div style="font-size: 11.5px; margin-top: 6px; color: var(--text-muted); line-height: 1.4;">
                             ระดับความดันเพิ่มขึ้น หรือยังเกิน 140/90 mmHg
                         </div>
                     </div>
@@ -1481,49 +1686,49 @@ if (!function_exists('renderKpiGenderSplit')) {
 
             <!-- 3. DM Outcomes Grid (3 Status Cards) -->
             <div>
-                <div style="font-size: 14px; font-weight: 800; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                <div style="font-size: 14.5px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
                     <span>🩸 ผลลัพธ์กลุ่มติดตามค่าน้ำตาลในเลือด (DM Outcomes)</span>
                     <span style="font-size: 12px; font-weight: 600; color: var(--text-muted);">(รวม <?= number_format($totalDmCases) ?> ราย)</span>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
                     <!-- FBS Improved -->
-                    <div style="background: var(--public-card-bg); border-left: 4px solid #10b981; border-radius: 12px; padding: 14px; border: 1px solid var(--public-border); border-left-width: 4px;">
+                    <div style="background: var(--neu-card-bg); box-shadow: var(--neu-raised-sm); border-radius: 18px; padding: 16px; border: 1px solid var(--neu-border);">
                         <div style="color: var(--text-secondary); font-size: 13px; font-weight: 700; margin-bottom: 4px;">
                             🟢 ควบคุมค่าน้ำตาลสำเร็จ / ดีขึ้น
                         </div>
-                        <div style="font-size: 22px; font-weight: 900; color: #10b981;">
+                        <div style="font-size: 24px; font-weight: 900; color: #10b981;">
                             <?= $pctFbsImprovement ?>%
                             <span style="font-size: 12.5px; color: var(--text-secondary); font-weight: 600;">(<?= $improvedFbsCount ?>/<?= $totalDmCases ?> ราย)</span>
                         </div>
-                        <div style="font-size: 11.5px; margin-top: 4px; color: var(--text-muted); line-height: 1.4;">
+                        <div style="font-size: 11.5px; margin-top: 6px; color: var(--text-muted); line-height: 1.4;">
                             ระดับน้ำตาลลดลงจากเดิม หรือควบคุมได้ดี (&lt;126 mg/dL)
                         </div>
                     </div>
 
                     <!-- FBS Monitoring -->
-                    <div style="background: var(--public-card-bg); border-left: 4px solid #f59e0b; border-radius: 12px; padding: 14px; border: 1px solid var(--public-border); border-left-width: 4px;">
+                    <div style="background: var(--neu-card-bg); box-shadow: var(--neu-raised-sm); border-radius: 18px; padding: 16px; border: 1px solid var(--neu-border);">
                         <div style="color: #f59e0b; font-size: 13px; font-weight: 700; margin-bottom: 4px;">
                             🟡 ค่าน้ำตาลทรงตัว / ต้องเฝ้าระวัง
                         </div>
-                        <div style="font-size: 22px; font-weight: 900; color: #f59e0b;">
+                        <div style="font-size: 24px; font-weight: 900; color: #f59e0b;">
                             <?= $pctFbsMonitoring ?>%
                             <span style="font-size: 12.5px; color: var(--text-secondary); font-weight: 600;">(<?= $monitoringFbsCount ?>/<?= $totalDmCases ?> ราย)</span>
                         </div>
-                        <div style="font-size: 11.5px; margin-top: 4px; color: var(--text-muted); line-height: 1.4;">
+                        <div style="font-size: 11.5px; margin-top: 6px; color: var(--text-muted); line-height: 1.4;">
                             ระดับน้ำตาลยังทรงตัว หรืออยู่ในช่วงเสี่ยง (100-125 mg/dL)
                         </div>
                     </div>
 
                     <!-- FBS Worsened -->
-                    <div style="background: var(--public-card-bg); border-left: 4px solid #ef4444; border-radius: 12px; padding: 14px; border: 1px solid var(--public-border); border-left-width: 4px;">
+                    <div style="background: var(--neu-card-bg); box-shadow: var(--neu-raised-sm); border-radius: 18px; padding: 16px; border: 1px solid var(--neu-border);">
                         <div style="color: #ef4444; font-size: 13px; font-weight: 700; margin-bottom: 4px;">
                             🔴 ค่าน้ำตาลสูงขึ้น / แย่ลง
                         </div>
-                        <div style="font-size: 22px; font-weight: 900; color: #ef4444;">
+                        <div style="font-size: 24px; font-weight: 900; color: #ef4444;">
                             <?= $pctFbsWorsened ?>%
                             <span style="font-size: 12.5px; color: var(--text-secondary); font-weight: 600;">(<?= $worsenedFbsCount ?>/<?= $totalDmCases ?> ราย)</span>
                         </div>
-                        <div style="font-size: 11.5px; margin-top: 4px; color: var(--text-muted); line-height: 1.4;">
+                        <div style="font-size: 11.5px; margin-top: 6px; color: var(--text-muted); line-height: 1.4;">
                             ระดับน้ำตาลเพิ่มขึ้น หรือยังเกิน 126 mg/dL
                         </div>
                     </div>
@@ -1532,29 +1737,29 @@ if (!function_exists('renderKpiGenderSplit')) {
         </div>
 
         <!-- Section 4: Charts (Screening Funnel & Before/After DPAC) -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 24px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 24px;">
             <!-- Chart 1: Screening Risk Breakdown -->
             <div class="chart-box">
-                <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+                <div style="font-size: 16px; font-weight: 900; color: var(--text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
                     <span>🍩 สัดส่วนผลการคัดกรองสุขภาพชุมชน</span>
                 </div>
-                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;">
+                <div style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 16px;">
                     การกระจายตัวของกลุ่มปกติ, กลุ่มเสี่ยง และกลุ่มผู้ป่วยเดิมในพื้นที่
                 </div>
-                <div style="position: relative; height: 260px;">
+                <div class="chart-canvas-well" style="height: 260px;">
                     <canvas id="screeningDoughnutChart"></canvas>
                 </div>
             </div>
 
             <!-- Chart 2: Before vs After DPAC / Multi-round -->
             <div class="chart-box">
-                <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+                <div style="font-size: 16px; font-weight: 900; color: var(--text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
                     <span>📈 ผลลัพธ์เปรียบเทียบ ก่อน - หลัง การปรับพฤติกรรม</span>
                 </div>
-                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;">
+                <div style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 16px;">
                     ค่าเฉลี่ยความดันโลหิต (SBP/DBP) และระดับน้ำตาลปลายนิ้ว (DTX) ของกลุ่มเสี่ยง
                 </div>
-                <div style="position: relative; height: 260px;">
+                <div class="chart-canvas-well" style="height: 260px;">
                     <canvas id="beforeAfterBarChart"></canvas>
                 </div>
             </div>
@@ -1562,16 +1767,16 @@ if (!function_exists('renderKpiGenderSplit')) {
 
         <!-- Section 5: Sub-district & Unit Matrix Table -->
         <div class="chart-box">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 18px;">
                 <div>
                     <div style="font-size: 17px; font-weight: 900; color: var(--text-primary);">
                         🏥 สถิติผลการดำเนินงานรายหน่วยบริการและตำบล
                     </div>
-                    <div style="font-size: 12.5px; color: var(--text-secondary);">
+                    <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">
                         ความครอบคลุมการคัดกรองและการค้นพบกลุ่มเสี่ยง 8 หน่วยบริการ ใน 6 ตำบล
                     </div>
                 </div>
-                <span class="badge-pill" style="background: rgba(2, 132, 199, 0.1); color: var(--public-primary);">
+                <span class="badge-pill" style="color: var(--public-primary);">
                     ข้อมูลเรียลไทม์ระบบ NCDs
                 </span>
             </div>
@@ -1606,13 +1811,13 @@ if (!function_exists('renderKpiGenderSplit')) {
                                 <td style="text-align: right; font-weight: 700; color: #f59e0b;"><?= number_format($u['risk_count']) ?></td>
                                 <td style="text-align: center;">
                                     <?php if ($u['coverage'] >= 100): ?>
-                                        <span class="badge-pill" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">ครบ 100% ดีเยี่ยม</span>
+                                        <span class="badge-pill" style="color: #10b981;">ครบ 100% ดีเยี่ยม</span>
                                     <?php elseif ($u['coverage'] >= 80): ?>
-                                        <span class="badge-pill" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">ดีเยี่ยม</span>
+                                        <span class="badge-pill" style="color: #10b981;">ดีเยี่ยม</span>
                                     <?php elseif ($u['coverage'] >= 50): ?>
-                                        <span class="badge-pill" style="background: rgba(245, 158, 11, 0.15); color: #d97706;">ปานกลาง</span>
+                                        <span class="badge-pill" style="color: #d97706;">ปานกลาง</span>
                                     <?php else: ?>
-                                        <span class="badge-pill" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">กำลังเร่งรัด</span>
+                                        <span class="badge-pill" style="color: #ef4444;">กำลังเร่งรัด</span>
                                     <?php endif; ?>
                                 </td>
                             </tr>
@@ -1623,60 +1828,66 @@ if (!function_exists('renderKpiGenderSplit')) {
         </div>
 
         <!-- Section 6: VHV Power, Citizen Pulse & Innovation Adoption (TAM) -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 24px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 24px;">
             <!-- 1. VHV Community Health Force -->
-            <div class="kpi-card" style="--card-accent: #10b981;">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                    <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
-                        <span>🩺 พลังขับเคลื่อน อสม. ดิจิทัล</span>
+            <div class="kpi-card">
+                <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                            <span>🩺 พลังขับเคลื่อน อสม. ดิจิทัล</span>
+                        </div>
+                        <span class="badge-pill" style="color: #10b981;">Smart VHV</span>
                     </div>
-                    <span class="badge-pill" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">Smart VHV</span>
+                    <div style="font-size: 30px; font-weight: 900; color: var(--text-primary); margin-bottom: 6px;">
+                        <?= number_format($totalActiveVhvs) ?> <span style="font-size: 14px; font-weight: 600; color: var(--text-muted);">คนในระบบ</span>
+                    </div>
+                    <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.5;">
+                        อสม. มีบทบาทสำคัญในการลงพื้นที่ตรวจวัดความดัน เจาะน้ำตาล และให้คำแนะนำ DPAC ถึงหน้าบันไดบ้าน
+                    </div>
                 </div>
-                <div style="font-size: 28px; font-weight: 900; color: var(--text-primary); margin-bottom: 4px;">
-                    <?= number_format($totalActiveVhvs) ?> <span style="font-size: 14px; font-weight: 600; color: var(--text-muted);">คนในระบบ</span>
-                </div>
-                <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.5;">
-                    อสม. มีบทบาทสำคัญในการลงพื้นที่ตรวจวัดความดัน เจาะน้ำตาล และให้คำแนะนำ DPAC ถึงหน้าบันไดบ้าน
-                </div>
-                <div style="background: rgba(16, 185, 129, 0.08); padding: 12px; border-radius: 12px; border: 1px dashed rgba(16, 185, 129, 0.3); font-size: 12.5px; color: var(--text-primary);">
-                    🎯 อสม. ที่มีผลงานคัดกรองในรอบปีนี้: <strong><?= number_format($totalVhvsWithScreening) ?> คน (<?= $vhvActivePct ?>%)</strong>
+                <div class="badge-pill-inset" style="padding: 12px 14px; font-size: 12.5px; color: var(--text-primary); width: 100%; box-sizing: border-box; justify-content: flex-start;">
+                    🎯 อสม. ที่มีผลงานคัดกรองในรอบปีนี้: <strong style="color: #10b981; margin-left: 4px;"><?= number_format($totalVhvsWithScreening) ?> คน (<?= $vhvActivePct ?>%)</strong>
                 </div>
             </div>
 
             <!-- 2. Citizen Self Screening Pulse -->
-            <div class="kpi-card" style="--card-accent: #0284c7;">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                    <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
-                        <span>📱 การมีส่วนร่วมของประชาชน</span>
+            <div class="kpi-card">
+                <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                            <span>📱 การมีส่วนร่วมของประชาชน</span>
+                        </div>
+                        <span class="badge-pill" style="color: #0284c7;">Self-Care</span>
                     </div>
-                    <span class="badge-pill" style="background: rgba(2, 132, 199, 0.15); color: #0284c7;">Self-Care</span>
-                </div>
-                <div style="font-size: 28px; font-weight: 900; color: var(--text-primary); margin-bottom: 4px;">
-                    <?= number_format($selfScreenTotal) ?> <span style="font-size: 14px; font-weight: 600; color: var(--text-muted);">ครั้ง</span>
-                </div>
-                <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.5;">
-                    ประชาชนทำแบบประเมินความเสี่ยง NCDs ด้วยตนเองผ่านระบบออนไลน์ 1 นาทีรู้ผล
+                    <div style="font-size: 30px; font-weight: 900; color: var(--text-primary); margin-bottom: 6px;">
+                        <?= number_format($selfScreenTotal) ?> <span style="font-size: 14px; font-weight: 600; color: var(--text-muted);">ครั้ง</span>
+                    </div>
+                    <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.5;">
+                        ประชาชนทำแบบประเมินความเสี่ยง NCDs ด้วยตนเองผ่านระบบออนไลน์ 1 นาทีรู้ผล
+                    </div>
                 </div>
                 <div style="display: flex; gap: 8px; font-size: 12px; font-weight: 700;">
-                    <span style="flex: 1; background: rgba(16, 185, 129, 0.12); color: #059669; padding: 6px 8px; border-radius: 8px; text-align: center;">ปกติ <?= number_format($selfScreenGreen) ?></span>
-                    <span style="flex: 1; background: rgba(245, 158, 11, 0.12); color: #d97706; padding: 6px 8px; border-radius: 8px; text-align: center;">เสี่ยง <?= number_format($selfScreenYellow) ?></span>
-                    <span style="flex: 1; background: rgba(239, 68, 68, 0.12); color: #dc2626; padding: 6px 8px; border-radius: 8px; text-align: center;">เสี่ยงสูง <?= number_format($selfScreenRed) ?></span>
+                    <span class="badge-pill-inset" style="flex: 1; color: #059669; justify-content: center;">ปกติ <?= number_format($selfScreenGreen) ?></span>
+                    <span class="badge-pill-inset" style="flex: 1; color: #d97706; justify-content: center;">เสี่ยง <?= number_format($selfScreenYellow) ?></span>
+                    <span class="badge-pill-inset" style="flex: 1; color: #dc2626; justify-content: center;">เสี่ยงสูง <?= number_format($selfScreenRed) ?></span>
                 </div>
             </div>
 
             <!-- 3. TAM / D&M Innovation Adoption Score -->
-            <div class="kpi-card" style="--card-accent: #8b5cf6;">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                    <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
-                        <span>⭐ ดัชนียอมรับนวัตกรรม</span>
+            <div class="kpi-card">
+                <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                            <span>⭐ ดัชนียอมรับนวัตกรรม</span>
+                        </div>
+                        <span class="badge-pill" style="color: #8b5cf6;">TAM 4.74/5</span>
                     </div>
-                    <span class="badge-pill" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">TAM 4.74/5</span>
-                </div>
-                <div style="font-size: 28px; font-weight: 900; color: #8b5cf6; margin-bottom: 4px;">
-                    4.74 <span style="font-size: 14px; font-weight: 600; color: var(--text-muted);">/ 5.00 (ดีเยี่ยม)</span>
-                </div>
-                <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.5;">
-                    การประเมินการยอมรับเทคโนโลยี (Technology Acceptance Model) และคุณภาพระบบ
+                    <div style="font-size: 30px; font-weight: 900; color: #8b5cf6; margin-bottom: 6px;">
+                        4.74 <span style="font-size: 14px; font-weight: 600; color: var(--text-muted);">/ 5.00 (ดีเยี่ยม)</span>
+                    </div>
+                    <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.5;">
+                        การประเมินการยอมรับเทคโนโลยี (Technology Acceptance Model) และคุณภาพระบบ
+                    </div>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 6px; font-size: 11.5px; font-weight: 700; color: var(--text-secondary);">
                     <div style="display: flex; justify-content: space-between;">
@@ -1696,16 +1907,16 @@ if (!function_exists('renderKpiGenderSplit')) {
         </div>
 
         <!-- Section 6: Research to Routine (R2R) Value Card -->
-        <div class="chart-box" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(168, 85, 247, 0.06)); border-color: rgba(168, 85, 247, 0.25);">
-            <div style="display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
-                <div style="width: 52px; height: 52px; border-radius: 16px; background: rgba(168, 85, 247, 0.15); display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0;">
+        <div class="chart-box" style="border-left: 5px solid #8b5cf6;">
+            <div style="display: flex; align-items: flex-start; gap: 18px; flex-wrap: wrap;">
+                <div class="neu-avatar-well" style="width: 54px; height: 54px; font-size: 26px; border-radius: 18px; flex-shrink: 0;">
                     💡
                 </div>
                 <div style="flex: 1; min-width: 260px;">
                     <h3 style="margin: 0 0 6px 0; font-size: 17px; font-weight: 900; color: var(--text-primary);">
                         คุณค่าเชิงพัฒนาระบบบริการสุขภาพและการวิจัยเชิงระบบ (Research to Routine : R2R)
                     </h3>
-                    <p style="margin: 0; font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+                    <p style="margin: 0; font-size: 13.5px; color: var(--text-secondary); line-height: 1.6;">
                         นวัตกรรม NCDs Portal อำเภอตาลสุม เชื่อมโยงข้อมูล HDC และ JHCIS เพื่อตัดวงจรกลุ่มเสี่ยงก่อนกลายเป็นผู้ป่วยเรื้อรังรายใหม่ ช่วยลดภาระค่าใช้จ่ายในการฟอกไตและรักษาโรคแทรกซ้อนในอนาคต เสริมสร้างสุขภาพชุมชนที่ยั่งยืนด้วยการจัดการข้อมูลสุขภาพเชิงรุก
                     </p>
                 </div>
@@ -1713,8 +1924,8 @@ if (!function_exists('renderKpiGenderSplit')) {
         </div>
 
         <!-- Quick Access to Self Screening -->
-        <div style="text-align: center; margin-top: 10px;">
-            <a href="self_screening.php" style="display: inline-flex; align-items: center; gap: 10px; background: linear-gradient(135deg, #0284c7, #0ea5e9); color: #ffffff; padding: 14px 28px; border-radius: 16px; font-size: 16px; font-weight: 800; text-decoration: none; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35); transition: transform 0.2s ease;">
+        <div style="text-align: center; margin-top: 16px;">
+            <a href="self_screening.php" style="display: inline-flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #0284c7, #0ea5e9); color: #ffffff; padding: 16px 36px; border-radius: 20px; font-size: 16px; font-weight: 900; text-decoration: none; box-shadow: 6px 6px 16px rgba(2, 132, 199, 0.4), -4px -4px 12px rgba(255, 255, 255, 0.8); transition: transform 0.2s ease, box-shadow 0.2s ease;">
                 <span>✨ ตรวจประเมินสุขภาพตนเองออนไลน์ (ฟรี 1 นาที)</span>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </a>
@@ -1722,18 +1933,18 @@ if (!function_exists('renderKpiGenderSplit')) {
     </main>
 
     <!-- Footer -->
-    <footer style="background: var(--public-card-bg); border-top: 1px solid var(--public-border); padding: 24px 16px; text-align: center; margin-top: auto;">
-        <div style="font-size: 13px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">
+    <footer style="background: var(--neu-card-bg); box-shadow: 0 -10px 24px rgba(166, 180, 200, 0.2); border-radius: 24px 24px 0 0; padding: 28px 16px; text-align: center; margin-top: auto; border-top: 1px solid var(--neu-border);">
+        <div style="font-size: 13.5px; font-weight: 800; color: var(--text-primary); margin-bottom: 6px;">
             สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?> • โรงพยาบาล<?= DISTRICT_NAME ?> • รพ.สต. ในสังกัด
         </div>
-        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
             ข้อมูลสถิติดิจิทัลเพื่อการพัฒนาสุขภาพชุมชน • ปฏิบัติตามมาตรฐาน พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA)
         </div>
-        <div style="display: flex; justify-content: center; gap: 16px; font-size: 12px; font-weight: 700;">
+        <div style="display: flex; justify-content: center; gap: 16px; font-size: 12.5px; font-weight: 700;">
             <a href="about.php" style="color: var(--color-accent); text-decoration: none;">ℹ️ เกี่ยวกับระบบ & ทีมพัฒนา</a>
-            <span style="color: var(--public-border);">|</span>
+            <span style="color: var(--text-muted); opacity: 0.5;">|</span>
             <a href="manual.php" style="color: var(--color-accent); text-decoration: none;">📖 คู่มือการใช้งาน</a>
-            <span style="color: var(--public-border);">|</span>
+            <span style="color: var(--text-muted); opacity: 0.5;">|</span>
             <a href="index.php" style="color: var(--color-accent); text-decoration: none;">🔐 เข้าสู่ระบบบุคลากร</a>
         </div>
     </footer>
