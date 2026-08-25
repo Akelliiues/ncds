@@ -1334,43 +1334,28 @@ try {
 
                                 // Tier Badge & Colors: 8 Realms & Citadels Theme
                                 if ($hRank === 1) {
-                                    $rankIcon = '🥇';
+                                    $realmTheme = 'champion';
                                     $tierBadge = '👑 มหาจักรวรรดิครอง 8 แดนดิน';
-                                    $tierBg = 'linear-gradient(135deg, #f59e0b, #d97706)';
-                                    $tierColor = '#ffffff';
                                     $barGradient = 'linear-gradient(90deg, #f59e0b, #fbbf24)';
                                 } elseif ($hRank === 2) {
-                                    $rankIcon = '🥈';
+                                    $realmTheme = 'knight';
                                     $tierBadge = '⚔️ มหาป้อมปราการทัพหน้า';
-                                    $tierBg = 'linear-gradient(135deg, #0284c7, #0369a1)';
-                                    $tierColor = '#ffffff';
                                     $barGradient = 'linear-gradient(90deg, #0284c7, #38bdf8)';
                                 } elseif ($hRank === 3) {
-                                    $rankIcon = '🥉';
+                                    $realmTheme = 'rising-star';
                                     $tierBadge = '🛡️ มหาปราการศิลาเหล็กกล้า';
-                                    $tierBg = 'linear-gradient(135deg, #7c3aed, #6d28d9)';
-                                    $tierColor = '#ffffff';
                                     $barGradient = 'linear-gradient(90deg, #7c3aed, #a78bfa)';
                                 } elseif ($hRank <= 5) {
-                                    $rankIcon = '🏅';
+                                    $realmTheme = 'heart-guard';
                                     $tierBadge = '🔥 ดินแดนอัศวินแนวรบหน้า';
-                                    $tierBg = 'linear-gradient(135deg, #ea580c, #c2410c)';
-                                    $tierColor = '#ffffff';
                                     $barGradient = 'linear-gradient(90deg, #ea580c, #fb923c)';
                                 } else {
-                                    $rankIcon = '🏅';
+                                    $realmTheme = 'health-shield';
                                     $tierBadge = '🌿 แดนดินผู้พิทักษ์สุขภาพ';
-                                    $tierBg = 'rgba(16, 185, 129, 0.15)';
-                                    $tierColor = '#10b981';
                                     $barGradient = 'linear-gradient(90deg, #10b981, #34d399)';
                                 }
 
-                                // Simple status text
-                                if ($r2Dn > 0) {
-                                    $statusDesc = "🔄 กำลังขับเคลื่อนรอบ 2 (ติดตามแล้ว {$r2Dn} ราย)";
-                                } else {
-                                    $statusDesc = "✅ บรรลุเป้าหมายรอบแรกครบ 100%";
-                                }
+                                $hBadgeImg = get_hospital_kingdom_badge_url($hRank);
                             ?>
                                 <div class="leaderboard-row"
                                     style="<?= $isMyHos 
@@ -1378,41 +1363,40 @@ try {
                                         : 'background: var(--bg-card); box-shadow: var(--neumorph-flat);' ?> display: flex; align-items: center; padding: 14px 14px; border-radius: var(--border-radius); margin-bottom: 12px; position: relative; overflow: hidden;">
 
                                     <!-- Faded background watermark rank number -->
-                                    <div style="position: absolute; right: 18px; bottom: -15px; font-size: 70px; font-weight: 900; color: rgba(13, 44, 84, 0.04); pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif;">
+                                    <div style="position: absolute; right: 18px; bottom: -15px; font-size: 72px; font-weight: 900; color: rgba(13, 44, 84, 0.04); pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif;">
                                         <?= $hRank ?>
                                     </div>
 
-                                    <!-- Left: Kingdom Rank Emblem Badge -->
-                                    <div style="width: 54px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; position: relative; z-index: 2;">
-                                        <img src="<?= get_hospital_kingdom_badge_url($hRank) ?>" alt="อันดับที่ <?= $hRank ?>" style="width: 52px; height: 52px; object-fit: contain; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.12));">
+                                    <!-- Left: Clickable Kingdom Rank Emblem Badge -->
+                                    <div onclick="openKingdomBadgeModal('<?= $hBadgeImg ?>', '<?= htmlspecialchars($hName, ENT_QUOTES) ?>', '<?= $hRank ?>', '<?= htmlspecialchars($tierBadge, ENT_QUOTES) ?>', '<?= $realmTheme ?>')" style="width: 56px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; position: relative; z-index: 2; cursor: pointer;" title="แตะเพื่อดูตราขยายใหญ่">
+                                        <img src="<?= $hBadgeImg ?>" alt="อันดับที่ <?= $hRank ?>" style="width: 52px; height: 52px; object-fit: contain; filter: drop-shadow(0 3px 7px rgba(0,0,0,0.14)); transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
                                     </div>
 
-                                    <!-- Center & Main: Hospital Title + Badge + Status + Progress -->
+                                    <!-- Center & Main: Hospital Title + VHV Title Header + Progress -->
                                     <div class="leader-info" style="position: relative; z-index: 2; flex: 1; min-width: 0;">
                                         <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                                            <strong style="color: var(--text-primary); font-size: 15px; font-weight: 800; line-height: 1.3;">
+                                            <strong style="color: var(--text-primary); font-size: 16.5px; font-weight: 900; line-height: 1.3; letter-spacing: -0.2px;">
                                                 <?= htmlspecialchars($hName) ?>
                                             </strong>
                                             <?php if ($isMyHos): ?>
-                                                <span style="background: var(--color-accent); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px;">
+                                                <span style="background: var(--color-accent); color: #fff; font-size: 10.5px; font-weight: 800; padding: 1px 7px; border-radius: 999px;">
                                                     รพ.สต. ของคุณ
                                                 </span>
                                             <?php endif; ?>
                                         </div>
 
-                                        <!-- Realm Tier Badge Pill -->
-                                        <div style="margin-top: 4px; margin-bottom: 4px;">
-                                            <span style="display: inline-flex; align-items: center; gap: 4px; background: <?= $tierBg ?>; color: <?= $tierColor ?>; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);">
-                                                <?= $tierBadge ?>
-                                            </span>
+                                        <!-- VHV-style Ribbon Title Header -->
+                                        <div style="margin-top: 4px; margin-bottom: 6px;">
+                                            <div class="rank-title-header rank-title-header--<?= $realmTheme ?> rank-title-header--compact" style="cursor: pointer; margin-top: 0; max-width: 100%; padding: 4px 10px;" onclick="openKingdomBadgeModal('<?= $hBadgeImg ?>', '<?= htmlspecialchars($hName, ENT_QUOTES) ?>', '<?= $hRank ?>', '<?= htmlspecialchars($tierBadge, ENT_QUOTES) ?>', '<?= $realmTheme ?>')">
+                                                <img class="rank-title-header__icon" src="<?= $hBadgeImg ?>" alt="" aria-hidden="true" style="width: 19px; height: 19px; object-fit: contain;">
+                                                <span class="rank-title-header__title" style="font-size: 13px; font-weight: 800;">
+                                                    <?= $tierBadge ?>
+                                                </span>
+                                            </div>
                                         </div>
 
-                                        <p style="margin: 0; font-size: 12px; color: var(--text-secondary); line-height: 1.3;">
-                                            <?= $statusDesc ?>
-                                        </p>
-
                                         <!-- Mini Relative Bar -->
-                                        <div style="width: 100%; height: 6px; background: rgba(13, 44, 84, 0.08); border-radius: 3px; overflow: hidden; box-shadow: var(--neumorph-inset); margin-top: 8px;">
+                                        <div style="width: 100%; height: 6px; background: rgba(13, 44, 84, 0.08); border-radius: 3px; overflow: hidden; box-shadow: var(--neumorph-inset); margin-top: 2px;">
                                             <div style="width: <?= $barPct ?>%; height: 100%; background: <?= $barGradient ?>; border-radius: 3px; transition: width 0.8s ease-in-out;"></div>
                                         </div>
                                     </div>
@@ -1942,7 +1926,47 @@ try {
         </div>
     </div>
 
+    <!-- Modal: Enlarged Kingdom Badge Preview -->
+    <div id="kingdomBadgeModal" class="confirm-modal" onclick="closeKingdomBadgeModal(event)">
+        <div class="confirm-modal-box" onclick="event.stopPropagation()" style="text-align: center; padding: 26px 20px 22px 20px; max-width: 330px; position: relative;">
+            <button type="button" onclick="closeKingdomBadgeModal()" style="position: absolute; top: 12px; right: 14px; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted); line-height: 1;">&times;</button>
+            <div id="kModalRankTag" style="font-size: 13px; font-weight: 800; color: var(--color-accent); margin-bottom: 8px;"></div>
+            <div style="margin: 10px auto 14px auto; width: 140px; height: 140px; display: flex; align-items: center; justify-content: center; position: relative;">
+                <div style="position: absolute; inset: -12px; border-radius: 50%; background: radial-gradient(circle, rgba(251,191,36,0.22) 0%, rgba(255,255,255,0) 70%); pointer-events: none;"></div>
+                <img id="kModalImg" src="" alt="ตราประจำอาณาจักร" style="width: 130px; height: 130px; object-fit: contain; filter: drop-shadow(0 8px 20px rgba(0,0,0,0.25));">
+            </div>
+            <h3 id="kModalHosName" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 900; color: var(--text-primary);"></h3>
+            <div id="kModalTitleWrapper" style="display: inline-block; margin-bottom: 18px;"></div>
+            <div>
+                <button type="button" onclick="closeKingdomBadgeModal()" class="btn-redeem btn-redeem-active" style="width: 100%; padding: 11px; font-size: 13.5px; font-weight: 800;">
+                    ปิดหน้าต่าง
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // Modal: Kingdom Badge Preview
+        function openKingdomBadgeModal(imgSrc, hosName, rank, tierTitle, themeName) {
+            document.getElementById('kModalImg').src = imgSrc;
+            document.getElementById('kModalHosName').textContent = hosName;
+            document.getElementById('kModalRankTag').textContent = 'อันดับที่ #' + rank + ' ลีกหน่วยบริการ รพ.สต.';
+            
+            const titleHtml = '<div class="rank-title-header rank-title-header--' + themeName + '" style="margin-top: 0; padding: 6px 14px;">' +
+                '<img class="rank-title-header__icon" src="' + imgSrc + '" alt="" style="width: 24px; height: 24px; object-fit: contain;">' +
+                '<span class="rank-title-header__title" style="font-size: 13.5px; font-weight: 800;">' + tierTitle + '</span>' +
+                '</div>';
+            document.getElementById('kModalTitleWrapper').innerHTML = titleHtml;
+            
+            const modal = document.getElementById('kingdomBadgeModal');
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function closeKingdomBadgeModal(e) {
+            const modal = document.getElementById('kingdomBadgeModal');
+            if (modal) modal.style.display = 'none';
+        }
+
         // Switch between Top Main Tabs: Leaderboard vs Rewards
         function switchMainTab(tabId, updateUrl = true) {
             if (updateUrl) {
