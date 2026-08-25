@@ -644,10 +644,44 @@ try {
         }
 
         /* Tab Styles */
+        .tab-btn {
+            flex: 1;
+            padding: 10px 4px;
+            border: none;
+            border-radius: 12px;
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tab-icon-img {
+            width: 42px;
+            height: 42px;
+            object-fit: contain;
+            transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.12));
+            opacity: 0.72;
+            transform: scale(0.92);
+        }
+
+        .tab-btn:hover .tab-icon-img {
+            opacity: 0.95;
+            transform: scale(1.05);
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.18));
+        }
+
         .tab-btn.active {
             background: var(--bg-card) !important;
-            color: var(--color-accent) !important;
             box-shadow: var(--neumorph-flat) !important;
+        }
+
+        .tab-btn.active .tab-icon-img {
+            opacity: 1;
+            transform: scale(1.15);
+            filter: drop-shadow(0 4px 10px rgba(13, 44, 84, 0.25));
         }
 
         .tab-content {
@@ -1035,12 +1069,20 @@ try {
                 <?php endif; ?>
             </div>
 
-            <!-- Tab Bar for Mobile Responsiveness (Icon-only to prevent horizontal scrolling) -->
-            <div class="tab-container" style="display: flex; gap: 8px; margin-top: 20px; margin-bottom: 20px; background: rgba(13,44,84,0.05); padding: 6px; border-radius: 14px; box-shadow: var(--neumorph-inset);">
-                <button onclick="switchTab('leaderboard')" id="btn-leaderboard" class="tab-btn active" style="flex: 1; padding: 12px; border: none; border-radius: 10px; background: transparent; font-size: 20px; cursor: pointer; transition: all 0.3s ease;" title="อันดับ อสม.">🏆</button>
-                <button onclick="switchTab('villages')" id="btn-villages" class="tab-btn" style="flex: 1; padding: 12px; border: none; border-radius: 10px; background: transparent; font-size: 20px; cursor: pointer; transition: all 0.3s ease;" title="ผลงานรายหมู่บ้าน">🏘️</button>
-                <button onclick="switchTab('hospitals')" id="btn-hospitals" class="tab-btn" style="flex: 1; padding: 12px; border: none; border-radius: 10px; background: transparent; font-size: 20px; cursor: pointer; transition: all 0.3s ease;" title="ลีก รพ.สต.">🏥</button>
-                <button onclick="switchTab('badges')" id="btn-badges" class="tab-btn" style="flex: 1; padding: 12px; border: none; border-radius: 10px; background: transparent; font-size: 20px; cursor: pointer; transition: all 0.3s ease;" title="เกณฑ์ตราเกียรติยศ">🛡️</button>
+            <!-- Tab Bar for Mobile Responsiveness (3D Icons) -->
+            <div class="tab-container" style="display: flex; gap: 8px; margin-top: 20px; margin-bottom: 20px; background: rgba(13,44,84,0.05); padding: 6px; border-radius: 16px; box-shadow: var(--neumorph-inset);">
+                <button onclick="switchTab('leaderboard')" id="btn-leaderboard" class="tab-btn active" title="อันดับ อสม.">
+                    <img src="../assets/icons/tab_vhv_leaderboard.png" alt="อันดับ อสม." class="tab-icon-img">
+                </button>
+                <button onclick="switchTab('villages')" id="btn-villages" class="tab-btn" title="ผลงานรายหมู่บ้าน">
+                    <img src="../assets/icons/tab_village_progress.png" alt="ผลงานรายหมู่บ้าน" class="tab-icon-img">
+                </button>
+                <button onclick="switchTab('hospitals')" id="btn-hospitals" class="tab-btn" title="ลีก รพ.สต.">
+                    <img src="../assets/icons/tab_hospital_league.png" alt="ลีก รพ.สต." class="tab-icon-img">
+                </button>
+                <button onclick="switchTab('badges')" id="btn-badges" class="tab-btn" title="เกณฑ์ตราเกียรติยศ">
+                    <img src="../assets/icons/tab_badge_criteria.png" alt="เกณฑ์ตราเกียรติยศ" class="tab-icon-img">
+                </button>
             </div>
 
             <!-- Sub-Tab 2: Village Progress Board -->
