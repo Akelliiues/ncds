@@ -136,8 +136,11 @@ try {
         echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
     } elseif ($type === 'vhvs') {
         $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
+        $legacyVhid = str_replace('3420', '3418', $vhid);
+        $target_hoscode = $admin_hoscode ? $admin_hoscode : ($_GET['hoscode'] ?? null);
+
         $query = "
-            SELECT v.vhv_id, v.vhv_name, 
+            SELECT v.vhv_id, v.vhv_name, v.vhv_moo, v.vhid_code, v.hoscode,
                    (
                        (
                            SELECT COUNT(*) 
@@ -175,7 +178,7 @@ try {
                            JOIN target_population p ON a.target_cid = p.cid
                            WHERE a.vhv_id = v.vhv_id 
                              AND a.budget_year = {$selectedBudgetYear} 
-                             AND p.vhid_code = :vhid1
+                             AND (p.vhid_code = :vhid1 OR (CAST(p.moo AS UNSIGNED) = CAST(:moo1 AS UNSIGNED) AND p.hoscode = v.hoscode))
                              AND a.is_sandbox = :is_sandbox5
                        ) + (
                            SELECT COUNT(*) 
@@ -183,26 +186,39 @@ try {
                            JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
                            JOIN target_population p ON e.cid = p.cid
                            WHERE f.vhv_id = v.vhv_id
-                             AND p.vhid_code = :vhid2
+                             AND (p.vhid_code = :vhid2 OR (CAST(p.moo AS UNSIGNED) = CAST(:moo2 AS UNSIGNED) AND p.hoscode = v.hoscode))
                              AND f.is_sandbox = :is_sandbox6
                        )
                    ) as village_task_count
               FROM vhv_users v
-              WHERE v.vhid_code = :vhid3 AND v.approved = 1
+              WHERE (
+                  v.vhid_code = :vhid3 
+                  OR v.vhid_code = :vhid_legacy
+                  OR (CAST(v.vhv_moo AS UNSIGNED) = CAST(:moo_match AS UNSIGNED) AND (:match_hoscode = '' OR v.hoscode = :match_hoscode2))
+                  OR v.vhid_code LIKE :vhid_like
+              )
+              AND (v.approved = 1 OR v.approved IS NULL)
         ";
         
         $params = [
-            'vhid1'  => $vhid,
-            'vhid2'  => $vhid,
-            'vhid3'  => $vhid,
-            'is_sandbox1' => $isSandboxVal,
-            'is_sandbox2' => $isSandboxVal,
-            'is_sandbox3' => $isSandboxVal,
-            'is_sandbox4' => $isSandboxVal,
-            'is_sandbox5' => $isSandboxVal,
-            'is_sandbox6' => $isSandboxVal
+            'vhid1'         => $vhid,
+            'moo1'          => $moo,
+            'vhid2'         => $vhid,
+            'moo2'          => $moo,
+            'vhid3'         => $vhid,
+            'vhid_legacy'   => $legacyVhid,
+            'moo_match'     => $moo,
+            'match_hoscode' => $target_hoscode ?: '',
+            'match_hoscode2'=> $target_hoscode ?: '',
+            'vhid_like'     => "%" . str_pad($moo, 2, '0', STR_PAD_LEFT),
+            'is_sandbox1'   => $isSandboxVal,
+            'is_sandbox2'   => $isSandboxVal,
+            'is_sandbox3'   => $isSandboxVal,
+            'is_sandbox4'   => $isSandboxVal,
+            'is_sandbox5'   => $isSandboxVal,
+            'is_sandbox6'   => $isSandboxVal
         ];
-        $target_hoscode = $admin_hoscode ? $admin_hoscode : ($_GET['hoscode'] ?? null);
+
         if ($target_hoscode) {
             $hoscodes = get_query_hoscodes($target_hoscode);
             $inKeys = [];

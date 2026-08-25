@@ -938,7 +938,19 @@ try {
             $pdo->exec("UPDATE `health_units` SET `sub_district_code` = '{$newCode}' WHERE `sub_district_code` = '{$oldCode}'");
             $pdo->exec("UPDATE `villages` SET `sub_district_code` = '{$newCode}', `vhid_code` = REPLACE(`vhid_code`, '{$oldCode}', '{$newCode}') WHERE `sub_district_code` = '{$oldCode}'");
             $pdo->exec("UPDATE `target_population` SET `sub_district_code` = '{$newCode}', `vhid_code` = REPLACE(`vhid_code`, '{$oldCode}', '{$newCode}') WHERE `sub_district_code` = '{$oldCode}'");
+            $pdo->exec("UPDATE `vhv_users` SET `vhid_code` = REPLACE(`vhid_code`, '{$oldCode}', '{$newCode}') WHERE `vhid_code` LIKE '{$oldCode}%'");
         }
+
+        // Backfill vhid_code in vhv_users if missing based on hoscode and vhv_moo
+        try {
+            $pdo->exec("
+                UPDATE vhv_users v
+                JOIN health_units h ON v.hoscode = h.hoscode
+                SET v.vhid_code = CONCAT(h.sub_district_code, LPAD(CAST(v.vhv_moo AS UNSIGNED), 2, '0'))
+                WHERE (v.vhid_code IS NULL OR v.vhid_code = '' OR v.vhid_code NOT LIKE '3420%')
+                  AND h.sub_district_code IS NOT NULL AND v.vhv_moo IS NOT NULL AND CAST(v.vhv_moo AS UNSIGNED) > 0
+            ");
+        } catch (\Throwable $e) {}
 
         $checkNull = $pdo->query("SELECT COUNT(*) FROM `health_units` WHERE sub_district_code IS NULL OR sub_district_code = ''")->fetchColumn();
         if ($checkNull > 0) {

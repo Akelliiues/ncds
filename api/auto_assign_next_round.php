@@ -366,8 +366,14 @@ try {
         $defaultVhvId = $postData['default_vhv_id'] ?? null;
         
         // Fetch list of active VHVs in this village as fallback if needed
-        $villageVhvsStmt = $pdo->prepare("SELECT vhv_id, vhv_name FROM vhv_users WHERE hoscode = ? AND vhv_moo = ?");
-        $villageVhvsStmt->execute([$hoscode ?: '', (int)$moo]);
+        $villageVhvsStmt = $pdo->prepare("
+            SELECT vhv_id, vhv_name 
+            FROM vhv_users 
+            WHERE (vhid_code = ? OR (CAST(vhv_moo AS UNSIGNED) = CAST(? AS UNSIGNED) AND (:target_hcode = '' OR hoscode = :target_hcode2)))
+              AND (approved = 1 OR approved IS NULL)
+            ORDER BY vhv_name ASC
+        ");
+        $villageVhvsStmt->execute([$vhidCode, (int)$moo, $hoscode ?: '', $hoscode ?: '']);
         $villageVhvs = $villageVhvsStmt->fetchAll(PDO::FETCH_ASSOC);
         $fallbackVhvId = $defaultVhvId ?: (!empty($villageVhvs[0]['vhv_id']) ? $villageVhvs[0]['vhv_id'] : null);
 
