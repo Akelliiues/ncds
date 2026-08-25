@@ -148,15 +148,17 @@ try {
 
     // Fetch screening_results for these CIDs
     $scrSql = "
-        SELECT sr.screening_id, sr.target_cid, sr.vhv_id, sr.round_number, sr.created_at,
-               v.vhv_name
+        SELECT sr.screening_id, sr.assignment_id, COALESCE(sr.target_cid, ta.target_cid) as target_cid,
+               sr.round_number, sr.created_at,
+               ta.vhv_id, v.vhv_name
         FROM screening_results sr
-        LEFT JOIN vhv_users v ON sr.vhv_id = v.vhv_id
-        WHERE sr.target_cid IN ($cidPlaceholders)
-          AND sr.is_sandbox = ?
+        LEFT JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id
+        LEFT JOIN vhv_users v ON ta.vhv_id = v.vhv_id
+        WHERE (sr.target_cid IN ($cidPlaceholders) OR ta.target_cid IN ($cidPlaceholders))
+          AND COALESCE(sr.is_sandbox, 0) = ?
         ORDER BY sr.round_number ASC, sr.created_at ASC
     ";
-    $scrParams = array_merge($cids, [$isSandboxVal]);
+    $scrParams = array_merge($cids, $cids, [$isSandboxVal]);
     $scrStmt = $pdo->prepare($scrSql);
     $scrStmt->execute($scrParams);
     $allScreenings = $scrStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -193,7 +195,7 @@ try {
 
     foreach ($allScreenings as $row) {
         $cid = $row['target_cid'];
-        if (!isset($cidState[$cid])) continue;
+        if (!$cid || !isset($cidState[$cid])) continue;
         $rn = (int)($row['round_number'] ?: 1);
         $cidState[$cid]['all_rounds'][$rn] = true;
         if ($rn > $cidState[$cid]['max_completed_round']) {
