@@ -713,11 +713,11 @@ if (!function_exists('renderKpiGenderSplit')) {
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ศูนย์ข้อมูลสถิติสุขภาพดิจิทัล NCDs - อำเภอ<?= DISTRICT_NAME ?></title>
+    <title>ศูนย์ข้อมูลสถิติสุขภาพดิจิทัล NCDs - อำเภอ<?= DISTRICT_NAME ?> จังหวัดอุบลราชธานี</title>
     
     <!-- Open Graph for sharing -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="ศูนย์ข้อมูลสถิติสุขภาพ NCDs อำเภอ<?= DISTRICT_NAME ?>">
+    <meta property="og:title" content="ศูนย์ข้อมูลสถิติสุขภาพ NCDs อำเภอ<?= DISTRICT_NAME ?> จังหวัดอุบลราชธานี">
     <meta property="og:description" content="สถิติผลการคัดกรองเชิงรุก การปรับเปลี่ยนพฤติกรรม DPAC และดัชนีสุขภาพระดับอำเภอแบบ Open Data ปลอดภัย 100%">
     <meta property="og:image" content="<?= (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'ncd.ssotansum.com') ?>/assets/icon.png">
 
@@ -1241,7 +1241,7 @@ if (!function_exists('renderKpiGenderSplit')) {
             </div>
             <div>
                 <div style="font-size: 15px; font-weight: 800; color: var(--text-primary);">กำลังโหลดข้อมูล NCDs Open Data</div>
-                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 3px;">อำเภอ<?= DISTRICT_NAME ?></div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 3px;">อำเภอ<?= DISTRICT_NAME ?> จังหวัดอุบลราชธานี</div>
             </div>
         </div>
     </div>
@@ -1257,7 +1257,7 @@ if (!function_exists('renderKpiGenderSplit')) {
                     NCDs Open Data Portal
                 </div>
                 <div style="font-size: 11.5px; color: var(--color-accent); font-weight: 700;">
-                    สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?>
+                    สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?> จังหวัดอุบลราชธานี
                 </div>
             </div>
         </div>
@@ -1296,10 +1296,10 @@ if (!function_exists('renderKpiGenderSplit')) {
                     <span class="badge-pill-inset" style="color: var(--text-muted); font-size: 11.5px;">v<?= APP_VERSION ?></span>
                 </div>
                 <h1 style="margin: 6px 0 10px 0; font-size: 25px; font-weight: 900; color: var(--text-primary); letter-spacing: -0.3px;">
-                    ศูนย์ข้อมูลสุขภาพและผลลัพธ์การคัดกรอง NCDs อำเภอ<?= DISTRICT_NAME ?>
+                    ศูนย์ข้อมูลสุขภาพและผลลัพธ์การคัดกรอง NCDs อำเภอ<?= DISTRICT_NAME ?> จังหวัดอุบลราชธานี
                 </h1>
-                <p style="margin: 0; font-size: 14px; color: var(--text-secondary); max-width: 680px; line-height: 1.6;">
-                    สรุปผลการดำเนินงานตรวจคัดกรองโรคเบาหวานและความดันโลหิตสูงเชิงรุก การปรับเปลี่ยนพฤติกรรม DPAC และพลังการขับเคลื่อนของภาคีสุขภาพชุมชน
+                <p style="margin: 0; font-size: 14px; color: var(--text-secondary); max-width: 780px; line-height: 1.65; word-break: break-word;">
+                    สรุปผลการดำเนินงานตรวจคัดกรองโรคเบาหวานและความดันโลหิตสูงเชิงรุก การปรับเปลี่ยนพฤติกรรม DPAC <span style="display: inline-block;">และพลังการขับเคลื่อนของภาคีสุขภาพชุมชน</span>
                 </p>
             </div>
 
@@ -1935,7 +1935,7 @@ if (!function_exists('renderKpiGenderSplit')) {
     <!-- Footer -->
     <footer style="background: var(--neu-card-bg); box-shadow: 0 -10px 24px rgba(166, 180, 200, 0.2); border-radius: 24px 24px 0 0; padding: 28px 16px; text-align: center; margin-top: auto; border-top: 1px solid var(--neu-border);">
         <div style="font-size: 13.5px; font-weight: 800; color: var(--text-primary); margin-bottom: 6px;">
-            สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?> • โรงพยาบาล<?= DISTRICT_NAME ?> • รพ.สต. ในสังกัด
+            สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?> • โรงพยาบาล<?= DISTRICT_NAME ?> • รพ.สต. ในสังกัด จังหวัดอุบลราชธานี
         </div>
         <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
             ข้อมูลสถิติดิจิทัลเพื่อการพัฒนาสุขภาพชุมชน • ปฏิบัติตามมาตรฐาน พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA)
