@@ -1083,8 +1083,8 @@ try {
                 <button onclick="switchTab('hospitals')" id="btn-hospitals" class="tab-btn" title="ลีก รพ.สต.">
                     <img src="../assets/icons/tab_hospital_league.png" alt="ลีก รพ.สต." class="tab-icon-img">
                 </button>
-                <button onclick="switchTab('badges')" id="btn-badges" class="tab-btn" title="ตราเกียรติยศ">
-                    <img src="../assets/icons/tab_badge_criteria.png" alt="ตราเกียรติยศ" class="tab-icon-img">
+                <button onclick="switchTab('badges')" id="btn-badges" class="tab-btn" title="ฉายาเกียรติยศ">
+                    <img src="../assets/icons/tab_badge_criteria.png" alt="ฉายาเกียรติยศ" class="tab-icon-img">
                 </button>
             </div>
 
@@ -1173,46 +1173,151 @@ try {
                 <?php endif; ?>
             </div>
 
-            <!-- Sub-Tab 4: VHV Badges Explanations Card -->
+            <!-- Sub-Tab 4: Hall of Titles of Honor (ทำเนียบฉายาเกียรติยศ) -->
             <div id="content-badges" class="tab-content" style="display: none;">
                 <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
-                    <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                        ตำนานตราเกียรติยศ (อสม. คัดกรองดีเด่น)
-                    </h4>
-                    <div style="display: grid; grid-template-columns: 1fr; gap: 12px; font-size: 12px;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 20px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: rgba(251, 191, 36, 0.1); border-radius: 50%;">🥇</span>
-                            <div>
-                                <strong>นักคัดกรองทองคำ:</strong>
-                                <span style="color: var(--text-secondary);">คัดกรองเป้าหมายสำเร็จครบ 100%</span>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+                        <div>
+                            <h4 style="color: var(--color-accent); font-size: 16.5px; margin: 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                                <span>🎖️</span> <span>ทำเนียบฉายาเกียรติยศ อสม.</span>
+                            </h4>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin: 3px 0 0 0;">
+                                สัญลักษณ์แห่งความเสียสละและเกียรติภูมิในการดูแลสุขภาพพี่น้องประชาชน
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Inspiring Note -->
+                    <div style="background: rgba(13, 110, 253, 0.06); border-left: 3px solid var(--color-accent); padding: 10px 12px; border-radius: 10px; font-size: 12px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.45;">
+                        ✨ <strong>เกียรติภูมิแห่งความทุ่มเท:</strong> ฉายาจะเลื่อนสู่ระดับที่สูงขึ้นอัตโนมัติตาม <strong>คะแนนผลงานสะสม</strong> (การคัดกรองเชิงรุก & การติดตาม DPAC) เพื่อเชิดชูความมุ่งมั่นของ อสม. ทุกท่าน
+                    </div>
+
+                    <!-- Category 1: Top 5 Supreme Titles -->
+                    <div style="margin-bottom: 18px;">
+                        <div style="font-size: 13px; font-weight: 800; color: #b45309; display: flex; align-items: center; gap: 6px; margin-bottom: 10px; padding-bottom: 4px; border-bottom: 1px dashed rgba(245, 158, 11, 0.3);">
+                            <span>👑</span> <span>สุดยอด 5 ฉายาผู้นำสูงสุด</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <div style="background: var(--bg-card); border: 1px solid rgba(226, 165, 30, 0.3); border-radius: 12px; padding: 10px 12px; box-shadow: var(--neumorph-flat);">
+                                <div style="font-size: 13.5px; font-weight: 900; color: #8a5700; margin-bottom: 2px;">
+                                    👑 สุดยอดขุนพลสาธารณสุข<?= DISTRICT_NAME ?>
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+                                    ผู้นำสูงสุดแห่งสมรภูมิสุขภาพ ผู้ทุ่มเททำงานเชิงรุกและดูแลประชาชนอย่างไม่เหน็ดเหนื่อย เป็นแบบอย่างและแรงบันดาลใจให้ อสม. ทั้งอำเภอ
+                                </div>
+                            </div>
+                            <div style="background: var(--bg-card); border: 1px solid rgba(104, 126, 150, 0.3); border-radius: 12px; padding: 10px 12px; box-shadow: var(--neumorph-flat);">
+                                <div style="font-size: 13.5px; font-weight: 900; color: #50657d; margin-bottom: 2px;">
+                                    ⭐ ยอดอัศวินสุขภาพชุมชน
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+                                    ผู้พิทักษ์สุขภาพประชาชนดั่งอัศวิน ลงพื้นที่เข้าถึงทุกหลังคาเรือน นำพาความรู้และตรวจเช็กสุขภาพเชิงรุกอย่างเข้มแข็ง
+                                </div>
+                            </div>
+                            <div style="background: var(--bg-card); border: 1px solid rgba(191, 103, 51, 0.3); border-radius: 12px; padding: 10px 12px; box-shadow: var(--neumorph-flat);">
+                                <div style="font-size: 13.5px; font-weight: 900; color: #a95827; margin-bottom: 2px;">
+                                    🏆 ดาวรุ่งแห่งความห่วงใย
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+                                    ผู้เปี่ยมด้วยพลังความมุ่งมั่น ส่งต่อความห่วงใยและผลักดันงานคัดกรองอย่างโดดเด่น รวดเร็ว และแม่นยำ
+                                </div>
+                            </div>
+                            <div style="background: var(--bg-card); border: 1px solid rgba(205, 66, 102, 0.3); border-radius: 12px; padding: 10px 12px; box-shadow: var(--neumorph-flat);">
+                                <div style="font-size: 13.5px; font-weight: 900; color: #bc365a; margin-bottom: 2px;">
+                                    🥇 ผู้พิทักษ์หัวใจไร้โรค
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+                                    ผู้ยืนหยัดเคียงข้างชาวบ้านในการป้องกันโรคเรื้อรัง (NCDs) เฝ้าระวังไม่ให้เกิดกลุ่มเสี่ยงรายใหม่ในหมู่บ้าน
+                                </div>
+                            </div>
+                            <div style="background: var(--bg-card); border: 1px solid rgba(240, 169, 0, 0.3); border-radius: 12px; padding: 10px 12px; box-shadow: var(--neumorph-flat);">
+                                <div style="font-size: 13.5px; font-weight: 900; color: #b56c00; margin-bottom: 2px;">
+                                    🌟 ขวัญใจสุขภาพดีถ้วนหน้า
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+                                    ผู้เป็นที่รักและศรัทธาของชุมชน เข้าถึงง่าย คอยดูแลและให้คำปรึกษาด้านสุขภาพด้วยรอยยิ้มและความจริงใจ
+                                </div>
                             </div>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 20px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: rgba(156, 163, 175, 0.1); border-radius: 50%;">🥈</span>
-                            <div>
-                                <strong>นักคัดกรองเงิน:</strong>
-                                <span style="color: var(--text-secondary);">คัดกรองเป้าหมายสำเร็จ 75% ขึ้นไป</span>
-                            </div>
+                    </div>
+
+                    <!-- Category 2: 9 Main Community Title Families -->
+                    <div>
+                        <div style="font-size: 13px; font-weight: 800; color: var(--color-accent); display: flex; align-items: center; gap: 6px; margin-bottom: 10px; padding-bottom: 4px; border-bottom: 1px dashed rgba(13, 110, 253, 0.3);">
+                            <span>🎖️</span> <span>ตระกูลฉายาเกียรติคุณชุมชน</span>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 20px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: rgba(180, 100, 30, 0.1); border-radius: 50%;">🥉</span>
-                            <div>
-                                <strong>นักคัดกรองทองแดง:</strong>
-                                <span style="color: var(--text-secondary);">คัดกรองเป้าหมายสำเร็จ 50% ขึ้นไป</span>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px; box-shadow: var(--neumorph-flat);">
+                                <div style="font-size: 13.5px; font-weight: 900; color: #c1442f; margin-bottom: 2px;">
+                                    💎 ยอดนักปราบเบาหวานและความดัน
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+                                    ผู้เชี่ยวชาญการค้นหาและติดตามคัดกรองกลุ่มเสี่ยง NCDs อย่างละเอียดรอบคอบ ตัดวงจรโรคก่อนลุกลาม
+                                </div>
                             </div>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 20px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: rgba(59, 130, 246, 0.1); border-radius: 50%;">📍</span>
-                            <div>
-                                <strong>ผู้พิทักษ์พิกัดจริง:</strong>
-                                <span style="color: var(--text-secondary);">บันทึกข้อมูลหน้าบ้านเป้าหมายในระยะ 100 เมตรสำเร็จครบทุกเคส</span>
+                            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px; box-shadow: var(--neumorph-flat);">
+                                <div style="font-size: 13.5px; font-weight: 900; color: #136b7c; margin-bottom: 2px;">
+                                    🌿 ผู้ปกป้องสุขภาวะ<?= DISTRICT_NAME ?>
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+                                    ผู้เป็นดั่งกำแพงคุ้มกันสุขภาพ เฝ้าระวังและดูแลพี่น้องประชาชนให้ห่างไกลจากภาวะแทรกซ้อนของโรค
+                                </div>
                             </div>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 20px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: rgba(16, 185, 129, 0.1); border-radius: 50%;">🚀</span>
-                            <div>
-                                <strong>ประเดิมผลงาน:</strong>
-                                <span style="color: var(--text-secondary);">คัดกรองส่งงานเรียบร้อยแล้วอย่างน้อย 1 เคส</span>
+                            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px; box-shadow: var(--neumorph-flat);">
+                                <div style="font-size: 13.5px; font-weight: 900; color: #6b528f; margin-bottom: 2px;">
+                                    🎖️ เสาหลักสุขภาพดีชุมชน
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+                                    ผู้เป็นรากฐานอันมั่นคงของระบบสาธารณสุขปฐมภูมิ ทุ่มเทเสียสละเพื่อสุขภาวะที่ดีของคนในหมู่บ้าน
+                                </div>
+                            </div>
+                            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px; box-shadow: var(--neumorph-flat);">
+                                <div style="font-size: 13.5px; font-weight: 900; color: #3d8550; margin-bottom: 2px;">
+                                    🏅 ผู้หว่านเมล็ดพันธุ์สุขภาพ
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+                                    ผู้ปลูกฝังความตระหนักรู้และพฤติกรรมสุขภาพที่ดีลงในจิตใจของชาวบ้าน เพื่อให้เติบโตเป็นชุมชนสุขภาพดีอย่างยั่งยืน
+                                </div>
+                            </div>
+                            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px; box-shadow: var(--neumorph-flat);">
+                                <div style="font-size: 13.5px; font-weight: 900; color: #1e7583; margin-bottom: 2px;">
+                                    📜 พลังขับเคลื่อนตำบลสุขภาพดี
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+                                    ผู้ขับเคลื่อนภารกิจปรับเปลี่ยนพฤติกรรม DPAC และส่งเสริมกิจกรรมสร้างเสริมสุขภาพในพื้นที่อย่างเข้มแข็ง
+                                </div>
+                            </div>
+                            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px; box-shadow: var(--neumorph-flat);">
+                                <div style="font-size: 13.5px; font-weight: 900; color: #b64d6d; margin-bottom: 2px;">
+                                    🌟 ผู้จุดประกายรักตนเอง
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+                                    ผู้สร้างแรงบันดาลใจให้กลุ่มเสี่ยงหันมารักและใส่ใจดูแลสุขภาพตนเอง ปรับเปลี่ยนอาหารและออกกำลังกายสม่ำเสมอ
+                                </div>
+                            </div>
+                            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px; box-shadow: var(--neumorph-flat);">
+                                <div style="font-size: 13.5px; font-weight: 900; color: #4d8a4c; margin-bottom: 2px;">
+                                    🏷️ ทูตสุขภาพสร้างพลังบวก
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+                                    ผู้นำสารแห่งสุขภาพดี สร้างขวัญกำลังใจและรอยยิ้มในการดูแลสุขภาพให้กับทุกครัวเรือน
+                                </div>
+                            </div>
+                            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px; box-shadow: var(--neumorph-flat);">
+                                <div style="font-size: 13.5px; font-weight: 900; color: #6957a0; margin-bottom: 2px;">
+                                    🛡️ ปราชญ์สุขภาพคู่บ้านคู่เมือง
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+                                    ผู้เปี่ยมด้วยประสบการณ์และความรู้ คอยให้คำแนะนำและช่วยเหลือด้านสุขภาพแก่คนในชุมชนเสมอ
+                                </div>
+                            </div>
+                            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px; box-shadow: var(--neumorph-flat);">
+                                <div style="font-size: 13.5px; font-weight: 900; color: #c06c27; margin-bottom: 2px;">
+                                    ✨ แสงสว่างนำทางชีวิตชีวา
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+                                    ผู้เป็นแสงสว่างชี้นำหนทางสู่การมีสุขภาพแข็งแรงและชีวิตที่ยืนยาวอย่างมีความสุข
+                                </div>
                             </div>
                         </div>
                     </div>
