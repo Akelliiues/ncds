@@ -222,6 +222,108 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-bottom: 8px;
             filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.12));
         }
+
+        /* Modern Page Transition Loading Overlay */
+        #page-loading-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: rgba(15, 23, 42, 0.72);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            opacity: 0;
+            transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        #page-loading-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .loading-modal-card {
+            background: var(--container-bg, #ffffff);
+            border: 1px solid var(--border-color, rgba(226, 232, 240, 0.8));
+            border-radius: 24px;
+            padding: 30px 36px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.1);
+            text-align: center;
+            max-width: 360px;
+            width: 88%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            transform: scale(0.92);
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        #page-loading-overlay.active .loading-modal-card {
+            transform: scale(1);
+        }
+
+        .loading-spinner-ring {
+            position: relative;
+            width: 68px;
+            height: 68px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-spinner-ring::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 3.5px solid rgba(2, 132, 199, 0.15);
+            border-top-color: #0284c7;
+            border-right-color: #38bdf8;
+            animation: ringSpin 0.9s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite;
+        }
+
+        .loading-pulse-icon {
+            font-size: 28px;
+            animation: iconPulse 1.5s ease-in-out infinite;
+        }
+
+        .loading-progress-track {
+            width: 100%;
+            height: 5px;
+            background: rgba(2, 132, 199, 0.12);
+            border-radius: 9999px;
+            overflow: hidden;
+            margin-top: 4px;
+            position: relative;
+        }
+
+        .loading-progress-bar {
+            position: absolute;
+            height: 100%;
+            width: 45%;
+            background: linear-gradient(90deg, #0284c7, #38bdf8, #10b981);
+            border-radius: 9999px;
+            animation: shimmerSlide 1.3s ease-in-out infinite;
+        }
+
+        @keyframes ringSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes iconPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.18); }
+        }
+
+        @keyframes shimmerSlide {
+            0% { left: -45%; width: 30%; }
+            50% { left: 35%; width: 50%; }
+            100% { left: 105%; width: 30%; }
+        }
     </style>
 </head>
 
@@ -235,8 +337,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div class="card-dark" style="margin-bottom: 0; padding: 20px;">
-            <h3 style="text-align: center; margin-top: 0; margin-bottom: 16px; color: var(--color-accent); font-weight: 800; font-size: 18px;">
-                ลงชื่อเข้าใช้งานระบบ</h3>
+
 
             <?php if (!empty($error)): ?>
                 <div
@@ -245,17 +346,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             <?php endif; ?>
 
-            <form action="" method="POST">
+            <form method="POST" action="index.php" onsubmit="showPageLoading('กำลังเข้าสู่ระบบ', 'กำลังตรวจสอบสิทธิ์การใช้งาน...', '🔐');">
                 <div style="margin-bottom: 12px;">
-                    <label for="username"
-                        style="display: block; margin-bottom: 6px; color: var(--text-secondary); font-weight: 600; font-size: 13.5px;">ชื่อผู้ใช้ หรือ รหัส อสม.</label>
+                    
                     <input type="text" name="username" id="username" class="input-large"
                         placeholder="ชื่อผู้ใช้งาน / รหัส อสม. 10 หลัก" required autocomplete="username" style="padding: 10px 14px; font-size: 14px; height: auto;">
                 </div>
 
                 <div style="margin-bottom: 18px;">
-                    <label for="password"
-                        style="display: block; margin-bottom: 6px; color: var(--text-secondary); font-weight: 600; font-size: 13.5px;">รหัสผ่าน</label>
+              
                     <input type="password" name="password" id="password" class="input-large"
                         placeholder="รหัสผ่านเข้าใช้งาน" required autocomplete="current-password" style="padding: 10px 14px; font-size: 14px; height: auto;">
                 </div>
@@ -274,17 +373,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <!-- Citizen Self-Screening Portal Entry -->
             <div style="margin-top: 12px; margin-bottom: 6px;">
-                <a href="self_screening.php" style="display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(16, 185, 129, 0.08)); border: 1.5px solid rgba(59, 130, 246, 0.3); padding: 12px 14px; border-radius: 16px; text-decoration: none; transition: transform 0.2s, box-shadow 0.2s; box-shadow: var(--neumorph-flat);">
+                <a href="self_screening.php" onclick="showPageLoading('ประเมินสุขภาพด้วยตนเอง', 'กำลังเตรียมแบบคัดกรองความดัน-เบาหวาน...', '🩺', 'self_screening.php'); return false;" style="display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(16, 185, 129, 0.08)); border: 1.5px solid rgba(59, 130, 246, 0.3); padding: 12px 14px; border-radius: 16px; text-decoration: none; transition: transform 0.2s, box-shadow 0.2s; box-shadow: var(--neumorph-flat);">
                     <div style="display: flex; align-items: center; gap: 12px; text-align: left;">
                         <img src="assets/img/health_check_icon.png?v=20260824_1" alt="ตรวจสุขภาพตนเอง" style="width: 44px; height: 44px; border-radius: 12px; object-fit: contain; box-shadow: 0 4px 10px rgba(225, 29, 72, 0.25), 0 2px 6px rgba(37, 99, 235, 0.2); flex-shrink: 0;">
                         <div>
                             <div style="display: flex; align-items: center; gap: 6px;">
-                                <span style="color: var(--color-primary); font-size: 14px; font-weight: 800;">ตรวจเช็คประเมินสุขภาพตนเอง</span>
+                                <span style="color: var(--color-primary); font-size: 14px; font-weight: 800;">ประเมินสุขภาพง่ายๆด้วยตัวเอง</span>
                             </div>
-                            <div style="color: var(--text-secondary); font-size: 11.5px;">เช็คความเสี่ยงความดัน-เบาหวานด้วยตัวเอง</div>
+                            <div style="color: var(--text-secondary); font-size: 11.5px;">เช็คความเสี่ยงความดัน-เบาหวาน 1 นาทีรู้ผล</div>
                         </div>
                     </div>
                     <span style="color: var(--color-primary); font-weight: 800; font-size: 16px;">🌞</span>
+                </a>
+            </div>
+
+            <!-- Public Open Data & Executive Cockpit Entry (No Login Required) -->
+            <div style="margin-top: 8px; margin-bottom: 6px;">
+                <a href="public_dashboard.php" onclick="showPageLoading('ศูนย์ข้อมูลสุขภาพ NCDs', 'กำลังประมวลผลสถิติและผลการคัดกรอง...', '📊', 'public_dashboard.php'); return false;" style="display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(2, 132, 199, 0.08), rgba(99, 102, 241, 0.08)); border: 1.5px solid rgba(2, 132, 199, 0.3); padding: 12px 14px; border-radius: 16px; text-decoration: none; transition: transform 0.2s, box-shadow 0.2s; box-shadow: var(--neumorph-flat);">
+                    <div style="display: flex; align-items: center; gap: 12px; text-align: left;">
+                        <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(2, 132, 199, 0.15); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.2);">
+                            📊
+                        </div>
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="color: var(--color-primary, #0284c7); font-size: 14px; font-weight: 800;">ศูนย์ข้อมูลสถิติสุขภาพ NCDs</span>
+                            </div>
+                            <div style="color: var(--text-secondary); font-size: 11.5px;">ผลงานคัดกรองและสถิติภาพรวมอำเภอ</div>
+                        </div>
+                    </div>
+                    <span style="color: var(--color-primary, #0284c7); font-weight: 800; font-size: 16px;">📈</span>
                 </a>
             </div>
 
@@ -384,7 +501,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div style="text-align: center; margin-top: 16px; color: var(--text-muted); font-size: 11px; line-height: 1.4;">
             ระบบจัดการคัดกรองโรคเรื้อรังเชิงรุก NCDs 2026<br>
             อำเภอ<?= DISTRICT_NAME ?> จังหวัด<?= PROVINCE_NAME ?><br>
-            <div style="margin-top: 6px; display: flex; justify-content: center; gap: 12px; align-items: center;">
+            <div style="margin-top: 6px; display: flex; justify-content: center; gap: 12px; align-items: center; flex-wrap: wrap;">
+
+                <span style="color: var(--border-color); font-size: 10px;">|</span>
                 <a href="about.php" style="color: var(--color-accent); text-decoration: none; font-weight: bold;">
                     ℹ️ เกี่ยวกับผู้พัฒนา & ข้อมูลระบบ
                 </a>
@@ -397,7 +516,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <?php require_once __DIR__ . '/config/dev_modal.php'; ?>
 
+    <!-- Fullscreen Loading Overlay for Smooth Transitions -->
+    <div id="page-loading-overlay">
+        <div class="loading-modal-card">
+            <div class="loading-spinner-ring">
+                <span class="loading-pulse-icon" id="loading-icon">📊</span>
+            </div>
+            <div>
+                <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin-bottom: 5px;" id="loading-title">
+                    ศูนย์ข้อมูลสุขภาพ NCDs
+                </div>
+                <div style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;" id="loading-subtitle">
+                    กำลังประมวลผลสถิติและผลการคัดกรอง...
+                </div>
+            </div>
+            <div class="loading-progress-track">
+                <div class="loading-progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        function showPageLoading(title, subtitle, icon, targetUrl) {
+            const overlay = document.getElementById('page-loading-overlay');
+            if (!overlay) return;
+            if (title) document.getElementById('loading-title').innerText = title;
+            if (subtitle) document.getElementById('loading-subtitle').innerText = subtitle;
+            if (icon) document.getElementById('loading-icon').innerText = icon;
+            
+            overlay.style.display = 'flex';
+            requestAnimationFrame(() => {
+                overlay.classList.add('active');
+            });
+
+            if (targetUrl) {
+                setTimeout(() => {
+                    window.location.href = targetUrl;
+                }, 50);
+            }
+        }
+
         function toggleDemoSelector() {
             const container = document.getElementById('demo-options-container');
             const chevron = document.getElementById('demo-chevron');

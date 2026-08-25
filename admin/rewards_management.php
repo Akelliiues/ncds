@@ -147,10 +147,26 @@ try {
             border-radius: 18px;
             padding: 18px 20px;
             box-shadow: var(--neumorph-flat);
-            border: 1px solid var(--border-color);
+            border: 1.5px solid var(--border-color);
             display: flex;
             align-items: center;
             gap: 16px;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 24px rgba(13, 44, 84, 0.1), var(--neumorph-flat);
+            border-color: var(--color-primary);
+        }
+
+        .stat-card.active {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px var(--color-primary), var(--neumorph-flat);
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(16, 185, 129, 0.05));
         }
 
         .stat-icon {
@@ -162,6 +178,11 @@ try {
             justify-content: center;
             font-size: 24px;
             flex-shrink: 0;
+            transition: transform 0.2s ease;
+        }
+
+        .stat-card:hover .stat-icon {
+            transform: scale(1.1);
         }
 
         /* Clean Modern Toggle Switch */
@@ -382,6 +403,13 @@ try {
             color: white;
         }
 
+        .preset-btn.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+            box-shadow: 0 2px 8px rgba(13, 44, 84, 0.25);
+        }
+
         /* Modal */
         .reward-modal {
             display: none;
@@ -494,30 +522,30 @@ try {
             </div>
         </div>
 
-        <!-- 2. Statistics Grid -->
+        <!-- 2. Statistics Grid (Clickable Interactive Quick Switcher) -->
         <div class="stat-grid">
-            <div class="stat-card">
+            <div class="stat-card active" id="kpi-card-catalog-all" onclick="filterByKpiCard('catalog_all')" title="คลิกเพื่อดูของรางวัลทั้งหมดในแคตตาล็อก">
                 <div class="stat-icon" style="background: rgba(59, 130, 246, 0.15); color: #3B82F6;">🎁</div>
                 <div>
                     <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700;">ของรางวัลในระบบ</div>
                     <div style="font-size: 22px; font-weight: 800; color: var(--text-primary);"><?= number_format($totalItems) ?> รายการ</div>
                 </div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" id="kpi-card-catalog-active" onclick="filterByKpiCard('catalog_active')" title="คลิกเพื่อกรองเฉพาะของรางวัลที่เปิดใช้งานอยู่">
                 <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #10B981;">✅</div>
                 <div>
                     <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700;">เปิดใช้งานอยู่</div>
                     <div style="font-size: 22px; font-weight: 800; color: #10B981;"><?= number_format($activeItems) ?> รายการ</div>
                 </div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" id="kpi-card-queue-pending" onclick="filterByKpiCard('queue_pending')" title="คลิกเพื่อเปิดดูคำขอที่รอดำเนินการส่งมอบ">
                 <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15); color: #F59E0B;">⏳</div>
                 <div>
                     <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700;">คำขอรอส่งมอบ</div>
                     <div style="font-size: 22px; font-weight: 800; color: #F59E0B;"><?= number_format($pendingCount) ?> รายการ</div>
                 </div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" id="kpi-card-queue-fulfilled" onclick="filterByKpiCard('queue_fulfilled')" title="คลิกเพื่อดูประวัติคำขอที่ส่งมอบรางวัลแล้ว">
                 <div class="stat-icon" style="background: rgba(139, 92, 246, 0.15); color: #8B5CF6;">🎉</div>
                 <div>
                     <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700;">ส่งมอบรางวัลแล้ว</div>
@@ -526,24 +554,17 @@ try {
             </div>
         </div>
 
-        <!-- 3. Navigation Tabs -->
-        <div class="reward-tabs">
-            <button type="button" class="tab-button active" onclick="switchRewardTab('catalog')" id="tab-btn-catalog">
-                📦 แคตตาล็อกของรางวัล (<?= count($items) ?>)
-            </button>
-            <button type="button" class="tab-button" onclick="switchRewardTab('categories')" id="tab-btn-categories">
-                🗂️ จัดการหมวดหมู่ (<?= count($categoryList) ?>)
-            </button>
-            <button type="button" class="tab-button" onclick="switchRewardTab('queue')" id="tab-btn-queue">
-                📋 คำขอแลกรางวัล & ส่งมอบ (<span id="queueCountBadge"><?= $pendingCount ?></span>)
-            </button>
-        </div>
-
         <!-- Tab 1: Catalog Items Grid -->
         <div id="tab-content-catalog">
+            <div id="catalogFilterNotice" style="display: none; align-items: center; justify-content: space-between; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 10px 16px; border-radius: 14px; margin-bottom: 16px; font-size: 13.5px; font-weight: 700; color: #059669;">
+                <span>🔍 กำลังแสดงเฉพาะของรางวัลที่ <strong>เปิดใช้งานอยู่</strong> (<span id="activeCountDisplay"><?= $activeItems ?></span> รายการ)</span>
+                <button type="button" onclick="filterByKpiCard('catalog_all')" style="background: #10B981; color: white; border: none; padding: 4px 12px; border-radius: 8px; font-weight: 800; font-size: 12px; cursor: pointer;">
+                    แสดงทั้งหมด
+                </button>
+            </div>
             <div class="items-grid">
                 <?php foreach ($items as $item): ?>
-                    <div class="item-card" id="item-card-<?= $item['item_id'] ?>" style="<?= !$item['is_active'] ? 'opacity: 0.6;' : '' ?>">
+                    <div class="item-card" id="item-card-<?= $item['item_id'] ?>" data-active="<?= (int)$item['is_active'] ?>" style="<?= !$item['is_active'] ? 'opacity: 0.6;' : '' ?>">
                         <div>
                             <div class="item-card-header">
                                 <div class="item-icon-box">
@@ -596,7 +617,12 @@ try {
         <div id="tab-content-categories" style="display: none;">
             <div style="background: var(--bg-card); border-radius: 20px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color); overflow: hidden; padding: 14px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
-                    <strong style="font-size: 15px; color: var(--text-primary);">รายการหมวดหมู่ของรางวัล</strong>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <button type="button" onclick="filterByKpiCard('catalog_all')" class="preset-btn" style="display: inline-flex; align-items: center; gap: 4px;">
+                            ⬅️ กลับสู่แคตตาล็อก
+                        </button>
+                        <strong style="font-size: 15px; color: var(--text-primary);">🗂️ รายการหมวดหมู่ของรางวัล</strong>
+                    </div>
                     <button type="button" onclick="openCategoryModal()" class="preset-btn" style="background: var(--color-primary); color: white; border: none; padding: 8px 14px;">
                         ➕ เพิ่มหมวดหมู่ใหม่
                     </button>
@@ -643,12 +669,12 @@ try {
             <div style="background: var(--bg-card); border-radius: 20px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color); overflow: hidden; padding: 10px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px;">
                     <div style="display: flex; gap: 8px;">
-                        <button type="button" class="preset-btn" onclick="fetchRedemptions('all')">ทั้งหมด</button>
-                        <button type="button" class="preset-btn" onclick="fetchRedemptions('pending')">⏳ รอดำเนินการ</button>
-                        <button type="button" class="preset-btn" onclick="fetchRedemptions('fulfilled')">✅ มอบของแล้ว</button>
+                        <button type="button" class="preset-btn active" id="queue-filter-all" onclick="applyQueueFilter('all')">ทั้งหมด</button>
+                        <button type="button" class="preset-btn" id="queue-filter-pending" onclick="applyQueueFilter('pending')">⏳ รอดำเนินการ</button>
+                        <button type="button" class="preset-btn" id="queue-filter-fulfilled" onclick="applyQueueFilter('fulfilled')">✅ มอบของแล้ว</button>
                     </div>
                     <div>
-                        <button type="button" onclick="fetchRedemptions()" style="background: none; border: none; color: var(--color-primary); font-size: 13px; font-weight: 700; cursor: pointer;">
+                        <button type="button" onclick="fetchRedemptions(currentQueueStatus)" style="background: none; border: none; color: var(--color-primary); font-size: 13px; font-weight: 700; cursor: pointer;">
                             🔄 รีเฟรชข้อมูล
                         </button>
                     </div>
@@ -803,18 +829,84 @@ try {
     </div>
 
     <script>
-        function switchRewardTab(tabName) {
-            document.getElementById('tab-content-catalog').style.display = tabName === 'catalog' ? 'block' : 'none';
-            document.getElementById('tab-content-categories').style.display = tabName === 'categories' ? 'block' : 'none';
-            document.getElementById('tab-content-queue').style.display = tabName === 'queue' ? 'block' : 'none';
-            
-            document.getElementById('tab-btn-catalog').classList.toggle('active', tabName === 'catalog');
-            document.getElementById('tab-btn-categories').classList.toggle('active', tabName === 'categories');
-            document.getElementById('tab-btn-queue').classList.toggle('active', tabName === 'queue');
+        let currentQueueStatus = 'all';
 
-            if (tabName === 'queue') {
-                fetchRedemptions();
+        function switchRewardTab(tabName) {
+            const tabCatalog = document.getElementById('tab-content-catalog');
+            const tabCategories = document.getElementById('tab-content-categories');
+            const tabQueue = document.getElementById('tab-content-queue');
+
+            if (tabCatalog) tabCatalog.style.display = tabName === 'catalog' ? 'block' : 'none';
+            if (tabCategories) tabCategories.style.display = tabName === 'categories' ? 'block' : 'none';
+            if (tabQueue) tabQueue.style.display = tabName === 'queue' ? 'block' : 'none';
+
+            if (tabName === 'catalog') {
+                showCatalogItems('all');
+                document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
+                const c = document.getElementById('kpi-card-catalog-all');
+                if (c) c.classList.add('active');
+            } else if (tabName === 'queue') {
+                fetchRedemptions(currentQueueStatus);
+            } else {
+                document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
             }
+        }
+
+        function filterByKpiCard(target) {
+            // Remove active style from all kpi cards
+            document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
+
+            if (target === 'catalog_all') {
+                const c = document.getElementById('kpi-card-catalog-all');
+                if (c) c.classList.add('active');
+                switchRewardTab('catalog');
+                showCatalogItems('all');
+            } else if (target === 'catalog_active') {
+                const c = document.getElementById('kpi-card-catalog-active');
+                if (c) c.classList.add('active');
+                switchRewardTab('catalog');
+                showCatalogItems('active');
+            } else if (target === 'queue_pending') {
+                const c = document.getElementById('kpi-card-queue-pending');
+                if (c) c.classList.add('active');
+                switchRewardTab('queue');
+                applyQueueFilter('pending');
+            } else if (target === 'queue_fulfilled') {
+                const c = document.getElementById('kpi-card-queue-fulfilled');
+                if (c) c.classList.add('active');
+                switchRewardTab('queue');
+                applyQueueFilter('fulfilled');
+            }
+        }
+
+        function showCatalogItems(filter) {
+            const notice = document.getElementById('catalogFilterNotice');
+            const cards = document.querySelectorAll('#tab-content-catalog .item-card');
+            
+            if (filter === 'active') {
+                if (notice) notice.style.display = 'flex';
+                cards.forEach(card => {
+                    if (card.getAttribute('data-active') === '1') {
+                        card.style.display = 'flex';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            } else {
+                if (notice) notice.style.display = 'none';
+                cards.forEach(card => {
+                    card.style.display = 'flex';
+                });
+            }
+        }
+
+        function applyQueueFilter(status) {
+            currentQueueStatus = status;
+            ['all', 'pending', 'fulfilled'].forEach(s => {
+                const btn = document.getElementById('queue-filter-' + s);
+                if (btn) btn.classList.toggle('active', s === status);
+            });
+            fetchRedemptions(status);
         }
 
         function toggleSystem(newVal) {

@@ -216,9 +216,11 @@ if (DemoDataProvider::isDemoMode()) {
     ];
 } else {
     if ($admin_hoscode) {
+        $allowedHoscodes = [$admin_hoscode];
         $hoscodes = get_query_hoscodes($admin_hoscode);
         $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
     } else {
+        $allowedHoscodes = array_keys($hc_names);
         $valid_hoscodes = get_query_hoscodes();
         $inPlaceholders = implode(',', array_fill(0, count($valid_hoscodes), '?'));
         $hoscodes = $valid_hoscodes;
@@ -226,11 +228,10 @@ if (DemoDataProvider::isDemoMode()) {
 
     // Shared analytics filters. The unit selector can only narrow the units that
     // the signed-in administrator is already allowed to access.
-    $allowedHoscodes = $hoscodes;
     $selectedHoscode = trim((string)($_GET['hoscode'] ?? ''));
     if ($selectedHoscode !== '' && in_array($selectedHoscode, $allowedHoscodes, true)) {
-        $hoscodes = [$selectedHoscode];
-        $inPlaceholders = '?';
+        $hoscodes = get_query_hoscodes($selectedHoscode);
+        $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
     }
 
     $availableBudgetYears = function_exists('get_available_budget_years') ? get_available_budget_years() : [];
@@ -464,9 +465,18 @@ foreach ($ncdBeforeAfterData as $row) {
 }
 $totalAnalyzed = count($beforeAfterData);
 $improvedBpCount = 0;
+$monitoringBpCount = 0;
+$worsenedBpCount = 0;
+
 $improvedFbsCount = 0;
+$monitoringFbsCount = 0;
+$worsenedFbsCount = 0;
+
 $totalHtCases = 0;
 $totalDmCases = 0;
+
+$monitoringPatients = [];
+$worsenedPatients = [];
 
 $sbpBeforeSum = 0;
 $sbpAfterSum = 0;
@@ -488,16 +498,28 @@ $normalToNormal = 0;
 foreach ($beforeAfterData as $row) {
     $hasHt = in_array($row['risk_type'], ['HT', 'BOTH']);
     $hasDm = in_array($row['risk_type'], ['DM', 'BOTH']);
+    $isPatientWorsened = false;
+    $isPatientMonitoring = false;
+    $worsenedReasons = [];
+    $monitoringReasons = [];
 
     if ($hasHt && !empty($row['sbp_before']) && !empty($row['sbp_after'])) {
         $totalHtCases++;
         $sbpBeforeSum += $row['sbp_before'];
         $sbpAfterSum += $row['sbp_after'];
-        $dbpBeforeSum += $row['dbp_before'];
-        $dbpAfterSum += $row['dbp_after'];
+        $dbpBeforeSum += ($row['dbp_before'] ?? 0);
+        $dbpAfterSum += ($row['dbp_after'] ?? 0);
 
-        if ($row['sbp_after'] < $row['sbp_before'] || ($row['sbp_after'] < 140 && $row['dbp_after'] < 90)) {
+        if ($row['sbp_after'] < $row['sbp_before'] || ($row['sbp_after'] < 140 && ($row['dbp_after'] ?? 0) < 90)) {
             $improvedBpCount++;
+        } elseif ($row['sbp_after'] > $row['sbp_before'] && ($row['sbp_after'] >= 140 || ($row['dbp_after'] ?? 0) >= 90)) {
+            $worsenedBpCount++;
+            $isPatientWorsened = true;
+            $worsenedReasons[] = 'ความดันสูงขึ้น (' . $row['sbp_before'] . '/' . ($row['dbp_before'] ?? '-') . ' → ' . $row['sbp_after'] . '/' . ($row['dbp_after'] ?? '-') . ' mmHg)';
+        } else {
+            $monitoringBpCount++;
+            $isPatientMonitoring = true;
+            $monitoringReasons[] = 'ความดันทรงตัว/เฝ้าระวัง (' . $row['sbp_before'] . '/' . ($row['dbp_before'] ?? '-') . ' → ' . $row['sbp_after'] . '/' . ($row['dbp_after'] ?? '-') . ' mmHg)';
         }
     }
 
@@ -508,7 +530,21 @@ foreach ($beforeAfterData as $row) {
 
         if ($row['fbs_after'] < $row['fbs_before'] || $row['fbs_after'] < 126) {
             $improvedFbsCount++;
+        } elseif ($row['fbs_after'] > $row['fbs_before'] && $row['fbs_after'] >= 126) {
+            $worsenedFbsCount++;
+            $isPatientWorsened = true;
+            $worsenedReasons[] = 'น้ำตาลสูงขึ้น (' . $row['fbs_before'] . ' → ' . $row['fbs_after'] . ' mg/dL)';
+        } else {
+            $monitoringFbsCount++;
+            $isPatientMonitoring = true;
+            $monitoringReasons[] = 'น้ำตาลทรงตัว/เฝ้าระวัง (' . $row['fbs_before'] . ' → ' . $row['fbs_after'] . ' mg/dL)';
         }
+    }
+
+    if ($isPatientWorsened) {
+        $worsenedPatients[] = array_merge($row, ['reasons' => implode(', ', $worsenedReasons)]);
+    } elseif ($isPatientMonitoring) {
+        $monitoringPatients[] = array_merge($row, ['reasons' => implode(', ', $monitoringReasons)]);
     }
 
     $before = $row['risk_before'];
@@ -538,7 +574,15 @@ $avgFbsBefore = $totalDmCases > 0 ? round($fbsBeforeSum / $totalDmCases, 1) : 0;
 $avgFbsAfter = $totalDmCases > 0 ? round($fbsAfterSum / $totalDmCases, 1) : 0;
 
 $pctBpImprovement = $totalHtCases > 0 ? round(($improvedBpCount / $totalHtCases) * 100, 1) : 0;
+$pctBpMonitoring = $totalHtCases > 0 ? round(($monitoringBpCount / $totalHtCases) * 100, 1) : 0;
+$pctBpWorsened = $totalHtCases > 0 ? round(($worsenedBpCount / $totalHtCases) * 100, 1) : 0;
+
 $pctFbsImprovement = $totalDmCases > 0 ? round(($improvedFbsCount / $totalDmCases) * 100, 1) : 0;
+$pctFbsMonitoring = $totalDmCases > 0 ? round(($monitoringFbsCount / $totalDmCases) * 100, 1) : 0;
+$pctFbsWorsened = $totalDmCases > 0 ? round(($worsenedFbsCount / $totalDmCases) * 100, 1) : 0;
+
+$sbpDiff = round($avgSbpAfter - $avgSbpBefore, 1);
+$fbsDiff = round($avgFbsAfter - $avgFbsBefore, 1);
 
 // Risk evaluation matrix counts
 $beforeHigh = $highToHigh + $highToModerate + $highToNormal;
@@ -1465,9 +1509,9 @@ try {
                     <label style="display: block; font-size: 12.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px;">🏥 หน่วยบริการ (รพ.สต.)</label>
                     <select name="hoscode" class="form-control" style="width: 100%; border-radius: 10px; padding: 9px 12px; box-sizing: border-box;">
                         <option value="">ทุกหน่วยบริการ (ทั้งหมด)</option>
-                        <?php foreach ($allowedHoscodes as $code): ?>
-                            <option value="<?= htmlspecialchars($code) ?>" <?= $selectedHoscode === $code ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($hc_names[$code] ?? $code) ?>
+                        <?php foreach ($hc_names as $code => $name): ?>
+                            <option value="<?= htmlspecialchars((string)$code) ?>" <?= $selectedHoscode === (string)$code ? 'selected' : '' ?>>
+                                <?= htmlspecialchars((string)$name) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -1774,60 +1818,280 @@ try {
         </div>
 
         <!-- DPAC Intervention Outcome Summary Cards -->
-        <h3 style="color: var(--color-accent); margin-bottom: 16px; font-size: 18px; display: flex; align-items: center; gap: 8px;">
-            <span>🔄 ประสิทธิผลการปรับเปลี่ยนพฤติกรรมและการติดตามกลุ่มเสี่ยง (Multi-Round & DPAC Outcomes)</span>
-            <span style="font-size: 13px; font-weight: normal; color: var(--text-secondary);">(ประเมินเปรียบเทียบ Round 1 vs ล่าสุด ของผู้ติดตาม 2 รอบขึ้นไป รวม <?= number_format($totalAnalyzed) ?> ราย)</span>
-        </h3>
+        <div style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <h3 style="color: var(--color-accent); margin: 0 0 4px 0; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+                    <span>🔄 ประสิทธิผลการปรับเปลี่ยนพฤติกรรมและการติดตามกลุ่มเสี่ยง</span>
+                </h3>
+                <div style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                    <span style="color: var(--color-primary); font-weight: 600;">(Multi-Round & DPAC Outcomes)</span>
+                    <span>• ประเมินเปรียบเทียบ Round 1 vs ล่าสุด ของผู้ติดตาม 2 รอบขึ้นไป รวม <?= number_format($totalAnalyzed) ?> ราย</span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <?php if (!empty($monitoringPatients)): ?>
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('monitoringModal').style.display='flex';" style="font-size: 12px; padding: 5px 12px; border-color: rgba(245, 158, 11, 0.4); color: #f59e0b; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; background: rgba(245, 158, 11, 0.08); cursor: pointer;">
+                        <span>📋 กลุ่มต้องเฝ้าระวัง (<?= count($monitoringPatients) ?> ราย)</span>
+                    </button>
+                <?php endif; ?>
+                <?php if (!empty($worsenedPatients)): ?>
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('worsenedModal').style.display='flex';" style="font-size: 12px; padding: 5px 12px; border-color: rgba(239, 68, 68, 0.4); color: #ef4444; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; background: rgba(239, 68, 68, 0.08); cursor: pointer;">
+                        <span>⚠️ กลุ่มค่าสุขภาพแย่ลง (<?= count($worsenedPatients) ?> ราย)</span>
+                    </button>
+                <?php endif; ?>
+            </div>
+        </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 20px; margin-bottom: 30px;">
-            <div class="card-dark" style="border-left: 4px solid var(--color-accent);">
+        <!-- 1. Population Averages (SBP & FBS) -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; margin-bottom: 20px;">
+            <div class="card-dark" style="border-left: 4px solid var(--color-accent); padding: 18px;">
                 <div style="color: var(--text-secondary); font-size: 13px; font-weight: bold; margin-bottom: 8px;">ค่าความดันตัวบนเฉลี่ย (Systolic BP)</div>
                 <div style="display: flex; align-items: baseline; gap: 8px;">
                     <span style="font-size: 26px; font-weight: 800; color: var(--text-primary);"><?= $avgSbpBefore ?></span>
                     <span style="color: var(--text-muted); font-size: 13px;">→</span>
-                    <span style="font-size: 26px; font-weight: 800; color: var(--color-green);"><?= $avgSbpAfter ?></span>
+                    <span style="font-size: 26px; font-weight: 800; color: <?= $sbpDiff <= 0 ? 'var(--color-green)' : '#ef4444' ?>;"><?= $avgSbpAfter ?></span>
                     <span style="font-size: 13px; color: var(--text-muted); margin-left: 4px;">mmHg</span>
                 </div>
-                <div style="font-size: 12px; margin-top: 8px; color: var(--color-green); font-weight: bold;">
-                    📉 ลดลงเฉลี่ย <?= $avgSbpBefore > $avgSbpAfter ? round($avgSbpBefore - $avgSbpAfter, 1) : 0 ?> mmHg
+                <div style="font-size: 12px; margin-top: 8px; font-weight: bold; color: <?= $sbpDiff <= 0 ? 'var(--color-green)' : '#ef4444' ?>;">
+                    <?php if ($sbpDiff < 0): ?>
+                        📉 ลดลงเฉลี่ย <?= abs($sbpDiff) ?> mmHg
+                    <?php elseif ($sbpDiff > 0): ?>
+                        📈 เพิ่มขึ้นเฉลี่ย <?= $sbpDiff ?> mmHg
+                    <?php else: ?>
+                        ➖ ทรงตัวเฉลี่ย 0 mmHg
+                    <?php endif; ?>
                 </div>
             </div>
 
-            <div class="card-dark" style="border-left: 4px solid #a78bfa;">
+            <div class="card-dark" style="border-left: 4px solid #a78bfa; padding: 18px;">
                 <div style="color: var(--text-secondary); font-size: 13px; font-weight: bold; margin-bottom: 8px;">ค่าน้ำตาลในเลือดเฉลี่ย (FBS)</div>
                 <div style="display: flex; align-items: baseline; gap: 8px;">
                     <span style="font-size: 26px; font-weight: 800; color: var(--text-primary);"><?= $avgFbsBefore ?></span>
                     <span style="color: var(--text-muted); font-size: 13px;">→</span>
-                    <span style="font-size: 26px; font-weight: 800; color: var(--color-green);"><?= $avgFbsAfter ?></span>
+                    <span style="font-size: 26px; font-weight: 800; color: <?= $fbsDiff <= 0 ? 'var(--color-green)' : '#f59e0b' ?>;"><?= $avgFbsAfter ?></span>
                     <span style="font-size: 13px; color: var(--text-muted); margin-left: 4px;">mg/dL</span>
                 </div>
-                <div style="font-size: 12px; margin-top: 8px; color: var(--color-green); font-weight: bold;">
-                    📉 ลดลงเฉลี่ย <?= $avgFbsBefore > $avgFbsAfter ? round($avgFbsBefore - $avgFbsAfter, 1) : 0 ?> mg/dL
-                </div>
-            </div>
-
-            <div class="card-dark" style="border-left: 4px solid var(--color-green);">
-                <div style="color: var(--text-secondary); font-size: 13px; font-weight: bold; margin-bottom: 8px;">ควบคุมความดันสำเร็จ / ดีขึ้น</div>
-                <div class="stat-val" style="color: var(--color-green);">
-                    <?= $pctBpImprovement ?>%
-                    <span style="font-size: 14px; color: var(--text-secondary); font-weight: normal;">(<?= $improvedBpCount ?>/<?= $totalHtCases ?> ราย)</span>
-                </div>
-                <div style="font-size: 12px; margin-top: 8px; color: var(--text-muted);">
-                    มีระดับความดันลดลงจากเดิมหรือกลับสู่สภาวะปกติ
-                </div>
-            </div>
-
-            <div class="card-dark" style="border-left: 4px solid var(--color-green);">
-                <div style="color: var(--text-secondary); font-size: 13px; font-weight: bold; margin-bottom: 8px;">ควบคุมค่าน้ำตาลสำเร็จ / ดีขึ้น</div>
-                <div class="stat-val" style="color: var(--color-green);">
-                    <?= $pctFbsImprovement ?>%
-                    <span style="font-size: 14px; color: var(--text-secondary); font-weight: normal;">(<?= $improvedFbsCount ?>/<?= $totalDmCases ?> ราย)</span>
-                </div>
-                <div style="font-size: 12px; margin-top: 8px; color: var(--text-muted);">
-                    ระดับน้ำตาลในเลือดลดลงจากเดิมหรือควบคุมได้ดี
+                <div style="font-size: 12px; margin-top: 8px; font-weight: bold; color: <?= $fbsDiff <= 0 ? 'var(--color-green)' : '#f59e0b' ?>;">
+                    <?php if ($fbsDiff < 0): ?>
+                        📉 ลดลงเฉลี่ย <?= abs($fbsDiff) ?> mg/dL
+                    <?php elseif ($fbsDiff > 0): ?>
+                        📈 เพิ่มขึ้นเฉลี่ย <?= $fbsDiff ?> mg/dL
+                    <?php else: ?>
+                        ➖ ทรงตัวเฉลี่ย 0 mg/dL
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
+
+        <!-- 2. HT Outcomes Grid (3 Status Cards) -->
+        <div style="margin-bottom: 20px;">
+            <div style="font-size: 13.5px; font-weight: bold; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                <span>🩺 ผลลัพธ์กลุ่มติดตามความดันโลหิต (HT Outcomes)</span>
+                <span style="font-size: 12px; font-weight: normal; color: var(--text-muted);">(รวม <?= number_format($totalHtCases) ?> ราย)</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 16px;">
+                <!-- 1. BP Improved -->
+                <div class="card-dark" style="border-left: 4px solid var(--color-green); padding: 16px;">
+                    <div style="color: var(--text-secondary); font-size: 13px; font-weight: bold; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+                        <span>🟢 ควบคุมความดันสำเร็จ / ดีขึ้น</span>
+                    </div>
+                    <div class="stat-val" style="color: var(--color-green); font-size: 24px;">
+                        <?= $pctBpImprovement ?>%
+                        <span style="font-size: 13px; color: var(--text-secondary); font-weight: normal;">(<?= $improvedBpCount ?>/<?= $totalHtCases ?> ราย)</span>
+                    </div>
+                    <div style="font-size: 11.5px; margin-top: 6px; color: var(--text-muted); line-height: 1.4;">
+                        ความดันลดลงจากเดิม หรือกลับสู่สภาวะปกติ (&lt;140/90)
+                    </div>
+                </div>
+
+                <!-- 2. BP Monitoring -->
+                <div class="card-dark" style="border-left: 4px solid #f59e0b; background: rgba(245, 158, 11, 0.02); padding: 16px;">
+                    <div style="color: var(--text-secondary); font-size: 13px; font-weight: bold; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="color: #f59e0b;">🟡 ความดันทรงตัว / ต้องเฝ้าระวัง</span>
+                    </div>
+                    <div class="stat-val" style="color: #f59e0b; font-size: 24px;">
+                        <?= $pctBpMonitoring ?>%
+                        <span style="font-size: 13px; color: var(--text-secondary); font-weight: normal;">(<?= $monitoringBpCount ?>/<?= $totalHtCases ?> ราย)</span>
+                    </div>
+                    <div style="font-size: 11.5px; margin-top: 6px; color: var(--text-muted); line-height: 1.4;">
+                        ระดับความดันยังทรงตัว หรือปริ่มเกณฑ์เสี่ยง
+                    </div>
+                </div>
+
+                <!-- 3. BP Worsened -->
+                <div class="card-dark" style="border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.02); padding: 16px;">
+                    <div style="color: var(--text-secondary); font-size: 13px; font-weight: bold; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="color: #ef4444;">🔴 ความดันสูงขึ้น / แย่ลง</span>
+                    </div>
+                    <div class="stat-val" style="color: #ef4444; font-size: 24px;">
+                        <?= $pctBpWorsened ?>%
+                        <span style="font-size: 13px; color: var(--text-secondary); font-weight: normal;">(<?= $worsenedBpCount ?>/<?= $totalHtCases ?> ราย)</span>
+                    </div>
+                    <div style="font-size: 11.5px; margin-top: 6px; color: var(--text-muted); line-height: 1.4;">
+                        ระดับความดันเพิ่มขึ้น หรือยังเกิน 140/90 mmHg
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. DM Outcomes Grid (3 Status Cards) -->
+        <div style="margin-bottom: 25px;">
+            <div style="font-size: 13.5px; font-weight: bold; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                <span>🩸 ผลลัพธ์กลุ่มติดตามค่าน้ำตาลในเลือด (DM Outcomes)</span>
+                <span style="font-size: 12px; font-weight: normal; color: var(--text-muted);">(รวม <?= number_format($totalDmCases) ?> ราย)</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 16px;">
+                <!-- 1. FBS Improved -->
+                <div class="card-dark" style="border-left: 4px solid var(--color-green); padding: 16px;">
+                    <div style="color: var(--text-secondary); font-size: 13px; font-weight: bold; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+                        <span>🟢 ควบคุมค่าน้ำตาลสำเร็จ / ดีขึ้น</span>
+                    </div>
+                    <div class="stat-val" style="color: var(--color-green); font-size: 24px;">
+                        <?= $pctFbsImprovement ?>%
+                        <span style="font-size: 13px; color: var(--text-secondary); font-weight: normal;">(<?= $improvedFbsCount ?>/<?= $totalDmCases ?> ราย)</span>
+                    </div>
+                    <div style="font-size: 11.5px; margin-top: 6px; color: var(--text-muted); line-height: 1.4;">
+                        ระดับน้ำตาลลดลงจากเดิม หรือควบคุมได้ดี (&lt;126 mg/dL)
+                    </div>
+                </div>
+
+                <!-- 2. FBS Monitoring -->
+                <div class="card-dark" style="border-left: 4px solid #f59e0b; background: rgba(245, 158, 11, 0.02); padding: 16px;">
+                    <div style="color: var(--text-secondary); font-size: 13px; font-weight: bold; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="color: #f59e0b;">🟡 ค่าน้ำตาลทรงตัว / ต้องเฝ้าระวัง</span>
+                    </div>
+                    <div class="stat-val" style="color: #f59e0b; font-size: 24px;">
+                        <?= $pctFbsMonitoring ?>%
+                        <span style="font-size: 13px; color: var(--text-secondary); font-weight: normal;">(<?= $monitoringFbsCount ?>/<?= $totalDmCases ?> ราย)</span>
+                    </div>
+                    <div style="font-size: 11.5px; margin-top: 6px; color: var(--text-muted); line-height: 1.4;">
+                        ระดับน้ำตาลยังทรงตัว หรืออยู่ในช่วงเสี่ยง (100-125 mg/dL)
+                    </div>
+                </div>
+
+                <!-- 3. FBS Worsened -->
+                <div class="card-dark" style="border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.02); padding: 16px;">
+                    <div style="color: var(--text-secondary); font-size: 13px; font-weight: bold; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="color: #ef4444;">🔴 ค่าน้ำตาลสูงขึ้น / แย่ลง</span>
+                    </div>
+                    <div class="stat-val" style="color: #ef4444; font-size: 24px;">
+                        <?= $pctFbsWorsened ?>%
+                        <span style="font-size: 13px; color: var(--text-secondary); font-weight: normal;">(<?= $worsenedFbsCount ?>/<?= $totalDmCases ?> ราย)</span>
+                    </div>
+                    <div style="font-size: 11.5px; margin-top: 6px; color: var(--text-muted); line-height: 1.4;">
+                        ระดับน้ำตาลเพิ่มขึ้น หรือยังเกิน 126 mg/dL
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <?php if (!empty($monitoringPatients)): ?>
+            <!-- Monitoring Patients Modal -->
+            <div id="monitoringModal" style="display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.65); backdrop-filter: blur(5px); align-items: center; justify-content: center; padding: 20px;">
+                <div class="card-dark" style="max-width: 960px; width: 100%; max-height: 85vh; display: flex; flex-direction: column; padding: 24px; border: 1px solid rgba(245, 158, 11, 0.3); box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+                        <h3 style="margin: 0; color: #f59e0b; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                            <span>📋 รายชื่อกลุ่มเป้าหมายที่ต้องเฝ้าระวัง / ค่าสุขภาพยังทรงตัว (<?= count($monitoringPatients) ?> ราย)</span>
+                        </h3>
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('monitoringModal').style.display='none';" style="padding: 4px 10px; font-size: 13px; cursor: pointer;">✕ ปิด</button>
+                    </div>
+                    <div style="overflow-y: auto; flex: 1;" class="table-responsive">
+                        <table class="admin-table" style="font-size: 13px;">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px; text-align: center;">ลำดับ</th>
+                                    <th>ชื่อ-สกุล</th>
+                                    <th>ที่อยู่ / หน่วยบริการ</th>
+                                    <th>ความดัน (รอบ 1 → ล่าสุด)</th>
+                                    <th>น้ำตาล (รอบ 1 → ล่าสุด)</th>
+                                    <th>สถานะการติดตาม</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($monitoringPatients as $idx => $mp): ?>
+                                    <tr>
+                                        <td style="text-align: center; font-weight: bold;"><?= $idx + 1 ?></td>
+                                        <td style="font-weight: bold; color: var(--text-primary);"><?= htmlspecialchars(($mp['first_name'] ?? '') . ' ' . ($mp['last_name'] ?? '')) ?></td>
+                                        <td><?= htmlspecialchars($hc_names[$mp['hoscode'] ?? ''] ?? ($mp['hoscode'] ?? '-')) ?> (หมู่ <?= htmlspecialchars($mp['moo'] ?? '-') ?>)</td>
+                                        <td>
+                                            <?php if (!empty($mp['sbp_before']) && !empty($mp['sbp_after'])): ?>
+                                                <span style="color: var(--text-muted);"><?= $mp['sbp_before'] ?>/<?= $mp['dbp_before'] ?? '-' ?></span>
+                                                → <strong style="color: #f59e0b;"><?= $mp['sbp_after'] ?>/<?= $mp['dbp_after'] ?? '-' ?></strong> mmHg
+                                            <?php else: ?>
+                                                -
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if (!empty($mp['fbs_before']) && !empty($mp['fbs_after'])): ?>
+                                                <span style="color: var(--text-muted);"><?= $mp['fbs_before'] ?></span>
+                                                → <strong style="color: #f59e0b;"><?= $mp['fbs_after'] ?></strong> mg/dL
+                                            <?php else: ?>
+                                                -
+                                            <?php endif; ?>
+                                        </td>
+                                        <td style="color: #f59e0b; font-size: 12px;"><?= htmlspecialchars($mp['reasons'] ?? '-') ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!empty($worsenedPatients)): ?>
+            <!-- Worsened Patients Modal -->
+            <div id="worsenedModal" style="display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.65); backdrop-filter: blur(5px); align-items: center; justify-content: center; padding: 20px;">
+                <div class="card-dark" style="max-width: 960px; width: 100%; max-height: 85vh; display: flex; flex-direction: column; padding: 24px; border: 1px solid rgba(239, 68, 68, 0.3); box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+                        <h3 style="margin: 0; color: #ef4444; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                            <span>⚠️ รายชื่อกลุ่มเป้าหมายที่ค่าสุขภาพสูงขึ้น / แย่ลง (<?= count($worsenedPatients) ?> ราย)</span>
+                        </h3>
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('worsenedModal').style.display='none';" style="padding: 4px 10px; font-size: 13px; cursor: pointer;">✕ ปิด</button>
+                    </div>
+                    <div style="overflow-y: auto; flex: 1;" class="table-responsive">
+                        <table class="admin-table" style="font-size: 13px;">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px; text-align: center;">ลำดับ</th>
+                                    <th>ชื่อ-สกุล</th>
+                                    <th>ที่อยู่ / หน่วยบริการ</th>
+                                    <th>ความดัน (รอบ 1 → ล่าสุด)</th>
+                                    <th>น้ำตาล (รอบ 1 → ล่าสุด)</th>
+                                    <th>ประเด็นที่ต้องเฝ้าระวังพิเศษ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($worsenedPatients as $idx => $wp): ?>
+                                    <tr>
+                                        <td style="text-align: center; font-weight: bold;"><?= $idx + 1 ?></td>
+                                        <td style="font-weight: bold; color: var(--text-primary);"><?= htmlspecialchars(($wp['first_name'] ?? '') . ' ' . ($wp['last_name'] ?? '')) ?></td>
+                                        <td><?= htmlspecialchars($hc_names[$wp['hoscode'] ?? ''] ?? ($wp['hoscode'] ?? '-')) ?> (หมู่ <?= htmlspecialchars($wp['moo'] ?? '-') ?>)</td>
+                                        <td>
+                                            <?php if (!empty($wp['sbp_before']) && !empty($wp['sbp_after'])): ?>
+                                                <span style="color: var(--text-muted);"><?= $wp['sbp_before'] ?>/<?= $wp['dbp_before'] ?? '-' ?></span>
+                                                → <strong style="color: <?= ($wp['sbp_after'] > $wp['sbp_before']) ? '#ef4444' : 'inherit' ?>;"><?= $wp['sbp_after'] ?>/<?= $wp['dbp_after'] ?? '-' ?></strong> mmHg
+                                            <?php else: ?>
+                                                -
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if (!empty($wp['fbs_before']) && !empty($wp['fbs_after'])): ?>
+                                                <span style="color: var(--text-muted);"><?= $wp['fbs_before'] ?></span>
+                                                → <strong style="color: <?= ($wp['fbs_after'] > $wp['fbs_before']) ? '#ef4444' : 'inherit' ?>;"><?= $wp['fbs_after'] ?></strong> mg/dL
+                                            <?php else: ?>
+                                                -
+                                            <?php endif; ?>
+                                        </td>
+                                        <td style="color: #ef4444; font-size: 12px; font-weight: 500;"><?= htmlspecialchars($wp['reasons'] ?? '-') ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <!-- Dynamic Clinical Guidance based on overall DPAC Outcomes -->
         <div style="background: rgba(16, 185, 129, 0.05); padding: 18px; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.2); font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 25px;">
@@ -1844,6 +2108,10 @@ try {
 
             if ($bp_diff > 0 || $fbs_diff > 0) {
                 echo " โดยภาพรวมประชากรกลุ่มเสี่ยงมีค่าความดันโลหิตบนลดลงเฉลี่ย " . number_format(max(0, $bp_diff), 1) . " mmHg และน้ำตาลลดลงเฉลี่ย " . number_format(max(0, $fbs_diff), 1) . " mg/dL แสดงถึงประสิทธิภาพการใส่ใจควบคุมสุขภาพส่วนบุคคลที่พัฒนาขึ้นอย่างเห็นได้ชัด";
+            }
+
+            if (!empty($worsenedPatients)) {
+                echo " <span style='color:#ef4444; font-weight:600;'>พบกลุ่มที่ค่าสุขภาพแย่ลงรวม " . count($worsenedPatients) . " ราย แนะนำให้ดึงเข้ารับการปรับเปลี่ยนพฤติกรรมเข้มข้นหรือนัดตรวจซ้ำที่ รพ.สต.</span>";
             }
             ?>
         </div>

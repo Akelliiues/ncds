@@ -712,6 +712,16 @@ try {
     // Fail silently
 }
 
+// Auto-migration: Add vhv_phone column to vhv_users if it doesn't exist
+try {
+    $checkPhone = $pdo->query("SHOW COLUMNS FROM `vhv_users` LIKE 'vhv_phone'");
+    if ($checkPhone->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `vhv_users` ADD COLUMN `vhv_phone` VARCHAR(30) DEFAULT NULL AFTER `vhv_name`");
+    }
+} catch (\PDOException $e) {
+    // Fail silently
+}
+
 // Auto-migration: Update vhv_rewards table columns for DPAC followup rewards
 try {
     // Make screening_id nullable in vhv_rewards
@@ -892,8 +902,52 @@ try {
     // Auto-create health_units table if it doesn't exist
     $pdo->exec("CREATE TABLE IF NOT EXISTS `health_units` (
         `hoscode` VARCHAR(10) PRIMARY KEY,
-        `hosname` VARCHAR(255) NOT NULL
+        `hosname` VARCHAR(255) NOT NULL,
+        `sub_district_code` VARCHAR(10) DEFAULT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+    // Ensure sub_district_code column exists in existing health_units table
+    try {
+        $pdo->exec("ALTER TABLE `health_units` ADD COLUMN `sub_district_code` VARCHAR(10) DEFAULT NULL AFTER `hosname`");
+    } catch (\Throwable $e) {}
+
+    // Auto-populate default sub_district_code for health units if empty & migrate legacy codes
+    try {
+        $defaultUnitTambon = [
+            '10957' => '342001', // โรงพยาบาลตาลสุม -> ตำบลตาลสุม
+            '03751' => '342001', // รพ.สต.ดอนพันชาด -> ตำบลตาลสุม
+            '03752' => '342002', // รพ.สต.บ้านสำโรง -> ตำบลสำโรง
+            '03753' => '342003', // รพ.สต.บ้านจิกเทิง -> ตำบลจิกเทิง
+            '03754' => '342004', // รพ.สต.บ้านหนองกุงใหญ่ -> ตำบลหนองกุง
+            '03755' => '342005', // รพ.สต.นาคาย -> ตำบลนาคาย
+            '03756' => '342005', // รพ.สต.คำหนามแท่ง -> ตำบลนาคาย
+            '03757' => '342006', // รพ.สต.คำหว้า -> ตำบลคำหว้า
+        ];
+
+        // Safe Migration: Update any legacy 3418xx codes to official 3420xx codes
+        $subFixes = [
+            '341801' => '342001',
+            '341802' => '342002',
+            '341803' => '342003',
+            '341804' => '342004',
+            '341805' => '342005',
+            '341806' => '342006'
+        ];
+        foreach ($subFixes as $oldCode => $newCode) {
+            $pdo->exec("UPDATE `sub_districts` SET `sub_district_code` = '{$newCode}' WHERE `sub_district_code` = '{$oldCode}'");
+            $pdo->exec("UPDATE `health_units` SET `sub_district_code` = '{$newCode}' WHERE `sub_district_code` = '{$oldCode}'");
+            $pdo->exec("UPDATE `villages` SET `sub_district_code` = '{$newCode}', `vhid_code` = REPLACE(`vhid_code`, '{$oldCode}', '{$newCode}') WHERE `sub_district_code` = '{$oldCode}'");
+            $pdo->exec("UPDATE `target_population` SET `sub_district_code` = '{$newCode}', `vhid_code` = REPLACE(`vhid_code`, '{$oldCode}', '{$newCode}') WHERE `sub_district_code` = '{$oldCode}'");
+        }
+
+        $checkNull = $pdo->query("SELECT COUNT(*) FROM `health_units` WHERE sub_district_code IS NULL OR sub_district_code = ''")->fetchColumn();
+        if ($checkNull > 0) {
+            $upStmt = $pdo->prepare("UPDATE `health_units` SET `sub_district_code` = ? WHERE `hoscode` = ? AND (`sub_district_code` IS NULL OR `sub_district_code` = '')");
+            foreach ($defaultUnitTambon as $hCode => $sdCode) {
+                $upStmt->execute([$sdCode, $hCode]);
+            }
+        }
+    } catch (\Throwable $e) {}
 
     // Auto-create sub_districts table if it doesn't exist
     $pdo->exec("CREATE TABLE IF NOT EXISTS `sub_districts` (
@@ -971,12 +1025,12 @@ try {
         $subDistrictCount = $pdo->query("SELECT COUNT(*) FROM `sub_districts`")->fetchColumn();
         if ($subDistrictCount == 0) {
             $defaultSubs = [
-                '341801' => 'ตาลสุม',
-                '341802' => 'สำโรง',
-                '341803' => 'จิกเทิง',
-                '341804' => 'หนองกุง',
-                '341805' => 'นาคาย',
-                '341806' => 'คำหว้า'
+                '342001' => 'ตาลสุม',
+                '342002' => 'สำโรง',
+                '342003' => 'จิกเทิง',
+                '342004' => 'หนองกุง',
+                '342005' => 'นาคาย',
+                '342006' => 'คำหว้า'
             ];
             $stmt = $pdo->prepare("INSERT INTO `sub_districts` (sub_district_code, sub_district_name) VALUES (?, ?)");
             foreach ($defaultSubs as $code => $name) {
@@ -988,7 +1042,7 @@ try {
         if ($villageCount == 0) {
             $seed_hoscode_villages = [
                 '10957' => [
-                    'tambon' => '341801',
+                    'tambon' => '342001',
                     'villages' => [
                         1 => 'บ้านม่วงโคน', 2 => 'บ้านดอนรังกา', 3 => 'บ้านนาห้วยแคน (เขตเทศบาล)',
                         5 => 'บ้านนามน (เขตเทศบาล)', 10 => 'บ้านนามน (เขตเทศบาล)', 11 => 'บ้านตาลสุม (เขตเทศบาล)',
@@ -996,14 +1050,14 @@ try {
                     ]
                 ],
                 '03751' => [
-                    'tambon' => '341801',
+                    'tambon' => '342001',
                     'villages' => [
                         4 => 'บ้านดอนพันชาด', 6 => 'บ้านดอนตะลี', 7 => 'บ้านปากห้วย',
                         8 => 'บ้านโนนค้อ', 9 => 'บ้านแก่งกบ', 14 => 'บ้านโนนสวรรค์', 15 => 'บ้านทุ่งเจริญ'
                     ]
                 ],
                 '03752' => [
-                    'tambon' => '341802',
+                    'tambon' => '342002',
                     'villages' => [
                         1 => 'บ้านสำโรงใหญ่', 2 => 'บ้านสำโรงกลาง', 3 => 'บ้านนาโพธิ์',
                         4 => 'บ้านสำโรงใต้', 5 => 'บ้านนาแพง', 6 => 'บ้านหนองโน',
@@ -1011,7 +1065,7 @@ try {
                     ]
                 ],
                 '03753' => [
-                    'tambon' => '341803',
+                    'tambon' => '342003',
                     'villages' => [
                         1 => 'บ้านจิกเทิง', 2 => 'บ้านจิกลุ่ม', 3 => 'บ้านเชียงแก้ว',
                         4 => 'บ้านเชียงแก้ว', 5 => 'บ้านดอนโด่ (บ้านดอนโต)', 6 => 'บ้านดอนยูง',
@@ -1019,7 +1073,7 @@ try {
                     ]
                 ],
                 '03754' => [
-                    'tambon' => '341804',
+                    'tambon' => '342004',
                     'villages' => [
                         1 => 'บ้านหนองกุงใหญ่', 2 => 'บ้านหนองกุงน้อย', 3 => 'บ้านคำแคน',
                         4 => 'บ้านสร้างแสง', 5 => 'บ้านคำเตยใต้', 6 => 'บ้านสร้างหว้า',
@@ -1027,21 +1081,21 @@ try {
                     ]
                 ],
                 '03755' => [
-                    'tambon' => '341805',
+                    'tambon' => '342005',
                     'villages' => [
                         1 => 'บ้านนาคาย', 2 => 'บ้านโนนจิก', 3 => 'บ้านหนองเป็ด',
                         4 => 'บ้านโนนยาง', 5 => 'บ้านดอนขวาง', 6 => 'บ้านดอนหวาย'
                     ]
                 ],
                 '03756' => [
-                    'tambon' => '341805',
+                    'tambon' => '342005',
                     'villages' => [
                         7 => 'บ้านโคกคล้าย', 8 => 'บ้านคำหนามแท่ง', 9 => 'บ้านคำผักหนอก',
                         10 => 'บ้านคำฮี', 11 => 'บ้านห่องแดง', 12 => 'บ้านโนนสำราญ', 13 => 'บ้านโนนเจริญ'
                     ]
                 ],
                 '03757' => [
-                    'tambon' => '341806',
+                    'tambon' => '342006',
                     'villages' => [
                         1 => 'บ้านคำหว้า', 2 => 'บ้านคำหว้า', 3 => 'บ้านห้วยดู่',
                         4 => 'บ้านนาทมเหนือ', 5 => 'บ้านไฮหย่อง', 6 => 'บ้านนาทมใต้'
@@ -1308,14 +1362,14 @@ if (!function_exists('get_village_only_name')) {
         if (empty($tambon) || strlen($tambon) < 6) {
             $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
             $hoscode_tambons = [
-                '10957' => '341801',
-                '03751' => '341801',
-                '03752' => '341802',
-                '03753' => '341803',
-                '03754' => '341804',
-                '03755' => '341805',
-                '03756' => '341805',
-                '03757' => '341806'
+                '10957' => '342001',
+                '03751' => '342001',
+                '03752' => '342002',
+                '03753' => '342003',
+                '03754' => '342004',
+                '03755' => '342005',
+                '03756' => '342005',
+                '03757' => '342006'
             ];
             if ($admin_hoscode && isset($hoscode_tambons[$admin_hoscode])) {
                 $tambon = $hoscode_tambons[$admin_hoscode];
@@ -1324,7 +1378,7 @@ if (!function_exists('get_village_only_name')) {
         $moo = intval($moo);
 
         $villages = [
-            '341801' => [
+            '342001' => [
                 1 => 'บ้านม่วงโคน',
                 2 => 'บ้านดอนรังกา',
                 3 => 'บ้านนาห้วยแคน',
@@ -1341,7 +1395,7 @@ if (!function_exists('get_village_only_name')) {
                 14 => 'บ้านโนนสวรรค์',
                 15 => 'บ้านทุ่งเจริญ'
             ],
-            '341802' => [
+            '342002' => [
                 1 => 'บ้านสำโรงใหญ่',
                 2 => 'บ้านสำโรงกลาง',
                 3 => 'บ้านนาโพธิ์',
@@ -1351,7 +1405,7 @@ if (!function_exists('get_village_only_name')) {
                 7 => 'บ้านหนองสะเดา',
                 8 => 'บ้านทุ่งเจริญ'
             ],
-            '341803' => [
+            '342003' => [
                 1 => 'บ้านจิกเทิง',
                 2 => 'บ้านจิกลุ่ม',
                 3 => 'บ้านเชียงแก้ว',
@@ -1362,7 +1416,7 @@ if (!function_exists('get_village_only_name')) {
                 8 => 'บ้านดอนแป้นลม',
                 9 => 'บ้านสร้างคำ'
             ],
-            '341804' => [
+            '342004' => [
                 1 => 'บ้านหนองกุงใหญ่',
                 2 => 'บ้านหนองกุงน้อย',
                 3 => 'บ้านคำแคน',
@@ -1372,7 +1426,7 @@ if (!function_exists('get_village_only_name')) {
                 7 => 'บ้านคำเตยเหนือ',
                 8 => 'บ้านสร้างหว้าพัฒนา'
             ],
-            '341805' => [
+            '342005' => [
                 1 => 'บ้านนาคาย',
                 2 => 'บ้านโนนจิก',
                 3 => 'บ้านหนองเป็ด',
@@ -1387,7 +1441,7 @@ if (!function_exists('get_village_only_name')) {
                 12 => 'บ้านโนนสำราญ',
                 13 => 'บ้านโนนเจริญ'
             ],
-            '341806' => [
+            '342006' => [
                 1 => 'บ้านคำหว้า',
                 2 => 'บ้านคำหว้า',
                 3 => 'บ้านห้วยดู่',
@@ -1416,7 +1470,7 @@ if (!function_exists('get_village_display_name')) {
 // Dynamic village-hospital mapping loader
 $hoscode_villages = [
     '10957' => [
-        'tambon' => '341801',
+        'tambon' => '342001',
         'villages' => [
             1 => 'บ้านม่วงโคน',
             2 => 'บ้านดอนรังกา',
@@ -1429,7 +1483,7 @@ $hoscode_villages = [
         ]
     ],
     '03751' => [
-        'tambon' => '341801',
+        'tambon' => '342001',
         'villages' => [
             4 => 'บ้านดอนพันชาด',
             6 => 'บ้านดอนตะลี',
@@ -1441,7 +1495,7 @@ $hoscode_villages = [
         ]
     ],
     '03752' => [
-        'tambon' => '341802',
+        'tambon' => '342002',
         'villages' => [
             1 => 'บ้านสำโรงใหญ่',
             2 => 'บ้านสำโรงกลาง',
@@ -1454,7 +1508,7 @@ $hoscode_villages = [
         ]
     ],
     '03753' => [
-        'tambon' => '341803',
+        'tambon' => '342003',
         'villages' => [
             1 => 'บ้านจิกเทิง',
             2 => 'บ้านจิกลุ่ม',
@@ -1468,7 +1522,7 @@ $hoscode_villages = [
         ]
     ],
     '03754' => [
-        'tambon' => '341804',
+        'tambon' => '342004',
         'villages' => [
             1 => 'บ้านหนองกุงใหญ่',
             2 => 'บ้านหนองกุงน้อย',
@@ -1481,7 +1535,7 @@ $hoscode_villages = [
         ]
     ],
     '03755' => [
-        'tambon' => '341805',
+        'tambon' => '342005',
         'villages' => [
             1 => 'บ้านนาคาย',
             2 => 'บ้านโนนจิก',
@@ -1492,7 +1546,7 @@ $hoscode_villages = [
         ]
     ],
     '03756' => [
-        'tambon' => '341805',
+        'tambon' => '342005',
         'villages' => [
             7 => 'บ้านโคกคล้าย',
             8 => 'บ้านคำหนามแท่ง',
@@ -1504,7 +1558,7 @@ $hoscode_villages = [
         ]
     ],
     '03757' => [
-        'tambon' => '341806',
+        'tambon' => '342006',
         'villages' => [
             1 => 'บ้านคำหว้า',
             2 => 'บ้านคำหว้า',

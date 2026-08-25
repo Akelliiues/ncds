@@ -642,7 +642,7 @@ if (isset($_GET['action'])) {
                 END as moo,
                 CASE 
                     WHEN LENGTH(h.check_vhid) = 8 THEN SUBSTRING(h.check_vhid, 1, 6)
-                    ELSE '341801'
+                    ELSE '342001'
                 END as sub_district_code,
                 h.check_vhid as vhid_code,
                 TIMESTAMPDIFF(YEAR, h.birth, CURDATE()) as age,
@@ -808,8 +808,8 @@ if (isset($_GET['action'])) {
                         $tambon = substr($vhid_code, 0, 6);
                         $moo = intval(substr($vhid_code, 6, 2));
                     } else {
-                        $vhid_code = '34180101';
-                        $tambon = '341801';
+                        $vhid_code = '34200101';
+                        $tambon = '342001';
                         $moo = 1;
                     }
                 }
@@ -885,8 +885,8 @@ if (isset($_GET['action'])) {
                             $tambon = substr($vhid_code, 0, 6);
                             $moo = intval(substr($vhid_code, 6, 2));
                         } else {
-                            $vhid_code = '34180101';
-                            $tambon = '341801';
+                            $vhid_code = '34200101';
+                            $tambon = '342001';
                             $moo = 1;
                         }
                     }

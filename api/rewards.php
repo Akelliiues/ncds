@@ -509,9 +509,17 @@ try {
 
         $whereSql = !empty($where) ? "WHERE " . implode(" AND ", $where) : "";
 
+        $phoneCol = "'' AS vhv_phone";
+        try {
+            $chkCol = $pdo->query("SHOW COLUMNS FROM `vhv_users` LIKE 'vhv_phone'");
+            if ($chkCol && $chkCol->rowCount() > 0) {
+                $phoneCol = "v.vhv_phone";
+            }
+        } catch (\Throwable $e) {}
+
         $stmt = $pdo->prepare("
             SELECT r.*, i.title as item_title, i.category, i.icon_emoji,
-                   v.vhv_name, v.vhv_phone, v.vhv_moo, v.hoscode
+                   v.vhv_name, {$phoneCol}, v.vhv_moo, v.hoscode
             FROM `reward_redemptions` r
             JOIN `reward_items` i ON r.item_id = i.item_id
             JOIN `vhv_users` v ON r.vhv_id = v.vhv_id

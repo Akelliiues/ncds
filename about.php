@@ -992,6 +992,13 @@ function get_time_diff_display($timestamp) {
                 </div>
             </div>
 
+            <!-- Public Open Data Link -->
+            <div style="margin-top: 14px; margin-bottom: 10px;">
+                <a href="public_dashboard.php" style="display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, rgba(2, 132, 199, 0.1), rgba(14, 165, 233, 0.1)); border: 1.5px solid rgba(2, 132, 199, 0.3); padding: 12px; border-radius: 16px; color: var(--color-accent); font-weight: 800; font-size: 13.5px; text-decoration: none; transition: all 0.2s ease;">
+                    <span>📊 เข้าสู่ศูนย์ข้อมูลสถิติสุขภาพ NCDs (Open Data Cockpit)</span>
+                </a>
+            </div>
+
             <!-- Back Button -->
             <?php
             $backUrl = 'index.php';
@@ -1047,7 +1054,7 @@ function get_time_diff_display($timestamp) {
             }
         });
     </script>
-
+    <script src="assets/js/app.js"></script>
 </body>
 
 </html>

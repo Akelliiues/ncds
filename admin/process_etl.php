@@ -397,8 +397,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_etl'])) {
                 $subDistrictCode = substr($checkVhid, 0, 6);
             } else {
                 $moo = 1;
-                $subDistrictCode = '341801';
-                $checkVhid = '34180101';
+                $subDistrictCode = '342001';
+                $checkVhid = '34200101';
             }
             
             $stmtInsertPerson->execute([

@@ -502,3 +502,128 @@ window.getDeterministicPrivacyJitter = function(lat, lng, seedStr) {
         lng: lng + (ry * 0.0009)
     };
 };
+
+// ==========================================================================
+// Universal NCDs Page Preloader & Loading Transition Engine
+// ==========================================================================
+(function() {
+    // 1. Global showPageLoading
+    window.showPageLoading = function(title, subtitle, icon, targetUrl) {
+        let overlay = document.getElementById('page-loading-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'page-loading-overlay';
+            overlay.className = 'ncd-page-overlay';
+            overlay.innerHTML = `
+                <div class="loading-modal-card">
+                    <div class="loading-spinner-ring">
+                        <span class="loading-pulse-icon" id="loading-icon">📊</span>
+                    </div>
+                    <div>
+                        <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;" id="loading-title">
+                            ระบบ NCDs Portal
+                        </div>
+                        <div style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;" id="loading-subtitle">
+                            กำลังประมวลผลข้อมูล...
+                        </div>
+                    </div>
+                    <div class="loading-progress-track">
+                        <div class="loading-progress-bar"></div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
+        const titleEl = overlay.querySelector('#loading-title');
+        const subEl = overlay.querySelector('#loading-subtitle');
+        const iconEl = overlay.querySelector('#loading-icon');
+
+        if (title && titleEl) titleEl.innerText = title;
+        if (subtitle && subEl) subEl.innerText = subtitle;
+        if (icon && iconEl) iconEl.innerText = icon;
+
+        overlay.style.display = 'flex';
+        requestAnimationFrame(() => {
+            overlay.classList.add('active');
+        });
+
+        if (targetUrl) {
+            setTimeout(() => {
+                window.location.href = targetUrl;
+            }, 60);
+        }
+    };
+
+    // 2. Global hidePageLoading
+    window.hidePageLoading = function() {
+        const overlay = document.getElementById('page-loading-overlay');
+        if (overlay) {
+            overlay.classList.remove('active');
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 250);
+        }
+        const preloaders = document.querySelectorAll('#admin-page-preloader, #dashboard-preloader, #ncd-global-preloader');
+        preloaders.forEach(preloader => {
+            preloader.style.opacity = '0';
+            preloader.style.visibility = 'hidden';
+            setTimeout(() => {
+                if (preloader.parentNode) preloader.parentNode.removeChild(preloader);
+            }, 350);
+        });
+    };
+
+    // 3. Dismiss loader on load / pageshow (BFCache back navigation) / DOMContentLoaded
+    window.addEventListener('load', () => {
+        window.hidePageLoading();
+    });
+
+    window.addEventListener('pageshow', (e) => {
+        window.hidePageLoading();
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Fast dismiss if page is already ready
+        setTimeout(window.hidePageLoading, 80);
+    });
+
+    // 4. Automatic Form Submission Interception
+    document.addEventListener('submit', (e) => {
+        const form = e.target;
+        if (form.getAttribute('data-no-loader') || form.getAttribute('target') === '_blank') {
+            return;
+        }
+        const submitBtn = form.querySelector('[type="submit"]') || form.querySelector('button:not([type="button"])');
+        let title = 'กำลังบันทึกข้อมูล';
+        let subtitle = 'ระบบกำลังประมวลผล กรุณารอสักครู่...';
+        let icon = '💾';
+
+        const action = form.action || '';
+        if (action.includes('process_etl.php') || action.includes('import_hdc.php')) {
+            title = 'กำลังประมวลผล ETL นำเข้าข้อมูล';
+            subtitle = 'กำลังจัดทำดัชนีและตรวจสอบความถูกต้อง...';
+            icon = '⚙️';
+        } else if (action.includes('screening') || action.includes('save_screening') || action.includes('dpac')) {
+            title = 'กำลังบันทึกผลการคัดกรอง';
+            subtitle = 'กำลังคำนวณ CV Risk Score และความเสี่ยง...';
+            icon = '🩺';
+        } else if (action.includes('rewards')) {
+            title = 'กำลังบันทึกข้อมูลของรางวัล';
+            subtitle = 'กำลังอัปเดตแคตตาล็อกและคะแนนสะสม...';
+            icon = '🎁';
+        } else if (submitBtn && submitBtn.innerText) {
+            const txt = submitBtn.innerText.trim();
+            if (txt.includes('ค้นหา') || txt.includes('กรอง')) {
+                title = 'กำลังค้นหาข้อมูล';
+                subtitle = 'กำลังประมวลผลข้อมูลตามเงื่อนไข...';
+                icon = '🔍';
+            } else if (txt.includes('เข้าสู่ระบบ') || txt.includes('ล็อกอิน')) {
+                title = 'กำลังเข้าสู่ระบบ';
+                subtitle = 'กำลังตรวจสอบสิทธิ์การใช้งาน...';
+                icon = '🔐';
+            }
+        }
+        window.showPageLoading(title, subtitle, icon);
+    });
+})();

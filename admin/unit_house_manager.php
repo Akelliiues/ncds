@@ -39,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if ($action === 'add_unit') {
             $hoscode = trim($_POST['hoscode'] ?? '');
             $hosname = trim($_POST['hosname'] ?? '');
+            $sub_district_code = trim($_POST['sub_district_code'] ?? '') ?: null;
             if (empty($hoscode) || empty($hosname)) {
                 throw new Exception("กรุณากรอกข้อมูลให้ครบถ้วน");
             }
@@ -47,19 +48,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if ($stmt->fetch()) {
                 throw new Exception("รหัสหน่วยบริการนี้มีอยู่แล้วในระบบ");
             }
-            $stmt = $pdo->prepare("INSERT INTO health_units (hoscode, hosname) VALUES (?, ?)");
-            $stmt->execute([$hoscode, $hosname]);
+            $stmt = $pdo->prepare("INSERT INTO health_units (hoscode, hosname, sub_district_code) VALUES (?, ?, ?)");
+            $stmt->execute([$hoscode, $hosname, $sub_district_code]);
             $redirect_url .= '&status=success&msg=' . urlencode("เพิ่มหน่วยบริการ '$hosname' สำเร็จ");
             header("Location: $redirect_url");
             exit();
         } elseif ($action === 'edit_unit') {
             $hoscode = trim($_POST['hoscode'] ?? '');
             $hosname = trim($_POST['hosname'] ?? '');
+            $sub_district_code = trim($_POST['sub_district_code'] ?? '') ?: null;
             if (empty($hoscode) || empty($hosname)) {
                 throw new Exception("กรุณากรอกข้อมูลให้ครบถ้วน");
             }
-            $stmt = $pdo->prepare("UPDATE health_units SET hosname = ? WHERE hoscode = ?");
-            $stmt->execute([$hosname, $hoscode]);
+            $stmt = $pdo->prepare("UPDATE health_units SET hosname = ?, sub_district_code = ? WHERE hoscode = ?");
+            $stmt->execute([$hosname, $sub_district_code, $hoscode]);
             $redirect_url .= '&status=success&msg=' . urlencode("แก้ไขหน่วยบริการเรียบร้อยแล้ว");
             header("Location: $redirect_url");
             exit();
@@ -314,7 +316,12 @@ if (isset($_GET['status'])) {
 }
 
 // Fetch lists
-$health_units = $pdo->query("SELECT * FROM health_units ORDER BY hoscode ASC")->fetchAll();
+$health_units = $pdo->query("
+    SELECT h.*, s.sub_district_name 
+    FROM health_units h 
+    LEFT JOIN sub_districts s ON h.sub_district_code = s.sub_district_code 
+    ORDER BY h.hoscode ASC
+")->fetchAll();
 $sub_districts = $pdo->query("SELECT * FROM sub_districts ORDER BY sub_district_code ASC")->fetchAll();
 
 // Fetch Villages with joins
@@ -677,8 +684,9 @@ $houses_list = $house_stmt->fetchAll();
                     <table class="admin-table">
                         <thead>
                             <tr>
-                                <th style="width: 200px;">รหัส HOSCODE</th>
+                                <th style="width: 160px;">รหัส HOSCODE</th>
                                 <th>ชื่อหน่วยบริการ</th>
+                                <th>ตำบลที่ตั้ง</th>
                                 <th style="width: 120px; text-align: center;">จัดการ</th>
                             </tr>
                         </thead>
@@ -687,9 +695,19 @@ $houses_list = $house_stmt->fetchAll();
                                 <tr>
                                     <td><strong style="color: var(--text-primary);"><?= htmlspecialchars($hu['hoscode']) ?></strong></td>
                                     <td><?= htmlspecialchars($hu['hosname']) ?></td>
+                                    <td>
+                                        <?php if (!empty($hu['sub_district_code']) && !empty($hu['sub_district_name'])): ?>
+                                            <span style="background: rgba(14, 165, 233, 0.12); color: #0ea5e9; font-weight: 700; padding: 4px 10px; border-radius: 8px; font-size: 12.5px; display: inline-flex; align-items: center; gap: 4px;">
+                                                <span>🗺️ ตำบล<?= htmlspecialchars($hu['sub_district_name']) ?></span>
+                                                <span style="opacity: 0.7; font-size: 11px;">(<?= htmlspecialchars($hu['sub_district_code']) ?>)</span>
+                                            </span>
+                                        <?php else: ?>
+                                            <span style="color: var(--text-muted); font-size: 12px;">- ยังไม่ได้ระบุตำบล -</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td style="text-align: center;">
                                         <div style="display: flex; gap: 8px; justify-content: center;">
-                                            <button onclick="openEditUnitModal('<?= htmlspecialchars($hu['hoscode']) ?>', '<?= htmlspecialchars($hu['hosname']) ?>')" class="action-icon-btn edit" title="แก้ไข">
+                                            <button onclick="openEditUnitModal('<?= htmlspecialchars($hu['hoscode']) ?>', '<?= htmlspecialchars(addslashes($hu['hosname'])) ?>', '<?= htmlspecialchars($hu['sub_district_code'] ?? '') ?>')" class="action-icon-btn edit" title="แก้ไข">
                                                 ✏️
                                             </button>
                                             <form method="POST" onsubmit="return confirm('ยืนยันที่จะลบหน่วยบริการนี้?')" style="display: inline;">
@@ -964,6 +982,17 @@ $houses_list = $house_stmt->fetchAll();
                         <label>ชื่อหน่วยบริการ</label>
                         <input type="text" name="hosname" class="form-input-text" placeholder="ระบุชื่อหน่วยบริการ/รพ.สต..." required style="box-shadow:var(--neumorph-inset);">
                     </div>
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label>ตำบลที่ตั้งสถานบริการ</label>
+                        <select name="sub_district_code" class="form-select" style="box-shadow:var(--neumorph-inset);">
+                            <option value="">-- เลือกตำบลที่ตั้ง (ถ้ามี) --</option>
+                            <?php foreach ($sub_districts as $sd): ?>
+                                <option value="<?= htmlspecialchars($sd['sub_district_code']) ?>">
+                                    ตำบล<?= htmlspecialchars($sd['sub_district_name']) ?> (<?= htmlspecialchars($sd['sub_district_code']) ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                     <div style="display:flex; gap:12px; margin-top:24px;">
                         <button type="button" onclick="closeModal('modal-add-unit')" class="btn-giant btn-giant-secondary" style="flex:1; margin:0;">ยกเลิก</button>
                         <button type="submit" class="btn-giant btn-giant-primary" style="flex:1; margin:0;">บันทึก</button>
@@ -991,6 +1020,17 @@ $houses_list = $house_stmt->fetchAll();
                         <label>ชื่อหน่วยบริการ</label>
                         <input type="text" id="edit_unit_hosname" name="hosname" class="form-input-text" required style="box-shadow:var(--neumorph-inset);">
                     </div>
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label>ตำบลที่ตั้งสถานบริการ</label>
+                        <select id="edit_unit_sub_district_code" name="sub_district_code" class="form-select" style="box-shadow:var(--neumorph-inset);">
+                            <option value="">-- เลือกตำบลที่ตั้ง (ถ้ามี) --</option>
+                            <?php foreach ($sub_districts as $sd): ?>
+                                <option value="<?= htmlspecialchars($sd['sub_district_code']) ?>">
+                                    ตำบล<?= htmlspecialchars($sd['sub_district_name']) ?> (<?= htmlspecialchars($sd['sub_district_code']) ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                     <div style="display:flex; gap:12px; margin-top:24px;">
                         <button type="button" onclick="closeModal('modal-edit-unit')" class="btn-giant btn-giant-secondary" style="flex:1; margin:0;">ยกเลิก</button>
                         <button type="submit" class="btn-giant btn-giant-primary" style="flex:1; margin:0;">บันทึก</button>
@@ -1012,7 +1052,7 @@ $houses_list = $house_stmt->fetchAll();
                 <div class="modal-body">
                     <div class="form-group">
                         <label>รหัสตำบล (6 หลัก)</label>
-                        <input type="text" name="sub_district_code" class="form-input-text" maxlength="10" placeholder="ระบุรหัสตำบล 6 หลัก เช่น 341801..." required style="box-shadow:var(--neumorph-inset);">
+                        <input type="text" name="sub_district_code" class="form-input-text" maxlength="10" placeholder="ระบุรหัสตำบล 6 หลัก เช่น 342001..." required style="box-shadow:var(--neumorph-inset);">
                     </div>
                     <div class="form-group" style="margin-top: 15px;">
                         <label>ชื่อตำบล</label>
@@ -1301,9 +1341,13 @@ $houses_list = $house_stmt->fetchAll();
         }
 
         // Edit Unit
-        function openEditUnitModal(hoscode, hosname) {
+        function openEditUnitModal(hoscode, hosname, subDistrictCode = '') {
             document.getElementById('edit_unit_hoscode').value = hoscode;
             document.getElementById('edit_unit_hosname').value = hosname;
+            const subDistSelect = document.getElementById('edit_unit_sub_district_code');
+            if (subDistSelect) {
+                subDistSelect.value = subDistrictCode;
+            }
             openModal('modal-edit-unit');
         }
 

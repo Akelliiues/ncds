@@ -43,6 +43,7 @@ try {
         document.documentElement.setAttribute('data-theme', theme);
     })();
 </script>
+<script src="../assets/js/app.js"></script>
 <style>
     .btn-theme-toggle:hover {
         background-color: var(--bg-darker) !important;
@@ -312,6 +313,24 @@ try {
         }
     </style>
 <?php endif; ?>
+
+<!-- Instant Inline Preloader for Admin Pages (Renders immediately upon HTML receipt) -->
+<div id="admin-page-preloader" style="position: fixed; inset: 0; z-index: 999999; background: var(--bg-main, #eef2f7); display: flex; align-items: center; justify-content: center; flex-direction: column; transition: opacity 0.3s ease, visibility 0.3s ease;">
+    <div style="background: var(--bg-card, #ffffff); border: 1px solid var(--border-color, rgba(226, 232, 240, 0.8)); border-radius: 24px; padding: 28px 36px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; box-shadow: 0 20px 40px rgba(0,0,0,0.15); max-width: 340px; width: 88%;">
+        <div style="position: relative; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center;">
+            <div style="position: absolute; inset: 0; border-radius: 50%; border: 3.5px solid rgba(2, 132, 199, 0.15); border-top-color: var(--color-primary, #0284c7); border-right-color: #38bdf8; animation: ringSpin 0.85s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite;"></div>
+            <span style="font-size: 26px; animation: iconPulse 1.5s ease-in-out infinite;">⚡</span>
+        </div>
+        <div>
+            <div style="font-size: 16px; font-weight: 800; color: var(--text-primary);">กำลังโหลดข้อมูล NCDs Portal</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 3px;">กรุณารอสักครู่ ระบบกำลังจัดเตรียมข้อมูล...</div>
+        </div>
+        <div style="width: 100%; height: 5px; background: rgba(2, 132, 199, 0.12); border-radius: 9999px; overflow: hidden; margin-top: 4px; position: relative;">
+            <div style="position: absolute; height: 100%; width: 45%; background: linear-gradient(90deg, var(--color-primary, #0284c7), #38bdf8, #10b981); border-radius: 9999px; animation: shimmerSlide 1.3s ease-in-out infinite;"></div>
+        </div>
+    </div>
+</div>
+
 <div class="admin-navbar no-print">
     <a href="#" onclick="openDevModal(event)" class="admin-logo" style="display: flex; align-items: center; gap: 11px; text-decoration: none; cursor: pointer;" title="คลิกเพื่อดูรายละเอียดระบบและทีมพัฒนา">
         <img src="../assets/icon.png" alt="Logo" style="height: 44px; width: 44px; border-radius: 12px; flex-shrink: 0; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.1));">
@@ -342,31 +361,31 @@ try {
                 </svg>
             </button>
             <div class="nav-dropdown-content">
-                <a href="index.php" class="<?= $current_page == 'index.php' ? 'active' : '' ?>">
+                <a href="index.php" onclick="showPageLoading('แดชบอร์ดสรุปผล', 'กำลังประมวลผลสถิติและภาพรวมอำเภอ...', '📊');" class="<?= $current_page == 'index.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
                     </svg>
                     แดชบอร์ดสรุปผล
                 </a>
-                <a href="leaderboard.php" class="<?= $current_page == 'leaderboard.php' ? 'active' : '' ?>">
+                <a href="leaderboard.php" onclick="showPageLoading('กระดานคะแนน อสม.', 'กำลังจัดอันดับและประมวลผลคะแนน...', '🏆');" class="<?= $current_page == 'leaderboard.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
                     </svg>
                     กระดานคะแนน อสม.
                 </a>
-                <a href="profile.php" class="<?= $current_page == 'profile.php' ? 'active' : '' ?>">
+                <a href="profile.php" onclick="showPageLoading('ข้อมูลส่วนตัว', 'กำลังโหลดข้อมูลผู้ใช้งาน...', '👤');" class="<?= $current_page == 'profile.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                     </svg>
                     ข้อมูลส่วนตัว / เปลี่ยนรหัส
                 </a>
-                <a href="../manual.php">
+                <a href="../manual.php" onclick="showPageLoading('คู่มือการใช้งาน', 'กำลังโหลดคู่มือระบบ...', '📖');">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                     </svg>
                     คู่มือการใช้งานระบบ
                 </a>
-                <a href="../about.php" class="<?= $current_page == 'about.php' ? 'active' : '' ?>">
+                <a href="../about.php" onclick="showPageLoading('เกี่ยวกับระบบ', 'กำลังโหลดรายละเอียดระบบและทีมพัฒนา...', 'ℹ️');" class="<?= $current_page == 'about.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
@@ -387,13 +406,13 @@ try {
                 </svg>
             </button>
             <div class="nav-dropdown-content">
-                <a href="target_manager.php" class="<?= $current_page == 'target_manager.php' ? 'active' : '' ?>">
+                <a href="target_manager.php" onclick="showPageLoading('จัดการประชากรเป้าหมาย', 'กำลังโหลดรายชื่อและสถานะคัดกรอง...', '👥');" class="<?= $current_page == 'target_manager.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                     </svg>
                     จัดการประชากรเป้าหมาย
                 </a>
-                <a href="dpac_manager.php" class="<?= $current_page == 'dpac_manager.php' ? 'active' : '' ?>">
+                <a href="dpac_manager.php" onclick="showPageLoading('จัดการโครงการ DPAC', 'กำลังรวบรวมข้อมูลคลินิก DPAC...', '🥗');" class="<?= $current_page == 'dpac_manager.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
@@ -414,31 +433,31 @@ try {
                 </svg>
             </button>
             <div class="nav-dropdown-content">
-                <a href="assignment.php" class="<?= $current_page == 'assignment.php' ? 'active' : '' ?>">
+                <a href="assignment.php" onclick="showPageLoading('มอบหมายงาน อสม.', 'กำลังโหลดข้อมูลการจ่ายงาน...', '📋');" class="<?= $current_page == 'assignment.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
                     </svg>
                     มอบหมายงาน อสม.
                 </a>
-                <a href="vhv_approval.php" class="<?= $current_page == 'vhv_approval.php' ? 'active' : '' ?>">
+                <a href="vhv_approval.php" onclick="showPageLoading('จัดการผู้ใช้ อสม.', 'กำลังโหลดรายชื่อผู้ลงทะเบียน...', '✅');" class="<?= $current_page == 'vhv_approval.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                     </svg>
                     จัดการผู้ใช้ อสม.
                 </a>
-                <a href="print_qr.php" class="<?= $current_page == 'print_qr.php' ? 'active' : '' ?>">
+                <a href="print_qr.php" onclick="showPageLoading('พิมพ์ QR Code บ้าน', 'กำลังสร้าง QR Code ประจำบ้าน...', '🖨️');" class="<?= $current_page == 'print_qr.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
                     </svg>
                     พิมพ์ QR Code บ้าน
                 </a>
-                <a href="vhv_tasks.php" class="<?= $current_page == 'vhv_tasks.php' ? 'active' : '' ?>">
+                <a href="vhv_tasks.php" onclick="showPageLoading('เช็คงาน อสม.', 'กำลังตรวจสอบผลงานและสถิติรายบุคคล...', '📈');" class="<?= $current_page == 'vhv_tasks.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2"></path>
                     </svg>
                     เช็คงาน อสม.
                 </a>
-                <a href="critical_referrals.php" class="<?= $current_page == 'critical_referrals.php' ? 'active' : '' ?>" style="<?= $pendingAlertsCount > 0 ? 'background: rgba(220,38,38,0.12); color: #DC2626 !important; font-weight: 800;' : '' ?>">
+                <a href="critical_referrals.php" onclick="showPageLoading('เคสวิกฤต & ส่งต่อ', 'กำลังตรวจสอบสถานะการส่งต่อด่วน...', '🚨');" class="<?= $current_page == 'critical_referrals.php' ? 'active' : '' ?>" style="<?= $pendingAlertsCount > 0 ? 'background: rgba(220,38,38,0.12); color: #DC2626 !important; font-weight: 800;' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
@@ -449,7 +468,7 @@ try {
                         </span>
                     <?php endif; ?>
                 </a>
-                <a href="rewards_management.php" class="<?= $current_page == 'rewards_management.php' ? 'active' : '' ?>">
+                <a href="rewards_management.php" onclick="showPageLoading('จัดการของรางวัล อสม.', 'กำลังโหลดแคตตาล็อกและคำขอแลกของรางวัล...', '🎁');" class="<?= $current_page == 'rewards_management.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V6a2 2 0 10-2 2h2zm0 13a7 7 0 100-14 7 7 0 000 14z"></path>
                     </svg>
@@ -470,31 +489,31 @@ try {
                 </svg>
             </button>
             <div class="nav-dropdown-content">
-                <a href="citizen_health_dashboard.php" class="<?= $current_page == 'citizen_health_dashboard.php' ? 'active' : '' ?>">
+                <a href="citizen_health_dashboard.php" onclick="showPageLoading('สถิติสุขภาพประชาชน', 'กำลังประมวลผลสถิติและฐานข้อมูลสุขภาพ...', '📊');" class="<?= $current_page == 'citizen_health_dashboard.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
                     สถิติสุขภาพประชาชน
                 </a>
-                <a href="analytics.php" class="<?= $current_page == 'analytics.php' ? 'active' : '' ?>">
+                <a href="analytics.php" onclick="showPageLoading('วิเคราะห์เชิงลึก (Analytics)', 'กำลังคำนวณสถิติและประมวลผลแผนที่ GIS...', '📈');" class="<?= $current_page == 'analytics.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16 8v8m-4-5v5m-4-2v2M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12z" />
                     </svg>
                     วิเคราะห์เชิงลึก (Analytics)
                 </a>
-                <a href="surveillance_reports.php" class="<?= $current_page == 'surveillance_reports.php' ? 'active' : '' ?>">
+                <a href="surveillance_reports.php" onclick="showPageLoading('รายงานเฝ้าระวัง 6 มิติ', 'กำลังรวบรวมข้อมูลเฝ้าระวังกลุ่มเสี่ยง NCDs...', '🛡️');" class="<?= $current_page == 'surveillance_reports.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                     </svg>
                     รายงานเฝ้าระวัง 6 มิติ
                 </a>
-                <a href="reports.php" class="<?= $current_page == 'reports.php' ? 'active' : '' ?>">
+                <a href="reports.php" onclick="showPageLoading('รายงานและการพิมพ์', 'กำลังจัดทำรายงานสรุปผลงานระดับอำเภอ...', '📑');" class="<?= $current_page == 'reports.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
                     รายงานและการพิมพ์
                 </a>
-                <a href="security_log.php" class="<?= $current_page == 'security_log.php' ? 'active' : '' ?>" style="white-space: nowrap !important;">
+                <a href="security_log.php" onclick="showPageLoading('บันทึกความปลอดภัย (Secure Log)', 'กำลังโหลดบันทึกความปลอดภัยระบบ...', '🔒');" class="<?= $current_page == 'security_log.php' ? 'active' : '' ?>" style="white-space: nowrap !important;">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                         <path d="M7 11V7a5 5 0 0110 0v4" />
@@ -517,39 +536,39 @@ try {
                 </svg>
             </button>
             <div class="nav-dropdown-content">
-                <a href="messages.php" class="<?= $current_page == 'messages.php' ? 'active' : '' ?>">
+                <a href="messages.php" onclick="showPageLoading('ศูนย์ข้อความ & ประกาศ', 'กำลังโหลดรายการประกาศ...', '📢');" class="<?= $current_page == 'messages.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
                     </svg>
                     ศูนย์ข้อความ & ประกาศ
                 </a>
                 <?php if ($is_super_admin): ?>
-                    <a href="import_hdc.php" class="<?= $current_page == 'import_hdc.php' ? 'active' : '' ?>">
+                    <a href="import_hdc.php" onclick="showPageLoading('นำเข้าข้อมูล HDC', 'กำลังเปิดระบบนำเข้าข้อมูล...', '📥');" class="<?= $current_page == 'import_hdc.php' ? 'active' : '' ?>">
                         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                             <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
                         </svg>
                         นำเข้าข้อมูล HDC
                     </a>
-                    <a href="process_etl.php" class="<?= $current_page == 'process_etl.php' ? 'active' : '' ?>">
+                    <a href="process_etl.php" onclick="showPageLoading('ประมวลผล ETL', 'กำลังเปิดระบบประมวลผลข้อมูล...', '⚙️');" class="<?= $current_page == 'process_etl.php' ? 'active' : '' ?>">
                         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                             <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5"></path>
                         </svg>
                         ประมวลผล ETL
                     </a>
                 <?php endif; ?>
-                <a href="jhcis_sync.php" class="<?= $current_page == 'jhcis_sync.php' ? 'active' : '' ?>">
+                <a href="jhcis_sync.php" onclick="showPageLoading('ซิงค์ฐานข้อมูล JHCIS', 'กำลังตรวจสอบการเชื่อมต่อ JHCIS...', '🔄');" class="<?= $current_page == 'jhcis_sync.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5M8 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     ซิงค์ฐานข้อมูล JHCIS
                 </a>
-                <a href="db_manager.php" class="<?= $current_page == 'db_manager.php' ? 'active' : '' ?>">
+                <a href="db_manager.php" onclick="showPageLoading('จัดการฐานข้อมูล', 'กำลังโหลดสถิติตารางและระบบสำรอง...', '🗄️');" class="<?= $current_page == 'db_manager.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path>
                     </svg>
                     จัดการฐานข้อมูล / โหมดจำลอง
                 </a>
-                <a href="db_manager.php#fiscal-year">
+                <a href="db_manager.php#fiscal-year" onclick="showPageLoading('จัดการปีงบประมาณ', 'กำลังโหลดการตั้งค่าปีงบประมาณ...', '📅');">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                         <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -559,21 +578,21 @@ try {
                     จัดการปีงบประมาณ
                 </a>
                 <?php if ($is_super_admin): ?>
-                    <a href="user_manager.php" class="<?= $current_page == 'user_manager.php' ? 'active' : '' ?>">
+                    <a href="user_manager.php" onclick="showPageLoading('จัดการผู้ใช้งานระบบ', 'กำลังโหลดรายชื่อผู้ดูแลระบบ...', '👥');" class="<?= $current_page == 'user_manager.php' ? 'active' : '' ?>">
                         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 11-8 0 4 4 0 018 0zm7-3a3 3 0 010 6M21 21v-2a4 4 0 00-3-3.87"></path>
                         </svg>
                         จัดการผู้ใช้งานระบบ
                     </a>
                 <?php endif; ?>
-                <a href="unit_house_manager.php" class="<?= $current_page == 'unit_house_manager.php' ? 'active' : '' ?>">
+                <a href="unit_house_manager.php" onclick="showPageLoading('จัดการหน่วยบริการ & บ้าน', 'กำลังโหลดโครงสร้างหน่วยบริการ...', '🏥');" class="<?= $current_page == 'unit_house_manager.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
                     จัดการหน่วยบริการ & บ้าน
                 </a>
                 <?php if (empty($_SESSION['admin_hoscode'])): ?>
-                    <a href="update.php" class="<?= $current_page == 'update.php' ? 'active' : '' ?>">
+                    <a href="update.php" onclick="showPageLoading('อัปเดตระบบ', 'กำลังตรวจสอบเวอร์ชันและไฟล์ระบบ...', '🚀');" class="<?= $current_page == 'update.php' ? 'active' : '' ?>">
                         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5" />
                         </svg>

@@ -22,7 +22,7 @@ function get_village_full_name($vhid_code, $moo) {
     $moo = intval($moo);
     
     $villages = [
-        '341801' => [
+        '342001' => [
             1 => 'บ้านม่วงโคน',
             2 => 'บ้านดอนรังกา',
             3 => 'บ้านนาห้วยแคน',
@@ -39,7 +39,7 @@ function get_village_full_name($vhid_code, $moo) {
             14 => 'บ้านโนนสวรรค์',
             15 => 'บ้านทุ่งเจริญ'
         ],
-        '341802' => [
+        '342002' => [
             1 => 'บ้านสำโรงใหญ่',
             2 => 'บ้านสำโรงกลาง',
             3 => 'บ้านนาโพธิ์',
@@ -49,7 +49,7 @@ function get_village_full_name($vhid_code, $moo) {
             7 => 'บ้านหนองสะเดา',
             8 => 'บ้านทุ่งเจริญ'
         ],
-        '341803' => [
+        '342003' => [
             1 => 'บ้านจิกเทิง',
             2 => 'บ้านจิกลุ่ม',
             3 => 'บ้านเชียงแก้ว',
@@ -60,7 +60,7 @@ function get_village_full_name($vhid_code, $moo) {
             8 => 'บ้านดอนแป้นลม',
             9 => 'บ้านสร้างคำ'
         ],
-        '341804' => [
+        '342004' => [
             1 => 'บ้านหนองกุงใหญ่',
             2 => 'บ้านหนองกุงน้อย',
             3 => 'บ้านคำแคน',
@@ -70,7 +70,7 @@ function get_village_full_name($vhid_code, $moo) {
             7 => 'บ้านคำเตยเหนือ',
             8 => 'บ้านสร้างหว้าพัฒนา'
         ],
-        '341805' => [
+        '342005' => [
             1 => 'บ้านนาคาย',
             2 => 'บ้านโนนจิก',
             3 => 'บ้านหนองเป็ด',
@@ -85,7 +85,7 @@ function get_village_full_name($vhid_code, $moo) {
             12 => 'บ้านโนนสำราญ',
             13 => 'บ้านโนนเจริญ'
         ],
-        '341806' => [
+        '342006' => [
             1 => 'บ้านคำหว้า',
             2 => 'บ้านคำหว้า',
             3 => 'บ้านห้วยดู่',
@@ -141,12 +141,12 @@ if (DemoDataProvider::isDemoMode()) {
         $hoscode = $_POST['hoscode'] ?? '';
         
         $tambonPrefix = '';
-        if ($hoscode === '03752') $tambonPrefix = '341802';
-        elseif ($hoscode === '03753') $tambonPrefix = '341803';
-        elseif ($hoscode === '03754') $tambonPrefix = '341804';
-        elseif ($hoscode === '03755' || $hoscode === '03756') $tambonPrefix = '341805';
-        elseif ($hoscode === '03757') $tambonPrefix = '341806';
-        else $tambonPrefix = '341801';
+        if ($hoscode === '03752') $tambonPrefix = '342002';
+        elseif ($hoscode === '03753') $tambonPrefix = '342003';
+        elseif ($hoscode === '03754') $tambonPrefix = '342004';
+        elseif ($hoscode === '03755' || $hoscode === '03756') $tambonPrefix = '342005';
+        elseif ($hoscode === '03757') $tambonPrefix = '342006';
+        else $tambonPrefix = '342001';
         
         $vhid_code = $tambonPrefix . sprintf("%02d", $vhv_moo);
         
@@ -294,12 +294,12 @@ if (DemoDataProvider::isDemoMode()) {
                         $old_vhid = $getVhid->fetchColumn() ?: '';
                         $tambonPrefix = substr($old_vhid, 0, 6);
                         if (empty($tambonPrefix)) {
-                            if ($hoscode === '03752') $tambonPrefix = '341802';
-                            elseif ($hoscode === '03753') $tambonPrefix = '341803';
-                            elseif ($hoscode === '03754') $tambonPrefix = '341804';
-                            elseif ($hoscode === '03755' || $hoscode === '03756') $tambonPrefix = '341805';
-                            elseif ($hoscode === '03757') $tambonPrefix = '341806';
-                            else $tambonPrefix = '341801';
+                            if ($hoscode === '03752') $tambonPrefix = '342002';
+                            elseif ($hoscode === '03753') $tambonPrefix = '342003';
+                            elseif ($hoscode === '03754') $tambonPrefix = '342004';
+                            elseif ($hoscode === '03755' || $hoscode === '03756') $tambonPrefix = '342005';
+                            elseif ($hoscode === '03757') $tambonPrefix = '342006';
+                            else $tambonPrefix = '342001';
                         }
                         $new_vhid = $tambonPrefix . sprintf("%02d", $vhv_moo);
 

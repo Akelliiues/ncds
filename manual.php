@@ -53,6 +53,7 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
     <title>คู่มือการใช้งานระบบคัดกรอง NCDs Portal - อำเภอ<?= htmlspecialchars($district) ?></title>
 
     <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/app.js"></script>
 
     <style>
         :root {
