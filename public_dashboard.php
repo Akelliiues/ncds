@@ -548,6 +548,7 @@ $tamScoreTotal = 4.74; // Mean Out of 5.00
     <link rel="stylesheet" href="assets/css/style.css">
     <link rel="apple-touch-icon" href="assets/icon.png">
     <link rel="manifest" href="manifest.json">
+    <script src="assets/js/app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
@@ -726,7 +727,7 @@ $tamScoreTotal = 4.74; // Mean Out of 5.00
         }
 
         .filter-select {
-            padding: 8px 14px;
+            padding: 8.5px 14px;
             border-radius: 12px;
             border: 1.5px solid var(--public-border);
             background: var(--public-card-bg);
@@ -735,6 +736,38 @@ $tamScoreTotal = 4.74; // Mean Out of 5.00
             font-weight: 700;
             outline: none;
             cursor: pointer;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .filter-select:focus {
+            border-color: var(--public-primary, #0284c7);
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+        }
+
+        .btn-filter-submit {
+            background: linear-gradient(135deg, var(--public-primary, #0284c7), #0ea5e9);
+            color: #ffffff;
+            border: none;
+            padding: 8.5px 18px;
+            border-radius: 12px;
+            font-size: 13.5px;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.28);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+        }
+
+        .btn-filter-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(2, 132, 199, 0.38);
+            opacity: 0.95;
+        }
+
+        .btn-filter-submit:active {
+            transform: translateY(0);
         }
 
         .badge-pdpa {
@@ -828,8 +861,8 @@ $tamScoreTotal = 4.74; // Mean Out of 5.00
             </div>
 
             <!-- Filters Form -->
-            <form method="GET" action="public_dashboard.php" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                <select name="budget_year" class="filter-select" onchange="showPageLoading('กำลังโหลดข้อมูล', 'กำลังสลับปีงบประมาณ...', '📅'); this.form.submit()">
+            <form id="public-filter-form" method="GET" action="public_dashboard.php" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;" onsubmit="if(typeof showPageLoading==='function'){showPageLoading('กำลังโหลดข้อมูล', 'กำลังประมวลผลสถิติสุขภาพ...', '🔍');}">
+                <select name="budget_year" id="filter-budget-year" class="filter-select">
                     <?php foreach ($availableBudgetYears as $by): ?>
                         <option value="<?= $by ?>" <?= $selectedBudgetYear == $by ? 'selected' : '' ?>>
                             ปีงบประมาณ <?= $by ?> (<?= $by + 543 ?>)
@@ -837,7 +870,7 @@ $tamScoreTotal = 4.74; // Mean Out of 5.00
                     <?php endforeach; ?>
                 </select>
 
-                <select name="area" class="filter-select" onchange="showPageLoading('กำลังกรองข้อมูลพื้นที่', 'กำลังประมวลผลสถิติสุขภาพรายพื้นที่...', '🗺️'); this.form.submit()">
+                <select name="area" id="filter-area" class="filter-select">
                     <option value="">-- ทุกตำบล (ภาพรวมทั้งอำเภอ) --</option>
                     <?php foreach ($tambons as $tCode => $tName): ?>
                         <?php 
@@ -866,6 +899,11 @@ $tamScoreTotal = 4.74; // Mean Out of 5.00
                         <?php endif; ?>
                     <?php endforeach; ?>
                 </select>
+
+                <button type="submit" id="btn-submit-filter" class="btn-filter-submit" title="กดเพื่อค้นหาและแสดงผลสถิติตามเงื่อนไข">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <span>ดูข้อมูล</span>
+                </button>
             </form>
         </div>
 
