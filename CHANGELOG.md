@@ -4,6 +4,21 @@
 
 ---
 
+## [v2.3-stable] - Stable Release 2.3: Tansum Health Center League, 8 Realms Kingdom Badges & Fair Balanced Scoring Engine (2026-08-25) 🚀
+
+### 🏆 ลีกหน่วยบริการ รพ.สต. และสมรภูมิคัดกรองรายหมู่บ้าน (Tansum Health Center League & Village Battleground)
+- **ระบบคำนวณคะแนนถ่วงน้ำหนักหลังบ้านอย่างเป็นธรรม (Fair Balanced Scoring Engine)**:
+  - จัดอันดับโดยคำนวณ 50% Coverage (อัตราความครอบคลุมเป้าหมาย) + 50% Volume (ขนาดภาระงานจริง) + โบนัสขับเคลื่อนการติดตามรอบ 2 สร้างความเป็นธรรมระหว่าง รพ.สต. ขนาดเล็กและขนาดใหญ่
+- **การออกแบบ UI ตามปรัชญา Simple & Easy**:
+  - แสดงผลสะอาดตา ตัดตัวเลขเศษส่วนและเปอร์เซ็นต์ที่ซับซ้อนทิ้ง เน้นแสดงอันดับ ความภาคภูมิใจ และสถานะความก้าวหน้าอย่างชัดเจน
+- **ชุดฉายาและตราสัญลักษณ์เกียรติยศ 8 อาณาจักร (8 Realms Kingdom Badges Suite)**:
+  - บูรณาการไอคอนตราประจำอันดับความละเอียดสูงโปร่งใส (Transparent PNG) 16 อันดับ พร้อมริบบิ้นฉายาเกียรติยศสไตล์เดียวกับ อสม. (`rank-title-header`)
+  - **ระบบพรีวิวตราขยายใหญ่ (Enlarged Kingdom Badge Modal)**: แตะที่ไอคอนตราหรือฉายาเพื่อเปิดดูตราสัญลักษณ์ระดับ HD พร้อมออร่าทองคำ
+- **ยกระดับ Mobile-First Card Layout**:
+  - ปรับขนาดตัวหนังสือชื่อ รพ.สต. และฉายาให้อ่านง่าย ชัดเจน ไม่ตกบรรทัด และไม่ขยายความสูงของการ์ด
+
+---
+
 ## [v2.20-stable] - Stable Release 2.20: Smart Next-Round Auto-Assignment Engine, Universal Zero-Freeze Preloading & Public Open Data Suite (2026-08-25) 🚀
 
 ### 🤖 ระบบมอบหมายงานคัดกรองรอบถัดไปอัตโนมัติ (Smart Next-Round Auto-Assignment Engine)

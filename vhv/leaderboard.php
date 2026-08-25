@@ -1258,7 +1258,7 @@ try {
                                 🏡 สมรภูมิคัดกรองรายหมู่บ้าน
                             </h4>
                             <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
-                                ความก้าวหน้าการคัดกรอง & ติดตามสุขภาพประชาชนในตำบลของคุณ
+                                ความก้าวหน้าการคัดกรอง ติดตามสุขภาพประชาชนในตำบล
                             </p>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 12px;">
@@ -1312,10 +1312,10 @@ try {
                     <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
                         <div style="margin-bottom: 16px;">
                             <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 4px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                                🏆 ลีกหน่วยบริการ รพ.สต. (ทั้งอำเภอ<?= DISTRICT_NAME ?>)
+                                🏆 ลีกหน่วยบริการ รพ.สต. ทั้งอำเภอ<?= DISTRICT_NAME ?>
                             </h4>
                             <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
-                                อันดับความก้าวหน้า การขับเคลื่อนภารกิจคัดกรองและการติดตามดูแลกลุ่มเสี่ยง
+                                ผลงานการขับเคลื่อนภารกิจคัดกรองและการติดตามดูแลกลุ่มเสี่ยงระดับอำเภอ
                             </p>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 12px;">
@@ -1335,15 +1335,15 @@ try {
                                 // Tier Badge & Colors: 8 Realms & Citadels Theme
                                 if ($hRank === 1) {
                                     $realmTheme = 'champion';
-                                    $tierBadge = '👑 มหาจักรวรรดิครอง 8 แดนดิน';
+                                    $tierBadge = '👑 ผู้ครอง 8 อาณาจักร';
                                     $barGradient = 'linear-gradient(90deg, #f59e0b, #fbbf24)';
                                 } elseif ($hRank === 2) {
                                     $realmTheme = 'knight';
-                                    $tierBadge = '⚔️ มหาป้อมปราการทัพหน้า';
+                                    $tierBadge = '⚔️ ป้อมปราการทัพหน้า';
                                     $barGradient = 'linear-gradient(90deg, #0284c7, #38bdf8)';
                                 } elseif ($hRank === 3) {
                                     $realmTheme = 'rising-star';
-                                    $tierBadge = '🛡️ มหาปราการศิลาเหล็กกล้า';
+                                    $tierBadge = '🛡️ ปราการศิลาเหล็กกล้า';
                                     $barGradient = 'linear-gradient(90deg, #7c3aed, #a78bfa)';
                                 } elseif ($hRank <= 5) {
                                     $realmTheme = 'heart-guard';
@@ -1564,7 +1564,7 @@ try {
             <!-- Sub-Tab 1: Leaderboard List -->
             <div id="content-leaderboard" class="tab-content">
                 <div style="margin-top: 10px;">
-                    <h4 style="color: var(--text-primary); font-size: 16px; margin-bottom: 12px; font-weight: 800;">50 อันดับสูงสุด</h4>
+                    <h4 style="color: var(--text-primary); font-size: 16px; margin-bottom: 12px; font-weight: 800;">ผลงานการคัดกรอง 50 อันดับสูงสุด</h4>
 
                     <?php
                     $rankNum = 1;

@@ -1,5 +1,15 @@
 [
   {
+    "title": "🎉 ปล่อยเวอร์ชันเสถียร Stable Version 2.3 (v2.3-stable) ลีกหน่วยบริการ รพ.สต. และสมรภูมิคัดกรองรายหมู่บ้าน (Tansum Health Center League & Village Battleground) ระบบคำนวณคะแนนถ่วงน้ำหนักหลังบ้านอย่างเป็นธรรม (Fair Balanced Scoring Engine), ตราสัญลักษณ์เกียรติยศ 8 อาณาจักรแบบโปร่งใส 16 อันดับ พร้อมระบบพรีวิวตราขยายใหญ่ (Enlarged Kingdom Badge Modal) และการ์ดดีไซน์ Mobile-First ตามปรัชญา Simple & Easy",
+    "date": "2026-08-25",
+    "type": "release"
+  },
+  {
+    "title": "เพิ่มระบบลีกหน่วยบริการ รพ.สต. และสมรภูมิคัดกรองรายหมู่บ้าน พร้อม Fair Balanced Scoring Engine ถ่วงน้ำหนัก Coverage 50% + Volume 50% + โบนัสรอบ 2, ชุดตราฉายา 8 อาณาจักร และหน้าต่างพรีวิวตราขยายใหญ่ HD",
+    "date": "2026-08-25",
+    "type": "feature"
+  },
+  {
     "title": "🎉 ปล่อยเวอร์ชันเสถียร Stable Version 2.20 (v2.20-stable) ระบบมอบหมายงานคัดกรองรอบถัดไปอัตโนมัติ (Smart Next-Round Auto-Assignment Engine) พร้อมกฎความปลอดภัย 100% Gated Progression, รองรับการดึง อสม. ครบถ้วน, ปรับปรุงระบบตัวกรองและการคำนวณใน Open Data Portal แบบความเร็วสูง",
     "date": "2026-08-25",
     "type": "release"
