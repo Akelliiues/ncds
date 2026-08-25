@@ -1296,8 +1296,9 @@ if (!function_exists('renderKpiGenderSplit')) {
                     <span class="badge-pill-inset" style="color: var(--text-muted); font-size: 11.5px;">v<?= APP_VERSION ?></span>
                 </div>
                 <h1 style="margin: 6px 0 10px 0; font-size: 25px; font-weight: 900; color: var(--text-primary); letter-spacing: -0.3px;">
-                    ศูนย์ข้อมูลสุขภาพและผลลัพธ์การคัดกรอง NCDs อำเภอ<?= DISTRICT_NAME ?> จังหวัดอุบลราชธานี
+                    ศูนย์ข้อมูลสุขภาพและผลลัพธ์การคัดกรอง NCDs อำเภอ<?= DISTRICT_NAME ?>
                 </h1>
+                
                 <p style="margin: 0; font-size: 14px; color: var(--text-secondary); max-width: 780px; line-height: 1.65; word-break: break-word;">
                     สรุปผลการดำเนินงานตรวจคัดกรองโรคเบาหวานและความดันโลหิตสูงเชิงรุก การปรับเปลี่ยนพฤติกรรม DPAC <span style="display: inline-block;">และพลังการขับเคลื่อนของภาคีสุขภาพชุมชน</span>
                 </p>
