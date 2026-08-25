@@ -212,9 +212,9 @@ if (DemoDataProvider::isDemoMode()) {
             background: none;
             border: none;
             color: var(--text-secondary);
-            font-size: clamp(12px, 3.2vw, 14px);
+            font-size: 15px;
             font-weight: 800;
-            padding: 10px 4px;
+            padding: 12px 6px;
             cursor: pointer;
             border-radius: calc(var(--border-radius) - 6px);
             transition: all var(--transition-speed);
@@ -351,7 +351,7 @@ if (DemoDataProvider::isDemoMode()) {
                             🔔
                             <span id="unread-msg-badge" style="display:none; position:absolute; top:-4px; right:-4px; background:#EF4444; color:white; font-size:9px; font-weight:800; border-radius:50%; width:16px; height:16px; line-height:16px; text-align:center;">0</span>
                         </button>
-                        <button type="button" onclick="switchTab('manual-tab', document.getElementById('tab-btn-manual'))" style="color: var(--color-accent); font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px; background: rgba(30, 64, 175, 0.08); padding: 3px 8px; border-radius: 50px; white-space: nowrap; border: none; cursor: pointer;">
+                        <button type="button" onclick="openManualTab()" style="color: var(--color-accent); font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px; background: rgba(30, 64, 175, 0.08); padding: 3px 8px; border-radius: 50px; white-space: nowrap; border: none; cursor: pointer;">
                             📖 คู่มือ
                         </button>
                     </div>
@@ -438,9 +438,6 @@ if (DemoDataProvider::isDemoMode()) {
             </button>
             <button class="tab-btn" id="tab-btn-completed" onclick="switchTab('completed-list', this)">
                 เสร็จสิ้น/ข้าม (<?= count($completedTasks) + count($completedDpacTasks) ?>)
-            </button>
-            <button class="tab-btn" id="tab-btn-manual" onclick="switchTab('manual-tab', this)" style="color: var(--color-accent);">
-                📖 คู่มือ
             </button>
         </div>
 
@@ -639,6 +636,12 @@ if (DemoDataProvider::isDemoMode()) {
 
         <!-- User Manual Tab Content -->
         <div id="manual-tab" class="tab-content" style="display: none;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 4px 2px;">
+                <button type="button" onclick="switchTab('pending-list', document.getElementById('tab-btn-pending'))" class="btn-back-pill" style="border: none; cursor: pointer; padding: 6px 14px; font-size: 13px; color: var(--color-accent); background: var(--bg-card); border-radius: 50px; font-weight: 800; box-shadow: var(--neumorph-flat);">
+                    ← กลับไปหน้ารายการงาน
+                </button>
+                <span style="font-size: 13px; font-weight: 800; color: var(--color-accent);">📖 คู่มือการใช้งานระบบ</span>
+            </div>
             <?php include __DIR__ . '/manual_partial.php'; ?>
         </div>
 
@@ -718,13 +721,29 @@ if (DemoDataProvider::isDemoMode()) {
             if (btn) btn.classList.add('active');
         }
 
+        function openManualTab() {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            // Remove active from task tab buttons
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                b.classList.remove('active');
+            });
+            // Show manual tab
+            const mTab = document.getElementById('manual-tab');
+            if (mTab) {
+                mTab.style.display = 'block';
+                mTab.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
         // Auto-select tab if specified in URL query
         (function() {
             const urlParams = new URLSearchParams(window.location.search);
             const tabParam = urlParams.get('tab');
             if (tabParam === 'manual' || tabParam === 'manual-tab') {
-                const btn = document.getElementById('tab-btn-manual');
-                if (btn) switchTab('manual-tab', btn);
+                openManualTab();
             } else if (tabParam === 'dpac' || tabParam === 'dpac-list') {
                 const btn = document.getElementById('tab-btn-dpac');
                 if (btn) switchTab('dpac-list', btn);
