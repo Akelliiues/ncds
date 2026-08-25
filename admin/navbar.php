@@ -314,23 +314,6 @@ try {
     </style>
 <?php endif; ?>
 
-<!-- Instant Inline Preloader for Admin Pages (Renders immediately upon HTML receipt) -->
-<div id="admin-page-preloader" style="position: fixed; inset: 0; z-index: 999999; background: var(--bg-main, #eef2f7); display: flex; align-items: center; justify-content: center; flex-direction: column; transition: opacity 0.3s ease, visibility 0.3s ease;">
-    <div style="background: var(--bg-card, #ffffff); border: 1px solid var(--border-color, rgba(226, 232, 240, 0.8)); border-radius: 24px; padding: 28px 36px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; box-shadow: 0 20px 40px rgba(0,0,0,0.15); max-width: 340px; width: 88%;">
-        <div style="position: relative; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center;">
-            <div style="position: absolute; inset: 0; border-radius: 50%; border: 3.5px solid rgba(2, 132, 199, 0.15); border-top-color: var(--color-primary, #0284c7); border-right-color: #38bdf8; animation: ringSpin 0.85s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite;"></div>
-            <span style="font-size: 26px; animation: iconPulse 1.5s ease-in-out infinite;">⚡</span>
-        </div>
-        <div>
-            <div style="font-size: 16px; font-weight: 800; color: var(--text-primary);">กำลังโหลดข้อมูล NCDs Portal</div>
-            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 3px;">กรุณารอสักครู่ ระบบกำลังจัดเตรียมข้อมูล...</div>
-        </div>
-        <div style="width: 100%; height: 5px; background: rgba(2, 132, 199, 0.12); border-radius: 9999px; overflow: hidden; margin-top: 4px; position: relative;">
-            <div style="position: absolute; height: 100%; width: 45%; background: linear-gradient(90deg, var(--color-primary, #0284c7), #38bdf8, #10b981); border-radius: 9999px; animation: shimmerSlide 1.3s ease-in-out infinite;"></div>
-        </div>
-    </div>
-</div>
-
 <div class="admin-navbar no-print">
     <a href="#" onclick="openDevModal(event)" class="admin-logo" style="display: flex; align-items: center; gap: 11px; text-decoration: none; cursor: pointer;" title="คลิกเพื่อดูรายละเอียดระบบและทีมพัฒนา">
         <img src="../assets/icon.png" alt="Logo" style="height: 44px; width: 44px; border-radius: 12px; flex-shrink: 0; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.1));">

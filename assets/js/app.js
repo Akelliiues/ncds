@@ -507,6 +507,8 @@ window.getDeterministicPrivacyJitter = function(lat, lng, seedStr) {
 // Universal NCDs Page Preloader & Loading Transition Engine
 // ==========================================================================
 (function() {
+    let safetyTimeout = null;
+
     // 1. Global showPageLoading
     window.showPageLoading = function(title, subtitle, icon, targetUrl) {
         let overlay = document.getElementById('page-loading-overlay');
@@ -548,6 +550,12 @@ window.getDeterministicPrivacyJitter = function(lat, lng, seedStr) {
             overlay.classList.add('active');
         });
 
+        // Safety Auto-Dismiss after 4.5 seconds to guarantee it NEVER freezes
+        if (safetyTimeout) clearTimeout(safetyTimeout);
+        safetyTimeout = setTimeout(() => {
+            window.hidePageLoading();
+        }, 4500);
+
         if (targetUrl) {
             setTimeout(() => {
                 window.location.href = targetUrl;
@@ -557,36 +565,36 @@ window.getDeterministicPrivacyJitter = function(lat, lng, seedStr) {
 
     // 2. Global hidePageLoading
     window.hidePageLoading = function() {
+        if (safetyTimeout) {
+            clearTimeout(safetyTimeout);
+            safetyTimeout = null;
+        }
         const overlay = document.getElementById('page-loading-overlay');
         if (overlay) {
             overlay.classList.remove('active');
             setTimeout(() => {
                 overlay.style.display = 'none';
-            }, 250);
+            }, 200);
         }
         const preloaders = document.querySelectorAll('#admin-page-preloader, #dashboard-preloader, #ncd-global-preloader');
         preloaders.forEach(preloader => {
             preloader.style.opacity = '0';
             preloader.style.visibility = 'hidden';
             setTimeout(() => {
-                if (preloader.parentNode) preloader.parentNode.removeChild(preloader);
-            }, 350);
+                if (preloader && preloader.parentNode) preloader.parentNode.removeChild(preloader);
+            }, 200);
         });
     };
 
-    // 3. Dismiss loader on load / pageshow (BFCache back navigation) / DOMContentLoaded
-    window.addEventListener('load', () => {
-        window.hidePageLoading();
-    });
+    // 3. Dismiss loader on load / pageshow / DOMContentLoaded
+    window.addEventListener('load', window.hidePageLoading);
+    window.addEventListener('pageshow', window.hidePageLoading);
+    document.addEventListener('DOMContentLoaded', window.hidePageLoading);
 
-    window.addEventListener('pageshow', (e) => {
-        window.hidePageLoading();
-    });
-
-    document.addEventListener('DOMContentLoaded', () => {
-        // Fast dismiss if page is already ready
-        setTimeout(window.hidePageLoading, 80);
-    });
+    // If script runs when document is already ready
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        setTimeout(window.hidePageLoading, 50);
+    }
 
     // 4. Automatic Form Submission Interception
     document.addEventListener('submit', (e) => {
