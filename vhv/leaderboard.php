@@ -995,13 +995,16 @@ try {
     <div class="mobile-wrapper" style="padding-bottom: 90px;">
         
         <!-- Header -->
-        <div class="vhv-header">
-            <h3 style="color: var(--color-accent); margin: 0; font-size: 16px; font-weight: 800;">
-                🏆 คะแนน & รางวัล อสม.
-            </h3>
-            <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 13px;">
-                จัดอันดับผลงาน & ศูนย์แลกของรางวัลในพื้นที่<?= DISTRICT_NAME ?>
-            </p>
+        <div class="vhv-header" style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; margin-bottom: 16px; border-radius: var(--border-radius); background: var(--bg-card); box-shadow: var(--neumorph-flat); text-align: left;">
+            <img src="../assets/icons/header_leaderboard_star.png" alt="คะแนน & รางวัล อสม." style="width: 56px; height: 56px; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 3px 8px rgba(226, 165, 30, 0.35));">
+            <div style="flex: 1; min-width: 0;">
+                <h3 style="color: var(--color-accent); margin: 0; font-size: 16.5px; font-weight: 800; line-height: 1.25;">
+                    คะแนน & รางวัล อสม.
+                </h3>
+                <p style="color: var(--text-secondary); margin: 3px 0 0 0; font-size: 12.5px; line-height: 1.35;">
+                    จัดอันดับผลงาน & ศูนย์แลกของรางวัลในพื้นที่<?= DISTRICT_NAME ?>
+                </p>
+            </div>
         </div>
 
         <!-- Main Mode Switcher: Leaderboard vs Rewards -->
@@ -1090,7 +1093,7 @@ try {
                 <?php if (!empty($villageStats)): ?>
                     <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
                         <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                            🏘️ สมรภูมิคัดกรองรายหมู่บ้าน
+                            สมรภูมิคัดกรองรายหมู่บ้าน
                         </h4>
                         <p style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 16px 0;">เปรียบเทียบอัตราความสำเร็จในการคัดกรองเป้าหมายในตำบลของคุณ</p>
                         <div style="display: flex; flex-direction: column; gap: 14px;">
@@ -1129,7 +1132,7 @@ try {
                 <?php if (!empty($hospitalStats)): ?>
                     <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
                         <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                            🏥 ลีกหน่วยบริการ รพ.สต. (ทั้งอำเภอ<?= DISTRICT_NAME ?>)
+                            ลีกหน่วยบริการ รพ.สต. (ทั้งอำเภอ<?= DISTRICT_NAME ?>)
                         </h4>
                         <p style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 16px 0;">อันดับอัตราการคัดกรองสูงสุดแยกตามเขตรับผิดชอบของแต่ละ รพ.สต.</p>
                         <div style="display: flex; flex-direction: column; gap: 14px;">
@@ -1174,7 +1177,7 @@ try {
             <div id="content-badges" class="tab-content" style="display: none;">
                 <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
                     <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                        🛡️ ตำนานตราเกียรติยศ (อสม. คัดกรองดีเด่น)
+                        ตำนานตราเกียรติยศ (อสม. คัดกรองดีเด่น)
                     </h4>
                     <div style="display: grid; grid-template-columns: 1fr; gap: 12px; font-size: 12px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
