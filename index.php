@@ -89,11 +89,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Fallback checks (if database query didn't match or failed)
         if (!$is_admin && empty($error)) {
-            if (strtolower($username) === 'visitor' && $password === '123456') {
+            if (in_array(strtolower($username), ['visitor', 'executive']) && $password === '123456') {
                 $_SESSION['admin_logged_in'] = true;
-                $_SESSION['admin_username'] = 'visitor';
+                $_SESSION['admin_username'] = strtolower($username);
                 $_SESSION['admin_hoscode'] = null; // แอดมินหลัก (เข้าดูได้ทุก รพ.สต.)
+                $_SESSION['is_executive'] = true;
                 $_SESSION['is_visitor'] = true;
+                $_SESSION['admin_role'] = 'executive';
                 header("Location: admin/index.php");
                 exit();
             }
@@ -105,6 +107,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['admin_logged_in'] = true;
             $_SESSION['admin_username'] = strtolower($username);
             $_SESSION['admin_hoscode'] = $admin_hoscode;
+
+            // Determine if executive role
+            if ((isset($admin_db['role']) && $admin_db['role'] === 'executive') || in_array(strtolower($username), ['executive', 'visitor'])) {
+                $_SESSION['is_executive'] = true;
+                $_SESSION['is_visitor'] = true;
+                $_SESSION['admin_role'] = 'executive';
+            } else {
+                $_SESSION['is_executive'] = false;
+                $_SESSION['is_visitor'] = false;
+                $_SESSION['admin_role'] = 'admin';
+            }
+
             header("Location: admin/index.php");
             exit();
         } else {

@@ -280,9 +280,9 @@ try {
         transform: translateY(-1px);
     }
 </style>
-<?php if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true): ?>
-    <div class="no-print" style="background: linear-gradient(90deg, #f59e0b, #d97706); color: white; text-align: center; padding: 10px 20px; font-weight: 800; font-size: 14px; letter-spacing: 0.5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 0 0 12px 12px; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; animation: slideDown 0.5s ease;">
-        <span>👁️ <strong>ระบบอยู่ในโหมดผู้มาเยือน (Visitor Mode - Read Only)</strong> : คุณสามารถเรียกดูสถิติและข้อมูลต่างๆ ได้ครบถ้วน แต่จะไม่สามารถเพิ่ม แก้ไข ลบข้อมูล หรือประมวลผลระบบได้</span>
+<?php if (function_exists('isExecutiveMode') ? isExecutiveMode() : (!empty($_SESSION['is_visitor']) || !empty($_SESSION['is_executive']))): ?>
+    <div class="no-print" style="background: linear-gradient(90deg, #065f46, #047857, #0d9488); color: white; text-align: center; padding: 10px 20px; font-weight: 800; font-size: 13.5px; letter-spacing: 0.3px; box-shadow: 0 4px 12px rgba(6, 95, 70, 0.25); border-radius: 0 0 14px 14px; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; animation: slideDown 0.4s ease;">
+        <span>👔 <strong>ระบบอยู่ในโหมดผู้บริหาร (Executive Read-Only)</strong> : ข้อมูลส่วนบุคคลถูกปกปิดตามหลัก PDPA คุณสามารถดูสถิติ กราฟ และรายงานได้ครบถ้วน</span>
     </div>
     <style>
         @keyframes slideDown {
@@ -297,14 +297,14 @@ try {
             }
         }
 
-        /* Disable submit and action buttons visually for visitor */
-        button[type="submit"],
-        input[type="submit"],
+        /* Disable submit and action buttons visually for executive / visitor */
+        button[type="submit"]:not(.btn-allowed-search),
+        input[type="submit"]:not(.btn-allowed-search),
         .btn-danger,
         .btn-action,
         .btn-save,
         .admin-btn-action,
-        form button,
+        form:not([method="GET"]) button,
         .button-action,
         button.numpad-btn {
             opacity: 0.65;
@@ -320,9 +320,9 @@ try {
         <div style="display: flex; flex-direction: column; justify-content: center;">
             <div style="display: flex; align-items: center; gap: 6px; line-height: 1.15;">
                 <span style="font-size: 18.5px; font-weight: 900; color: var(--color-primary); letter-spacing: -0.2px;">NCDs Portal</span>
-                <?php if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true): ?>
-                    <span style="background-color: rgba(245, 158, 11, 0.15); color: #d97706; border: 1.5px solid rgba(217, 119, 6, 0.4); padding: 2px 7px; border-radius: 50px; font-size: 10px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px; box-shadow: inset 1px 1px 2px rgba(0,0,0,0.05);">
-                        👁️ ผู้มาเยือน
+                <?php if (function_exists('isExecutiveMode') ? isExecutiveMode() : (!empty($_SESSION['is_visitor']) || !empty($_SESSION['is_executive']))): ?>
+                    <span style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(59, 130, 246, 0.15)); color: #059669; border: 1.5px solid rgba(16, 185, 129, 0.4); padding: 2px 8px; border-radius: 50px; font-size: 10.5px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+                        👔 ผู้บริหาร (Read-Only)
                     </span>
                 <?php endif; ?>
             </div>

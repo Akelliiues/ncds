@@ -39,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $admin_name = trim($_POST['admin_name'] ?? '');
             $hoscode = trim($_POST['hoscode'] ?? '');
             $password = trim($_POST['password'] ?? '');
+            $role = trim($_POST['role'] ?? 'admin');
 
             if (empty($hoscode)) {
                 $hoscode = null;
@@ -60,14 +61,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
 
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $pdo->prepare("INSERT INTO admin_users (username, password_hash, hoscode, admin_name, status) VALUES (?, ?, ?, ?, 'active')");
-            $stmt->execute([$new_username, $password_hash, $hoscode, $admin_name]);
+            $stmt = $pdo->prepare("INSERT INTO admin_users (username, password_hash, hoscode, admin_name, status, role) VALUES (?, ?, ?, ?, 'active', ?)");
+            $stmt->execute([$new_username, $password_hash, $hoscode, $admin_name, $role]);
             $message = "เพิ่มผู้ใช้งานระบบ '$new_username' เรียบร้อยแล้ว";
         } elseif ($action === 'edit') {
             $edit_username = strtolower(trim($_POST['username'] ?? ''));
             $admin_name = trim($_POST['admin_name'] ?? '');
             $hoscode = trim($_POST['hoscode'] ?? '');
             $password = trim($_POST['password'] ?? '');
+            $role = trim($_POST['role'] ?? 'admin');
 
             if (empty($hoscode)) {
                 $hoscode = null;
@@ -79,11 +81,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
             if (!empty($password)) {
                 $password_hash = password_hash($password, PASSWORD_DEFAULT);
-                $stmt = $pdo->prepare("UPDATE admin_users SET admin_name = ?, hoscode = ?, password_hash = ? WHERE username = ?");
-                $stmt->execute([$admin_name, $hoscode, $password_hash, $edit_username]);
+                $stmt = $pdo->prepare("UPDATE admin_users SET admin_name = ?, hoscode = ?, role = ?, password_hash = ? WHERE username = ?");
+                $stmt->execute([$admin_name, $hoscode, $role, $password_hash, $edit_username]);
             } else {
-                $stmt = $pdo->prepare("UPDATE admin_users SET admin_name = ?, hoscode = ? WHERE username = ?");
-                $stmt->execute([$admin_name, $hoscode, $edit_username]);
+                $stmt = $pdo->prepare("UPDATE admin_users SET admin_name = ?, hoscode = ?, role = ? WHERE username = ?");
+                $stmt->execute([$admin_name, $hoscode, $role, $edit_username]);
             }
             $message = "แก้ไขข้อมูลผู้ใช้งาน '$edit_username' เรียบร้อยแล้ว";
         } elseif ($action === 'suspend') {
@@ -122,10 +124,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 try {
     $search = trim($_GET['search'] ?? '');
     if (!empty($search)) {
-        $stmt = $pdo->prepare("SELECT username, hoscode, admin_name, status FROM admin_users WHERE username LIKE ? OR admin_name LIKE ? ORDER BY username ASC");
+        $stmt = $pdo->prepare("SELECT username, hoscode, admin_name, status, COALESCE(role, 'admin') as role FROM admin_users WHERE username LIKE ? OR admin_name LIKE ? ORDER BY username ASC");
         $stmt->execute(["%$search%", "%$search%"]);
     } else {
-        $stmt = $pdo->query("SELECT username, hoscode, admin_name, status FROM admin_users ORDER BY username ASC");
+        $stmt = $pdo->query("SELECT username, hoscode, admin_name, status, COALESCE(role, 'admin') as role FROM admin_users ORDER BY username ASC");
     }
     $users = $stmt->fetchAll();
 } catch (PDOException $e) {
@@ -330,14 +332,15 @@ try {
                             <th>ชื่อผู้ใช้งาน (Username)</th>
                             <th>ชื่อ - นามสกุล</th>
                             <th>สังกัดหน่วยบริการ (HOSCODE)</th>
-                            <th style="width: 130px; text-align: center;">สถานะ</th>
+                            <th style="width: 150px; text-align: center;">บทบาท / สิทธิ์</th>
+                            <th style="width: 120px; text-align: center;">สถานะ</th>
                             <th style="width: 180px; text-align: center;">จัดการ</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($users)): ?>
                             <tr>
-                                <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 30px;">ไม่พบข้อมูลผู้ใช้งานระบบ</td>
+                                <td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 30px;">ไม่พบข้อมูลผู้ใช้งานระบบ</td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($users as $user): ?>
@@ -349,6 +352,17 @@ try {
                                             <span style="color: var(--color-accent); font-weight: bold;">แอดมินหลัก / สสอ. (ทั้งหมด)</span>
                                         <?php else: ?>
                                             <?= htmlspecialchars($hc_names[$user['hoscode']] ?? $user['hoscode']) ?> (<?= htmlspecialchars($user['hoscode']) ?>)
+                                        <?php endif; ?>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <?php if (($user['role'] ?? 'admin') === 'executive'): ?>
+                                            <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; border: 1.5px solid rgba(16, 185, 129, 0.35); font-weight: 800; border-radius: 50px; padding: 3px 10px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
+                                                👔 ผู้บริหาร (Read-Only)
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge" style="background: rgba(59, 130, 246, 0.1); color: var(--color-accent); border: 1.5px solid rgba(59, 130, 246, 0.3); font-weight: 800; border-radius: 50px; padding: 3px 10px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
+                                                🛠️ ผู้ดูแลระบบ
+                                            </span>
                                         <?php endif; ?>
                                     </td>
                                     <td style="text-align: center;">
@@ -390,7 +404,8 @@ try {
                                                 $userJson = htmlspecialchars(json_encode([
                                                     'username' => $user['username'],
                                                     'admin_name' => $user['admin_name'],
-                                                    'hoscode' => $user['hoscode']
+                                                    'hoscode' => $user['hoscode'],
+                                                    'role' => $user['role'] ?? 'admin'
                                                 ]), ENT_QUOTES, 'UTF-8');
                                             ?>
                                             <button type="button" class="action-btn edit" title="แก้ไขข้อมูล" onclick="openEditModal(<?= $userJson ?>)">
@@ -447,6 +462,14 @@ try {
                     <input type="password" name="password" id="modal_add_password" class="form-input-text" style="box-shadow: var(--neumorph-inset); text-align: left;" placeholder="รหัสผ่านเริ่มต้น" required autocomplete="new-password">
                 </div>
 
+                <div class="modal-form-group">
+                    <label for="modal_add_role" class="modal-form-label">ประเภทบทบาทการใช้งาน (Role)</label>
+                    <select name="role" id="modal_add_role" class="form-select" style="box-shadow: var(--neumorph-inset);">
+                        <option value="admin">🛠️ ผู้ดูแลระบบ (จัดการข้อมูลและสั่งประมวลผลได้)</option>
+                        <option value="executive">👔 ผู้บริหาร / ผู้ตรวจประเมิน (Read-Only & ปกปิดข้อมูลส่วนบุคคล PDPA)</option>
+                    </select>
+                </div>
+
                 <div class="modal-form-group" style="margin-bottom: 28px;">
                     <label for="modal_add_hoscode" class="modal-form-label">สังกัดหน่วยบริการ / รพ.สต.</label>
                     <select name="hoscode" id="modal_add_hoscode" class="form-select" style="box-shadow: var(--neumorph-inset);">
@@ -495,6 +518,14 @@ try {
                     <input type="password" name="password" id="modal_edit_password" class="form-input-text" style="box-shadow: var(--neumorph-inset); text-align: left;" placeholder="ระบุรหัสผ่านใหม่" autocomplete="new-password">
                 </div>
 
+                <div class="modal-form-group">
+                    <label for="modal_edit_role" class="modal-form-label">ประเภทบทบาทการใช้งาน (Role)</label>
+                    <select name="role" id="modal_edit_role" class="form-select" style="box-shadow: var(--neumorph-inset);">
+                        <option value="admin">🛠️ ผู้ดูแลระบบ (จัดการข้อมูลและสั่งประมวลผลได้)</option>
+                        <option value="executive">👔 ผู้บริหาร / ผู้ตรวจประเมิน (Read-Only & ปกปิดข้อมูลส่วนบุคคล PDPA)</option>
+                    </select>
+                </div>
+
                 <div class="modal-form-group" style="margin-bottom: 28px;">
                     <label for="modal_edit_hoscode" class="modal-form-label">สังกัดหน่วยบริการ / รพ.สต.</label>
                     <select name="hoscode" id="modal_edit_hoscode" class="form-select" style="box-shadow: var(--neumorph-inset);">
@@ -533,8 +564,9 @@ try {
         function openEditModal(user) {
             document.getElementById('modal_edit_username').value = user.username;
             document.getElementById('modal_edit_username_display').value = user.username;
-            document.getElementById('modal_edit_admin_name').value = user.admin_name;
+            document.getElementById('modal_edit_admin_name').value = user.admin_name || '';
             document.getElementById('modal_edit_hoscode').value = user.hoscode || '';
+            document.getElementById('modal_edit_role').value = user.role || 'admin';
             document.getElementById('modal_edit_password').value = '';
             document.getElementById('editModal').style.display = 'flex';
         }

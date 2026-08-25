@@ -4,77 +4,108 @@ require_once __DIR__ . '/line_config.php';
 require_once __DIR__ . '/icons.php';
 
 // ==========================================
-// Visitor Mode: Data Masking & Security Interceptor
+// Executive / Visitor Mode: Enhanced PDPA Masking & Security Interceptor
 // ==========================================
+
+if (!function_exists('isExecutiveMode')) {
+    function isExecutiveMode()
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) return false;
+        return (!empty($_SESSION['is_executive']) || !empty($_SESSION['is_visitor']) || (isset($_SESSION['admin_role']) && in_array($_SESSION['admin_role'], ['executive', 'viewer', 'auditor'])));
+    }
+}
 
 if (!function_exists('maskRowData')) {
     function maskRowData(&$row)
     {
-        if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
+        if (isExecutiveMode()) {
             if ($row === null) return;
             
-            $nameKeys = ['first_name', 'last_name', 'vhv_name', 'admin_name'];
-            $cidKeys = ['cid', 'target_cid', 'vhv_id'];
-            $telKeys = ['tel', 'telephone', 'phone_number'];
+            $nameKeys = [
+                'first_name', 'last_name', 'vhv_name', 'admin_name', 'patient_name',
+                'fullname', 'head_name', 'name', 'fname', 'lname', 'reporter_name',
+                'assessor_name', 'user_fullname', 'creator_name', 'updater_name', 'user_name'
+            ];
+            $cidKeys = [
+                'cid', 'target_cid', 'vhv_id', 'pid', 'person_id', 'idcard', 'id_card',
+                'patient_cid', 'citizen_id', 'id_card_no', 'leader_cid'
+            ];
+            $telKeys = [
+                'tel', 'telephone', 'phone_number', 'phone', 'mobile', 'contact_tel',
+                'contact_phone', 'tel_no', 'vhv_phone', 'patient_tel'
+            ];
             
+            $prefixes = ['นาย', 'นาง', 'น.ส.', 'นางสาว', 'ด.ช.', 'ด.ญ.', 'ดร.', 'นพ.', 'พญ.', 'ทพ.', 'ภก.', 'อสม.'];
+
+            $maskThaiWord = function ($w) use ($prefixes) {
+                $w = trim($w);
+                if ($w === '') return '';
+                if (in_array($w, $prefixes)) return $w;
+                $len = mb_strlen($w, 'UTF-8');
+                if ($len <= 2) {
+                    return mb_substr($w, 0, 1, 'UTF-8') . '*';
+                } elseif ($len <= 4) {
+                    return mb_substr($w, 0, 2, 'UTF-8') . '**';
+                } else {
+                    return mb_substr($w, 0, 2, 'UTF-8') . '***';
+                }
+            };
+
+            $maskNameVal = function ($valStr) use ($maskThaiWord) {
+                $words = preg_split('/\s+/', trim((string)$valStr));
+                if (empty($words)) return $valStr;
+                $maskedWords = array_map($maskThaiWord, $words);
+                return implode(' ', $maskedWords);
+            };
+
+            $maskCidVal = function ($valStr) {
+                $digits = preg_replace('/\D/', '', (string)$valStr);
+                if (strlen($digits) === 13) {
+                    return substr($digits, 0, 1) . '-' . substr($digits, 1, 2) . 'XX-XXXXX-XX-' . substr($digits, -1);
+                } elseif (strlen($valStr) > 4) {
+                    return substr($valStr, 0, min(3, strlen($valStr))) . '******' . substr($valStr, -2);
+                }
+                return $valStr;
+            };
+
+            $maskTelVal = function ($valStr) {
+                $digits = preg_replace('/\D/', '', (string)$valStr);
+                if (strlen($digits) === 10) {
+                    return substr($digits, 0, 3) . '-XXX-' . substr($digits, -3);
+                } elseif (strlen($digits) === 9) {
+                    return substr($digits, 0, 2) . '-XXX-' . substr($digits, -3);
+                } elseif (strlen($valStr) >= 4) {
+                    return substr($valStr, 0, 3) . '***' . substr($valStr, -2);
+                }
+                return $valStr;
+            };
+
             if (is_array($row)) {
                 foreach ($row as $key => $val) {
                     if ($val === null || $val === '') continue;
-                    
-                    if (in_array($key, $nameKeys)) {
-                        $valStr = trim((string)$val);
-                        $len = mb_strlen($valStr);
-                        if ($len <= 2) {
-                            $row[$key] = mb_substr($valStr, 0, 1) . '*';
-                        } else {
-                            $row[$key] = mb_substr($valStr, 0, 2) . str_repeat('*', min(4, $len - 2));
-                        }
-                    } elseif (in_array($key, $cidKeys)) {
-                        $valStr = trim((string)$val);
-                        if (strlen($valStr) === 13) {
-                            $row[$key] = substr($valStr, 0, 3) . '-XXXX-XXXX-' . substr($valStr, -2);
-                        } else {
-                            $row[$key] = substr($valStr, 0, min(3, strlen($valStr))) . str_repeat('X', min(5, max(0, strlen($valStr) - 5))) . substr($valStr, -2);
-                        }
-                    } elseif (in_array($key, $telKeys)) {
-                        $valStr = trim((string)$val);
-                        if (strlen($valStr) >= 9) {
-                            $row[$key] = substr($valStr, 0, 3) . '-XXX-' . substr($valStr, -3);
-                        } else {
-                            $row[$key] = substr($valStr, 0, 3) . 'XXX';
-                        }
+                    $keyLower = strtolower($key);
+                    if (in_array($keyLower, $nameKeys)) {
+                        $row[$key] = $maskNameVal((string)$val);
+                    } elseif (in_array($keyLower, $cidKeys)) {
+                        $row[$key] = $maskCidVal((string)$val);
+                    } elseif (in_array($keyLower, $telKeys)) {
+                        $row[$key] = $maskTelVal((string)$val);
                     }
                 }
             } elseif (is_object($row)) {
                 foreach ($nameKeys as $key) {
                     if (isset($row->$key) && $row->$key !== null && $row->$key !== '') {
-                        $valStr = trim((string)$row->$key);
-                        $len = mb_strlen($valStr);
-                        if ($len <= 2) {
-                            $row->$key = mb_substr($valStr, 0, 1) . '*';
-                        } else {
-                            $row->$key = mb_substr($valStr, 0, 2) . str_repeat('*', min(4, $len - 2));
-                        }
+                        $row->$key = $maskNameVal((string)$row->$key);
                     }
                 }
                 foreach ($cidKeys as $key) {
                     if (isset($row->$key) && $row->$key !== null && $row->$key !== '') {
-                        $valStr = trim((string)$row->$key);
-                        if (strlen($valStr) === 13) {
-                            $row->$key = substr($valStr, 0, 3) . '-XXXX-XXXX-' . substr($valStr, -2);
-                        } else {
-                            $row->$key = substr($valStr, 0, min(3, strlen($valStr))) . str_repeat('X', min(5, max(0, strlen($valStr) - 5))) . substr($valStr, -2);
-                        }
+                        $row->$key = $maskCidVal((string)$row->$key);
                     }
                 }
                 foreach ($telKeys as $key) {
                     if (isset($row->$key) && $row->$key !== null && $row->$key !== '') {
-                        $valStr = trim((string)$row->$key);
-                        if (strlen($valStr) >= 9) {
-                            $row->$key = substr($valStr, 0, 3) . '-XXX-' . substr($valStr, -3);
-                        } else {
-                            $row->$key = substr($valStr, 0, 3) . 'XXX';
-                        }
+                        $row->$key = $maskTelVal((string)$row->$key);
                     }
                 }
             }
@@ -164,9 +195,9 @@ if (!class_exists('VisitorMaskPDOStatement')) {
     }
 }
 
-// Visitor Security Interceptor: Block DB Modification Requests (POST or GET destructive parameters)
-if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['reset']) || (isset($_GET['action']) && in_array($_GET['action'], ['delete', 'reset', 'clear', 'remove', 'seed', 'approve', 'reject', 'disapprove']))) {
+// Executive / Visitor Security Interceptor: Block DB Modification Requests (POST or GET destructive parameters)
+if (function_exists('isExecutiveMode') && isExecutiveMode()) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['reset']) || (isset($_GET['action']) && in_array($_GET['action'], ['delete', 'reset', 'clear', 'remove', 'seed', 'approve', 'reject', 'disapprove', 'sync', 'etl', 'save', 'update']))) {
         // Check if AJAX request (JSON format expected)
         $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') || 
                   (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
@@ -175,12 +206,13 @@ if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION['is_visitor']) &&
             header('Content-Type: application/json; charset=utf-8');
             echo json_encode([
                 'status' => 'error',
-                'message' => 'ผู้มาเยือน (Visitor) ไม่สามารถเพิ่ม แก้ไข หรือลบข้อมูลได้'
+                'success' => false,
+                'message' => '🔒 โหมดผู้บริหาร (Executive Read-Only): สำหรับการเข้าชมและตรวจสอบระบบ ข้อมูลส่วนบุคคลจะถูกปกปิดตามหลัก PDPA และไม่สามารถประมวลผลหรือแก้ไขข้อมูลได้'
             ], JSON_UNESCAPED_UNICODE);
             exit();
         } else {
             echo "<script>
-                alert('ผู้มาเยือน (Visitor) ไม่สามารถเพิ่ม แก้ไข หรือลบข้อมูลได้');
+                alert('🔒 โหมดผู้บริหาร (Executive Read-Only):\\nสำหรับการเข้าชมและตรวจสอบระบบ ข้อมูลส่วนบุคคลจะถูกปกปิดตามหลัก PDPA และไม่สามารถประมวลผลหรือแก้ไขข้อมูลได้');
                 window.history.back();
             </script>";
             exit();
@@ -854,11 +886,15 @@ try {
         `admin_name` VARCHAR(100) DEFAULT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
 
-    // Auto-migration: Add status column to admin_users if it doesn't exist
+    // Auto-migration: Add status and role columns to admin_users if they don't exist
     try {
         $checkStatus = $pdo->query("SHOW COLUMNS FROM `admin_users` LIKE 'status'");
         if ($checkStatus->rowCount() === 0) {
             $pdo->exec("ALTER TABLE `admin_users` ADD COLUMN `status` VARCHAR(20) NOT NULL DEFAULT 'active'");
+        }
+        $checkRole = $pdo->query("SHOW COLUMNS FROM `admin_users` LIKE 'role'");
+        if ($checkRole->rowCount() === 0) {
+            $pdo->exec("ALTER TABLE `admin_users` ADD COLUMN `role` VARCHAR(30) NOT NULL DEFAULT 'admin'");
         }
     } catch (\PDOException $e) {
         // Fail silently
@@ -868,7 +904,7 @@ try {
     $count = $pdo->query("SELECT COUNT(*) FROM `admin_users`")->fetchColumn();
     if ($count == 0) {
         $defaultPasswordHash = password_hash('Prevention2026', PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare("INSERT INTO `admin_users` (username, password_hash, hoscode, admin_name) VALUES (?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO `admin_users` (username, password_hash, hoscode, admin_name, role) VALUES (?, ?, ?, ?, 'admin')");
 
         // Main Admin
         $stmt->execute(['admin', $defaultPasswordHash, null, 'ผู้ดูแลระบบหลัก']);
@@ -895,8 +931,17 @@ try {
     $checkSso->execute(['adminsso']);
     if ($checkSso->fetchColumn() == 0) {
         $ssoPasswordHash = password_hash('123456', PASSWORD_DEFAULT);
-        $insertSso = $pdo->prepare("INSERT INTO `admin_users` (username, password_hash, hoscode, admin_name) VALUES (?, ?, ?, ?)");
+        $insertSso = $pdo->prepare("INSERT INTO `admin_users` (username, password_hash, hoscode, admin_name, role) VALUES (?, ?, ?, ?, 'admin')");
         $insertSso->execute(['adminsso', $ssoPasswordHash, null, 'ผู้รับผิดชอบงานระดับอำเภอ']);
+    }
+
+    // Seed executive if not exists
+    $checkExec = $pdo->prepare("SELECT COUNT(*) FROM `admin_users` WHERE username = ?");
+    $checkExec->execute(['executive']);
+    if ($checkExec->fetchColumn() == 0) {
+        $execPasswordHash = password_hash('123456', PASSWORD_DEFAULT);
+        $insertExec = $pdo->prepare("INSERT INTO `admin_users` (username, password_hash, hoscode, admin_name, status, role) VALUES (?, ?, ?, ?, 'active', 'executive')");
+        $insertExec->execute(['executive', $execPasswordHash, null, 'ผู้บริหาร / ผู้ตรวจประเมิน']);
     }
 
     // Auto-create health_units table if it doesn't exist
