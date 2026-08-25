@@ -197,9 +197,10 @@ if (DemoDataProvider::isDemoMode()) {
             display: flex;
             background-color: var(--bg-card);
             border-radius: var(--border-radius);
-            padding: 6px;
+            padding: 4px;
             margin-bottom: 20px;
             box-shadow: var(--neumorph-inset);
+            gap: 2px;
 
             /* Prevent accessibility text scaling from breaking main tab selectors */
             text-size-adjust: none;
@@ -212,15 +213,16 @@ if (DemoDataProvider::isDemoMode()) {
             background: none;
             border: none;
             color: var(--text-secondary);
-            font-size: 15px;
+            font-size: clamp(11.5px, 3.2vw, 13.5px);
             font-weight: 800;
-            padding: 12px 6px;
+            padding: 10px 2px;
             cursor: pointer;
             border-radius: calc(var(--border-radius) - 6px);
             transition: all var(--transition-speed);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            text-align: center;
         }
         .tab-btn.active {
             background-color: var(--bg-main);
@@ -351,7 +353,7 @@ if (DemoDataProvider::isDemoMode()) {
                             🔔
                             <span id="unread-msg-badge" style="display:none; position:absolute; top:-4px; right:-4px; background:#EF4444; color:white; font-size:9px; font-weight:800; border-radius:50%; width:16px; height:16px; line-height:16px; text-align:center;">0</span>
                         </button>
-                        <button type="button" onclick="openManualTab()" style="color: var(--color-accent); font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px; background: rgba(30, 64, 175, 0.08); padding: 3px 8px; border-radius: 50px; white-space: nowrap; border: none; cursor: pointer;">
+                        <button type="button" onclick="switchTab('manual-list', document.getElementById('tab-btn-manual'))" style="color: var(--color-accent); font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px; background: rgba(30, 64, 175, 0.08); padding: 3px 8px; border-radius: 50px; white-space: nowrap; border: none; cursor: pointer;">
                             📖 คู่มือ
                         </button>
                     </div>
@@ -438,6 +440,9 @@ if (DemoDataProvider::isDemoMode()) {
             </button>
             <button class="tab-btn" id="tab-btn-completed" onclick="switchTab('completed-list', this)">
                 เสร็จสิ้น/ข้าม (<?= count($completedTasks) + count($completedDpacTasks) ?>)
+            </button>
+            <button class="tab-btn" id="tab-btn-manual" onclick="switchTab('manual-list', this)" style="color: var(--color-accent);">
+                📖 คู่มือ
             </button>
         </div>
 
@@ -634,9 +639,154 @@ if (DemoDataProvider::isDemoMode()) {
             <?php endif; ?>
         </div>
 
-        <!-- User Manual Tab Content -->
-        <div id="manual-tab" class="tab-content" style="display: none;">
-            <?php include __DIR__ . '/manual_partial.php'; ?>
+        <!-- Pure Manual Content Tab -->
+        <div id="manual-list" class="tab-content" style="display: none;">
+            <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 10px;">
+
+                <!-- 1. การติดตั้งแอป -->
+                <details style="background: var(--bg-card); border-radius: 16px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color); overflow: hidden;">
+                    <summary style="padding: 14px 16px; font-weight: 800; font-size: 14.5px; color: var(--text-primary); cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; user-select: none;">
+                        <span style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 18px;">📲</span>
+                            <span>1. การติดตั้งแอป "NCDs Portal" ลงมือถือ</span>
+                        </span>
+                        <span style="font-size: 12px; color: var(--color-accent);">▼</span>
+                    </summary>
+                    <div style="padding: 0 16px 16px 16px; font-size: 13px; line-height: 1.6; color: var(--text-secondary); border-top: 1px solid var(--border-color); padding-top: 12px;">
+                        <p style="margin: 0 0 8px 0;">แอป NCDs Portal เป็นระบบ Progressive Web App (PWA) ติดตั้งได้ฟรี ทันที ไม่มีไฟล์หนัก:</p>
+                        <div style="background: rgba(59, 130, 246, 0.08); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; border-left: 3px solid #3b82f6;">
+                            <strong style="color: var(--text-primary); display: block; margin-bottom: 2px;">🤖 มือถือ Android (Google Chrome):</strong>
+                            แตะที่รูปโลโก้หน้าหลัก หรือกดปุ่ม 3 จุดมุมขวาบนของ Chrome แล้วเลือก <strong>"ติดตั้งแอป" (Install App)</strong> หรือ "เพิ่มลงในหน้าจอหลัก"
+                        </div>
+                        <div style="background: rgba(16, 185, 129, 0.08); border-radius: 12px; padding: 10px 12px; border-left: 3px solid #10b981;">
+                            <strong style="color: var(--text-primary); display: block; margin-bottom: 2px;">🍎 iPhone / iPad (Safari):</strong>
+                            กดปุ่ม <strong>แชร์ (Share ⎋)</strong> ด้านล่างจอ แล้วเลือก <strong>"เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen ⊞)</strong>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- 2. การตรวจคัดกรองสุขภาพ (สำหรับ อสม.) -->
+                <details style="background: var(--bg-card); border-radius: 16px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color); overflow: hidden;">
+                    <summary style="padding: 14px 16px; font-weight: 800; font-size: 14.5px; color: var(--text-primary); cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; user-select: none;">
+                        <span style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 18px;">🩺</span>
+                            <span>2. การตรวจคัดกรองสุขภาพ (สำหรับ อสม.)</span>
+                        </span>
+                        <span style="font-size: 12px; color: var(--color-accent);">▼</span>
+                    </summary>
+                    <div style="padding: 0 16px 16px 16px; font-size: 13px; line-height: 1.6; color: var(--text-secondary); border-top: 1px solid var(--border-color); padding-top: 12px;">
+                        <ol style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px;">
+                            <li><strong>สแกนบ้าน หรือเลือกงานค้าง:</strong> กดปุ่ม "สแกนบ้าน" เพื่อสแกน QR Code หน้าบ้าน หรือแตะรายชื่อในแท็บ "งานค้าง"</li>
+                            <li><strong>ป้อนค่าวัดด้วยแป้น Numpad:</strong> กรอกน้ำหนัก ส่วนสูง รอบเอว ความดันโลหิต (SYS/DIA) และค่าน้ำตาลปลายนิ้ว (DTX) ได้สะดวกรวดเร็ว</li>
+                            <li><strong>บันทึก & รับแต้ม:</strong> กดบันทึกเพื่อประเมินผลและรับแต้มสะสมทันที (ทั่วไป 10 แต้ม, เสี่ยงสูง 15 แต้ม)</li>
+                        </ol>
+                    </div>
+                </details>
+
+                <!-- 3. ระบบโค้ชเสียงพูดแนะนำสุขภาพ -->
+                <details style="background: var(--bg-card); border-radius: 16px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color); overflow: hidden;">
+                    <summary style="padding: 14px 16px; font-weight: 800; font-size: 14.5px; color: var(--text-primary); cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; user-select: none;">
+                        <span style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 18px;">🎙️</span>
+                            <span>3. โค้ชเสียงพูดแนะนำสุขภาพ (Voice Coach)</span>
+                        </span>
+                        <span style="font-size: 12px; color: var(--color-accent);">▼</span>
+                    </summary>
+                    <div style="padding: 0 16px 16px 16px; font-size: 13px; line-height: 1.6; color: var(--text-secondary); border-top: 1px solid var(--border-color); padding-top: 12px;">
+                        <p style="margin: 0 0 6px 0;">หลังบันทึกคัดกรองเสร็จ ให้แตะปุ่มสีเขียว <strong>"เปิดเสียงคุณหมอสรุปผล"</strong> เพื่อให้ระบบอ่านสรุปผลตรวจและคำแนะนำให้ชาวบ้านฟังทันที</p>
+                        <p style="margin: 0; color: #d97706; font-weight: 700;">⚠️ ระบบจะเตือนอาหารโซเดียมสูงเฉพาะถิ่นตาลสุม เช่น น้ำปลาร้าต้มสุก, แจ่วบอง, แกงหน่อไม้, และแกงอ่อม</p>
+                    </div>
+                </details>
+
+                <!-- 4. งานติดตามปรับเปลี่ยนพฤติกรรม DPAC (3 รอบ) -->
+                <details style="background: var(--bg-card); border-radius: 16px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color); overflow: hidden;">
+                    <summary style="padding: 14px 16px; font-weight: 800; font-size: 14.5px; color: var(--text-primary); cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; user-select: none;">
+                        <span style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 18px;">❤️</span>
+                            <span>4. งานติดตามปรับเปลี่ยนพฤติกรรม (DPAC 3 รอบ)</span>
+                        </span>
+                        <span style="font-size: 12px; color: var(--color-accent);">▼</span>
+                    </summary>
+                    <div style="padding: 0 16px 16px 16px; font-size: 13px; line-height: 1.6; color: var(--text-secondary); border-top: 1px solid var(--border-color); padding-top: 12px;">
+                        <p style="margin: 0 0 6px 0;">สำหรับกลุ่มเสี่ยงเบาหวาน/ความดัน ระบบจะสร้างงานติดตาม DPAC 3 ครั้ง (รอบ 1, 2, 3) ในแท็บ <strong>"DPAC"</strong></p>
+                        <ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px;">
+                            <li>ติดตามพฤติกรรม 3อ. 2ส. (อาหาร, ออกกำลังกาย, อารมณ์, บุหรี่, สุรา)</li>
+                            <li>หากเป้าหมายไม่อยู่บ้าน สามารถกด <strong>"ข้ามชั่วคราว"</strong> ได้สูงสุด 3 ครั้ง เพื่อติดตามใหม่ภายหลัง</li>
+                        </ul>
+                    </div>
+                </details>
+
+                <!-- 5. การแจ้งเหตุวิกฤตด่วน Red Alert Fast-Track -->
+                <details style="background: var(--bg-card); border-radius: 16px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color); overflow: hidden;">
+                    <summary style="padding: 14px 16px; font-weight: 800; font-size: 14.5px; color: var(--text-primary); cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; user-select: none;">
+                        <span style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 18px;">🚨</span>
+                            <span>5. การแจ้งเหตุวิกฤตด่วน (Red Alert Fast-Track)</span>
+                        </span>
+                        <span style="font-size: 12px; color: var(--color-accent);">▼</span>
+                    </summary>
+                    <div style="padding: 0 16px 16px 16px; font-size: 13px; line-height: 1.6; color: var(--text-secondary); border-top: 1px solid var(--border-color); padding-top: 12px;">
+                        <div style="background: rgba(239, 68, 68, 0.08); border-radius: 12px; padding: 10px 12px; border-left: 3px solid #ef4444; margin-bottom: 8px;">
+                            <strong style="color: #dc2626; display: block; margin-bottom: 2px;">เกณฑ์ค่าวัดวิกฤต (Crisis Threshold):</strong>
+                            • ความดัน SYS ≥ 180 หรือ DIA ≥ 110 mmHg<br>
+                            • น้ำตาล DTX / FBS ≥ 200 mg/dL
+                        </div>
+                        <p style="margin: 0;">ระบบจะส่งเสียงไซเรนฉุกเฉินไปยัง รพ.สต. และโรงพยาบาลตาลสุม พร้อมปุ่มโทรด่วน <strong>1669</strong> และเบอร์ รพ.สต. ทันที</p>
+                    </div>
+                </details>
+
+                <!-- 6. สิทธิ์ประธาน อสม. & การรีเซ็ตรหัสผ่าน -->
+                <details style="background: var(--bg-card); border-radius: 16px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color); overflow: hidden;">
+                    <summary style="padding: 14px 16px; font-weight: 800; font-size: 14.5px; color: var(--text-primary); cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; user-select: none;">
+                        <span style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 18px;">👑</span>
+                            <span>6. สิทธิ์ประธาน อสม. & การรีเซ็ตรหัสผ่าน</span>
+                        </span>
+                        <span style="font-size: 12px; color: var(--color-accent);">▼</span>
+                    </summary>
+                    <div style="padding: 0 16px 16px 16px; font-size: 13px; line-height: 1.6; color: var(--text-secondary); border-top: 1px solid var(--border-color); padding-top: 12px;">
+                        <ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px;">
+                            <li><strong>ประธานหมู่บ้าน:</strong> รีเซ็ตรหัสผ่านให้ อสม. ในหมู่บ้านเดียวกันเป็น <code>1234</code> ได้จากกล่องเครื่องมือหน้าแรก</li>
+                            <li><strong>ประธานตำบล / ประธานอำเภอ:</strong> รีเซ็ตรหัสผ่านให้ อสม. ในเขตตำบลหรืออำเภอได้ครอบคลุม</li>
+                        </ul>
+                    </div>
+                </details>
+
+                <!-- 7. ผลตรวจสุขภาพ 4 ด้าน & ลายน้ำบอกแนวโน้ม -->
+                <details style="background: var(--bg-card); border-radius: 16px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color); overflow: hidden;">
+                    <summary style="padding: 14px 16px; font-weight: 800; font-size: 14.5px; color: var(--text-primary); cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; user-select: none;">
+                        <span style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 18px;">📊</span>
+                            <span>7. การอ่านผลตรวจ 4 ด้าน & แนวโน้มสุขภาพ</span>
+                        </span>
+                        <span style="font-size: 12px; color: var(--color-accent);">▼</span>
+                    </summary>
+                    <div style="padding: 0 16px 16px 16px; font-size: 13px; line-height: 1.6; color: var(--text-secondary); border-top: 1px solid var(--border-color); padding-top: 12px;">
+                        <p style="margin: 0 0 6px 0;">หน้าสรุปผลตรวจสุขภาพแสดงการ์ด 4 ด้าน: ความดันโลหิต, น้ำตาลในเลือด, รูปร่าง/BMI, และรอบเอว</p>
+                        <p style="margin: 0;">
+                            • <strong>ลูกศรสีแดงชี้ขึ้น (↗):</strong> ค่าวัดสูงขึ้นกว่ารอบก่อน (ต้องเฝ้าระวัง)<br>
+                            • <strong>ลูกศรสีเขียวชี้ลง (↘):</strong> สุขภาพดีขึ้นหรือค่าวัดลดลงสู่เกณฑ์ปกติ
+                        </p>
+                    </div>
+                </details>
+
+                <!-- 8. คำถามที่พบบ่อย (FAQ) -->
+                <details style="background: var(--bg-card); border-radius: 16px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color); overflow: hidden;">
+                    <summary style="padding: 14px 16px; font-weight: 800; font-size: 14.5px; color: var(--text-primary); cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; user-select: none;">
+                        <span style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 18px;">💡</span>
+                            <span>8. คำถามที่พบบ่อย (FAQ)</span>
+                        </span>
+                        <span style="font-size: 12px; color: var(--color-accent);">▼</span>
+                    </summary>
+                    <div style="padding: 0 16px 16px 16px; font-size: 13px; line-height: 1.6; color: var(--text-secondary); border-top: 1px solid var(--border-color); padding-top: 12px;">
+                        <p style="margin: 0 0 6px 0;"><strong>Q: เปลี่ยนโหมดมืด/สว่างอย่างไร?</strong><br>แตะปุ่ม 🌙 / ☀️ มุมขวาบนของจอเพื่อเปลี่ยนธีม</p>
+                        <p style="margin: 0 0 6px 0;"><strong>Q: ลืมรหัสผ่านทำอย่างไร?</strong><br>แจ้งประธาน อสม. ประจำหมู่บ้าน/ตำบล เพื่อรีเซ็ตรหัสผ่านเป็น <code>1234</code></p>
+                        <p style="margin: 0;"><strong>Q: แต้มสะสมเอาไปทำอะไร?</strong><br>ใช้แข่งขันอันดับใน Leaderboard และแลกของรางวัลในเมนูคะแนน & รางวัล</p>
+                    </div>
+                </details>
+
+            </div>
         </div>
 
         <!-- Bottom Navigation Bar -->
@@ -715,29 +865,13 @@ if (DemoDataProvider::isDemoMode()) {
             if (btn) btn.classList.add('active');
         }
 
-        function openManualTab() {
-            // Hide all tab contents
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.style.display = 'none';
-            });
-            // Remove active from task tab buttons
-            document.querySelectorAll('.tab-btn').forEach(b => {
-                b.classList.remove('active');
-            });
-            // Show manual tab
-            const mTab = document.getElementById('manual-tab');
-            if (mTab) {
-                mTab.style.display = 'block';
-                mTab.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        }
-
         // Auto-select tab if specified in URL query
         (function() {
             const urlParams = new URLSearchParams(window.location.search);
             const tabParam = urlParams.get('tab');
-            if (tabParam === 'manual' || tabParam === 'manual-tab') {
-                openManualTab();
+            if (tabParam === 'manual' || tabParam === 'manual-list') {
+                const btn = document.getElementById('tab-btn-manual');
+                if (btn) switchTab('manual-list', btn);
             } else if (tabParam === 'dpac' || tabParam === 'dpac-list') {
                 const btn = document.getElementById('tab-btn-dpac');
                 if (btn) switchTab('dpac-list', btn);
@@ -1094,26 +1228,26 @@ if (DemoDataProvider::isDemoMode()) {
             });
 
             // Adjust tab counts dynamically
-            const tabs = document.querySelectorAll('.tab-btn');
-            if (tabs.length === 3) {
-                // Pending Tab
-                const pendingTab = tabs[0];
+            const pendingTab = document.getElementById('tab-btn-pending');
+            if (pendingTab) {
                 const pendingMatch = pendingTab.textContent.match(/\((\d+)\)/);
                 if (pendingMatch) {
                     const current = parseInt(pendingMatch[1]);
                     pendingTab.textContent = `งานค้าง (${current + pendingCountAdjust})`;
                 }
-                
-                // DPAC Tab
-                const dpacTab = tabs[1];
+            }
+            
+            const dpacTab = document.getElementById('tab-btn-dpac');
+            if (dpacTab) {
                 const dpacMatch = dpacTab.textContent.match(/\((\d+)\)/);
                 if (dpacMatch) {
                     const current = parseInt(dpacMatch[1]);
                     dpacTab.textContent = `DPAC (${current + dpacCountAdjust})`;
                 }
+            }
 
-                // Completed Tab
-                const completedTab = tabs[2];
+            const completedTab = document.getElementById('tab-btn-completed');
+            if (completedTab) {
                 const completedMatch = completedTab.textContent.match(/\((\d+)\)/);
                 if (completedMatch) {
                     const current = parseInt(completedMatch[1]);
