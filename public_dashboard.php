@@ -590,29 +590,107 @@ if ($genderMale + $genderFemale < $totalScreened && $totalScreened > 0) {
 // -------------------------------------------------------------
 $tamScoreTotal = 4.74; // Mean Out of 5.00
 
-// Helper for rendering split gender silhouette & ratio in KPI Cards
+// Helper for generating full proportional liquid-filled Avatar SVG
+if (!function_exists('getFilledAvatarSvg')) {
+    function getFilledAvatarSvg($gender, $pct, $w = 32, $h = 48, $uid = '') {
+        $pct = max(0, min(100, floatval($pct)));
+        // Figure bounding box: y=2 (top of head) to y=34 (feet), total height = 32
+        $totalH = 32;
+        $filledH = round(($pct / 100) * $totalH, 2);
+        $rectY = round(34 - $filledH, 2);
+        $rectH = round($filledH + 0.5, 2);
+        
+        static $avCounter = 0;
+        $avCounter++;
+        $uniqueId = 'av_' . $gender . '_' . ($uid ?: $avCounter);
+        $isMale = ($gender === 'male');
+        
+        $colorTop = $isMale ? '#38bdf8' : '#f472b6';
+        $colorBottom = $isMale ? '#0284c7' : '#db2777';
+        $bgFill = 'rgba(148, 163, 184, 0.22)';
+        $bgStroke = 'rgba(148, 163, 184, 0.45)';
+        $activeStroke = $isMale ? '#0284c7' : '#db2777';
+        
+        ob_start();
+        ?>
+        <svg width="<?= $w ?>" height="<?= $h ?>" viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0; filter: drop-shadow(0 2px 5px <?= $isMale ? 'rgba(2, 132, 199, 0.22)' : 'rgba(219, 39, 119, 0.22)' ?>);">
+            <defs>
+                <linearGradient id="<?= $uniqueId ?>_grad" x1="0%" y1="100%" x2="0%" y2="0%">
+                    <stop offset="0%" stop-color="<?= $colorBottom ?>" />
+                    <stop offset="100%" stop-color="<?= $colorTop ?>" />
+                </linearGradient>
+                <clipPath id="<?= $uniqueId ?>_clip">
+                    <rect x="0" y="<?= $rectY ?>" width="24" height="<?= $rectH ?>" />
+                </clipPath>
+            </defs>
+            
+            <?php if ($isMale): ?>
+                <!-- Male Base Outline & Background (Unfilled) -->
+                <g fill="<?= $bgFill ?>" stroke="<?= $bgStroke ?>" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round">
+                    <circle cx="12" cy="5.5" r="3.5" />
+                    <path d="M7 11.5C7 10.4 7.9 9.5 9 9.5H15C16.1 9.5 17 10.4 17 11.5V19.5H15.2V32.5C15.2 33.3 14.5 34 13.7 34H13C12.2 34 11.5 33.3 11.5 32.5V21H12.5V32.5C12.5 33.3 11.8 34 11 34H10.3C9.5 34 8.8 33.3 8.8 32.5V19.5H7V11.5ZM17 11.5H19.5C20.3 11.5 21 12.2 21 13V18C21 18.8 20.3 19.5 19.5 19.5H17V11.5ZM7 11.5H4.5C3.7 11.5 3 12.2 3 13V18C3 18.8 3.7 19.5 4.5 19.5H7V11.5Z" />
+                </g>
+                
+                <!-- Male Proportional Filled Layer (Clipped strictly by percentage) -->
+                <g fill="url(#<?= $uniqueId ?>_grad)" clip-path="url(#<?= $uniqueId ?>_clip)">
+                    <circle cx="12" cy="5.5" r="3.5" />
+                    <path d="M7 11.5C7 10.4 7.9 9.5 9 9.5H15C16.1 9.5 17 10.4 17 11.5V19.5H15.2V32.5C15.2 33.3 14.5 34 13.7 34H13C12.2 34 11.5 33.3 11.5 32.5V21H12.5V32.5C12.5 33.3 11.8 34 11 34H10.3C9.5 34 8.8 33.3 8.8 32.5V19.5H7V11.5ZM17 11.5H19.5C20.3 11.5 21 12.2 21 13V18C21 18.8 20.3 19.5 19.5 19.5H17V11.5ZM7 11.5H4.5C3.7 11.5 3 12.2 3 13V18C3 18.8 3.7 19.5 4.5 19.5H7V11.5Z" />
+                </g>
+                
+                <!-- Fine Outer Accent Stroke -->
+                <circle cx="12" cy="5.5" r="3.5" fill="none" stroke="<?= $activeStroke ?>" stroke-width="1.2" opacity="0.9"/>
+                <path d="M7 11.5C7 10.4 7.9 9.5 9 9.5H15C16.1 9.5 17 10.4 17 11.5V19.5H15.2V32.5C15.2 33.3 14.5 34 13.7 34H13C12.2 34 11.5 33.3 11.5 32.5V21H12.5V32.5C12.5 33.3 11.8 34 11 34H10.3C9.5 34 8.8 33.3 8.8 32.5V19.5H7V11.5ZM17 11.5H19.5C20.3 11.5 21 12.2 21 13V18C21 18.8 20.3 19.5 19.5 19.5H17V11.5ZM7 11.5H4.5C3.7 11.5 3 12.2 3 13V18C3 18.8 3.7 19.5 4.5 19.5H7V11.5Z" fill="none" stroke="<?= $activeStroke ?>" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" opacity="0.9"/>
+
+            <?php else: ?>
+                <!-- Female Base Outline & Background (Unfilled) -->
+                <g fill="<?= $bgFill ?>" stroke="<?= $bgStroke ?>" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round">
+                    <circle cx="12" cy="5.5" r="3.5" />
+                    <path d="M8.5 10C7.7 10 7 10.7 7 11.5L5 18C4.8 18.6 5.3 19.2 6 19.2H7.2L5.2 26.5C5 27.2 5.5 27.8 6.2 27.8H17.8C18.5 27.8 19 27.2 18.8 26.5L16.8 19.2H18C18.7 19.2 19.2 18.6 19 18L17 11.5C17 10.7 16.3 10 15.5 10H8.5ZM9.5 28V32.5C9.5 33.3 10.2 34 11 34C11.8 34 12.5 33.3 12.5 32.5V28M11.5 28V32.5C11.5 33.3 12.2 34 13 34C13.8 34 14.5 33.3 14.5 32.5V28" />
+                </g>
+                
+                <!-- Female Proportional Filled Layer (Clipped strictly by percentage) -->
+                <g fill="url(#<?= $uniqueId ?>_grad)" clip-path="url(#<?= $uniqueId ?>_clip)">
+                    <circle cx="12" cy="5.5" r="3.5" />
+                    <path d="M8.5 10C7.7 10 7 10.7 7 11.5L5 18C4.8 18.6 5.3 19.2 6 19.2H7.2L5.2 26.5C5 27.2 5.5 27.8 6.2 27.8H17.8C18.5 27.8 19 27.2 18.8 26.5L16.8 19.2H18C18.7 19.2 19.2 18.6 19 18L17 11.5C17 10.7 16.3 10 15.5 10H8.5ZM9.5 28V32.5C9.5 33.3 10.2 34 11 34C11.8 34 12.5 33.3 12.5 32.5V28M11.5 28V32.5C11.5 33.3 12.2 34 13 34C13.8 34 14.5 33.3 14.5 32.5V28" />
+                </g>
+                
+                <!-- Fine Outer Accent Stroke -->
+                <circle cx="12" cy="5.5" r="3.5" fill="none" stroke="<?= $activeStroke ?>" stroke-width="1.2" opacity="0.9"/>
+                <path d="M8.5 10C7.7 10 7 10.7 7 11.5L5 18C4.8 18.6 5.3 19.2 6 19.2H7.2L5.2 26.5C5 27.2 5.5 27.8 6.2 27.8H17.8C18.5 27.8 19 27.2 18.8 26.5L16.8 19.2H18C18.7 19.2 19.2 18.6 19 18L17 11.5C17 10.7 16.3 10 15.5 10H8.5ZM9.5 28V32.5C9.5 33.3 10.2 34 11 34C11.8 34 12.5 33.3 12.5 32.5V28M11.5 28V32.5C11.5 33.3 12.2 34 13 34C13.8 34 14.5 33.3 14.5 32.5V28" fill="none" stroke="<?= $activeStroke ?>" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" opacity="0.9"/>
+            <?php endif; ?>
+        </svg>
+        <?php
+        return ob_get_clean();
+    }
+}
+
+// Helper for rendering dual full-person figures and gender ratio in KPI Cards
 if (!function_exists('renderKpiGenderSplit')) {
-    function renderKpiGenderSplit($maleCnt, $malePct, $femaleCnt, $femalePct) {
+    function renderKpiGenderSplit($maleCnt, $malePct, $femaleCnt, $femalePct, $uid = '') {
         ?>
         <div class="kpi-gender-split">
-            <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
-                <!-- Split Person Silhouette Icon (Left: Male #0284c7 / Right: Female #db2777) -->
-                <svg width="17" height="21" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.06));" title="สัดส่วนแยกเพศ ชาย (ซ้าย) / หญิง (ขวา)">
-                    <!-- Left: Male Head & Body -->
-                    <path d="M12 2C9.8 2 8 3.8 8 6C8 8.2 9.8 10 12 10V2Z" fill="#0284c7"/>
-                    <path d="M12 11H8C6.3 11 5 12.3 5 14V18H7.5V26H11C11.6 26 12 25.6 12 25V11Z" fill="#0284c7"/>
-                    <!-- Right: Female Head & Dress -->
-                    <path d="M12 2C14.2 2 16 3.8 16 6C16 8.2 14.2 10 12 10V2Z" fill="#db2777"/>
-                    <path d="M12 11H16C17.7 11 19 12.3 19 14L19.5 20H16.5V26C16.5 26 15.5 26 14.5 26C13.9 26 13.5 25.6 13.5 25V20H12V11Z" fill="#db2777"/>
-                </svg>
-                <span style="color: #0284c7;">ชาย <?= $malePct ?>% <span style="font-size: 10px; color: var(--text-muted); font-weight: 600;">(<?= number_format($maleCnt) ?>)</span></span>
-                <span style="color: var(--text-muted); opacity: 0.4;">|</span>
-                <span style="color: #db2777;">หญิง <?= $femalePct ?>% <span style="font-size: 10px; color: var(--text-muted); font-weight: 600;">(<?= number_format($femaleCnt) ?>)</span></span>
+            <!-- Male Full Avatar + Count -->
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <?= getFilledAvatarSvg('male', $malePct, 15, 23, $uid . '_m') ?>
+                <div style="display: flex; flex-direction: column; line-height: 1.15;">
+                    <span style="color: #0284c7; font-size: 11.5px; font-weight: 800;">ชาย <?= $malePct ?>%</span>
+                    <span style="color: var(--text-muted); font-size: 10px; font-weight: 600;"><?= number_format($maleCnt) ?> คน</span>
+                </div>
             </div>
-            <!-- Dual Mini Progress Bar -->
-            <div style="width: 42px; height: 5px; border-radius: 9999px; background: rgba(0,0,0,0.06); display: flex; overflow: hidden; flex-shrink: 0;" title="ชาย <?= $malePct ?>% | หญิง <?= $femalePct ?>%">
+
+            <!-- Mini Proportion Bar -->
+            <div style="flex: 1; max-width: 44px; height: 5px; border-radius: 9999px; background: rgba(0,0,0,0.06); display: flex; overflow: hidden; margin: 0 4px;" title="ชาย <?= $malePct ?>% | หญิง <?= $femalePct ?>%">
                 <div style="width: <?= $malePct ?>%; background: #0284c7;"></div>
                 <div style="width: <?= $femalePct ?>%; background: #db2777;"></div>
+            </div>
+
+            <!-- Female Full Avatar + Count -->
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <div style="display: flex; flex-direction: column; line-height: 1.15; text-align: right;">
+                    <span style="color: #db2777; font-size: 11.5px; font-weight: 800;">หญิง <?= $femalePct ?>%</span>
+                    <span style="color: var(--text-muted); font-size: 10px; font-weight: 600;"><?= number_format($femaleCnt) ?> คน</span>
+                </div>
+                <?= getFilledAvatarSvg('female', $femalePct, 15, 23, $uid . '_f') ?>
             </div>
         </div>
         <?php
@@ -1083,7 +1161,7 @@ if (!function_exists('renderKpiGenderSplit')) {
                 </div>
                 <div class="kpi-value"><?= number_format($totalTargets) ?> <span style="font-size: 15px; font-weight: 600; color: var(--text-muted);">คน</span></div>
                 <div class="kpi-sub">เป้าหมายคัดกรองรอบแรก (ปีงบ <?= $selectedBudgetYear ?>)</div>
-                <?php renderKpiGenderSplit($tgtMale, $tgtMalePct, $tgtFemale, $tgtFemalePct); ?>
+                <?php renderKpiGenderSplit($tgtMale, $tgtMalePct, $tgtFemale, $tgtFemalePct, 'kpi_tgt'); ?>
             </div>
 
             <div class="kpi-card" style="--card-accent: #10b981;">
@@ -1099,7 +1177,7 @@ if (!function_exists('renderKpiGenderSplit')) {
                     <div style="width: <?= min(100, $coveragePct) ?>%; height: 100%; background: #10b981; border-radius: 9999px;"></div>
                 </div>
                 <div class="kpi-sub" style="margin-top: 6px; color: #059669; font-weight: 700;">✅ ครบถ้วน 100% ตามเป้าหมายรอบแรกทุกแห่ง</div>
-                <?php renderKpiGenderSplit($scrMale, $scrMalePct, $scrFemale, $scrFemalePct); ?>
+                <?php renderKpiGenderSplit($scrMale, $scrMalePct, $scrFemale, $scrFemalePct, 'kpi_scr'); ?>
             </div>
 
             <div class="kpi-card" style="--card-accent: #f59e0b;">
@@ -1112,7 +1190,7 @@ if (!function_exists('renderKpiGenderSplit')) {
                     <span style="font-size: 15px; font-weight: 600; color: var(--text-muted);">คน (<?= $riskRatePct ?>%)</span>
                 </div>
                 <div class="kpi-sub">เสี่ยงสูง <?= number_format($totalRiskHigh) ?> • เสี่ยงปานกลาง <?= number_format($totalRiskModerate) ?></div>
-                <?php renderKpiGenderSplit($riskMale, $riskMalePct, $riskFemale, $riskFemalePct); ?>
+                <?php renderKpiGenderSplit($riskMale, $riskMalePct, $riskFemale, $riskFemalePct, 'kpi_risk'); ?>
             </div>
 
             <div class="kpi-card" style="--card-accent: #8b5cf6;">
@@ -1124,7 +1202,7 @@ if (!function_exists('renderKpiGenderSplit')) {
                     <?= $dpacImprovementPct ?>%
                 </div>
                 <div class="kpi-sub">สุขภาพดีขึ้น <?= number_format($dpacImprovedCount) ?> จาก <?= number_format($dpacCompletedFollowups) ?> คนที่ติดตามครบ</div>
-                <?php renderKpiGenderSplit($dpacMale, $dpacMalePct, $dpacFemale, $dpacFemalePct); ?>
+                <?php renderKpiGenderSplit($dpacMale, $dpacMalePct, $dpacFemale, $dpacFemalePct, 'kpi_dpac'); ?>
             </div>
         </div>
 
@@ -1203,18 +1281,7 @@ if (!function_exists('renderKpiGenderSplit')) {
                     <!-- Male Card -->
                     <div class="gender-kpi-card male-card">
                         <div class="gender-avatar-wrapper">
-                            <svg width="42" height="68" viewBox="0 0 40 70" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0; filter: drop-shadow(0 2px 6px rgba(37, 99, 235, 0.2));">
-                                <defs>
-                                    <linearGradient id="maleCardGrad" x1="0%" y1="100%" x2="0%" y2="0%">
-                                        <stop offset="<?= $scrMalePct ?>%" stop-color="#2563eb" />
-                                        <stop offset="<?= $scrMalePct ?>%" stop-color="rgba(37, 99, 235, 0.04)" />
-                                    </linearGradient>
-                                </defs>
-                                <!-- Head -->
-                                <circle cx="20" cy="10" r="7.5" fill="url(#maleCardGrad)" stroke="#2563eb" stroke-width="2.5"/>
-                                <!-- Body, Arms, Legs -->
-                                <path d="M11 23C8.8 23 7 24.8 7 27V42C7 43.1 7.9 44 9 44C10.1 44 11 43.1 11 42V31H12.5V64C12.5 65.7 13.8 67 15.5 67C17.2 67 18.5 65.7 18.5 64V46H21.5V64C21.5 65.7 22.8 67 24.5 67C26.2 67 27.5 65.7 27.5 64V31H29V42C29 43.1 29.9 44 31 44C32.1 44 33 43.1 33 42V27C33 24.8 31.2 23 29 23H11Z" fill="url(#maleCardGrad)" stroke="#2563eb" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
-                            </svg>
+                            <?= getFilledAvatarSvg('male', $scrMalePct, 42, 64, 'demo_m') ?>
                         </div>
                         <div style="display: flex; flex-direction: column; min-width: 0;">
                             <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary, #64748b);">เพศชาย</span>
@@ -1232,19 +1299,7 @@ if (!function_exists('renderKpiGenderSplit')) {
                     <!-- Female Card -->
                     <div class="gender-kpi-card female-card">
                         <div class="gender-avatar-wrapper">
-                            <svg width="42" height="68" viewBox="0 0 40 70" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0; filter: drop-shadow(0 2px 6px rgba(219, 39, 119, 0.2));">
-                                <defs>
-                                    <linearGradient id="femaleCardGrad" x1="0%" y1="100%" x2="0%" y2="0%">
-                                        <stop offset="<?= $scrFemalePct ?>%" stop-color="#db2777" />
-                                        <stop offset="<?= $scrFemalePct ?>%" stop-color="rgba(219, 39, 119, 0.04)" />
-                                    </linearGradient>
-                                </defs>
-                                <!-- Head & Collar -->
-                                <circle cx="20" cy="10" r="7.5" fill="url(#femaleCardGrad)" stroke="#db2777" stroke-width="2.5"/>
-                                <path d="M14 20L12 23M26 20L28 23" stroke="#db2777" stroke-width="2.2" stroke-linecap="round"/>
-                                <!-- Dress, Arms, Legs -->
-                                <path d="M14 24C12.5 24 11.2 25.1 11 26.6L8 40C7.8 41.1 8.6 42 9.7 42C10.6 42 11.4 41.3 11.6 40.4L13 32H14.5L10.5 54C10.2 55.4 11.3 56.5 12.7 56.5H27.3C28.7 56.5 29.8 55.4 29.5 54L25.5 32H27L28.4 40.4C28.6 41.3 29.4 42 30.3 42C31.4 42 32.2 41.1 32 40L29 26.6C28.8 25.1 27.5 24 26 24H14Z M16 56.5V64.5C16 65.9 17.1 67 18.5 67C19.9 67 21 65.9 21 64.5V56.5 M21.5 56.5V64.5C21.5 65.9 22.6 67 24 67C25.4 67 26.5 65.9 26.5 64.5V56.5" fill="url(#femaleCardGrad)" stroke="#db2777" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
-                            </svg>
+                            <?= getFilledAvatarSvg('female', $scrFemalePct, 42, 64, 'demo_f') ?>
                         </div>
                         <div style="display: flex; flex-direction: column; min-width: 0;">
                             <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary, #64748b);">เพศหญิง</span>
