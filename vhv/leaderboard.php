@@ -348,29 +348,22 @@ if (!empty($hoscode)) {
         SELECT 
             p.moo,
             MAX(v.village_name) as village_name,
-            COUNT(DISTINCT p.cid) as total_targets,
-            COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) as completed_targets
-        FROM target_population p
+            COUNT(DISTINCT a.target_cid) as total_targets,
+            COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN a.target_cid END) as completed_targets
+        FROM task_assignments a
+        JOIN target_population p ON a.target_cid = p.cid
         LEFT JOIN villages v ON p.moo = v.moo AND p.hoscode = v.hoscode
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = ? AND a.is_sandbox = ?
-        WHERE p.hoscode = ? 
+        WHERE p.hoscode = ?
+          AND a.budget_year = ? 
+          AND COALESCE(a.is_sandbox, 0) = ?
           AND p.moo > 0 
-          AND p.moo IS NOT NULL 
-          AND (
-              (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-              OR 
-              (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
-              OR
-              p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
-              OR
-              COALESCE(p.is_manual, 0) = 1
-          )
+          AND p.moo IS NOT NULL
         GROUP BY p.moo
         HAVING total_targets > 0
         ORDER BY p.moo ASC
     ";
     $villStmt = $pdo->prepare($villQuery);
-    $villStmt->execute([$currentBudgetYear, $isSandboxVal, $hoscode]);
+    $villStmt->execute([$hoscode, $currentBudgetYear, $isSandboxVal]);
     $villageStats = $villStmt->fetchAll();
 }
 
@@ -380,22 +373,14 @@ try {
     $hosQuery = "
         SELECT 
             u.hoscode,
-            COUNT(DISTINCT p.cid) as total_targets,
-            COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) as completed_targets
+            COUNT(DISTINCT a.target_cid) as total_targets,
+            COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN a.target_cid END) as completed_targets
         FROM health_units u
-        LEFT JOIN target_population p ON u.hoscode = p.hoscode AND (
-            (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-            OR 
-            (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
-            OR
-            p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
-            OR
-            COALESCE(p.is_manual, 0) = 1
-        )
-        LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = ? AND a.is_sandbox = ?
+        JOIN target_population p ON u.hoscode = p.hoscode
+        JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = ? AND COALESCE(a.is_sandbox, 0) = ?
         GROUP BY u.hoscode
-        HAVING COUNT(DISTINCT p.cid) > 0
-        ORDER BY (COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN p.cid END) / COUNT(DISTINCT p.cid)) DESC, u.hoscode ASC
+        HAVING total_targets > 0
+        ORDER BY (COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN a.target_cid END) / COUNT(DISTINCT a.target_cid)) DESC, u.hoscode ASC
     ";
     $hosStmt = $pdo->prepare($hosQuery);
     $hosStmt->execute([$currentBudgetYear, $isSandboxVal]);
@@ -1046,7 +1031,7 @@ try {
                                 </div>
                             </div>
                             <div>
-                                <span style="color: var(--text-secondary); font-size: 11.5px; font-weight: 700; display: block; margin-bottom: 2px;">คะแนนผลงานสะสม</span>
+                                <span style="color: var(--text-secondary); font-size: 11.5px; font-weight: 700; display: block; margin-bottom: 2px;">ผลงานสะสม</span>
                                 <div style="font-size: 26px; font-weight: 900; color: var(--text-primary); line-height: 1.1;">
                                     <?= (float)$currentVhvPoints ?> <span style="font-size: 13px; color: var(--text-secondary); font-weight: normal;">แต้ม</span>
                                 </div>
@@ -1058,7 +1043,7 @@ try {
 
                 <!-- Footer Summary Text -->
                 <div style="margin-top: 14px; font-size: 13px; text-align: center; color: var(--text-primary); border-top: 1px solid rgba(13, 44, 84, 0.08); padding-top: 10px; font-weight: 700; line-height: 1.4;">
-                    📊 คุณอยู่อันดับที่ <?= $currentVhvRank ?: 'N/A' ?> จาก อสม. ทั้งหมด <?= $totalVhvs ?> คน ของอำเภอ<?= DISTRICT_NAME ?>
+                    คุณอยู่อันดับที่ <?= $currentVhvRank ?: 'N/A' ?> จากทั้งหมด <?= $totalVhvs ?> คน ของอำเภอ<?= DISTRICT_NAME ?>
                 </div>
                 <?php
                 $myTitle = getPositiveTitle($currentVhvRank);
@@ -1132,7 +1117,7 @@ try {
                         <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
                             ลีกหน่วยบริการ รพ.สต. (ทั้งอำเภอ<?= DISTRICT_NAME ?>)
                         </h4>
-                        <p style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 16px 0;">อันดับอัตราการคัดกรองสูงสุดแยกตามเขตรับผิดชอบของแต่ละ รพ.สต.</p>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 16px 0;">อันดับอัตราความสำเร็จในการคัดกรองตามเป้าหมายโครงการแยกตามเขตรับผิดชอบของแต่ละ รพ.สต.</p>
                         <div style="display: flex; flex-direction: column; gap: 14px;">
                             <?php
                             $hRank = 1;
@@ -1144,8 +1129,11 @@ try {
 
                                 $isMyHos = ($hStat['hoscode'] === $hoscode);
 
-                                $barColor = 'var(--color-accent)';
+                                // Select indicator color based on progress
+                                $barColor = 'var(--color-yellow)';
                                 if ($pct >= 100) $barColor = 'var(--color-green)';
+                                elseif ($pct >= 50) $barColor = 'var(--color-accent)';
+                                elseif ($pct < 20) $barColor = 'var(--color-red)';
 
                                 $rankIcon = '';
                                 if ($hRank === 1) $rankIcon = '🥇';
@@ -1156,10 +1144,10 @@ try {
                                 <div style="<?= $isMyHos ? 'background: rgba(13, 44, 84, 0.04); border: 1px dashed var(--color-accent); padding: 8px; border-radius: 12px;' : '' ?>">
                                     <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-primary);">
                                         <span><?= $rankIcon ?> #<?= $hRank ?> <?= htmlspecialchars($hName) ?> <?= $isMyHos ? '<span style="color:var(--color-accent);font-size:11px;">(รพ.สต. ของคุณ)</span>' : '' ?></span>
-                                        <span><?= $pct ?>%</span>
+                                        <span style="color: <?= $barColor ?>;"><?= $done ?> / <?= $total ?> คน (<?= $pct ?>%)</span>
                                     </div>
-                                    <div style="width: 100%; height: 8px; background: rgba(13, 44, 84, 0.08); border-radius: 4px; overflow: hidden;">
-                                        <div style="width: <?= $pct ?>%; height: 100%; background: <?= $barColor ?>; border-radius: 4px; transition: width 0.8s ease-in-out;"></div>
+                                    <div style="width: 100%; height: 10px; background: rgba(13, 44, 84, 0.08); border-radius: 5px; overflow: hidden; box-shadow: var(--neumorph-inset);">
+                                        <div style="width: <?= $pct ?>%; height: 100%; background: <?= $barColor ?>; border-radius: 5px; transition: width 0.8s ease-in-out;"></div>
                                     </div>
                                 </div>
                             <?php
