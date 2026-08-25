@@ -994,17 +994,15 @@ try {
 <body class="vhv-accessibility">
     <div class="mobile-wrapper" style="padding-bottom: 90px;">
         
-        <!-- Header -->
-        <div class="vhv-header" style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; margin-bottom: 16px; border-radius: var(--border-radius); background: var(--bg-card); box-shadow: var(--neumorph-flat); text-align: left;">
-            <img src="../assets/icons/header_leaderboard_star.png" alt="คะแนน & รางวัล อสม." style="width: 56px; height: 56px; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 3px 8px rgba(226, 165, 30, 0.35));">
-            <div style="flex: 1; min-width: 0;">
-                <h3 style="color: var(--color-accent); margin: 0; font-size: 16.5px; font-weight: 800; line-height: 1.25;">
-                    คะแนน & รางวัล อสม.
-                </h3>
-                <p style="color: var(--text-secondary); margin: 3px 0 0 0; font-size: 12.5px; line-height: 1.35;">
-                    จัดอันดับผลงาน & ศูนย์แลกของรางวัลในพื้นที่<?= DISTRICT_NAME ?>
-                </p>
-            </div>
+        <!-- Header (Centered with Large 3D Icon) -->
+        <div class="vhv-header" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 18px 16px 16px 16px; margin-bottom: 18px; border-radius: var(--border-radius); background: var(--bg-card); box-shadow: var(--neumorph-flat); position: relative;">
+            <img src="../assets/icons/header_leaderboard_star.png" alt="คะแนน & รางวัล อสม." style="width: 82px; height: 82px; object-fit: contain; filter: drop-shadow(0 6px 14px rgba(226, 165, 30, 0.38)); margin-bottom: 8px; transition: transform 0.3s ease;">
+            <h3 style="color: var(--color-accent); margin: 0; font-size: 18px; font-weight: 900; line-height: 1.25; letter-spacing: -0.2px;">
+                คะแนน & รางวัล อสม.
+            </h3>
+            <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 13px; font-weight: 600; line-height: 1.35;">
+                จัดอันดับผลงาน & ศูนย์แลกของรางวัลในพื้นที่<?= DISTRICT_NAME ?>
+            </p>
         </div>
 
         <!-- Main Mode Switcher: Leaderboard vs Rewards -->
