@@ -125,7 +125,7 @@ try {
         FROM task_assignments ta
         LEFT JOIN vhv_users v ON ta.vhv_id = v.vhv_id
         WHERE ta.target_cid IN ($cidPlaceholders)
-          AND ta.budget_year = ?
+          AND (ta.budget_year = ? OR ta.budget_year IS NULL)
           AND ta.is_sandbox = ?
         ORDER BY ta.round_number ASC, ta.assignment_id ASC
     ";
@@ -134,177 +134,146 @@ try {
     $taskStmt->execute($taskParams);
     $allTasks = $taskStmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Group tasks by CID
-    $tasksByCid = [];
+    // Fetch screening_results for these CIDs
+    $scrSql = "
+        SELECT sr.screening_id, sr.target_cid, sr.vhv_id, sr.round_number, sr.created_at,
+               v.vhv_name
+        FROM screening_results sr
+        LEFT JOIN vhv_users v ON sr.vhv_id = v.vhv_id
+        WHERE sr.target_cid IN ($cidPlaceholders)
+          AND sr.is_sandbox = ?
+        ORDER BY sr.round_number ASC, sr.created_at ASC
+    ";
+    $scrParams = array_merge($cids, [$isSandboxVal]);
+    $scrStmt = $pdo->prepare($scrSql);
+    $scrStmt->execute($scrParams);
+    $allScreenings = $scrStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Compile comprehensive historical state for each CID
+    $cidState = [];
+    foreach ($cids as $cid) {
+        $cidState[$cid] = [
+            'max_completed_round' => 0,
+            'pending_rounds' => [],
+            'all_rounds' => [],
+            'last_vhv_id' => null,
+            'last_vhv_name' => null
+        ];
+    }
+
     foreach ($allTasks as $row) {
         $cid = $row['target_cid'];
-        $tasksByCid[$cid][] = $row;
+        if (!isset($cidState[$cid])) continue;
+        $rn = (int)($row['round_number'] ?: 1);
+        $cidState[$cid]['all_rounds'][$rn] = true;
+        if ($row['assignment_status'] === 'completed' || $row['assignment_status'] === 'skipped') {
+            if ($rn > $cidState[$cid]['max_completed_round']) {
+                $cidState[$cid]['max_completed_round'] = $rn;
+            }
+        } elseif ($row['assignment_status'] === 'pending') {
+            $cidState[$cid]['pending_rounds'][$rn] = true;
+        }
+        if (!empty($row['vhv_id'])) {
+            $cidState[$cid]['last_vhv_id'] = $row['vhv_id'];
+            $cidState[$cid]['last_vhv_name'] = $row['vhv_name'];
+        }
+    }
+
+    foreach ($allScreenings as $row) {
+        $cid = $row['target_cid'];
+        if (!isset($cidState[$cid])) continue;
+        $rn = (int)($row['round_number'] ?: 1);
+        $cidState[$cid]['all_rounds'][$rn] = true;
+        if ($rn > $cidState[$cid]['max_completed_round']) {
+            $cidState[$cid]['max_completed_round'] = $rn;
+        }
+        if (!empty($row['vhv_id'])) {
+            $cidState[$cid]['last_vhv_id'] = $row['vhv_id'];
+            $cidState[$cid]['last_vhv_name'] = $row['vhv_name'];
+        }
     }
 
     // 3. Evaluate Round Progression (Round 1, Round 2, Round 3...)
-    // Determine status of Round 1
-    $round1CompletedCount = 0;
-    $round1PendingCount = 0;
-    $round1UnassignedCount = 0;
-
-    foreach ($cids as $cid) {
-        $userTasks = $tasksByCid[$cid] ?? [];
-        $r1Task = null;
-        foreach ($userTasks as $t) {
-            $rn = (int)($t['round_number'] ?: 1);
-            if ($rn === 1) {
-                $r1Task = $t;
-                break;
-            }
-        }
-
-        if (!$r1Task) {
-            $round1UnassignedCount++;
-        } elseif ($r1Task['assignment_status'] === 'completed' || $r1Task['assignment_status'] === 'skipped') {
-            $round1CompletedCount++;
-        } else {
-            $round1PendingCount++;
-        }
-    }
-
-    $round1Pct = $totalTargets > 0 ? round(($round1CompletedCount / $totalTargets) * 100, 1) : 0;
-
-    // CASE 1: Round 1 is NOT 100% completed
-    if ($round1CompletedCount < $totalTargets) {
-        $remaining = $totalTargets - $round1CompletedCount;
-        echo json_encode([
-            'status' => 'locked',
-            'can_assign' => false,
-            'current_round' => 1,
-            'target_round' => 2,
-            'total_targets' => $totalTargets,
-            'prev_round_completed' => $round1CompletedCount,
-            'prev_round_pct' => $round1Pct,
-            'round1_pending' => $round1PendingCount,
-            'round1_unassigned' => $round1UnassignedCount,
-            'remaining_count' => $remaining,
-            'message' => "รอบที่ 1 คัดกรองแล้ว {$round1CompletedCount}/{$totalTargets} ราย ({$round1Pct}%) ยังเหลืออีก {$remaining} รายที่ยังไม่เสร็จสิ้น ต้องคัดกรองรอบที่ 1 ให้ครบ 100% ก่อนจึงจะเปิดรอบถัดไปได้"
-        ], JSON_UNESCAPED_UNICODE);
-        exit();
-    }
-
-    // CASE 2: Round 1 IS 100% completed!
-    // Check Round 2 status and higher rounds
-    $checkRound = 2;
     $foundReadyRound = null;
     $eligibleTargets = [];
     $alreadyAssignedInTargetRound = 0;
 
-    while ($checkRound <= 10) {
-        $prevRound = $checkRound - 1;
-        
-        // Count how many completed prevRound
-        $prevCompletedCount = 0;
+    for ($r = 1; $r <= 10; $r++) {
+        // Count how many have completed round $r (or higher)
+        $completedRoundR = 0;
         foreach ($cids as $cid) {
-            $userTasks = $tasksByCid[$cid] ?? [];
-            foreach ($userTasks as $t) {
-                $rn = (int)($t['round_number'] ?: 1);
-                if ($rn === $prevRound && ($t['assignment_status'] === 'completed' || $t['assignment_status'] === 'skipped')) {
-                    $prevCompletedCount++;
-                    break;
-                }
+            if ($cidState[$cid]['max_completed_round'] >= $r) {
+                $completedRoundR++;
             }
         }
 
-        // If prevRound was not 100% completed, we cannot assign checkRound
-        if ($prevCompletedCount < $totalTargets) {
-            $pct = round(($prevCompletedCount / $totalTargets) * 100, 1);
-            $remaining = $totalTargets - $prevCompletedCount;
+        // If Round 1 is not 100% completed
+        if ($r === 1 && $completedRoundR < $totalTargets) {
+            $pct = $totalTargets > 0 ? round(($completedRoundR / $totalTargets) * 100, 1) : 0;
+            $remaining = $totalTargets - $completedRoundR;
             echo json_encode([
                 'status' => 'locked',
                 'can_assign' => false,
-                'current_round' => $prevRound,
-                'target_round' => $checkRound,
+                'current_round' => 1,
+                'target_round' => 2,
                 'total_targets' => $totalTargets,
-                'prev_round_completed' => $prevCompletedCount,
+                'prev_round_completed' => $completedRoundR,
                 'prev_round_pct' => $pct,
                 'remaining_count' => $remaining,
-                'message' => "รอบที่ {$prevRound} คัดกรองแล้ว {$prevCompletedCount}/{$totalTargets} ราย ({$pct}%) ต้องคัดกรองให้ครบ 100% ก่อนจึงจะเปิดรอบที่ {$checkRound} ได้"
+                'message' => "รอบที่ 1 คัดกรองแล้ว {$completedRoundR}/{$totalTargets} ราย ({$pct}%) ยังเหลืออีก {$remaining} รายที่ยังไม่เสร็จสิ้น ต้องคัดกรองรอบที่ 1 ให้ครบ 100% ก่อนจึงจะเปิดรอบถัดไปได้"
             ], JSON_UNESCAPED_UNICODE);
             exit();
         }
 
-        // Prev round is 100% completed. Now check candidates for checkRound
-        $roundEligible = [];
-        $roundAlreadyAssigned = 0;
+        // If previous round ($r - 1) was 100% completed, now evaluate Round $r for assignment:
+        if ($r > 1) {
+            $prevRound = $r - 1;
+            // Check candidates for Round $r
+            $roundEligible = [];
+            $roundAlreadyAssigned = 0;
 
-        foreach ($allTargets as $tObj) {
-            $cid = $tObj['cid'];
-            $userTasks = $tasksByCid[$cid] ?? [];
-            
-            // Check if this CID already has an assignment in checkRound
-            $hasCheckRound = false;
-            $prevVhvId = null;
-            $prevVhvName = null;
+            foreach ($allTargets as $tObj) {
+                $cid = $tObj['cid'];
+                $hasRoundR = ($cidState[$cid]['max_completed_round'] >= $r) || isset($cidState[$cid]['pending_rounds'][$r]);
 
-            foreach ($userTasks as $t) {
-                $rn = (int)($t['round_number'] ?: 1);
-                if ($rn === $checkRound) {
-                    $hasCheckRound = true;
-                }
-                // Track last responsible VHV from earlier rounds
-                if ($rn < $checkRound && !empty($t['vhv_id'])) {
-                    $prevVhvId = $t['vhv_id'];
-                    $prevVhvName = $t['vhv_name'];
-                }
-            }
-
-            if ($hasCheckRound) {
-                $roundAlreadyAssigned++;
-            } else {
-                $roundEligible[] = [
-                    'cid' => $cid,
-                    'name' => $tObj['first_name'] . ' ' . $tObj['last_name'],
-                    'house_no' => $tObj['house_no'],
-                    'prev_vhv_id' => $prevVhvId,
-                    'prev_vhv_name' => $prevVhvName ?: 'ยังไม่ระบุ อสม.'
-                ];
-            }
-        }
-
-        if (count($roundEligible) > 0) {
-            $foundReadyRound = $checkRound;
-            $eligibleTargets = $roundEligible;
-            $alreadyAssignedInTargetRound = $roundAlreadyAssigned;
-            break;
-        }
-
-        // If no one is eligible for checkRound, check if checkRound is also 100% completed to move to checkRound+1
-        $checkRoundCompleted = 0;
-        foreach ($cids as $cid) {
-            $userTasks = $tasksByCid[$cid] ?? [];
-            foreach ($userTasks as $t) {
-                $rn = (int)($t['round_number'] ?: 1);
-                if ($rn === $checkRound && ($t['assignment_status'] === 'completed' || $t['assignment_status'] === 'skipped')) {
-                    $checkRoundCompleted++;
-                    break;
+                if ($hasRoundR) {
+                    $roundAlreadyAssigned++;
+                } else {
+                    $roundEligible[] = [
+                        'cid' => $cid,
+                        'name' => $tObj['first_name'] . ' ' . $tObj['last_name'],
+                        'house_no' => $tObj['house_no'],
+                        'prev_vhv_id' => $cidState[$cid]['last_vhv_id'],
+                        'prev_vhv_name' => $cidState[$cid]['last_vhv_name'] ?: 'ยังไม่ระบุ อสม.'
+                    ];
                 }
             }
-        }
 
-        if ($checkRoundCompleted < $totalTargets) {
-            // checkRound is assigned to everyone, but still in progress (<100% completed)
-            $pct = round(($checkRoundCompleted / $totalTargets) * 100, 1);
-            echo json_encode([
-                'status' => 'in_progress',
-                'can_assign' => false,
-                'current_round' => $checkRound,
-                'target_round' => $checkRound + 1,
-                'total_targets' => $totalTargets,
-                'round_completed' => $checkRoundCompleted,
-                'round_pct' => $pct,
-                'already_assigned_count' => $roundAlreadyAssigned,
-                'message' => "มอบหมายงานรอบที่ {$checkRound} ครบทุกคนแล้ว (ขณะนี้คัดกรองแล้ว {$checkRoundCompleted}/{$totalTargets} ราย - {$pct}%)"
-            ], JSON_UNESCAPED_UNICODE);
-            exit();
-        }
+            if (count($roundEligible) > 0) {
+                $foundReadyRound = $r;
+                $eligibleTargets = $roundEligible;
+                $alreadyAssignedInTargetRound = $roundAlreadyAssigned;
+                break;
+            }
 
-        $checkRound++;
+            // If no one is eligible for Round $r (everyone is assigned or completed):
+            // Check if Round $r is also completed by everyone
+            if ($completedRoundR < $totalTargets) {
+                $pct = round(($completedRoundR / $totalTargets) * 100, 1);
+                echo json_encode([
+                    'status' => 'in_progress',
+                    'can_assign' => false,
+                    'current_round' => $r,
+                    'target_round' => $r + 1,
+                    'total_targets' => $totalTargets,
+                    'round_completed' => $completedRoundR,
+                    'round_pct' => $pct,
+                    'already_assigned_count' => $roundAlreadyAssigned,
+                    'message' => "มอบหมายงานรอบที่ {$r} ครบทุกคนแล้ว (ขณะนี้คัดกรองแล้ว {$completedRoundR}/{$totalTargets} ราย - {$pct}%)"
+                ], JSON_UNESCAPED_UNICODE);
+                exit();
+            }
+        }
     }
 
     if (!$foundReadyRound) {
