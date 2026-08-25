@@ -460,7 +460,9 @@ if (DemoDataProvider::isDemoMode()) {
                     <div>
                         <h4 style="color: var(--color-green); font-size: 18px; font-weight: 800; margin: 0 0 6px 0; letter-spacing: 0.5px; text-size-adjust: none; -webkit-text-size-adjust: none;">ภารกิจคัดกรองสำเร็จครบถ้วน!</h4>
                         <p style="font-size: 14px; color: var(--text-primary); font-weight: bold; margin: 0 0 4px 0; line-height: 1.5; text-size-adjust: none; -webkit-text-size-adjust: none;">ไม่มีงานค้างในเขตรับผิดชอบของคุณ</p>
-                        <p style="font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.4; text-size-adjust: none; -webkit-text-size-adjust: none;">ขอบคุณที่เป็นส่วนสำคัญในการร่วมดูแลสุขภาพชุมชนอำเภอ<?= DISTRICT_NAME ?></p>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.4; text-size-adjust: none; -webkit-text-size-adjust: none;">ขอบคุณที่เป็นส่วนสำคัญในการร่วมดูแลสุขภาพชุมชน</p>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.4; text-size-adjust: none; -webkit-text-size-adjust: none;">ชาวอำเภอ<?= DISTRICT_NAME ?></p>
+
                     </div>
 
                     <!-- Shortcut Action: Self-Health Assessment for VHV -->
