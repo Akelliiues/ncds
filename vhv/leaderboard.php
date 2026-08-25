@@ -340,7 +340,7 @@ function getBadgesList($total_assigned, $completed, $waiting_rewards)
     return $badges;
 }
 
-// 1. Query village (Moo) completion stats under current VHV's hospital (hoscode)
+// 1. Query village (Moo) completion stats under current VHV's hospital (hoscode) - Multi-round Mission Progress
 $hoscode = $_SESSION['hoscode'] ?? '';
 $villageStats = [];
 if (!empty($hoscode)) {
@@ -348,8 +348,15 @@ if (!empty($hoscode)) {
         SELECT 
             p.moo,
             MAX(v.village_name) as village_name,
-            COUNT(DISTINCT a.target_cid) as total_targets,
-            COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN a.target_cid END) as completed_targets
+            -- Round 1
+            COUNT(DISTINCT CASE WHEN (a.round_number = 1 OR a.round_number IS NULL) THEN a.target_cid END) as r1_total,
+            COUNT(DISTINCT CASE WHEN (a.round_number = 1 OR a.round_number IS NULL) AND a.assignment_status = 'completed' THEN a.target_cid END) as r1_done,
+            -- Round 2
+            COUNT(DISTINCT CASE WHEN a.round_number >= 2 THEN a.assignment_id END) as r2_total,
+            COUNT(DISTINCT CASE WHEN a.round_number >= 2 AND a.assignment_status = 'completed' THEN a.assignment_id END) as r2_done,
+            -- Combined Mission Targets
+            (COUNT(DISTINCT CASE WHEN (a.round_number = 1 OR a.round_number IS NULL) THEN a.target_cid END) + COUNT(DISTINCT CASE WHEN a.round_number >= 2 THEN a.assignment_id END)) as total_targets,
+            (COUNT(DISTINCT CASE WHEN (a.round_number = 1 OR a.round_number IS NULL) AND a.assignment_status = 'completed' THEN a.target_cid END) + COUNT(DISTINCT CASE WHEN a.round_number >= 2 AND a.assignment_status = 'completed' THEN a.assignment_id END)) as completed_targets
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
         LEFT JOIN villages v ON p.moo = v.moo AND p.hoscode = v.hoscode
@@ -367,24 +374,75 @@ if (!empty($hoscode)) {
     $villageStats = $villStmt->fetchAll();
 }
 
-// 2. Query hospital progress comparison (Tansum Health Center League)
+// 2. Query hospital progress comparison (Tansum Health Center League - Multi-Round Mission Progress)
 $hospitalStats = [];
 try {
     $hosQuery = "
         SELECT 
             u.hoscode,
-            COUNT(DISTINCT a.target_cid) as total_targets,
-            COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN a.target_cid END) as completed_targets
+            -- Round 1
+            COUNT(DISTINCT CASE WHEN (a.round_number = 1 OR a.round_number IS NULL) THEN a.target_cid END) as r1_total,
+            COUNT(DISTINCT CASE WHEN (a.round_number = 1 OR a.round_number IS NULL) AND a.assignment_status = 'completed' THEN a.target_cid END) as r1_done,
+            -- Round 2
+            COUNT(DISTINCT CASE WHEN a.round_number >= 2 THEN a.assignment_id END) as r2_total,
+            COUNT(DISTINCT CASE WHEN a.round_number >= 2 AND a.assignment_status = 'completed' THEN a.assignment_id END) as r2_done,
+            -- Combined Mission Targets
+            (COUNT(DISTINCT CASE WHEN (a.round_number = 1 OR a.round_number IS NULL) THEN a.target_cid END) + COUNT(DISTINCT CASE WHEN a.round_number >= 2 THEN a.assignment_id END)) as total_targets,
+            (COUNT(DISTINCT CASE WHEN (a.round_number = 1 OR a.round_number IS NULL) AND a.assignment_status = 'completed' THEN a.target_cid END) + COUNT(DISTINCT CASE WHEN a.round_number >= 2 AND a.assignment_status = 'completed' THEN a.assignment_id END)) as completed_targets
         FROM health_units u
         JOIN target_population p ON u.hoscode = p.hoscode
         JOIN task_assignments a ON p.cid = a.target_cid AND a.budget_year = ? AND COALESCE(a.is_sandbox, 0) = ?
         GROUP BY u.hoscode
         HAVING total_targets > 0
-        ORDER BY (COUNT(DISTINCT CASE WHEN a.assignment_status = 'completed' THEN a.target_cid END) / COUNT(DISTINCT a.target_cid)) DESC, u.hoscode ASC
+        ORDER BY (
+            (COUNT(DISTINCT CASE WHEN (a.round_number = 1 OR a.round_number IS NULL) AND a.assignment_status = 'completed' THEN a.target_cid END) + COUNT(DISTINCT CASE WHEN a.round_number >= 2 AND a.assignment_status = 'completed' THEN a.assignment_id END))
+            / 
+            (COUNT(DISTINCT CASE WHEN (a.round_number = 1 OR a.round_number IS NULL) THEN a.target_cid END) + COUNT(DISTINCT CASE WHEN a.round_number >= 2 THEN a.assignment_id END))
+        ) DESC, u.hoscode ASC
     ";
     $hosStmt = $pdo->prepare($hosQuery);
     $hosStmt->execute([$currentBudgetYear, $isSandboxVal]);
     $hospitalStats = $hosStmt->fetchAll();
+
+    // Check if dpac_followups has additional records per hospital
+    try {
+        $dpacHosStmt = $pdo->prepare("
+            SELECT 
+                p.hoscode,
+                COUNT(f.followup_id) as dpac_total,
+                COUNT(CASE WHEN f.status = 'completed' THEN 1 END) as dpac_done
+            FROM dpac_followups f
+            JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
+            JOIN target_population p ON e.cid = p.cid
+            WHERE COALESCE(f.is_sandbox, 0) = ?
+            GROUP BY p.hoscode
+        ");
+        $dpacHosStmt->execute([$isSandboxVal]);
+        $dpacHosMap = [];
+        while ($dp = $dpacHosStmt->fetch(PDO::FETCH_ASSOC)) {
+            $dpacHosMap[$dp['hoscode']] = $dp;
+        }
+
+        if (!empty($dpacHosMap)) {
+            foreach ($hospitalStats as &$hStat) {
+                $hc = $hStat['hoscode'];
+                if (isset($dpacHosMap[$hc])) {
+                    $hStat['r2_total'] = (int)($hStat['r2_total'] ?? 0) + (int)$dpacHosMap[$hc]['dpac_total'];
+                    $hStat['r2_done'] = (int)($hStat['r2_done'] ?? 0) + (int)$dpacHosMap[$hc]['dpac_done'];
+                    $hStat['total_targets'] = (int)$hStat['total_targets'] + (int)$dpacHosMap[$hc]['dpac_total'];
+                    $hStat['completed_targets'] = (int)$hStat['completed_targets'] + (int)$dpacHosMap[$hc]['dpac_done'];
+                }
+            }
+            unset($hStat);
+
+            usort($hospitalStats, function($a, $b) {
+                $pctA = $a['total_targets'] > 0 ? ($a['completed_targets'] / $a['total_targets']) : 0;
+                $pctB = $b['total_targets'] > 0 ? ($b['completed_targets'] / $b['total_targets']) : 0;
+                if ($pctA == $pctB) return strcmp($a['hoscode'], $b['hoscode']);
+                return ($pctA < $pctB) ? 1 : -1;
+            });
+        }
+    } catch (\Throwable $e) {}
 } catch (\Exception $e) {
     // Fail silently
 }
@@ -986,7 +1044,7 @@ try {
                 คะแนน & รางวัล อสม.
             </h3>
             <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 13px; font-weight: 600; line-height: 1.35;">
-                จัดอันดับผลงาน & ศูนย์แลกของรางวัลในพื้นที่<?= DISTRICT_NAME ?>
+                จัดอันดับผลงานและศูนย์แลกของรางวัลในพื้นที่<?= DISTRICT_NAME ?>
             </p>
         </div>
 
@@ -1043,7 +1101,7 @@ try {
 
                 <!-- Footer Summary Text -->
                 <div style="margin-top: 14px; font-size: 13px; text-align: center; color: var(--text-primary); border-top: 1px solid rgba(13, 44, 84, 0.08); padding-top: 10px; font-weight: 700; line-height: 1.4;">
-                    คุณอยู่อันดับที่ <?= $currentVhvRank ?: 'N/A' ?> จากทั้งหมด <?= $totalVhvs ?> คน ของอำเภอ<?= DISTRICT_NAME ?>
+                    คุณอยู่อันดับที่ <?= $currentVhvRank ?: 'N/A' ?> จาก อสม.ทั้งหมด <?= $totalVhvs ?> คน
                 </div>
                 <?php
                 $myTitle = getPositiveTitle($currentVhvRank);
@@ -1078,11 +1136,15 @@ try {
                         <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
                             สมรภูมิคัดกรองรายหมู่บ้าน
                         </h4>
-                        <p style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 16px 0;">เปรียบเทียบอัตราความสำเร็จในการคัดกรองเป้าหมายในตำบลของคุณ</p>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 16px 0;">เปรียบเทียบอัตราความสำเร็จในการคัดกรองตามภารกิจโครงการในตำบลของคุณ</p>
                         <div style="display: flex; flex-direction: column; gap: 14px;">
                             <?php foreach ($villageStats as $vStat):
                                 $total = (int)$vStat['total_targets'];
                                 $done = (int)$vStat['completed_targets'];
+                                $r1Tot = (int)($vStat['r1_total'] ?? $total);
+                                $r1Dn = (int)($vStat['r1_done'] ?? $done);
+                                $r2Tot = (int)($vStat['r2_total'] ?? 0);
+                                $r2Dn = (int)($vStat['r2_done'] ?? 0);
                                 $pct = $total > 0 ? round(($done / $total) * 100, 1) : 0;
 
                                 // Select indicator color based on progress
@@ -1092,12 +1154,16 @@ try {
                                 elseif ($pct < 20) $barColor = 'var(--color-red)';
                             ?>
                                 <div>
-                                    <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-primary);">
+                                    <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 3px; color: var(--text-primary);">
                                         <span>หมู่ที่ <?= htmlspecialchars($vStat['moo']) ?> <?= !empty($vStat['village_name']) ? htmlspecialchars($vStat['village_name']) : '' ?></span>
-                                        <span style="color: <?= $barColor ?>;"><?= $done ?> / <?= $total ?> คน (<?= $pct ?>%)</span>
+                                        <span style="color: <?= $barColor ?>; font-size: 13.5px; font-weight: 800;"><?= $pct ?>%</span>
                                     </div>
-                                    <div style="width: 100%; height: 12px; background: rgba(13, 44, 84, 0.08); border-radius: 6px; overflow: hidden; box-shadow: var(--neumorph-inset);">
-                                        <div style="width: <?= $pct ?>%; height: 100%; background: <?= $barColor ?>; border-radius: 6px; transition: width 0.8s ease-in-out;"></div>
+                                    <div style="display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-secondary); margin-bottom: 6px;">
+                                        <span>รวม <?= $done ?>/<?= $total ?> เคส</span>
+                                        <span><?= $r2Tot > 0 ? "รอบ 1: {$r1Dn}/{$r1Tot} | รอบ 2: {$r2Dn}/{$r2Tot}" : "รอบ 1: {$r1Dn}/{$r1Tot}" ?></span>
+                                    </div>
+                                    <div style="width: 100%; height: 10px; background: rgba(13, 44, 84, 0.08); border-radius: 5px; overflow: hidden; box-shadow: var(--neumorph-inset);">
+                                        <div style="width: <?= min(100, $pct) ?>%; height: 100%; background: <?= $barColor ?>; border-radius: 5px; transition: width 0.8s ease-in-out;"></div>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -1117,13 +1183,17 @@ try {
                         <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
                             ลีกหน่วยบริการ รพ.สต. (ทั้งอำเภอ<?= DISTRICT_NAME ?>)
                         </h4>
-                        <p style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 16px 0;">อันดับอัตราความสำเร็จในการคัดกรองตามเป้าหมายโครงการแยกตามเขตรับผิดชอบของแต่ละ รพ.สต.</p>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 16px 0;">อันดับอัตราความสำเร็จในภารกิจคัดกรอง & ติดตามกลุ่มเสี่ยงรอบ 2 แยกตามเขตรับผิดชอบ</p>
                         <div style="display: flex; flex-direction: column; gap: 14px;">
                             <?php
                             $hRank = 1;
                             foreach ($hospitalStats as $hStat):
                                 $total = (int)$hStat['total_targets'];
                                 $done = (int)$hStat['completed_targets'];
+                                $r1Tot = (int)($hStat['r1_total'] ?? $total);
+                                $r1Dn = (int)($hStat['r1_done'] ?? $done);
+                                $r2Tot = (int)($hStat['r2_total'] ?? 0);
+                                $r2Dn = (int)($hStat['r2_done'] ?? 0);
                                 $pct = $total > 0 ? round(($done / $total) * 100, 1) : 0;
                                 $hName = $hcNames[$hStat['hoscode']] ?? $hStat['hoscode'];
 
@@ -1141,13 +1211,17 @@ try {
                                 elseif ($hRank === 3) $rankIcon = '🥉';
                                 else $rankIcon = '🏅';
                             ?>
-                                <div style="<?= $isMyHos ? 'background: rgba(13, 44, 84, 0.04); border: 1px dashed var(--color-accent); padding: 8px; border-radius: 12px;' : '' ?>">
-                                    <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-primary);">
+                                <div style="<?= $isMyHos ? 'background: rgba(13, 44, 84, 0.04); border: 1px dashed var(--color-accent); padding: 10px 12px; border-radius: 14px;' : 'padding: 4px 0;' ?>">
+                                    <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 3px; color: var(--text-primary);">
                                         <span><?= $rankIcon ?> #<?= $hRank ?> <?= htmlspecialchars($hName) ?> <?= $isMyHos ? '<span style="color:var(--color-accent);font-size:11px;">(รพ.สต. ของคุณ)</span>' : '' ?></span>
-                                        <span style="color: <?= $barColor ?>;"><?= $done ?> / <?= $total ?> คน (<?= $pct ?>%)</span>
+                                        <span style="color: <?= $barColor ?>; font-size: 13.5px; font-weight: 800;"><?= $pct ?>%</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-secondary); margin-bottom: 6px;">
+                                        <span>รวม <?= $done ?>/<?= $total ?> เคส</span>
+                                        <span><?= $r2Tot > 0 ? "รอบ 1: {$r1Dn}/{$r1Tot} | รอบ 2: {$r2Dn}/{$r2Tot}" : "รอบ 1: {$r1Dn}/{$r1Tot}" ?></span>
                                     </div>
                                     <div style="width: 100%; height: 10px; background: rgba(13, 44, 84, 0.08); border-radius: 5px; overflow: hidden; box-shadow: var(--neumorph-inset);">
-                                        <div style="width: <?= $pct ?>%; height: 100%; background: <?= $barColor ?>; border-radius: 5px; transition: width 0.8s ease-in-out;"></div>
+                                        <div style="width: <?= min(100, $pct) ?>%; height: 100%; background: <?= $barColor ?>; border-radius: 5px; transition: width 0.8s ease-in-out;"></div>
                                     </div>
                                 </div>
                             <?php
