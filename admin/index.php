@@ -2873,75 +2873,94 @@ if (DemoDataProvider::isDemoMode()) {
                     </div>`;
             }
 
-            // 1. Total Multi-Round Radial Progress Gauge (Apple Health / Modern Concentric Rings)
+            // 1. Total Multi-Round Radar Polygon Chart (Pariatur Polygon Style)
             var r1PctVal = Math.min(100, Math.round(<?= floatval($cR1Pct) ?>));
-            var r2PctVal = Math.min(100, Math.round(<?= floatval($cR2CompPct) ?>));
-            var r3PctVal = Math.min(100, Math.round(<?= floatval($cR3CompPct) ?>));
+            var r2ReachVal = Math.min(100, Math.round(<?= floatval($cR2ReachPct) ?>));
+            var r2CompVal = Math.min(100, Math.round(<?= floatval($cR2CompPct) ?>));
+            var r3CompVal = Math.min(100, Math.round(<?= floatval($cR3CompPct) ?>));
 
             var optionsTotalPie = {
-                series: [r1PctVal, r2PctVal, r3PctVal],
+                series: [
+                    {
+                        name: 'แผนเป้าหมาย (เกณฑ์ 100%)',
+                        data: [100, 100, 100, 100, 100]
+                    },
+                    {
+                        name: 'ผลงานจริงสะสม (%)',
+                        data: [100, r1PctVal, r2ReachVal, r2CompVal, r3CompVal]
+                    }
+                ],
                 chart: {
-                    type: 'radialBar',
-                    height: 285,
+                    type: 'radar',
+                    height: 275,
                     background: 'transparent',
-                    sparkline: { enabled: false }
+                    toolbar: { show: false },
+                    dropShadow: {
+                        enabled: true,
+                        blur: 4,
+                        left: 1,
+                        top: 1,
+                        opacity: 0.15
+                    }
+                },
+                colors: ['#3b82f6', '#10b981'],
+                stroke: {
+                    width: [2, 2.5],
+                    curve: 'smooth'
+                },
+                fill: {
+                    opacity: [0.18, 0.55]
+                },
+                markers: {
+                    size: [0, 4],
+                    hover: { size: 6 }
                 },
                 plotOptions: {
-                    radialBar: {
-                        startAngle: -135,
-                        endAngle: 225,
-                        hollow: {
-                            size: '32%',
-                            background: 'transparent'
-                        },
-                        track: {
-                            background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#e2e8f0',
-                            strokeWidth: '100%',
-                            margin: 6
-                        },
-                        dataLabels: {
-                            name: {
-                                show: true,
-                                fontSize: '12px',
-                                fontFamily: 'Prompt',
-                                fontWeight: '600',
-                                color: '#9ca3af',
-                                offsetY: -8
-                            },
-                            value: {
-                                show: true,
-                                fontSize: '18px',
-                                fontFamily: 'Prompt',
-                                fontWeight: '900',
-                                color: isDark ? '#f8fafc' : '#0f172a',
-                                offsetY: 4,
-                                formatter: function(val) { return val + "%"; }
-                            },
-                            total: {
-                                show: true,
-                                label: 'ครอบคลุม R1',
-                                color: '#10b981',
-                                fontSize: '12px',
-                                fontFamily: 'Prompt',
-                                fontWeight: '800',
-                                formatter: function() { return '<?= $cR1Pct ?>%'; }
+                    radar: {
+                        size: 85,
+                        polygons: {
+                            strokeColors: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
+                            connectorColors: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
+                            fill: {
+                                colors: isDark ? ['rgba(255, 255, 255, 0.02)', 'transparent'] : ['rgba(0, 0, 0, 0.02)', 'transparent']
                             }
                         }
                     }
                 },
-                labels: ['รอบ 1 (Baseline)', 'รอบ 2 (ติดตาม)', 'รอบ 3+ (ต่อเนื่อง)'],
-                colors: ['#10b981', '#0ea5e9', '#8b5cf6'],
-                stroke: {
-                    lineCap: 'round'
+                xaxis: {
+                    categories: ['เป้าหมายรวม', 'คัดกรอง R1', 'มอบหมาย R2', 'สำเร็จ R2', 'สำเร็จ R3+'],
+                    labels: {
+                        style: {
+                            colors: ['#9ca3af', '#9ca3af', '#9ca3af', '#9ca3af', '#9ca3af'],
+                            fontSize: '11px',
+                            fontFamily: 'Prompt',
+                            fontWeight: '600'
+                        }
+                    }
+                },
+                yaxis: {
+                    show: false,
+                    max: 100,
+                    min: 0,
+                    tickAmount: 4
                 },
                 legend: {
                     show: true,
                     position: 'bottom',
-                    fontSize: '11.5px',
+                    offsetY: 2,
+                    fontSize: '11px',
                     fontFamily: 'Prompt',
                     fontWeight: 600,
                     labels: { colors: '#9ca3af' },
-                    markers: { width: 10, height: 10, radius: 4 }
+                    markers: { width: 9, height: 9, radius: 4 }
+                },
+                tooltip: {
+                    theme: localStorage.getItem('theme') || 'light',
+                    y: {
+                        formatter: function(val, opts) {
+                            return val + "%";
+                        }
+                    }
                 }
             };
             if (<?= intval($metrics['total_targets']) ?> > 0) {
