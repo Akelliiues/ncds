@@ -1862,6 +1862,9 @@ if (DemoDataProvider::isDemoMode()) {
 
         <!-- ApexCharts Initialization -->
         <script>
+            // Theme detection for charts
+            const isDark = (localStorage.getItem('theme') === 'dark' || document.documentElement.getAttribute('data-theme') === 'dark');
+
             // Data from PHP
             const hcNamesChart = <?= json_encode($hc_names) ?>;
 
