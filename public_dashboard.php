@@ -292,6 +292,7 @@ if ($isDemo) {
     $worsenedFbsCount = 2;
     $monitoringCount = 1;
     $worsenedCount = 3;
+    $r1Completed = 9820;
     $r2Assigned = 180;
     $r2Completed = 47;
     $r3Completed = 0;
@@ -361,6 +362,7 @@ if ($isDemo) {
         }
 
         $totalScreened = count($r1Cids);
+        $r1Completed = $totalScreened;
         if ($totalTargets === 0 && $totalScreened > 0) {
             $totalTargets = $totalScreened;
         }
@@ -1388,9 +1390,9 @@ if (!function_exists('renderKpiGenderSplit')) {
         <!-- Project Model Context Banner -->
         <div style="background: var(--neu-card-bg); box-shadow: var(--neu-raised-sm); border-radius: 20px; padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; border: 1px solid var(--neu-border);">
             <div style="font-size: 13.5px; color: var(--text-secondary); display: flex; align-items: center; gap: 10px;">
-                <span class="neu-avatar-well" style="width: 36px; height: 36px; font-size: 18px;">🎉</span>
+                <span class="neu-avatar-well" style="width: 36px; height: 36px; font-size: 18px;">📊</span>
                 <span>
-                    <strong>ผลลัพธ์รอบแรกบรรลุเป้าหมาย:</strong> ทุกหน่วยบริการ (8 แห่ง) ดำเนินการคัดกรองกลุ่มเป้าหมายเชิงรุกรอบแรกครบ <strong>100% (<?= number_format($totalTargets) ?> คน)</strong> เพื่อตัดวงจรกลุ่มเสี่ยงเข้าสู่คลินิก DPAC
+                    <strong>ความครอบคลุมการคัดกรองสุขภาพ:</strong> ดำเนินการคัดกรองแล้ว <strong><?= number_format($totalScreened) ?> จากเป้าหมาย <?= number_format($totalTargets) ?> คน (<?= $coveragePct ?>%)</strong> เพื่อตัดวงจรกลุ่มเสี่ยงเข้าสู่คลินิก DPAC
                 </span>
             </div>
             <div class="badge-pill-inset" style="color: #059669; font-size: 12px;">
@@ -1429,7 +1431,11 @@ if (!function_exists('renderKpiGenderSplit')) {
                     <div class="neu-progress-track">
                         <div class="neu-progress-bar" style="width: <?= min(100, $coveragePct) ?>%; background: linear-gradient(90deg, #34d399, #10b981);"></div>
                     </div>
-                    <div class="kpi-sub" style="color: #059669; font-weight: 700;">✅ ครบถ้วน 100% ตามเป้าหมาย</div>
+                    <?php if ($coveragePct >= 100): ?>
+                        <div class="kpi-sub" style="color: #059669; font-weight: 700;">✅ ครบถ้วน 100% ตามเป้าหมาย</div>
+                    <?php else: ?>
+                        <div class="kpi-sub" style="color: var(--text-muted);">เป้าหมายรวม <?= number_format($totalTargets) ?> คน (คงเหลือ <?= number_format(max(0, $totalTargets - $totalScreened)) ?> คน)</div>
+                    <?php endif; ?>
                 </div>
                 <?php renderKpiGenderSplit($scrMale, $scrMalePct, $scrFemale, $scrFemalePct, 'kpi_scr'); ?>
             </div>
@@ -1481,16 +1487,17 @@ if (!function_exists('renderKpiGenderSplit')) {
 
                 <div style="display: flex; flex-direction: column; gap: 14px;">
                     <!-- 1. Round 1 Coverage -->
+                    <?php $pctR1 = $totalTargets > 0 ? round(($r1Completed / $totalTargets) * 100, 1) : 0; ?>
                     <div style="background: var(--neu-card-bg); box-shadow: var(--neu-raised-sm); border-radius: 18px; padding: 14px 16px; border: 1px solid var(--neu-border);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span class="neu-avatar-well" style="width: 26px; height: 26px; font-size: 12px; font-weight: 900; color: #10b981;">1</span>
                                 <span style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);">รอบที่ 1 (Baseline)</span>
                             </div>
-                            <span style="font-size: 14px; font-weight: 900; color: #10b981;"><?= number_format($r1Completed) ?> <span style="font-size: 11.5px; font-weight: 700;">(100.0%)</span></span>
+                            <span style="font-size: 14px; font-weight: 900; color: #10b981;"><?= number_format($r1Completed) ?> <span style="font-size: 11.5px; font-weight: 700;">(<?= $pctR1 ?>%)</span></span>
                         </div>
                         <div class="neu-progress-track">
-                            <div class="neu-progress-bar" style="width: 100%; background: linear-gradient(90deg, #34d399, #10b981);"></div>
+                            <div class="neu-progress-bar" style="width: <?= min(100, $pctR1) ?>%; background: linear-gradient(90deg, #34d399, #10b981);"></div>
                         </div>
                         <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">คัดกรองเสร็จจากเป้าหมาย <?= number_format($totalTargets) ?> ราย</div>
                     </div>
@@ -1582,18 +1589,23 @@ if (!function_exists('renderKpiGenderSplit')) {
                 </div>
 
                 <!-- Age Distribution (Neumorphic Sunken Track) -->
+                <?php 
+                    $totalAgeGroup = $ageLabor + $ageElderly;
+                    $laborPct = $totalAgeGroup > 0 ? round(($ageLabor / $totalAgeGroup) * 100) : 50;
+                    $elderlyPct = $totalAgeGroup > 0 ? (100 - $laborPct) : 50;
+                ?>
                 <div style="display: flex; flex-direction: column; gap: 10px;">
                     <div>
                         <div style="display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 700; margin-bottom: 6px;">
-                            <span style="color: #3b82f6;">วัยทำงาน 35-59 ปี (<?= number_format($ageLabor) ?>)</span>
-                            <span style="color: #f59e0b;">ผู้สูงอายุ 60+ ปี (<?= number_format($ageElderly) ?>)</span>
+                            <span style="color: #3b82f6;">วัยทำงาน 35-59 ปี (<?= number_format($ageLabor) ?> คน)</span>
+                            <span style="color: #f59e0b;">ผู้สูงอายุ 60+ ปี (<?= number_format($ageElderly) ?> คน)</span>
                         </div>
                         <div class="neu-progress-track" style="height: 20px; display: flex; padding: 2px;">
-                            <div style="width: <?= $totalScreened > 0 ? round(($ageLabor/$totalScreened)*100) : 50 ?>%; background: linear-gradient(90deg, #60a5fa, #3b82f6); border-radius: 9999px 0 0 9999px; font-size: 11px; font-weight: 900; color: white; text-align: center; line-height: 16px;">
-                                <?= $totalScreened > 0 ? round(($ageLabor/$totalScreened)*100) : 50 ?>%
+                            <div style="width: <?= $laborPct ?>%; background: linear-gradient(90deg, #60a5fa, #3b82f6); border-radius: 9999px 0 0 9999px; font-size: 11px; font-weight: 900; color: white; text-align: center; line-height: 16px;">
+                                <?= $laborPct ?>%
                             </div>
-                            <div style="width: <?= $totalScreened > 0 ? round(($ageElderly/$totalScreened)*100) : 50 ?>%; background: linear-gradient(90deg, #fbbf24, #f59e0b); border-radius: 0 9999px 9999px 0; font-size: 11px; font-weight: 900; color: white; text-align: center; line-height: 16px;">
-                                <?= $totalScreened > 0 ? round(($ageElderly/$totalScreened)*100) : 50 ?>%
+                            <div style="width: <?= $elderlyPct ?>%; background: linear-gradient(90deg, #fbbf24, #f59e0b); border-radius: 0 9999px 9999px 0; font-size: 11px; font-weight: 900; color: white; text-align: center; line-height: 16px;">
+                                <?= $elderlyPct ?>%
                             </div>
                         </div>
                     </div>

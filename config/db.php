@@ -40,10 +40,6 @@ if (!function_exists('maskRowData')) {
             $geoKeys = [
                 'latitude', 'longitude', 'lat', 'lng', 'screening_lat', 'screening_lng', 'gps_lat', 'gps_lng', 'home_lat', 'home_lng'
             ];
-            $vitalKeys = [
-                'sys_bp1', 'dia_bp1', 'bp_sys', 'bp_dia', 'dtx_value', 'fbs', 'fbs_before', 'fbs_after', 'sbp_before', 'sbp_after', 'dbp_before', 'dbp_after'
-            ];
-            $bmiKeys = ['bmi', 'waist'];
             
             $prefixes = ['นาย', 'นาง', 'น.ส.', 'นางสาว', 'ด.ช.', 'ด.ญ.', 'ดร.', 'นพ.', 'พญ.', 'ทพ.', 'ภก.', 'อสม.'];
 
@@ -101,23 +97,6 @@ if (!function_exists('maskRowData')) {
                 return round(floatval($valStr), 2);
             };
 
-            $maskVitalVal = function ($valStr) {
-                if ($valStr === null || trim((string)$valStr) === '' || !is_numeric($valStr)) return $valStr;
-                $num = intval($valStr);
-                if ($num >= 100) {
-                    return substr((string)$num, 0, 2) . 'X'; // e.g. 142 -> 14X, 126 -> 12X
-                } elseif ($num >= 10) {
-                    return substr((string)$num, 0, 1) . 'X'; // e.g. 84 -> 8X
-                }
-                return $valStr;
-            };
-
-            $maskBmiVal = function ($valStr) {
-                if ($valStr === null || trim((string)$valStr) === '' || !is_numeric($valStr)) return $valStr;
-                $f = floatval($valStr);
-                return floor($f) . '.X'; // e.g. 24.3 -> 24.X
-            };
-
             if (is_array($row)) {
                 foreach ($row as $key => $val) {
                     if ($val === null || $val === '') continue;
@@ -132,10 +111,6 @@ if (!function_exists('maskRowData')) {
                         $row[$key] = $maskHouseVal((string)$val);
                     } elseif (in_array($keyLower, $geoKeys)) {
                         $row[$key] = $maskGeoVal((string)$val);
-                    } elseif (in_array($keyLower, $vitalKeys)) {
-                        $row[$key] = $maskVitalVal((string)$val);
-                    } elseif (in_array($keyLower, $bmiKeys)) {
-                        $row[$key] = $maskBmiVal((string)$val);
                     }
                 }
             } elseif (is_object($row)) {
@@ -162,16 +137,6 @@ if (!function_exists('maskRowData')) {
                 foreach ($geoKeys as $key) {
                     if (isset($row->$key) && $row->$key !== null && $row->$key !== '') {
                         $row->$key = $maskGeoVal((string)$row->$key);
-                    }
-                }
-                foreach ($vitalKeys as $key) {
-                    if (isset($row->$key) && $row->$key !== null && $row->$key !== '') {
-                        $row->$key = $maskVitalVal((string)$row->$key);
-                    }
-                }
-                foreach ($bmiKeys as $key) {
-                    if (isset($row->$key) && $row->$key !== null && $row->$key !== '') {
-                        $row->$key = $maskBmiVal((string)$row->$key);
                     }
                 }
             }
