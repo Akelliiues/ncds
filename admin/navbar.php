@@ -478,7 +478,7 @@ try {
                     </svg>
                     สถิติสุขภาพประชาชน
                 </a>
-                <a href="analytics.php" onclick="showPageLoading('วิเคราะห์เชิงลึก (Analytics)', 'กำลังคำนวณสถิติและประมวลผลแผนที่ GIS...', '📈', 'analytics.php'); return false;" class="<?= $current_page == 'analytics.php' ? 'active' : '' ?>">
+                <a href="analytics.php" onclick="showPageLoading('ระบบวิเคราะห์ข้อมูลเชิงลึก<br><span style=\'font-size: 13.5px; font-weight: 700; color: var(--color-accent); opacity: 0.95;\'> (Advanced Analytics)</span>', 'กำลังคำนวณสถิติสุขภาพ แผนภูมิ และประมวลผลแผนที่ GIS...', '📈');" class="<?= $current_page == 'analytics.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16 8v8m-4-5v5m-4-2v2M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12z" />
                     </svg>
@@ -496,7 +496,7 @@ try {
                     </svg>
                     รายงานและการพิมพ์
                 </a>
-                <a href="security_log.php" onclick="showPageLoading('บันทึกความปลอดภัย (Secure Log)', 'กำลังโหลดบันทึกความปลอดภัยระบบ...', '🔒');" class="<?= $current_page == 'security_log.php' ? 'active' : '' ?>" style="white-space: nowrap !important;">
+                <a href="security_log.php" onclick="showPageLoading('บันทึกความปลอดภัย<br><span style=\'font-size: 13.5px; font-weight: 700; color: var(--color-accent); opacity: 0.95;\'> (Secure Log)</span>', 'กำลังโหลดบันทึกความปลอดภัยระบบ...', '🔒');" class="<?= $current_page == 'security_log.php' ? 'active' : '' ?>" style="white-space: nowrap !important;">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                         <path d="M7 11V7a5 5 0 0110 0v4" />

@@ -37,4 +37,5 @@ inspect_*.php
 scratch_*.php
 scratch_*.py
 scratch_out.txt
+.tmp_*
 

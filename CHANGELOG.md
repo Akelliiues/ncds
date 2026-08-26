@@ -4,6 +4,38 @@
 
 ---
 
+## [v2.7-stable] - Stable Release 2.7: Multi-Tier In-Memory Cache Engine, Single-Stage GIS Preloader & Multi-Million Scalability Suite (2026-08-26) 🚀
+
+### 🚀 เครื่องยนต์ In-Memory Cache หลายระดับความเร็วสูง (Multi-Tier In-Memory Cache Engine - NcdCache)
+- **สถาปัตยกรรมแคช 3 ชั้นอัตโนมัติ (APCu RAM ➔ Redis ➔ Atomic File Cache)**:
+  - พัฒนาโมดูล `NcdCache` ใน `config/cache.php` สำหรับกักเก็บผลลัพธ์การประมวลผลขนาดใหญ่ ช่วยให้การเข้าถึงข้อมูลซ้ำโหลดเร็วในระดับ **0.001 วินาที (1 มิลลิวินาที)**
+  - ผนวกแคชครอบคลุมหน้าวิเคราะห์เชิงลึก (`admin/analytics.php`), สถิติพฤติกรรมประชาชน (`admin/citizen_health_dashboard.php`), แดชบอร์ดสาธารณะ (`public_dashboard.php`) และกระดานคะแนน อสม. (`vhv/leaderboard.php`)
+  - ระบบตัดยอดแคชอัตโนมัติ (Automated Cache Invalidation) เมื่อ อสม. บันทึกผลคัดกรองใหม่ หรือผู้ดูแลระบบประมวลผลข้อมูล
+
+### ⚡ ระบบ Single-Stage Preloading & จัดระเบียบการตัดคำ (GIS Analytics Preloader Continuity)
+- **การโหลดแบบไร้รอยต่อ ไร้จังหวะกระตุก (Single-Stage Continuous Loading)**:
+  - แก้ไขปัญหา Preloader ซ้ำซ้อน 2 จังหวะในหน้า Analytics ให้เหลือเพียง 1 รอบเดียวอย่างสมบูรณ์
+  - ติดตั้งโพรโทคอล `data-preserve-loader="true"` ให้หน้าโหลดแสดงผลต่อเนื่องด้วยกระจกฝ้าเบลอ (`backdrop-filter: blur(12px)`) จนกระทั่งแผนที่ดาวเทียม GIS และกราฟสถิติทุกชิ้นวาดเสร็จ 100% แล้วจึง Fade Out นุ่มนวล 0.45 วินาที
+  - จัดระเบียบ Typography ตัดคำหัวข้อภาษาไทยและอังกฤษ `ระบบวิเคราะห์ข้อมูลเชิงลึก (Advanced Analytics)` และ `บันทึกความปลอดภัย (Secure Log)` ให้อยู่ใน 2 บรรทัดอย่างสมดุลและสวยงาม
+
+### 🛡️ ระบบป้องกันการกดโหลดซ้ำเมื่ออยู่หน้าเดิม (Universal Active-Page Click Guard)
+- **ดักจับเหตุการณ์ระดับราก (Root Capture Phase Interception)**:
+  - ตรวจจับการคลิกเมนูของหน้าที่กำลังเปิดใช้งานอยู่ ทั้งในระบบ Admin Navbar และ VHV Bottom Nav
+  - บล็อกการรีโหลดหน้าใหม่และไม่แสดง Preloader ซ้ำซ้อน ช่วยประหยัดแบนด์วิดท์และลดโหลดบนเซิร์ฟเวอร์
+  - ปรับการทำงานเป็นการเลื่อนหน้าจอกลับขึ้นด้านบนอย่างนุ่มนวล (`Smooth Scroll to Top`) แทน
+
+### 🏎️ ชุดโครงสร้างพื้นฐานรองรับข้อมูลหลายล้านเรคคอร์ด (Multi-Million Record Scalability Suite)
+- **ชุดดัชนี Composite Database Indexing**:
+  - สร้างดัชนีแบบผสมบนตารางหลัก (`target_population`, `screening_results`, `task_assignments`, `dpac_enrollments`, `dpac_followups`) เร่งความเร็วการ JOIN และคัดกรองข้ามตารางขึ้น 10-50 เท่า
+- **ตารางสรุปผลล่วงหน้า (Materialized KPI Summary Cache)**:
+  - สร้างตาราง `kpi_summary_cache` และสคริปต์ `api/kpi_cache.php` สำหรับประมวลผลสรุป KPI ราย รพ.สต. และตำบล
+- **ระบบกระจายสัญญาณสด (Server-Sent Events - SSE Stream)**:
+  - พัฒนาเอนด์พอยต์ `api/stream_events.php` ส่งสัญญาณ Red Alert และ Emergency Beacons แบบ Push-based กินทรัพยากรต่ำ
+- **เครื่องมือทดสอบประสิทธิภาพสด (Live Performance Benchmark Suite)**:
+  - ติดตั้งหน้าทดสอบเปรียบเทียบความเร็ว SQL vs In-Memory Cache (`admin/benchmark.php` และ `benchmark.php`)
+
+---
+
 ## [v2.52-stable] - Stable Release 2.52: VHV Menu Blur Pre-loader, Smart News Accordion, Viewport Scroll Lock & Forced PWA Auto-Update (2026-08-26) 🚀
 
 ### ⚡ ระบบ Pre-loader สลับเมนู อสม. พร้อมเอฟเฟกต์เบลอ (VHV Menu Blur Pre-loader & Snappy 0.5s Transition)

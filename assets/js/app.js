@@ -583,8 +583,20 @@ window.getDeterministicPrivacyJitter = function(lat, lng, seedStr) {
         const subEl = overlay.querySelector('#loading-subtitle');
         const iconEl = overlay.querySelector('#loading-icon');
 
-        if (title && titleEl) titleEl.innerText = title;
-        if (subtitle && subEl) subEl.innerText = subtitle;
+        if (title && titleEl) {
+            if (title.includes('<') || title.includes('\n')) {
+                titleEl.innerHTML = title.replace(/\n/g, '<br>');
+            } else {
+                titleEl.innerText = title;
+            }
+        }
+        if (subtitle && subEl) {
+            if (subtitle.includes('<') || subtitle.includes('\n')) {
+                subEl.innerHTML = subtitle.replace(/\n/g, '<br>');
+            } else {
+                subEl.innerText = subtitle;
+            }
+        }
         if (icon && iconEl) iconEl.innerText = icon;
 
         overlay.style.display = 'flex';
@@ -697,6 +709,9 @@ window.getDeterministicPrivacyJitter = function(lat, lng, seedStr) {
 
     // 4. Dismiss all loaders on load / pageshow / DOMContentLoaded
     const dismissAllLoaders = function() {
+        if (document.body && document.body.getAttribute('data-preserve-loader') === 'true') {
+            return;
+        }
         window.hidePageLoading();
         window.hideVhvMenuLoader();
     };
@@ -710,7 +725,43 @@ window.getDeterministicPrivacyJitter = function(lat, lng, seedStr) {
         setTimeout(dismissAllLoaders, 50);
     }
 
-    // 5. Automatic click interception for VHV Menu Links (.bottom-nav a, etc.)
+    // --------------------------------------------------------------------------
+    // 5. Universal Guard: Prevent duplicate loading & reloading on current active page
+    // --------------------------------------------------------------------------
+    document.addEventListener('click', (e) => {
+        const link = e.target.closest('a');
+        if (!link) return;
+
+        const href = link.getAttribute('href');
+        if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('tel:') || href.startsWith('mailto:') || link.getAttribute('target') === '_blank') {
+            return;
+        }
+
+        // Clean current path and target path
+        const currentPath = (window.location.pathname.split('/').pop() || 'index.php').split('?')[0].split('#')[0];
+        const targetPath = href.split('?')[0].split('#')[0].split('/').pop();
+        const currentSearch = window.location.search || '';
+        const targetSearch = href.includes('?') ? '?' + href.split('?')[1].split('#')[0] : '';
+
+        // If clicking a link to the exact same page with the exact same query parameters:
+        if (currentPath === targetPath && currentSearch === targetSearch && !link.classList.contains('force-reload') && !link.classList.contains('force-loader')) {
+            // Cancel navigation and prevent any inline onclick loader from popping up
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+
+            if (window.hidePageLoading) window.hidePageLoading();
+            if (window.hideVhvMenuLoader) window.hideVhvMenuLoader();
+
+            // Smooth scroll back to top of the current page
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return false;
+        }
+    }, true); // Capture phase ensures it runs BEFORE any inline onclick
+
+    // --------------------------------------------------------------------------
+    // 5.1 Automatic click interception for VHV Menu Links (.bottom-nav a, etc.)
+    // --------------------------------------------------------------------------
     document.addEventListener('click', (e) => {
         const link = e.target.closest('.bottom-nav a, .nav-link, a.vhv-menu-link');
         if (!link) return;
@@ -721,10 +772,10 @@ window.getDeterministicPrivacyJitter = function(lat, lng, seedStr) {
         }
 
         // Compare target URL with current URL pathname
-        const currentPath = window.location.pathname.split('/').pop() || 'index.php';
+        const currentPath = (window.location.pathname.split('/').pop() || 'index.php').split('?')[0].split('#')[0];
         const targetPath = href.split('?')[0].split('#')[0].split('/').pop();
 
-        // If clicking link to the current active page without queries/changes, skip loader
+        // If clicking link to current active page without queries/changes, skip loader
         if (currentPath === targetPath && !href.includes('?') && !link.classList.contains('force-loader')) {
             return;
         }

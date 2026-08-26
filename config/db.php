@@ -877,6 +877,54 @@ try {
     // Fail silently
 }
 
+// ==========================================
+// Enterprise Scalability & Performance Engine (Multi-Million Record Ready)
+// ==========================================
+try {
+    // 1. Create KPI Summary Cache Table (Pre-aggregated materialization)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `kpi_summary_cache` (
+        `cache_id` INT AUTO_INCREMENT PRIMARY KEY,
+        `cache_key` VARCHAR(100) NOT NULL UNIQUE,
+        `budget_year` INT NOT NULL,
+        `hoscode` VARCHAR(10) DEFAULT NULL,
+        `sub_district_code` VARCHAR(6) DEFAULT NULL,
+        `is_sandbox` TINYINT NOT NULL DEFAULT 0,
+        `total_target` INT NOT NULL DEFAULT 0,
+        `r1_done` INT NOT NULL DEFAULT 0,
+        `r2_done` INT NOT NULL DEFAULT 0,
+        `r3_done` INT NOT NULL DEFAULT 0,
+        `dpac_total` INT NOT NULL DEFAULT 0,
+        `dpac_done` INT NOT NULL DEFAULT 0,
+        `payload_json` MEDIUMTEXT NULL,
+        `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX `idx_kpi_lookup` (`budget_year`, `hoscode`, `is_sandbox`),
+        INDEX `idx_kpi_tambon` (`budget_year`, `sub_district_code`, `is_sandbox`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+    // 2. High-Throughput Composite Indexing Suite
+    $indexesToAdd = [
+        ['target_population', 'idx_perf_pop_geo', '(`sub_district_code`, `moo`, `hoscode`, `need_screen_dm`, `need_screen_ht`)'],
+        ['screening_results', 'idx_perf_screen_composite', '(`target_cid`, `round_number`, `is_sandbox`, `created_at`)'],
+        ['screening_results', 'idx_perf_screen_assign', '(`assignment_id`, `round_number`, `is_sandbox`)'],
+        ['task_assignments', 'idx_perf_task_lookup', '(`target_cid`, `vhv_id`, `round_number`, `budget_year`, `status`, `is_sandbox`)'],
+        ['dpac_followups', 'idx_perf_dpac_lookup', '(`enrollment_id`, `status`, `is_sandbox`, `completed_at`)'],
+        ['dpac_enrollments', 'idx_perf_dpac_cid', '(`cid`, `budget_year`, `is_sandbox`, `status`)'],
+        ['emergency_beacons', 'idx_perf_beacon_status', '(`status`, `created_at`, `hoscode`)']
+    ];
+
+    foreach ($indexesToAdd as $idxInfo) {
+        list($tbl, $idxName, $cols) = $idxInfo;
+        try {
+            $checkIdx = $pdo->query("SHOW INDEX FROM `$tbl` WHERE Key_name = '$idxName'");
+            if ($checkIdx && $checkIdx->rowCount() === 0) {
+                $pdo->exec("ALTER TABLE `$tbl` ADD INDEX `$idxName` $cols");
+            }
+        } catch (\Throwable $e) {}
+    }
+} catch (\Throwable $e) {
+    // Fail gracefully without interrupting live traffic
+}
+
 // Auto-create admin_users table if it doesn't exist
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS `admin_users` (

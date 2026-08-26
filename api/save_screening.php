@@ -519,6 +519,12 @@ try {
             ];
         }
 
+        // Invalidate leaderboard cache for real-time ranking update
+        require_once __DIR__ . '/../config/cache.php';
+        NcdCache::forget("vhv_leaderboard_{$budgetYear}_sb" . ($isSandboxVal ? 1 : 0));
+        NcdCache::forget("public_macro_{$budgetYear}_uall_tball");
+        NcdCache::forget("public_matrix_units_{$budgetYear}");
+
         echo json_encode([
             'status' => 'success',
             'message' => 'บันทึกข้อมูลเรียบร้อย',

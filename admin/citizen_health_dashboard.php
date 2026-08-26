@@ -8,6 +8,7 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 }
 
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/cache.php';
 require_once __DIR__ . '/../config/demo_data.php';
 
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
@@ -34,16 +35,18 @@ if ($date_filter === '30d') {
 
 $whereSql = implode(" AND ", $whereClauses);
 
-// 1. Overall Aggregates & KPIs
-$kpi = [
-    'total' => 0,
-    'green' => 0,
-    'yellow' => 0,
-    'red' => 0,
-    'avg_score' => 0,
-    'male_count' => 0,
-    'female_count' => 0
-];
+// 1. Overall Aggregates & KPIs (Cached)
+$citizenCacheKey = "citizen_health_db_by{$activeBudgetYear}_df{$date_filter}";
+$citizenData = NcdCache::remember($citizenCacheKey, 60, function() use ($pdo, $whereSql, $params) {
+    $kpi = [
+        'total' => 0,
+        'green' => 0,
+        'yellow' => 0,
+        'red' => 0,
+        'avg_score' => 0,
+        'male_count' => 0,
+        'female_count' => 0
+    ];
 
 try {
     $kpiStmt = $pdo->prepare("
@@ -181,6 +184,13 @@ try {
     $recentLogs = $logStmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (\Exception $e) {
     $recentLogs = [];
+}
+
+    return compact('kpi', 'habits', 'ageMatrix', 'recentLogs');
+});
+
+if (is_array($citizenData)) {
+    extract($citizenData);
 }
 
 // Percent helpers

@@ -8,6 +8,7 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 }
 
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/cache.php';
 
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 $isSandboxVal = isSandboxMode($admin_hoscode ?: null) ? 1 : 0;
@@ -253,8 +254,14 @@ if (DemoDataProvider::isDemoMode()) {
     $dateFrom = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFromInput) ? $dateFromInput : '';
     $dateTo = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateToInput) ? $dateToInput : '';
 
-    // 1. Before-After Query for DPAC progress tracking
-    $dpacBeforeAfterData = [];
+    $analyticsCacheKey = "admin_analytics_v2_by{$selectedBudgetYear}_u" . ($selectedHoscode ?: 'all') . "_sb{$isSandboxVal}_r{$selectedRound}_f{$dateFrom}_t{$dateTo}";
+
+    $analyticsData = NcdCache::remember($analyticsCacheKey, 60, function() use (
+        $pdo, $isSandboxVal, $selectedBudgetYear, $selectedRound, $dateFrom, $dateTo,
+        $hoscodes, $inPlaceholders, $hc_names, $admin_hoscode
+    ) {
+        // 1. Before-After Query for DPAC progress tracking
+        $dpacBeforeAfterData = [];
     try {
         $beforeAfterStmt = $pdo->prepare("
             SELECT 
@@ -1304,9 +1311,30 @@ try {
         ORDER BY days_since_last DESC
         LIMIT 10
     ");
-    $dropoutStmt->execute($hoscodes);
-    $dropoutList = $dropoutStmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (\Throwable $e) {}
+        $dropoutStmt->execute($hoscodes);
+        $dropoutList = $dropoutStmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (\Throwable $e) {}
+
+    return compact(
+        'dpacBeforeAfterData', 'ncdBeforeAfterData', 'beforeAfterData', 'funnelData', 'actionCounts',
+        'overdueActionRows', 'dataQuality', 'monitoringPatients', 'worsenedPatients', 'avgSbpBefore',
+        'avgSbpAfter', 'avgDbpBefore', 'avgDbpAfter', 'avgFbsBefore', 'avgFbsAfter', 'pctBpImprovement',
+        'pctBpMonitoring', 'pctBpWorsened', 'pctFbsImprovement', 'pctFbsMonitoring', 'pctFbsWorsened',
+        'sbpDiff', 'fbsDiff', 'beforeHigh', 'beforeModerate', 'beforeNormal', 'afterHigh',
+        'afterModerate', 'afterNormal', 'villageImprovementData', 'historyRecords', 'mapTargets',
+        'mapCenterLat', 'mapCenterLng', 'mapInitialZoom', 'prevalenceList', 'highestPrevalence',
+        'improvementList', 'bestImprovement', 'concerningAreas', 'monthlyTrend', 'surveyStats',
+        'tagsCount', 'highConversionCount', 'topConversionRisks', 'vhvImpactData', 'totalScreenedAll',
+        'totalRiskFoundAll', 'avgYieldRate', 'ageGroups', 'maleTotal', 'maleScreened', 'femaleTotal',
+        'femaleScreened', 'retentionData', 'dropoutList', 'ncdTotalAnalyzed', 'ncdImprovedBpCount',
+        'ncdImprovedDtxCount', 'totalAnalyzed', 'improvedBpCount', 'improvedFbsCount', 'totalHtCases',
+        'totalDmCases'
+    );
+});
+
+if (is_array($analyticsData)) {
+    extract($analyticsData);
+}
 }
 ?>
 <!DOCTYPE html>
@@ -1444,18 +1472,17 @@ try {
     </style>
 </head>
 
-<body class="admin-body dashboard-page">
-    <?php include 'navbar.php'; ?>
-
+<body class="admin-body dashboard-page" data-preserve-loader="true">
     <!-- Dedicated Analytics Preloader (Active while preparing charts & GIS maps) -->
-    <div id="analytics-preloader" class="ncd-page-overlay active" style="display: flex; position: fixed; inset: 0; z-index: 999999; background: var(--bg-main, #f8fafc); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); align-items: center; justify-content: center; transition: opacity 0.35s ease, visibility 0.35s ease;">
+    <div id="analytics-preloader" class="ncd-page-overlay active" style="display: flex; position: fixed; inset: 0; z-index: 999999; background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); align-items: center; justify-content: center; transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.45s;">
         <div class="loading-modal-card" style="box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
             <div class="loading-spinner-ring" style="width: 64px; height: 64px;">
                 <span class="loading-pulse-icon" style="font-size: 28px;">📈</span>
             </div>
             <div style="text-align: center;">
-                <div style="font-size: 16.5px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">
-                    ระบบวิเคราะห์ข้อมูลเชิงลึก (Advanced Analytics)
+                <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin-bottom: 6px; line-height: 1.4;">
+                    ระบบวิเคราะห์ข้อมูลเชิงลึก<br>
+                    <span style="font-size: 13.5px; font-weight: 700; color: var(--color-accent); opacity: 0.95;">(Advanced Analytics)</span>
                 </div>
                 <div style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;">
                     กำลังคำนวณสถิติสุขภาพ แผนภูมิ และประมวลผลแผนที่ GIS...
@@ -1466,6 +1493,8 @@ try {
             </div>
         </div>
     </div>
+
+    <?php include 'navbar.php'; ?>
 
     <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
         <h2 style="margin-bottom: 4px; display: flex; align-items: center; gap: 12px;">
@@ -3130,28 +3159,29 @@ try {
             });
         }
 
-        // Auto-dismiss analytics preloader once all charts & GIS are rendered
+        // Auto-dismiss analytics preloader smoothly once all charts, Leaflet GIS & DOM assets are 100% rendered
         function dismissAnalyticsPreloader() {
             var ap = document.getElementById('analytics-preloader');
             if (ap) {
+                ap.style.transition = 'opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.45s';
                 ap.style.opacity = '0';
                 ap.style.visibility = 'hidden';
                 setTimeout(function() {
                     if (ap && ap.parentNode) ap.parentNode.removeChild(ap);
-                }, 350);
+                }, 500);
             }
-            if (window.hidePageLoading) window.hidePageLoading();
+            if (window.hidePageLoading) {
+                window.hidePageLoading();
+            }
         }
 
-        // Trigger dismissal when charts are rendered and page loads
+        // Trigger dismissal ONLY when full page (including Leaflet tiles & Chart libraries) is 100% loaded
         window.addEventListener('load', function() {
-            setTimeout(dismissAnalyticsPreloader, 150);
+            setTimeout(dismissAnalyticsPreloader, 300);
         });
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(dismissAnalyticsPreloader, 400);
-        });
-        // Fallback safety dismissal
-        setTimeout(dismissAnalyticsPreloader, 3500);
+
+        // Fallback safety dismissal (5s max)
+        setTimeout(dismissAnalyticsPreloader, 5000);
     </script>
 </body>
 

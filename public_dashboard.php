@@ -4,6 +4,7 @@
 require_once __DIR__ . '/config/session.php';
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/config/demo_data.php';
+require_once __DIR__ . '/config/cache.php';
 
 $isDemo = DemoDataProvider::isDemoMode();
 
@@ -94,7 +95,7 @@ if ($selectedUnit !== '' && isset($healthUnits[$selectedUnit])) {
 }
 
 // -------------------------------------------------------------
-// 1. MACRO KPI DATA (Strictly Anonymous Aggregate)
+// 1. MACRO KPI DATA (Strictly Anonymous Aggregate with In-Memory Cache)
 // -------------------------------------------------------------
 $totalRegistryPopulation = 0;
 $totalTargets = 0; // Project Target (Assigned in project / active campaign)
@@ -118,21 +119,24 @@ if ($isDemo) {
     $genderFemale = 5696;
 } else {
     try {
-        // 1. Single Ultra-Fast Query for Macro Target, Registry & Demographics
-        $stmtMacro = $pdo->prepare("
-            SELECT 
-                COUNT(*) as total_reg,
-                COUNT(DISTINCT CASE WHEN (p.need_screen_dm = 1 OR p.need_screen_ht = 1) THEN p.cid END) as total_tgt,
-                SUM(CASE WHEN p.health_status_origin IN ('DM_ONLY', 'HT_ONLY', 'BOTH') THEN 1 ELSE 0 END) as total_diag,
-                SUM(CASE WHEN (p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND TIMESTAMPDIFF(YEAR, p.birth, CURRENT_DATE) BETWEEN 35 AND 59 THEN 1 ELSE 0 END) as age_35_59,
-                SUM(CASE WHEN (p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND TIMESTAMPDIFF(YEAR, p.birth, CURRENT_DATE) >= 60 THEN 1 ELSE 0 END) as age_60_plus,
-                SUM(CASE WHEN (p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND p.sex IN ('1', 'ชาย', 'M', 'male') THEN 1 ELSE 0 END) as male_cnt,
-                SUM(CASE WHEN (p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND p.sex IN ('2', 'หญิง', 'F', 'female') THEN 1 ELSE 0 END) as female_cnt
-            FROM target_population p
-            WHERE 1=1 $tambonSql
-        ");
-        $stmtMacro->execute($tambonParams);
-        $macroRow = $stmtMacro->fetch(PDO::FETCH_ASSOC);
+        // 1. Ultra-Fast Cached Query for Macro Target, Registry & Demographics
+        $macroCacheKey = "public_macro_{$selectedBudgetYear}_u" . ($selectedUnit ?: 'all') . "_tb" . ($selectedTambon ?: 'all');
+        $macroRow = NcdCache::remember($macroCacheKey, 60, function() use ($pdo, $tambonSql, $tambonParams) {
+            $stmtMacro = $pdo->prepare("
+                SELECT 
+                    COUNT(*) as total_reg,
+                    COUNT(DISTINCT CASE WHEN (p.need_screen_dm = 1 OR p.need_screen_ht = 1) THEN p.cid END) as total_tgt,
+                    SUM(CASE WHEN p.health_status_origin IN ('DM_ONLY', 'HT_ONLY', 'BOTH') THEN 1 ELSE 0 END) as total_diag,
+                    SUM(CASE WHEN (p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND TIMESTAMPDIFF(YEAR, p.birth, CURRENT_DATE) BETWEEN 35 AND 59 THEN 1 ELSE 0 END) as age_35_59,
+                    SUM(CASE WHEN (p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND TIMESTAMPDIFF(YEAR, p.birth, CURRENT_DATE) >= 60 THEN 1 ELSE 0 END) as age_60_plus,
+                    SUM(CASE WHEN (p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND p.sex IN ('1', 'ชาย', 'M', 'male') THEN 1 ELSE 0 END) as male_cnt,
+                    SUM(CASE WHEN (p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND p.sex IN ('2', 'หญิง', 'F', 'female') THEN 1 ELSE 0 END) as female_cnt
+                FROM target_population p
+                WHERE 1=1 $tambonSql
+            ");
+            $stmtMacro->execute($tambonParams);
+            return $stmtMacro->fetch(PDO::FETCH_ASSOC) ?: [];
+        });
 
         if ($macroRow) {
             $totalRegistryPopulation = (int)($macroRow['total_reg'] ?? 0);
@@ -147,7 +151,7 @@ if ($isDemo) {
 }
 
 // -------------------------------------------------------------
-// 2. SUB-DISTRICT & HEALTH UNIT PERFORMANCE MATRIX (Batch Grouped)
+// 2. SUB-DISTRICT & HEALTH UNIT PERFORMANCE MATRIX (Batch Grouped & Cached)
 // -------------------------------------------------------------
 $unitPerformance = [];
 $matrixUnitStats = [];
@@ -155,32 +159,43 @@ $matrixRegStats = [];
 
 if (!$isDemo) {
     try {
-        // Grouped registry counts by health unit
-        $stReg = $pdo->query("SELECT hoscode, COUNT(*) as reg_cnt FROM target_population GROUP BY hoscode");
-        while ($r = $stReg->fetch(PDO::FETCH_ASSOC)) {
-            $matrixRegStats[$r['hoscode']] = (int)$r['reg_cnt'];
-        }
+        $matrixCacheKey = "public_matrix_units_{$selectedBudgetYear}";
+        $cachedMatrix = NcdCache::remember($matrixCacheKey, 60, function() use ($pdo) {
+            $regStats = [];
+            $unitStats = [];
 
-        // Grouped targets, screened, and risk counts by health unit
-        $stGrp = $pdo->query("
-            SELECT 
-                p.hoscode,
-                COUNT(DISTINCT p.cid) AS targets,
-                COUNT(DISTINCT CASE WHEN (IFNULL(s.round_number, a.round_number) = 1 OR (s.round_number IS NULL AND a.round_number IS NULL)) THEN COALESCE(s.target_cid, a.target_cid) END) AS screened,
-                COUNT(DISTINCT CASE WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 120 OR s.dia_bp1 >= 80 OR s.dtx_value >= 100) THEN p.cid END) AS risk_count
-            FROM target_population p
-            LEFT JOIN task_assignments a ON a.target_cid = p.cid
-            LEFT JOIN screening_results s ON (s.target_cid = p.cid OR s.assignment_id = a.assignment_id)
-            WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-            GROUP BY p.hoscode
-        ");
-        while ($g = $stGrp->fetch(PDO::FETCH_ASSOC)) {
-            $matrixUnitStats[$g['hoscode']] = [
-                'targets' => (int)$g['targets'],
-                'screened' => (int)$g['screened'],
-                'risk_count' => (int)$g['risk_count']
-            ];
-        }
+            // Grouped registry counts by health unit
+            $stReg = $pdo->query("SELECT hoscode, COUNT(*) as reg_cnt FROM target_population GROUP BY hoscode");
+            while ($r = $stReg->fetch(PDO::FETCH_ASSOC)) {
+                $regStats[$r['hoscode']] = (int)$r['reg_cnt'];
+            }
+
+            // Grouped targets, screened, and risk counts by health unit
+            $stGrp = $pdo->query("
+                SELECT 
+                    p.hoscode,
+                    COUNT(DISTINCT p.cid) AS targets,
+                    COUNT(DISTINCT CASE WHEN (IFNULL(s.round_number, a.round_number) = 1 OR (s.round_number IS NULL AND a.round_number IS NULL)) THEN COALESCE(s.target_cid, a.target_cid) END) AS screened,
+                    COUNT(DISTINCT CASE WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 120 OR s.dia_bp1 >= 80 OR s.dtx_value >= 100) THEN p.cid END) AS risk_count
+                FROM target_population p
+                LEFT JOIN task_assignments a ON a.target_cid = p.cid
+                LEFT JOIN screening_results s ON (s.target_cid = p.cid OR s.assignment_id = a.assignment_id)
+                WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+                GROUP BY p.hoscode
+            ");
+            while ($g = $stGrp->fetch(PDO::FETCH_ASSOC)) {
+                $unitStats[$g['hoscode']] = [
+                    'targets' => (int)$g['targets'],
+                    'screened' => (int)$g['screened'],
+                    'risk_count' => (int)$g['risk_count']
+                ];
+            }
+
+            return ['reg' => $regStats, 'unit' => $unitStats];
+        });
+
+        $matrixRegStats = $cachedMatrix['reg'] ?? [];
+        $matrixUnitStats = $cachedMatrix['unit'] ?? [];
     } catch (\Throwable $e) {}
 }
 

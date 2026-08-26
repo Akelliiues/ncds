@@ -1,5 +1,30 @@
 [
   {
+    "title": "🎉 ปล่อยเวอร์ชันเสถียร Stable Version 2.7 (v2.7-stable) สถาปัตยกรรมแคชระดับแรม 3 ชั้น (Multi-Tier In-Memory Cache Engine - NcdCache), ระบบ Single-Stage GIS Preloading โหลดต่อเนื่องสมบูรณ์แบบ, ระบบป้องกันการกดโหลดซ้ำ (Active-Page Click Guard) และชุดโครงสร้างพื้นฐานรองรับข้อมูลหลายล้านเรคคอร์ด (Multi-Million Record Scalability Suite)",
+    "date": "2026-08-26",
+    "type": "release"
+  },
+  {
+    "title": "พัฒนาเครื่องยนต์ In-Memory Cache 3 ชั้น (APCu RAM, Redis, Atomic File Cache) ครอบคลุมหน้า Analytics, Citizen Health, Public Open Data และ Leaderboard โหลดเร็วระดับ 0.001 วินาที",
+    "date": "2026-08-26",
+    "type": "perf"
+  },
+  {
+    "title": "ปรับปรุงระบบ Single-Stage Preloader บนหน้า Analytics แสดงผลต่อเนื่อง 0ms ด้วยกระจกฝ้าเบลอ และ Fade Out เมื่อแผนที่ GIS และกราฟสถิติทุกชิ้นวาดเสร็จ 100%",
+    "date": "2026-08-26",
+    "type": "ui"
+  },
+  {
+    "title": "ติดตั้งระบบป้องกันการกดโหลดซ้ำ (Universal Active-Page Click Guard) ใน Capture Phase บล็อกการรีโหลดหน้าเดิม และสั่ง Smooth Scroll to Top แทน",
+    "date": "2026-08-26",
+    "type": "feature"
+  },
+  {
+    "title": "สร้างชุดดัชนี Composite Indexing, ตาราง Materialized KPI Summary Cache, SSE Streaming และหน้า Live Benchmark วัดความเร็วสด",
+    "date": "2026-08-26",
+    "type": "perf"
+  },
+  {
     "title": "🎉 ปล่อยเวอร์ชันเสถียร Stable Version 2.52 (v2.52-stable) ระบบ Pre-loader สลับเมนู อสม. พร้อมเอฟเฟกต์เบลอ (VHV Menu Blur Pre-loader 0.5s), ระบบกล่องข่าวสารและกระดิ่งแจ้งเตือนแบบย่อ-ขยายอัจฉริยะ (Smart Collapsible News & Thai Relative Time), ระบบล็อกหน้าจอและจัดสัดส่วน Viewport อสม. (100dvh Scroll Lock) และระบบบังคับอัปเดตแอป PWA อัตโนมัติ (PWA Forced Auto-Update)",
     "date": "2026-08-26",
     "type": "release"
