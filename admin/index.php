@@ -1961,7 +1961,7 @@ if (DemoDataProvider::isDemoMode()) {
                     series: initCovData.series,
                     chart: {
                         type: 'bar',
-                        height: 240,
+                        height: 310,
                         background: 'transparent',
                         toolbar: {
                             show: false
@@ -2144,7 +2144,7 @@ if (DemoDataProvider::isDemoMode()) {
                     series: initRiskSeries,
                     chart: {
                         type: 'bar',
-                        height: 240,
+                        height: 310,
                         stacked: true,
                         stackType: '100%',
                         background: 'transparent',
@@ -2158,8 +2158,6 @@ if (DemoDataProvider::isDemoMode()) {
                     colors: ['#22c55e', '#f59e0b', '#ef4444', '#4b5563'],
                     legend: {
                         position: 'bottom',
-                        offsetY: 0,
-                        fontSize: '10.5px',
                         labels: {
                             colors: '#9ca3af'
                         }
@@ -2173,21 +2171,16 @@ if (DemoDataProvider::isDemoMode()) {
                         categories: riskCategories,
                         labels: {
                             style: {
-                                colors: '#9ca3af',
-                                fontSize: '10.5px'
+                                colors: '#9ca3af'
                             }
                         }
                     },
                     yaxis: {
                         labels: {
                             style: {
-                                colors: '#9ca3af',
-                                fontSize: '10.5px'
+                                colors: '#9ca3af'
                             }
                         }
-                    },
-                    grid: {
-                        padding: { top: -10, bottom: -5 }
                     },
                     tooltip: {
                         theme: localStorage.getItem('theme') || 'light',
