@@ -1866,6 +1866,7 @@ if (DemoDataProvider::isDemoMode()) {
             const hcNamesChart = <?= json_encode($hc_names) ?>;
 
             const isRegularAdmin = <?= json_encode($admin_hoscode !== null) ?>;
+            const isDark = (localStorage.getItem('theme') === 'dark' || document.documentElement.getAttribute('data-theme') === 'dark' || document.body.classList.contains('dark-mode'));
 
             // Custom pie/donut chart data label formatter to prevent deceptive 100% rounding when small values exist
             const pieLabelFormatter = function(val, opts) {
@@ -2208,39 +2209,79 @@ if (DemoDataProvider::isDemoMode()) {
                 parseInt(diseaseRaw?.ht_dm || 0)
             ];
 
-            // Disease Chart (Donut)
+            // Disease Chart (Modern Horizontal Rounded Capsule Bars)
             const totalDiseaseCount = diseaseSeries.reduce((a, b) => a + b, 0);
             if (totalDiseaseCount > 0) {
+                const diseaseCats = ['ปกติ (เสี่ยงต่ำ)', 'กลุ่มเสี่ยง', 'ป่วย/สงสัย DM', 'ป่วย/สงสัย HT', 'ป่วยทั้ง HT+DM'];
                 var optionsDisease = {
-                    series: diseaseSeries,
+                    series: [{
+                        name: 'จำนวนประชากร',
+                        data: diseaseSeries
+                    }],
                     chart: {
-                        type: 'donut',
-                        height: 270,
-                        background: 'transparent'
+                        type: 'bar',
+                        height: 275,
+                        background: 'transparent',
+                        toolbar: { show: false }
                     },
-                    theme: {
-                        mode: localStorage.getItem('theme') || 'light'
-                    },
-                    labels: ['ปกติ (เสี่ยงต่ำ)', 'กลุ่มเสี่ยง', 'ป่วย/สงสัยเบาหวาน (DM)', 'ป่วย/สงสัยความดัน (HT)', 'ป่วย/สงสัยทั้ง HT และ DM'],
-                    colors: ['#22c55e', '#f59e0b', '#8b5cf6', '#3b82f6', '#ec4899'],
-                    stroke: {
-                        show: false
-                    },
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            colors: '#9ca3af'
+                    plotOptions: {
+                        bar: {
+                            horizontal: true,
+                            borderRadius: 7,
+                            borderRadiusApplication: 'end',
+                            barHeight: '56%',
+                            distributed: true,
+                            dataLabels: {
+                                position: 'right'
+                            }
                         }
                     },
+                    colors: ['#10b981', '#f59e0b', '#8b5cf6', '#3b82f6', '#ec4899'],
                     dataLabels: {
                         enabled: true,
-                        formatter: pieLabelFormatter
+                        textAnchor: 'start',
+                        offsetX: 6,
+                        formatter: function(val) {
+                            if (!val) return '0 คน';
+                            var pct = ((val / totalDiseaseCount) * 100).toFixed(1);
+                            return Number(val).toLocaleString() + ' คน (' + pct + '%)';
+                        },
+                        style: {
+                            fontSize: '11px',
+                            fontFamily: 'Prompt',
+                            fontWeight: '800',
+                            colors: [isDark ? '#cbd5e1' : '#334155']
+                        }
                     },
+                    xaxis: {
+                        categories: diseaseCats,
+                        labels: {
+                            style: { colors: '#9ca3af', fontFamily: 'Prompt', fontSize: '11px' },
+                            formatter: function(val) { return Number(val).toLocaleString(); }
+                        },
+                        axisBorder: { show: false },
+                        axisTicks: { show: false }
+                    },
+                    yaxis: {
+                        labels: {
+                            style: {
+                                colors: '#9ca3af',
+                                fontFamily: 'Prompt',
+                                fontSize: '11.5px',
+                                fontWeight: '700'
+                            }
+                        }
+                    },
+                    grid: {
+                        borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                        strokeDashArray: 4
+                    },
+                    legend: { show: false },
                     tooltip: {
                         theme: localStorage.getItem('theme') || 'light',
                         y: {
                             formatter: function(val) {
-                                return val.toLocaleString() + " ราย";
+                                return Number(val).toLocaleString() + " ราย (" + ((val / totalDiseaseCount) * 100).toFixed(1) + "%)";
                             }
                         }
                     }
@@ -2588,7 +2629,7 @@ if (DemoDataProvider::isDemoMode()) {
                 document.querySelector("#chart-overall-progress").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 100px; font-size: 14px;">ยังไม่มีข้อมูลความคืบหน้า</div>';
             }
 
-            // Screened Risk Distribution Data (Pie Chart)
+            // Screened Risk Distribution Data (Semi-Circle Donut Health Gauge)
             const screenedDetailRaw = <?= json_encode($screenedDetail) ?>;
             const screenedRiskSeries = [
                 parseInt(screenedDetailRaw?.normal || 0),
@@ -2600,28 +2641,78 @@ if (DemoDataProvider::isDemoMode()) {
             if (totalScreenedRisk > 0) {
                 var optionsScreenedRisk = {
                     series: screenedRiskSeries,
-                    labels: ['ปกติ (เสี่ยงต่ำ)', 'เสี่ยงปานกลาง', 'เสี่ยงสูง (สงสัยป่วย)'],
+                    labels: ['🟢 ปกติ (เสี่ยงต่ำ)', '🟡 เสี่ยงปานกลาง', '🔴 เสี่ยงสูง (สงสัยป่วย)'],
                     chart: {
-                        type: 'pie',
-                        height: 270,
+                        type: 'donut',
+                        height: 275,
                         background: 'transparent'
                     },
-                    theme: {
-                        mode: localStorage.getItem('theme') || 'light'
+                    plotOptions: {
+                        pie: {
+                            startAngle: -90,
+                            endAngle: 90,
+                            offsetY: 20,
+                            donut: {
+                                size: '75%',
+                                labels: {
+                                    show: true,
+                                    name: {
+                                        show: true,
+                                        fontSize: '12px',
+                                        fontFamily: 'Prompt',
+                                        color: '#9ca3af',
+                                        offsetY: -22
+                                    },
+                                    value: {
+                                        show: true,
+                                        fontSize: '22px',
+                                        fontFamily: 'Prompt',
+                                        fontWeight: '900',
+                                        color: isDark ? '#f8fafc' : '#0f172a',
+                                        offsetY: -8,
+                                        formatter: function(val) { return Number(val).toLocaleString() + ' คน'; }
+                                    },
+                                    total: {
+                                        show: true,
+                                        label: 'คัดกรองทั้งหมด',
+                                        color: '#64748b',
+                                        fontSize: '11.5px',
+                                        fontFamily: 'Prompt',
+                                        fontWeight: '700',
+                                        formatter: function(w) {
+                                            return w.globals.seriesTotals.reduce((a, b) => a + b, 0).toLocaleString() + ' คน';
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     },
-                    colors: ['#22c55e', '#f59e0b', '#ef4444'],
+                    colors: ['#10b981', '#f59e0b', '#ef4444'],
                     stroke: {
-                        show: false
+                        width: 3,
+                        colors: [isDark ? '#1e293b' : '#ffffff']
                     },
                     legend: {
                         position: 'bottom',
-                        labels: {
-                            colors: '#9ca3af'
-                        }
+                        offsetY: -10,
+                        fontSize: '11px',
+                        fontFamily: 'Prompt',
+                        labels: { colors: '#9ca3af' },
+                        markers: { width: 9, height: 9, radius: 4 }
                     },
                     dataLabels: {
-                        enabled: true,
-                        formatter: pieLabelFormatter
+                        enabled: false
+                    },
+                    tooltip: {
+                        theme: localStorage.getItem('theme') || 'light',
+                        y: {
+                            formatter: function(val) {
+                                return Number(val).toLocaleString() + " ราย (" + ((val / totalScreenedRisk) * 100).toFixed(1) + "%)";
+                            }
+                        }
+                    },
+                    grid: {
+                        padding: { bottom: -70 }
                     }
                 };
                 new ApexCharts(document.querySelector("#chart-screened-risk-pie"), optionsScreenedRisk).render();
@@ -2691,33 +2782,79 @@ if (DemoDataProvider::isDemoMode()) {
                     </div>`;
             }
 
-            // DPAC Enrollments Chart
+            // DPAC Enrollments Chart (Modern Rounded Gradient Columns)
             const dpacRaw = <?= json_encode($chartDpacData) ?>;
             if (dpacRaw && dpacRaw.length > 0) {
+                const dpacCounts = dpacRaw.map(d => parseInt(d.count));
+                const dpacCats = dpacRaw.map(d => d.risk_type == '1' ? 'เสี่ยงเบาหวาน' : (d.risk_type == '2' ? 'เสี่ยงความดัน' : (d.risk_type == '3' ? 'กลุ่มป่วย/อื่นๆ' : 'ไม่ระบุ')));
+                const dpacTotalSum = dpacCounts.reduce((a, b) => a + b, 0);
+
                 var optionsDpac = {
-                    series: dpacRaw.map(d => parseInt(d.count)),
-                    labels: dpacRaw.map(d => d.risk_type == '1' ? 'กลุ่มเสี่ยงเบาหวาน' : (d.risk_type == '2' ? 'กลุ่มเสี่ยงความดันฯ' : (d.risk_type == '3' ? 'กลุ่มป่วย/อื่นๆ' : 'ไม่ระบุ'))),
+                    series: [{
+                        name: 'ผู้เข้าร่วม DPAC',
+                        data: dpacCounts
+                    }],
                     chart: {
-                        type: 'pie',
+                        type: 'bar',
                         height: 260,
-                        background: 'transparent'
+                        background: 'transparent',
+                        toolbar: { show: false }
                     },
-                    theme: {
-                        mode: localStorage.getItem('theme') || 'light'
-                    },
-                    colors: ['#22d3ee', '#c084fc', '#f43f5e', '#a8a29e'],
-                    stroke: {
-                        show: false
-                    },
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            colors: '#9ca3af'
+                    plotOptions: {
+                        bar: {
+                            borderRadius: 8,
+                            borderRadiusApplication: 'end',
+                            columnWidth: '45%',
+                            distributed: true,
+                            dataLabels: {
+                                position: 'top'
+                            }
                         }
                     },
+                    colors: ['#06b6d4', '#c084fc', '#f43f5e', '#94a3b8'],
                     dataLabels: {
                         enabled: true,
-                        formatter: pieLabelFormatter
+                        formatter: function(val) { return Number(val).toLocaleString() + " คน"; },
+                        offsetY: -20,
+                        style: {
+                            fontSize: '11.5px',
+                            fontFamily: 'Prompt',
+                            fontWeight: '800',
+                            colors: [isDark ? '#f8fafc' : '#0f172a']
+                        }
+                    },
+                    xaxis: {
+                        categories: dpacCats,
+                        labels: {
+                            style: {
+                                colors: '#9ca3af',
+                                fontFamily: 'Prompt',
+                                fontSize: '11px',
+                                fontWeight: '700'
+                            }
+                        },
+                        axisBorder: { show: false },
+                        axisTicks: { show: false }
+                    },
+                    yaxis: {
+                        labels: {
+                            style: { colors: '#9ca3af', fontFamily: 'Prompt' },
+                            formatter: function(val) { return Math.round(val); }
+                        }
+                    },
+                    grid: {
+                        borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                        strokeDashArray: 4
+                    },
+                    legend: { show: false },
+                    tooltip: {
+                        theme: localStorage.getItem('theme') || 'light',
+                        y: {
+                            formatter: function(val) {
+                                var pct = dpacTotalSum > 0 ? ((val / dpacTotalSum) * 100).toFixed(1) : 0;
+                                return Number(val).toLocaleString() + " ราย (" + pct + "%)";
+                            }
+                        }
                     }
                 };
                 new ApexCharts(document.querySelector("#chart-dpac"), optionsDpac).render();
@@ -2734,42 +2871,75 @@ if (DemoDataProvider::isDemoMode()) {
                     </div>`;
             }
 
+            // 1. Total Multi-Round Radial Progress Gauge (Apple Health / Modern Concentric Rings)
+            var r1PctVal = Math.min(100, Math.round(<?= floatval($cR1Pct) ?>));
+            var r2PctVal = Math.min(100, Math.round(<?= floatval($cR2CompPct) ?>));
+            var r3PctVal = Math.min(100, Math.round(<?= floatval($cR3CompPct) ?>));
+
             var optionsTotalPie = {
-                series: [
-                    <?= intval($r1All) ?>,
-                    <?= intval($r2CompAll) ?>,
-                    <?= intval($r3CompAll) ?>,
-                    Math.max(0, <?= intval($metrics['total_targets']) ?> - <?= intval($r1All) ?>)
-                ],
-                labels: ['คัดกรองรอบ 1', 'ติดตามสำเร็จรอบ 2', 'ติดตามสำเร็จรอบ 3+', 'ยังไม่คัดกรองรอบ 1'],
+                series: [r1PctVal, r2PctVal, r3PctVal],
                 chart: {
-                    type: 'pie',
-                    height: 270,
-                    background: 'transparent'
+                    type: 'radialBar',
+                    height: 285,
+                    background: 'transparent',
+                    sparkline: { enabled: false }
                 },
-                theme: {
-                    mode: localStorage.getItem('theme') || 'light'
-                },
-                colors: ['#22c55e', '#3b82f6', '#8b5cf6', '#4b5563'],
-                stroke: {
-                    show: false
-                },
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        colors: '#9ca3af'
-                    }
-                },
-                dataLabels: {
-                    enabled: true,
-                    formatter: pieLabelFormatter
-                },
-                tooltip: {
-                    y: {
-                        formatter: function(val) {
-                            return val.toLocaleString() + " ราย";
+                plotOptions: {
+                    radialBar: {
+                        startAngle: -135,
+                        endAngle: 225,
+                        hollow: {
+                            size: '32%',
+                            background: 'transparent'
+                        },
+                        track: {
+                            background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#e2e8f0',
+                            strokeWidth: '100%',
+                            margin: 6
+                        },
+                        dataLabels: {
+                            name: {
+                                show: true,
+                                fontSize: '12px',
+                                fontFamily: 'Prompt',
+                                fontWeight: '600',
+                                color: '#9ca3af',
+                                offsetY: -8
+                            },
+                            value: {
+                                show: true,
+                                fontSize: '18px',
+                                fontFamily: 'Prompt',
+                                fontWeight: '900',
+                                color: isDark ? '#f8fafc' : '#0f172a',
+                                offsetY: 4,
+                                formatter: function(val) { return val + "%"; }
+                            },
+                            total: {
+                                show: true,
+                                label: 'ครอบคลุม R1',
+                                color: '#10b981',
+                                fontSize: '12px',
+                                fontFamily: 'Prompt',
+                                fontWeight: '800',
+                                formatter: function() { return '<?= $cR1Pct ?>%'; }
+                            }
                         }
                     }
+                },
+                labels: ['รอบ 1 (Baseline)', 'รอบ 2 (ติดตาม)', 'รอบ 3+ (ต่อเนื่อง)'],
+                colors: ['#10b981', '#0ea5e9', '#8b5cf6'],
+                stroke: {
+                    lineCap: 'round'
+                },
+                legend: {
+                    show: true,
+                    position: 'bottom',
+                    fontSize: '11.5px',
+                    fontFamily: 'Prompt',
+                    fontWeight: 600,
+                    labels: { colors: '#9ca3af' },
+                    markers: { width: 10, height: 10, radius: 4 }
                 }
             };
             if (<?= intval($metrics['total_targets']) ?> > 0) {
