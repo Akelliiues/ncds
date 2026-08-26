@@ -1,6 +1,10 @@
 <?php
 // logout.php
-require_once __DIR__ . '/config/session.php';
+// หากอยู่ในโหมดจำลองมุมมอง อสม. ให้สลับกลับสู่ระบบแอดมินแทนการออกจากระบบ
+if (!empty($_SESSION['is_admin_impersonating']) || !empty($_SESSION['impersonator_admin'])) {
+    header("Location: admin/exit_impersonation.php");
+    exit();
+}
 
 // ล้างค่าตัวแปร Session ทั้งหมด
 $_SESSION = array();

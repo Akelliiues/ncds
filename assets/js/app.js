@@ -1,8 +1,28 @@
 // assets/js/app.js
-// PWA Service Worker Registration & Installation Prompt Handler
+// PWA Service Worker Registration & Installation Prompt Handler (Forced Auto-Update Engine)
+
+const CURRENT_APP_BUILD_ID = '20260826_1027';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Register Service Worker
+    // 0. Proactive Cache & Build Version Validation
+    if ('caches' in window) {
+        const storedBuild = localStorage.getItem('ncd_app_build_id');
+        if (storedBuild !== CURRENT_APP_BUILD_ID) {
+            console.log('App: New build detected, flushing old cache storage...');
+            caches.keys().then(keys => {
+                return Promise.all(keys.map(key => caches.delete(key)));
+            }).then(() => {
+                localStorage.setItem('ncd_app_build_id', CURRENT_APP_BUILD_ID);
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(regs => {
+                        regs.forEach(reg => reg.update());
+                    });
+                }
+            });
+        }
+    }
+
+    // 1. Register Service Worker with Forced Immediate Update
     if ('serviceWorker' in navigator) {
         // Determine correct path to service-worker.js
         let swPath = 'service-worker.js';
@@ -19,30 +39,52 @@ document.addEventListener('DOMContentLoaded', () => {
         navigator.serviceWorker.register(swPath, { scope: swScope })
             .then(reg => {
                 console.log('SW: Registered successfully with scope:', reg.scope);
-                // Check for updates periodically (every 5 minutes)
+
+                // Check for updates immediately on launch
+                reg.update().catch(() => {});
+
+                // If new SW is waiting, force skip waiting
+                if (reg.waiting) {
+                    reg.waiting.postMessage({ action: 'skipWaiting' });
+                }
+
+                reg.addEventListener('updatefound', () => {
+                    const newWorker = reg.installing;
+                    if (newWorker) {
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                newWorker.postMessage({ action: 'skipWaiting' });
+                            }
+                        });
+                    }
+                });
+
+                // Check for updates periodically (every 2 minutes)
                 setInterval(() => {
-                    reg.update().catch(e => console.log('SW: Update check failed', e));
-                }, 5 * 60 * 1000);
+                    reg.update().catch(e => console.log('SW: Periodic update check failed', e));
+                }, 2 * 60 * 1000);
             })
             .catch(err => {
                 console.error('SW: Registration failed:', err);
             });
 
-        // Auto reload when new SW is activated (clears old manifest cache)
+        // Auto reload when new SW is activated (clears old manifest & page cache)
         let refreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
             if (!refreshing) {
                 refreshing = true;
-                console.log('SW: New version activated, reloading...');
+                console.log('SW: New version activated, reloading with fresh assets...');
                 showUpdateToast();
-                setTimeout(() => window.location.reload(), 1500);
+                setTimeout(() => {
+                    window.location.reload();
+                }, 800);
             }
         });
 
         // Listen for SW_UPDATED message (sent by new SW after activate)
         navigator.serviceWorker.addEventListener('message', (event) => {
             if (event.data && event.data.type === 'SW_UPDATED') {
-                console.log('SW: Update confirmed via message.');
+                console.log('SW: Update confirmed via message:', event.data.version);
             }
         });
     }
@@ -53,13 +95,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (existing) return;
         const toast = document.createElement('div');
         toast.id = 'sw-update-toast';
-        toast.innerHTML = '🔄 กำลังอัปเดตแอป NCDs Portal...';
+        toast.innerHTML = '✨ กำลังอัปเดตฟีเจอร์เวอร์ชันล่าสุด...';
         toast.style.cssText = `
-            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-            background: #1e40af; color: #fff; padding: 12px 24px;
-            border-radius: 24px; font-size: 15px; font-weight: 700;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4); z-index: 99999;
-            white-space: nowrap; animation: fadeInUp 0.3s ease;
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: linear-gradient(135deg, #0284c7, #1e40af); color: #fff; padding: 12px 26px;
+            border-radius: 999px; font-size: 14px; font-weight: 800;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.35); z-index: 9999999;
+            white-space: nowrap; animation: fadeInUp 0.3s ease; border: 1.5px solid rgba(255,255,255,0.3);
         `;
         document.body.appendChild(toast);
     }
@@ -585,17 +627,140 @@ window.getDeterministicPrivacyJitter = function(lat, lng, seedStr) {
         });
     };
 
-    // 3. Dismiss loader on load / pageshow / DOMContentLoaded
-    window.addEventListener('load', window.hidePageLoading);
-    window.addEventListener('pageshow', window.hidePageLoading);
-    document.addEventListener('DOMContentLoaded', window.hidePageLoading);
+    // --------------------------------------------------------------------------
+    // 3. VHV Menu Blur Pre-Loader & Navigation Engine (~1s Smooth Transition)
+    // --------------------------------------------------------------------------
+    let vhvMenuTimeout = null;
+
+    window.showVhvMenuLoader = function(title, subtitle, icon, targetUrl) {
+        let loader = document.getElementById('vhv-menu-loader');
+        if (!loader) {
+            loader = document.createElement('div');
+            loader.id = 'vhv-menu-loader';
+            loader.innerHTML = `
+                <div class="vhv-loader-card">
+                    <div class="vhv-loader-ring">
+                        <span class="vhv-loader-icon" id="vhv-loader-icon">⚡</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 3px;">
+                        <h4 class="vhv-loader-title" id="vhv-loader-title">กำลังเปลี่ยนหน้า...</h4>
+                        <p class="vhv-loader-sub" id="vhv-loader-sub">กรุณารอสักครู่</p>
+                    </div>
+                    <div class="vhv-loader-bar-track">
+                        <div class="vhv-loader-bar-progress"></div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(loader);
+        }
+
+        const iconEl = loader.querySelector('#vhv-loader-icon');
+        const titleEl = loader.querySelector('#vhv-loader-title');
+        const subEl = loader.querySelector('#vhv-loader-sub');
+
+        if (iconEl) iconEl.innerText = icon || '⚡';
+        if (titleEl) titleEl.innerText = title || 'กำลังเปลี่ยนหน้า...';
+        if (subEl) subEl.innerText = subtitle || 'กรุณารอสักครู่';
+
+        loader.classList.add('active');
+
+        // Safety timeout to prevent any stuck state
+        if (vhvMenuTimeout) clearTimeout(vhvMenuTimeout);
+        vhvMenuTimeout = setTimeout(() => {
+            window.hideVhvMenuLoader();
+        }, 5000);
+
+        if (targetUrl) {
+            // Snappy ~500ms (0.5s) smooth transition for fast & responsive feel
+            setTimeout(() => {
+                window.location.href = targetUrl;
+            }, 500);
+        }
+    };
+
+    window.hideVhvMenuLoader = function() {
+        if (vhvMenuTimeout) {
+            clearTimeout(vhvMenuTimeout);
+            vhvMenuTimeout = null;
+        }
+        const loader = document.getElementById('vhv-menu-loader');
+        if (loader) {
+            loader.classList.remove('active');
+        }
+    };
+
+    // Backward compatibility aliases
+    window.showMiniLoader = function(text, targetUrl) {
+        window.showVhvMenuLoader('กำลังเปลี่ยนหน้า...', text || 'กำลังโหลดข้อมูล...', '⚡', targetUrl);
+    };
+    window.hideMiniLoader = window.hideVhvMenuLoader;
+
+    // 4. Dismiss all loaders on load / pageshow / DOMContentLoaded
+    const dismissAllLoaders = function() {
+        window.hidePageLoading();
+        window.hideVhvMenuLoader();
+    };
+
+    window.addEventListener('load', dismissAllLoaders);
+    window.addEventListener('pageshow', dismissAllLoaders);
+    document.addEventListener('DOMContentLoaded', dismissAllLoaders);
 
     // If script runs when document is already ready
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
-        setTimeout(window.hidePageLoading, 50);
+        setTimeout(dismissAllLoaders, 50);
     }
 
-    // 4. Automatic Form Submission Interception
+    // 5. Automatic click interception for VHV Menu Links (.bottom-nav a, etc.)
+    document.addEventListener('click', (e) => {
+        const link = e.target.closest('.bottom-nav a, .nav-link, a.vhv-menu-link');
+        if (!link) return;
+
+        const href = link.getAttribute('href');
+        if (!href || href.startsWith('#') || href.startsWith('javascript:') || link.getAttribute('target') === '_blank') {
+            return;
+        }
+
+        // Compare target URL with current URL pathname
+        const currentPath = window.location.pathname.split('/').pop() || 'index.php';
+        const targetPath = href.split('?')[0].split('#')[0].split('/').pop();
+
+        // If clicking link to the current active page without queries/changes, skip loader
+        if (currentPath === targetPath && !href.includes('?') && !link.classList.contains('force-loader')) {
+            return;
+        }
+
+        e.preventDefault();
+
+        let title = 'กำลังเปลี่ยนหน้า';
+        let subtitle = 'กำลังโหลดข้อมูล กรุณารอสักครู่...';
+        let icon = '⚡';
+
+        if (targetPath.includes('index.php')) {
+            title = 'หน้าแรก';
+            subtitle = 'กำลังเปิดรายการงานค้าง อสม....';
+            icon = '🏠';
+        } else if (targetPath.includes('scan.php')) {
+            title = 'สแกนบ้านเป้าหมาย';
+            subtitle = 'กำลังเปิดกล้องและระบบสแกน QR...';
+            icon = '📷';
+        } else if (targetPath.includes('leaderboard.php')) {
+            title = 'คะแนน & ของรางวัล';
+            subtitle = 'กำลังประมวลผลอันดับและภารกิจ...';
+            icon = '🏆';
+        } else if (targetPath.includes('profile.php')) {
+            title = 'ข้อมูลส่วนตัว';
+            subtitle = 'กำลังเปิดข้อมูล อสม....';
+            icon = '👤';
+        } else if (targetPath.includes('self_screening.php')) {
+            title = 'ประเมินสุขภาพตนเอง';
+            subtitle = 'กำลังเตรียมแบบคัดกรอง อสม....';
+            icon = '🌱';
+        }
+
+        window.showVhvMenuLoader(title, subtitle, icon, href);
+    });
+
+    // 6. Automatic Form Submission Interception
     document.addEventListener('submit', (e) => {
         const form = e.target;
         if (form.getAttribute('data-no-loader') || form.getAttribute('target') === '_blank') {

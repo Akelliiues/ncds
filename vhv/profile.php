@@ -96,10 +96,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="application-name" content="NCDs Portal">
     <meta name="theme-color" content="#0d2c54">
     <title>ข้อมูลส่วนตัว - อสม. นครตาลสุม</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/style.css?v=<?= time() ?>">
     <link rel="apple-touch-icon" href="../assets/icon.png">
     <link rel="manifest" href="manifest.json">
-    <script src="../assets/js/app.js"></script>
+    <script src="../assets/js/app.js?v=<?= time() ?>"></script>
     <style>
         .form-group {
             margin-bottom: 20px;
@@ -211,9 +211,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </form>
         </div>
 
-        <a href="../logout.php" style="margin-top: 10px; margin-bottom: 30px; width: 100%; text-align: center; text-decoration: none; display: block; line-height: 52px; background-color: var(--color-red); color: white; border-radius: var(--border-radius); font-weight: 800; box-shadow: var(--neumorph-flat);">
-            ออกจากระบบ (Log Out)
-        </a>
+        <?php if (!empty($_SESSION['is_admin_impersonating'])): ?>
+            <a href="../admin/exit_impersonation.php" style="margin-top: 10px; margin-bottom: 30px; width: 100%; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; line-height: 52px; background: linear-gradient(135deg, var(--color-primary, #0d2c54), #0369a1); color: white; border-radius: var(--border-radius); font-weight: 800; box-shadow: var(--neumorph-flat);">
+                <span>↩️</span> <span>สิ้นสุดการจำลองมุมมอง (กลับระบบเจ้าหน้าที่)</span>
+            </a>
+        <?php else: ?>
+            <a href="../logout.php" style="margin-top: 10px; margin-bottom: 30px; width: 100%; text-align: center; text-decoration: none; display: block; line-height: 52px; background-color: var(--color-red); color: white; border-radius: var(--border-radius); font-weight: 800; box-shadow: var(--neumorph-flat);">
+                ออกจากระบบ (Log Out)
+            </a>
+        <?php endif; ?>
 
         <!-- Bottom Navigation Bar -->
         <div class="bottom-nav">

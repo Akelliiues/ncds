@@ -187,18 +187,51 @@ if (DemoDataProvider::isDemoMode()) {
     <meta name="application-name" content="NCDs Portal">
     <meta name="theme-color" content="#0d2c54">
     <title>NCDs by อสม.อำเภอ<?= DISTRICT_NAME ?></title>
-    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/style.css?v=<?= time() ?>">
     <link rel="apple-touch-icon" href="../assets/icon.png">
     <link rel="manifest" href="manifest.json">
     <script src="../assets/js/app.js?v=<?= time() ?>"></script>
     <script src="../assets/js/clinical_guidance.js?v=<?= time() ?>"></script>
     <style>
+        html, body {
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden;
+        }
+
+        body.vhv-accessibility {
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mobile-wrapper {
+            max-width: 500px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 10px 14px 0 14px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        .vhv-top-section {
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
         .tabs {
             display: flex;
             background-color: var(--bg-card);
             border-radius: var(--border-radius);
-            padding: 6px;
-            margin-bottom: 20px;
+            padding: 5px;
+            margin-bottom: 10px;
             box-shadow: var(--neumorph-inset);
 
             /* Prevent accessibility text scaling from breaking main tab selectors */
@@ -212,9 +245,9 @@ if (DemoDataProvider::isDemoMode()) {
             background: none;
             border: none;
             color: var(--text-secondary);
-            font-size: 15px;
+            font-size: 14.5px;
             font-weight: 800;
-            padding: 12px 6px;
+            padding: 10px 4px;
             cursor: pointer;
             border-radius: calc(var(--border-radius) - 6px);
             transition: all var(--transition-speed);
@@ -227,6 +260,22 @@ if (DemoDataProvider::isDemoMode()) {
             background-color: var(--bg-main);
             color: var(--color-accent);
             box-shadow: var(--neumorph-flat);
+        }
+        .tab-content {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+            padding-bottom: 96px; /* Room for floating bottom nav */
+            box-sizing: border-box;
+        }
+        .tab-content::-webkit-scrollbar,
+        #messages-list-container::-webkit-scrollbar {
+            display: none;
+            width: 0;
+            height: 0;
         }
         .task-card {
             background-color: var(--bg-card);
@@ -321,152 +370,151 @@ if (DemoDataProvider::isDemoMode()) {
 </head>
 <body class="vhv-accessibility">
     <div class="mobile-wrapper">
-        <?php if (!empty($db_error)): ?>
-            <div style="background-color: rgba(239, 68, 68, 0.15); border: 2px solid var(--color-red); color: var(--color-red); padding: 16px; border-radius: var(--border-radius); margin-bottom: 20px; font-weight: bold; font-size: 15px; text-align: center;">
-                เกิดข้อผิดพลาดในการโหลดข้อมูล: <?= htmlspecialchars($db_error) ?>
-            </div>
-        <?php endif; ?>
-
-        <!-- VHV Info Header (Compact Layout, Large Logo, Reduced Height) -->
-        <div class="vhv-header" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; margin-bottom: 12px; border-radius: var(--border-radius); position: relative; background: var(--bg-card); box-shadow: var(--neumorph-flat);">
-            <?php if (!$hasSubmittedSurvey): ?>
-                <button id="survey-banner" onclick="openSurveyModal()" style="position: absolute; top: 8px; right: 10px; background: none; border: none; cursor: pointer; z-index: 10; font-size: 24px; animation: float-bubble 2s ease-in-out infinite; padding: 0; outline: none; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" title="ทำแบบประเมินรับโบนัส 5 แต้ม! 🎁">
-                    🎁
-                </button>
+        <div class="vhv-top-section">
+            <?php if (!empty($db_error)): ?>
+                <div style="background-color: rgba(239, 68, 68, 0.15); border: 2px solid var(--color-red); color: var(--color-red); padding: 12px; border-radius: var(--border-radius); margin-bottom: 10px; font-weight: bold; font-size: 14px; text-align: center;">
+                    เกิดข้อผิดพลาดในการโหลดข้อมูล: <?= htmlspecialchars($db_error) ?>
+                </div>
             <?php endif; ?>
 
-            <!-- Large Prominent Logo with Install Badge -->
-            <a href="javascript:void(0)" onclick="openAppInstallModal(event)" title="แตะเพื่อติดตั้งแอปพลิเคชันลงเครื่อง หรือดูข้อมูลระบบ" style="flex-shrink: 0; position: relative; display: inline-block; text-decoration: none;">
-                <img src="../assets/icon.png" alt="NCDs Portal Logo" style="width: 68px; height: 68px; border-radius: 18px; box-shadow: 0 6px 14px rgba(0,0,0,0.12); display: block; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.06)'" onmouseout="this.style.transform='scale(1)'">
-                <span style="position: absolute; bottom: -2px; right: -2px; background: #10b981; color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; border: 2px solid var(--bg-card); box-shadow: 0 2px 6px rgba(0,0,0,0.25);" title="ติดตั้งแอป">📲</span>
-            </a>
+            <!-- VHV Info Header (Compact Layout, Large Logo, Reduced Height) -->
+            <div class="vhv-header" style="display: flex; align-items: center; gap: 14px; padding: 10px 14px; margin-bottom: 10px; border-radius: var(--border-radius); position: relative; background: var(--bg-card); box-shadow: var(--neumorph-flat);">
+                <?php if (!$hasSubmittedSurvey): ?>
+                    <button id="survey-banner" onclick="openSurveyModal()" style="position: absolute; top: 8px; right: 10px; background: none; border: none; cursor: pointer; z-index: 10; font-size: 24px; animation: float-bubble 2s ease-in-out infinite; padding: 0; outline: none; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" title="ทำแบบประเมินรับโบนัส 5 แต้ม! 🎁">
+                        🎁
+                    </button>
+                <?php endif; ?>
 
-            <!-- Compact VHV Info Column -->
-            <div style="flex-grow: 1; min-width: 0;">
-                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 2px;">
-                    <span style="color: var(--color-accent); font-size: 12.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        อสม. ประจำบ้าน<?= DISTRICT_NAME ?>
-                    </span>
-                    <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
-                        <button type="button" id="btn-notification-bell" onclick="openMessagesModal()" style="position: relative; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 50%; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-primary); font-size: 14px; padding: 0;" title="การแจ้งเตือนและข่าวสาร">
-                            🔔
-                            <span id="unread-msg-badge" style="display:none; position:absolute; top:-4px; right:-4px; background:#EF4444; color:white; font-size:9px; font-weight:800; border-radius:50%; width:16px; height:16px; line-height:16px; text-align:center;">0</span>
-                        </button>
-                        <button type="button" id="btn-top-manual" onclick="showManualView()" style="color: var(--color-accent); font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px; background: rgba(30, 64, 175, 0.08); padding: 4px 10px; border-radius: 50px; white-space: nowrap; border: none; cursor: pointer; transition: all 0.2s;" title="เปิดคู่มือการใช้งาน">
-                            📖 คู่มือ
+                <!-- Large Prominent Logo with Install Badge -->
+                <a href="javascript:void(0)" onclick="openAppInstallModal(event)" title="แตะเพื่อติดตั้งแอปพลิเคชันลงเครื่อง หรือดูข้อมูลระบบ" style="flex-shrink: 0; position: relative; display: inline-block; text-decoration: none;">
+                    <img src="../assets/icon.png" alt="NCDs Portal Logo" style="width: 62px; height: 62px; border-radius: 16px; box-shadow: 0 6px 14px rgba(0,0,0,0.12); display: block; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.06)'" onmouseout="this.style.transform='scale(1)'">
+                    <span style="position: absolute; bottom: -2px; right: -2px; background: #10b981; color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; border: 2px solid var(--bg-card); box-shadow: 0 2px 6px rgba(0,0,0,0.25);" title="ติดตั้งแอป">📲</span>
+                </a>
+
+                <!-- Compact VHV Info Column -->
+                <div style="flex-grow: 1; min-width: 0;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 2px;">
+                        <span style="color: var(--color-accent); font-size: 12px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            อสม. ประจำบ้าน<?= DISTRICT_NAME ?>
+                        </span>
+                        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                            <button type="button" id="btn-notification-bell" onclick="openMessagesModal()" style="position: relative; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 50%; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-primary); font-size: 14px; padding: 0;" title="การแจ้งเตือนและข่าวสาร">
+                                🔔
+                                <span id="unread-msg-badge" style="display:none; position:absolute; top:-4px; right:-4px; background:#EF4444; color:white; font-size:9px; font-weight:800; border-radius:50%; width:16px; height:16px; line-height:16px; text-align:center;">0</span>
+                            </button>
+                            <button type="button" id="btn-top-manual" onclick="showManualView()" style="color: var(--color-accent); font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px; background: rgba(30, 64, 175, 0.08); padding: 4px 10px; border-radius: 50px; white-space: nowrap; border: none; cursor: pointer; transition: all 0.2s;" title="เปิดคู่มือการใช้งาน">
+                                📖 คู่มือ
+                            </button>
+                        </div>
+                    </div>
+
+                    <h2 style="color: var(--text-primary); margin: 0 0 2px 0; font-size: 18px; font-weight: 800; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?= htmlspecialchars($vhvName) ?></h2>
+
+                    <p style="color: var(--text-secondary); margin: 0; font-size: 12px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        หมู่ <?= $vhvMoo ?> • รพ.สต. [<?= htmlspecialchars($hoscode) ?>]
+                        <?php if ($isLeader == 1): ?>
+                            • <span style="color: var(--color-accent); font-weight: bold;">ประธานหมู่บ้าน</span>
+                        <?php elseif ($isLeader == 2): ?>
+                            • <span style="color: #a855f7; font-weight: bold; background: rgba(168,85,247,0.1); padding: 1px 4px; border-radius: 4px;">🏆 ประธานตำบล</span>
+                        <?php elseif ($isLeader >= 3): ?>
+                            • <span style="color: #ec4899; font-weight: bold; background: rgba(236,72,153,0.1); padding: 1px 4px; border-radius: 4px;">👑 ประธานอำเภอ</span>
+                        <?php endif; ?>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Leader Password Reset Tool -->
+            <?php if ($isLeader && !empty($subVhvs)): ?>
+                <div class="card-dark" style="padding: 12px; margin-bottom: 10px;">
+                    <h4 style="color: var(--color-accent); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 800;">
+                        🔑 รีเซ็ตรหัสผ่าน อสม. <?php if ($isLeader == 1): ?>ในหมู่บ้าน<?php elseif ($isLeader == 2): ?>ในตำบล<?php else: ?>ในอำเภอ<?php endif; ?>
+                    </h4>
+                    <div style="display: flex; gap: 8px;">
+                        <select id="reset_target_vhv" class="form-select" style="flex-grow: 1; height: 42px; font-size: 14px;">
+                            <option value="">-- เลือก อสม. --</option>
+                            <?php foreach ($subVhvs as $sv): ?>
+                                <?php 
+                                $suffix = '';
+                                if ($isLeader == 1) {
+                                    $suffix = ' (หมู่ ' . $sv['vhv_moo'] . ')';
+                                } else {
+                                    $hcName = $hc_names[$sv['hoscode']] ?? $sv['hoscode'];
+                                    $suffix = ' (หมู่ ' . $sv['vhv_moo'] . ' - ' . $hcName . ')';
+                                }
+                                ?>
+                                <option value="<?= $sv['vhv_id'] ?>"><?= htmlspecialchars($sv['vhv_name'] . $suffix) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <button onclick="resetPassword()" class="numpad-btn btn-action" style="height: 42px; width: 110px; font-size: 13px; margin-top: 0; border-radius: var(--border-radius); font-weight: 800;">
+                            รีเซ็ต "1234"
                         </button>
                     </div>
+                    <div id="reset-result" style="margin-top: 6px; font-size: 13px; text-align: center; font-weight: bold;"></div>
                 </div>
+            <?php endif; ?>
 
-                <h2 style="color: var(--text-primary); margin: 0 0 2px 0; font-size: 19px; font-weight: 800; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?= htmlspecialchars($vhvName) ?></h2>
-
-                <p style="color: var(--text-secondary); margin: 0; font-size: 12px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    หมู่ <?= $vhvMoo ?> • รพ.สต. [<?= htmlspecialchars($hoscode) ?>]
-                    <?php if ($isLeader == 1): ?>
-                        • <span style="color: var(--color-accent); font-weight: bold;">ประธานหมู่บ้าน</span>
-                    <?php elseif ($isLeader == 2): ?>
-                        • <span style="color: #a855f7; font-weight: bold; background: rgba(168,85,247,0.1); padding: 1px 4px; border-radius: 4px;">🏆 ประธานตำบล</span>
-                    <?php elseif ($isLeader >= 3): ?>
-                        • <span style="color: #ec4899; font-weight: bold; background: rgba(236,72,153,0.1); padding: 1px 4px; border-radius: 4px;">👑 ประธานอำเภอ</span>
-                    <?php endif; ?>
-                </p>
-            </div>
-        </div>
-
-        <!-- Leader Password Reset Tool -->
-        <?php if ($isLeader && !empty($subVhvs)): ?>
-            <div class="card-dark" style="padding: 16px;">
-                <h4 style="color: var(--color-accent); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 800;">
-                    🔑 รีเซ็ตรหัสผ่าน อสม. <?php if ($isLeader == 1): ?>ในหมู่บ้าน<?php elseif ($isLeader == 2): ?>ในตำบล<?php else: ?>ในอำเภอ<?php endif; ?>
-                </h4>
-                <div style="display: flex; gap: 12px;">
-                    <select id="reset_target_vhv" class="form-select" style="flex-grow: 1; height: 48px; font-size: 15px;">
-                        <option value="">-- เลือก อสม. --</option>
-                        <?php foreach ($subVhvs as $sv): ?>
-                            <?php 
-                            $suffix = '';
-                            if ($isLeader == 1) {
-                                $suffix = ' (หมู่ ' . $sv['vhv_moo'] . ')';
-                            } else {
-                                $hcName = $hc_names[$sv['hoscode']] ?? $sv['hoscode'];
-                                $suffix = ' (หมู่ ' . $sv['vhv_moo'] . ' - ' . $hcName . ')';
-                            }
-                            ?>
-                            <option value="<?= $sv['vhv_id'] ?>"><?= htmlspecialchars($sv['vhv_name'] . $suffix) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <button onclick="resetPassword()" class="numpad-btn btn-action" style="height: 48px; width: 120px; font-size: 14px; margin-top: 0; border-radius: var(--border-radius); font-weight: 800;">
-                        รีเซ็ต "1234"
-                    </button>
+            <?php if (DemoDataProvider::isDemoMode()): ?>
+            <!-- Demo Sandbox Guide Card -->
+            <div class="card-dark" style="margin-bottom: 10px; border: 1.5px dashed #3b82f6; background: rgba(59, 130, 246, 0.05); padding: 10px 12px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-weight: 800; color: #3b82f6; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                        🧪 ตัวอย่างจำลองการทำงาน อสม.
+                    </span>
+                    <span style="font-size: 10px; background: #3b82f6; color: white; padding: 1px 6px; border-radius: 9999px; font-weight: bold;">Demo</span>
                 </div>
-                <div id="reset-result" style="margin-top: 8px; font-size: 14px; text-align: center; font-weight: bold;"></div>
-            </div>
-        <?php endif; ?>
-
-
-
-        <?php if (DemoDataProvider::isDemoMode()): ?>
-        <!-- Demo Sandbox Guide Card -->
-        <div class="card-dark" style="margin-bottom: 20px; border: 2px dashed #3b82f6; background: rgba(59, 130, 246, 0.05); padding: 16px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                <span style="font-weight: 800; color: #3b82f6; font-size: 14.5px; display: flex; align-items: center; gap: 6px;">
-                    🧪 ตัวอย่างจำลองการทำงาน อสม.
-                </span>
-                <span style="font-size: 11px; background: #3b82f6; color: white; padding: 2px 8px; border-radius: 9999px; font-weight: bold;">Demo</span>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 10px; margin-top: 8px;">
-                <div style="padding: 10px; border-radius: 8px; background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.3);">
-                    <strong style="color: var(--color-green); font-size: 13px; display: block; margin-bottom: 4px;">แบบที่ 1: เข้าคัดกรองทันที</strong>
-                    <p style="font-size: 11.5px; color: var(--text-muted); margin: 0 0 8px 0;">แตะที่การ์ดรายชื่อเป้าหมายด้านล่างเพื่อเข้าตรวจคัดกรองได้โดยตรง</p>
-                    <span style="font-size: 11px; color: var(--color-green); font-weight: bold;">👉 แตะรายการงานค้างด้านล่าง</span>
-                </div>
-                <div style="padding: 10px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.3);">
-                    <strong style="color: #3b82f6; font-size: 13px; display: block; margin-bottom: 4px;">แบบที่ 2: สแกน QR จำลอง</strong>
-                    <p style="font-size: 11.5px; color: var(--text-muted); margin: 0 0 8px 0;">ทดสอบทั้งเคสที่สแกนผ่านปกติ และเคสที่ล็อค PDPA</p>
-                    <a href="scan.php" style="font-size: 11px; color: #3b82f6; font-weight: bold; text-decoration: none;">📷 ไปที่หน้าสแกน QR →</a>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 8px;">
+                    <div style="padding: 8px; border-radius: 8px; background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.3);">
+                        <strong style="color: var(--color-green); font-size: 12px; display: block; margin-bottom: 2px;">แบบที่ 1: เข้าคัดกรองทันที</strong>
+                        <p style="font-size: 11px; color: var(--text-muted); margin: 0 0 4px 0;">แตะที่การ์ดรายชื่อเป้าหมายด้านล่างเพื่อตรวจคัดกรอง</p>
+                        <span style="font-size: 10.5px; color: var(--color-green); font-weight: bold;">👉 แตะรายการด้านล่าง</span>
+                    </div>
+                    <div style="padding: 8px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.3);">
+                        <strong style="color: #3b82f6; font-size: 12px; display: block; margin-bottom: 2px;">แบบที่ 2: สแกน QR จำลอง</strong>
+                        <p style="font-size: 11px; color: var(--text-muted); margin: 0 0 4px 0;">ทดสอบเคสสแกนผ่าน และเคสล็อค PDPA</p>
+                        <a href="scan.php" style="font-size: 10.5px; color: #3b82f6; font-weight: bold; text-decoration: none;">📷 หน้าสแกน QR →</a>
+                    </div>
                 </div>
             </div>
-        </div>
-        <?php endif; ?>
+            <?php endif; ?>
 
-        <!-- Task Tabs (Original 3 Tabs) -->
-        <div class="tabs">
-            <button class="tab-btn active" id="tab-btn-pending" onclick="switchTab('pending-list', this)">
-                งานค้าง (<?= count($pendingTasks) ?>)
-            </button>
-            <button class="tab-btn" id="tab-btn-dpac" onclick="switchTab('dpac-list', this)" style="color: #b91c1c;">
-                DPAC (<?= count($dpacTasks) ?>)
-            </button>
-            <button class="tab-btn" id="tab-btn-completed" onclick="switchTab('completed-list', this)">
-                เสร็จสิ้น/ข้าม (<?= count($completedTasks) + count($completedDpacTasks) ?>)
-            </button>
+            <!-- Task Tabs (Original 3 Tabs) -->
+            <div class="tabs">
+                <button class="tab-btn active" id="tab-btn-pending" onclick="switchTab('pending-list', this)">
+                    งานค้าง (<?= count($pendingTasks) ?>)
+                </button>
+                <button class="tab-btn" id="tab-btn-dpac" onclick="switchTab('dpac-list', this)" style="color: #b91c1c;">
+                    DPAC (<?= count($dpacTasks) ?>)
+                </button>
+                <button class="tab-btn" id="tab-btn-completed" onclick="switchTab('completed-list', this)">
+                    เสร็จสิ้น/ข้าม (<?= count($completedTasks) + count($completedDpacTasks) ?>)
+                </button>
+            </div>
         </div>
 
         <!-- Pending Tasks List -->
         <div id="pending-list" class="tab-content">
             <?php if (empty($pendingTasks)): ?>
-                <div class="card-dark" style="text-align: center; padding: 36px 20px; box-shadow: var(--neumorph-flat); margin-top: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; border-radius: var(--border-radius); overflow: hidden; position: relative;">
+                <div class="card-dark" style="text-align: center; padding: 24px 18px; box-shadow: var(--neumorph-flat); margin-top: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; border-radius: var(--border-radius); overflow: hidden; position: relative;">
                     <!-- Floating celebratory background elements -->
-                    <div style="position: absolute; top: 10px; left: 10%; font-size: 24px; opacity: 0.15; animation: float-bubble 4s ease-in-out infinite;">✨</div>
-                    <div style="position: absolute; bottom: 15px; right: 8%; font-size: 28px; opacity: 0.15; animation: float-bubble 5s ease-in-out infinite 1s;">❤️</div>
-                    <div style="position: absolute; top: 20%; right: 12%; font-size: 20px; opacity: 0.12; animation: float-bubble 6s ease-in-out infinite 0.5s;">🩺</div>
-                    <div style="position: absolute; bottom: 30%; left: 15%; font-size: 22px; opacity: 0.12; animation: float-bubble 4.5s ease-in-out infinite 1.5s;">💪</div>
+                    <div style="position: absolute; top: 10px; left: 10%; font-size: 22px; opacity: 0.15; animation: float-bubble 4s ease-in-out infinite;">✨</div>
+                    <div style="position: absolute; bottom: 15px; right: 8%; font-size: 26px; opacity: 0.15; animation: float-bubble 5s ease-in-out infinite 1s;">❤️</div>
+                    <div style="position: absolute; top: 20%; right: 12%; font-size: 18px; opacity: 0.12; animation: float-bubble 6s ease-in-out infinite 0.5s;">🩺</div>
+                    <div style="position: absolute; bottom: 30%; left: 15%; font-size: 20px; opacity: 0.12; animation: float-bubble 4.5s ease-in-out infinite 1.5s;">💪</div>
                     
                     <!-- Pulse badge -->
-                    <div style="width: 80px; height: 80px; border-radius: 50%; background: rgba(16, 185, 129, 0.1); border: 2px solid rgba(16, 185, 129, 0.25); display: flex; align-items: center; justify-content: center; box-shadow: var(--neumorph-inset); position: relative; animation: pulse-green-ring 2.5s infinite;">
-                        <span style="font-size: 38px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));">🏆</span>
+                    <div style="width: 72px; height: 72px; border-radius: 50%; background: rgba(16, 185, 129, 0.1); border: 2px solid rgba(16, 185, 129, 0.25); display: flex; align-items: center; justify-content: center; box-shadow: var(--neumorph-inset); position: relative; animation: pulse-green-ring 2.5s infinite;">
+                        <span style="font-size: 34px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));">🏆</span>
                     </div>
                     
                     <div>
-                        <h4 style="color: var(--color-green); font-size: 18px; font-weight: 800; margin: 0 0 6px 0; letter-spacing: 0.5px; text-size-adjust: none; -webkit-text-size-adjust: none;">ภารกิจคัดกรองสำเร็จครบถ้วน!</h4>
-                        <p style="font-size: 14px; color: var(--text-primary); font-weight: bold; margin: 0 0 4px 0; line-height: 1.5; text-size-adjust: none; -webkit-text-size-adjust: none;">ไม่มีงานค้างในเขตรับผิดชอบของคุณ</p>
-                        <p style="font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.4; text-size-adjust: none; -webkit-text-size-adjust: none;">ขอบคุณที่เป็นส่วนสำคัญในการร่วมดูแลสุขภาพชุมชน</p>
-                        <p style="font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.4; text-size-adjust: none; -webkit-text-size-adjust: none;">ชาวอำเภอ<?= DISTRICT_NAME ?></p>
-
+                        <h4 style="color: var(--color-green); font-size: 17px; font-weight: 800; margin: 0 0 4px 0; letter-spacing: 0.5px; text-size-adjust: none; -webkit-text-size-adjust: none;">ภารกิจคัดกรองสำเร็จครบถ้วน!</h4>
+                        <p style="font-size: 13.5px; color: var(--text-primary); font-weight: bold; margin: 0 0 3px 0; line-height: 1.4; text-size-adjust: none; -webkit-text-size-adjust: none;">ไม่มีงานค้างในเขตรับผิดชอบของคุณ</p>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.3; text-size-adjust: none; -webkit-text-size-adjust: none;">ขอบคุณที่เป็นส่วนสำคัญในการร่วมดูแลสุขภาพชุมชน</p>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.3; text-size-adjust: none; -webkit-text-size-adjust: none;">ชาวอำเภอ<?= DISTRICT_NAME ?></p>
                     </div>
 
                     <!-- Shortcut Action: Self-Health Assessment for VHV -->
-                    <a href="../self_screening.php" onclick="if(typeof showPageLoading==='function'){showPageLoading('ประเมินความเสี่ยงตนเอง', 'กำลังเตรียมแบบคัดกรองสุขภาพ อสม....', '🌱', '../self_screening.php'); return false;}" style="margin-top: 6px; display: inline-flex; align-items: center; gap: 8px; padding: 11px 22px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(59, 130, 246, 0.12)); border: 1.5px solid rgba(16, 185, 129, 0.35); border-radius: 50px; text-decoration: none; color: var(--color-green, #10b981); font-weight: 800; font-size: 14px; box-shadow: var(--neumorph-flat); transition: all 0.3s ease; text-size-adjust: none; -webkit-text-size-adjust: none;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
+                    <a href="../self_screening.php" onclick="if(typeof showPageLoading==='function'){showPageLoading('ประเมินความเสี่ยงตนเอง', 'กำลังเตรียมแบบคัดกรองสุขภาพ อสม....', '🌱', '../self_screening.php'); return false;}" style="margin-top: 4px; display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(59, 130, 246, 0.12)); border: 1.5px solid rgba(16, 185, 129, 0.35); border-radius: 50px; text-decoration: none; color: var(--color-green, #10b981); font-weight: 800; font-size: 13.5px; box-shadow: var(--neumorph-flat); transition: all 0.3s ease; text-size-adjust: none; -webkit-text-size-adjust: none;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
                         🌱 ประเมินความเสี่ยงสุขภาพตนเอง
                     </a>
                 </div>
@@ -865,7 +913,10 @@ if (DemoDataProvider::isDemoMode()) {
             }
             // Show selected tab & set button active
             const target = document.getElementById(tabId);
-            if (target) target.style.display = 'block';
+            if (target) {
+                target.style.display = 'block';
+                target.scrollTop = 0;
+            }
             if (btn) btn.classList.add('active');
         }
 
@@ -888,7 +939,7 @@ if (DemoDataProvider::isDemoMode()) {
             const mList = document.getElementById('manual-list');
             if (mList) {
                 mList.style.display = 'block';
-                mList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                mList.scrollTop = 0;
             }
         }
 
@@ -1277,7 +1328,7 @@ if (DemoDataProvider::isDemoMode()) {
                 const completedMatch = completedTab.textContent.match(/\((\d+)\)/);
                 if (completedMatch) {
                     const current = parseInt(completedMatch[1]);
-                    completedTab.textContent = `เสร็จสิ้น/ข้าม (${current + completedCountAdjust})`;
+                    completedTab.textContent = `เสร็จ/ข้าม (${current + completedCountAdjust})`;
                 }
             }
         });
@@ -1694,40 +1745,90 @@ if (DemoDataProvider::isDemoMode()) {
     </script>
     <?php endif; ?>
 
-    <!-- System Messages & Broadcast Notification Modal -->
-    <div id="messages-modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; padding: 16px;">
-        <div class="card-dark" style="width: 100%; max-width: 480px; max-height: 85vh; display: flex; flex-direction: column; background: var(--bg-card); border-radius: 20px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color); overflow: hidden; padding: 0;">
-            <!-- Header -->
-            <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border-color); background: var(--bg-darker);">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 20px;">🔔</span>
-                    <h3 style="margin: 0; font-size: 17px; font-weight: 800; color: var(--text-primary);">การแจ้งเตือน & ข่าวสาร</h3>
+    <!-- System Messages & Broadcast Notification Modal (Balanced 80vh Floating Card, Clean Aesthetic) -->
+    <div id="messages-modal" onclick="if(event.target === this) closeMessagesModal()" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(6px); z-index: 9999; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box;">
+        <div class="card-dark" onclick="event.stopPropagation()" style="width: 100%; max-width: 440px; height: 80vh; max-height: 80vh; display: flex; flex-direction: column; background: var(--bg-card); border-radius: 22px; box-shadow: 0 20px 45px rgba(0,0,0,0.25); border: 1px solid var(--border-color); overflow: hidden; padding: 0;">
+            
+            <!-- Header (Fixed Top with Spacious Title and Mark-All-Read Icon) -->
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border-color); background: var(--bg-darker); flex-shrink: 0;">
+                <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                    <span style="font-size: 20px; flex-shrink: 0;">🔔</span>
+                    <h3 style="margin: 0; font-size: 16.5px; font-weight: 800; color: var(--text-primary); white-space: nowrap; letter-spacing: -0.2px;">
+                        การแจ้งเตือน & ข่าวสาร
+                    </h3>
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <button type="button" onclick="markAllMessagesRead()" style="background: none; border: none; font-size: 12px; font-weight: 700; color: var(--color-primary); cursor: pointer; text-decoration: underline;">
-                        อ่านทั้งหมด
-                    </button>
-                    <button type="button" onclick="closeMessagesModal()" style="background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; line-height: 1;">
-                        ✕
+                <div style="flex-shrink: 0; display: flex; align-items: center;">
+                    <button type="button" onclick="markAllMessagesRead()" style="background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.25); color: var(--color-accent); width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" title="ทำเครื่องหมายว่าอ่านแล้วทั้งหมด">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L7 17l-5-5M22 10l-7.5 7.5L13 16"></path></svg>
                     </button>
                 </div>
             </div>
 
-            <!-- Messages List -->
-            <div id="messages-list-container" style="flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
-                <div style="text-align: center; color: var(--text-muted); padding: 30px 0;">กำลังโหลดข้อความ...</div>
+            <!-- Messages List (Scrollable, Hidden Scrollbar) -->
+            <div id="messages-list-container" style="flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; scrollbar-width: none; -ms-overflow-style: none; -webkit-overflow-scrolling: touch;">
+                <div style="text-align: center; color: var(--text-muted); padding: 40px 0;">กำลังโหลดข้อความ...</div>
             </div>
 
-            <!-- Footer -->
-            <div style="padding: 12px 16px; border-top: 1px solid var(--border-color); text-align: center; background: var(--bg-darker);">
-                <button type="button" onclick="closeMessagesModal()" class="btn-giant btn-giant-primary" style="margin: 0; padding: 10px; font-size: 14px; border-radius: 12px; width: 100%;">
-                    ปิดหน้าต่าง
+            <!-- Footer (Clean Bottom Close Button) -->
+            <div style="padding: 10px 16px; border-top: 1px solid var(--border-color); background: var(--bg-darker); flex-shrink: 0;">
+                <button type="button" onclick="closeMessagesModal()" class="btn-giant btn-giant-secondary" style="margin: 0; height: 42px; font-size: 14.5px; font-weight: 800; border-radius: 12px; width: 100%; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center;">
+                    ปิด
                 </button>
             </div>
+
         </div>
     </div>
 
     <script>
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+
+        function formatThaiRelativeTime(dateString) {
+            if (!dateString) return '';
+            const normalized = dateString.replace(' ', 'T');
+            const msgDate = new Date(normalized);
+            const now = new Date();
+            const diffMs = now - msgDate;
+            const diffSec = Math.floor(diffMs / 1000);
+            const diffMin = Math.floor(diffSec / 60);
+            const diffHours = Math.floor(diffMin / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            if (isNaN(diffMs) || diffSec < 60) {
+                return 'เมื่อสักครู่';
+            } else if (diffMin < 60) {
+                return `${diffMin} นาทีที่แล้ว`;
+            } else if (diffHours < 24) {
+                return `${diffHours} ชั่วโมงที่แล้ว`;
+            } else if (diffDays === 1) {
+                return 'เมื่อวานนี้';
+            } else if (diffDays < 30) {
+                return `${diffDays} วันที่แล้ว`;
+            } else {
+                const months = Math.floor(diffDays / 30);
+                return `${months} เดือนที่แล้ว`;
+            }
+        }
+
+        window._expandedMessageId = null;
+
+        function handleMessageClick(msgId, isUnread) {
+            if (isUnread) {
+                window._expandedMessageId = msgId;
+                markMessageRead(msgId);
+            } else {
+                if (window._expandedMessageId === msgId) {
+                    window._expandedMessageId = null;
+                } else {
+                    window._expandedMessageId = msgId;
+                }
+                renderMessagesList(window._cachedMessages || []);
+            }
+        }
+
         // Messaging Client for VHV
         function fetchMessages() {
             fetch('../api/messages.php?action=get_messages')
@@ -1754,45 +1855,98 @@ if (DemoDataProvider::isDemoMode()) {
             const container = document.getElementById('messages-list-container');
             if (!container) return;
 
-            if (messages.length === 0) {
+            if (!messages || messages.length === 0) {
                 container.innerHTML = `
-                    <div style="text-align: center; color: var(--text-muted); padding: 40px 10px;">
-                        <div style="font-size: 32px; margin-bottom: 8px;">📭</div>
-                        <div style="font-size: 14px; font-weight: 700;">ไม่มีข้อความแจ้งเตือนใหม่</div>
-                        <div style="font-size: 12px;">เมื่อมีประกาศจาก สสอ. หรือ รพ.สต. จะแสดงที่นี่</div>
+                    <div style="text-align: center; color: var(--text-muted); padding: 50px 15px; margin: auto;">
+                        <div style="font-size: 40px; margin-bottom: 10px;">📭</div>
+                        <div style="font-size: 15px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">ไม่มีข้อความแจ้งเตือนใหม่</div>
+                        <div style="font-size: 12.5px; color: var(--text-secondary);">เมื่อมีประกาศหรือข่าวสารจาก สสอ. หรือ รพ.สต. จะแสดงที่นี่</div>
                     </div>
                 `;
                 return;
             }
 
-            let html = '';
-            messages.forEach(msg => {
-                const isUnread = !msg.is_read;
-                const isUrgent = msg.priority === 'urgent' || msg.priority === 'emergency';
-                
-                let borderStyle = isUnread ? 'border-left: 4px solid var(--color-primary);' : 'border-left: 4px solid var(--border-color);';
-                if (isUrgent && isUnread) borderStyle = 'border-left: 4px solid #EF4444;';
+            // Always sort latest news first (created_at DESC, then message_id DESC)
+            const sortedMessages = [...messages].sort((a, b) => {
+                const dateA = new Date((a.created_at || '').replace(' ', 'T')).getTime() || 0;
+                const dateB = new Date((b.created_at || '').replace(' ', 'T')).getTime() || 0;
+                if (dateB !== dateA) return dateB - dateA;
+                return (b.message_id || 0) - (a.message_id || 0);
+            });
 
-                let priorityBadge = '';
-                if (msg.priority === 'emergency') {
-                    priorityBadge = '<span style="background:#FEE2E2; color:#DC2626; font-size:10px; font-weight:800; padding:2px 6px; border-radius:6px;">🚨 ด่วนที่สุด</span>';
-                } else if (msg.priority === 'urgent') {
-                    priorityBadge = '<span style="background:#FEF3C7; color:#D97706; font-size:10px; font-weight:800; padding:2px 6px; border-radius:6px;">⚠️ ด่วน</span>';
+            // If all messages are read and none is currently expanded, expand the latest one by default!
+            const hasUnread = sortedMessages.some(m => !m.is_read || m.is_read == 0);
+            if (!hasUnread && window._expandedMessageId === null && sortedMessages.length > 0) {
+                window._expandedMessageId = sortedMessages[0].message_id;
+            }
+
+            let html = '';
+            sortedMessages.forEach(msg => {
+                const isUnread = !msg.is_read || msg.is_read == 0;
+                const isUrgent = msg.priority === 'urgent' || msg.priority === 'emergency';
+                const isExpanded = isUnread || (window._expandedMessageId === msg.message_id);
+
+                // Relative time string & sender
+                const timeAgo = formatThaiRelativeTime(msg.created_at);
+                const senderName = escapeHtml(msg.sender_name || 'ผู้ดูแลระบบ');
+
+                // Card Styling: Unread vs Read
+                let cardBg = isUnread 
+                    ? 'linear-gradient(135deg, rgba(2, 132, 199, 0.08), rgba(14, 165, 233, 0.03))' 
+                    : 'var(--bg-card)';
+                let cardBorder = isUnread 
+                    ? 'border: 1.5px solid rgba(2, 132, 199, 0.35); border-left: 5px solid var(--color-accent);' 
+                    : (isExpanded ? 'border: 1px solid var(--border-color); border-left: 4px solid var(--color-accent);' : 'border: 1px solid var(--border-color); border-left: 4px solid #cbd5e1;');
+                
+                if (isUrgent && isUnread) {
+                    cardBorder = 'border: 1.5px solid rgba(239, 68, 68, 0.35); border-left: 5px solid #EF4444;';
+                    cardBg = 'linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(248, 113, 113, 0.03))';
+                }
+
+                let statusBadge = '';
+                if (isUnread) {
+                    if (msg.priority === 'emergency') {
+                        statusBadge = '<span style="background: linear-gradient(135deg, #ef4444, #dc2626); color:#ffffff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:999px; box-shadow: 0 2px 5px rgba(220,38,38,0.3); white-space: nowrap;">🚨 ด่วนที่สุด</span>';
+                    } else if (msg.priority === 'urgent') {
+                        statusBadge = '<span style="background: linear-gradient(135deg, #f59e0b, #d97706); color:#ffffff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:999px; box-shadow: 0 2px 5px rgba(217,119,6,0.3); white-space: nowrap;">⚠️ ด่วน</span>';
+                    } else {
+                        statusBadge = '<span style="background: linear-gradient(135deg, #0284c7, #0369a1); color:#ffffff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:999px; box-shadow: 0 2px 5px rgba(2,132,199,0.25); white-space: nowrap;">✨ ข่าวใหม่</span>';
+                    }
+                } else {
+                    const expandIcon = isExpanded ? '▲' : '▼';
+                    statusBadge = `<span style="background: rgba(148, 163, 184, 0.15); color: #64748b; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 6px; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px;">✓ อ่านแล้ว <span style="font-size: 8px;">${expandIcon}</span></span>`;
+                }
+
+                let titleColor = isUnread ? 'var(--text-primary)' : (isExpanded ? 'var(--text-primary)' : 'var(--text-secondary)');
+                let bodyColor = isUnread ? 'var(--text-primary)' : (isExpanded ? 'var(--text-secondary)' : 'var(--text-muted)');
+                let cardOpacity = isUnread ? '1' : (isExpanded ? '1' : '0.84');
+
+                // Body content: expanded full or collapsed 1-line preview with ellipsis ...
+                let bodyHtml = '';
+                if (isExpanded) {
+                    bodyHtml = `<p style="font-size: 13px; color: ${bodyColor}; margin: 0 0 8px 0; line-height: 1.45; white-space: pre-line; word-break: break-word;">${escapeHtml(msg.message_body)}</p>`;
+                } else {
+                    bodyHtml = `<p style="font-size: 12.5px; color: ${bodyColor}; margin: 0 0 6px 0; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; word-break: break-word;">${escapeHtml(msg.message_body)}</p>`;
                 }
 
                 html += `
-                    <div onclick="markMessageRead(${msg.message_id})" style="background: ${isUnread ? 'var(--bg-darker)' : 'var(--bg-card)'}; border-radius: 12px; padding: 12px; box-shadow: var(--neumorph-flat); ${borderStyle} cursor: pointer; transition: all 0.2s;">
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px;">
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                ${isUnread ? '<span style="width: 8px; height: 8px; border-radius: 50%; background: #3B82F6; display: inline-block;"></span>' : ''}
-                                <strong style="font-size: 14px; color: var(--text-primary);">${msg.title}</strong>
+                    <div onclick="handleMessageClick(${msg.message_id}, ${isUnread ? 'true' : 'false'})" style="background: ${cardBg}; border-radius: 14px; padding: ${isExpanded ? '12px 14px' : '10px 12px'}; box-shadow: var(--neumorph-flat); ${cardBorder} opacity: ${cardOpacity}; cursor: pointer; transition: all 0.2s ease; position: relative;">
+                        <!-- Header Row: Title & Badge -->
+                        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 4px;">
+                            <div style="display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1;">
+                                ${isUnread ? '<span style="width: 8px; height: 8px; border-radius: 50%; background: #0284c7; display: inline-block; flex-shrink: 0; box-shadow: 0 0 6px #0284c7;"></span>' : ''}
+                                <strong style="font-size: 14px; color: ${titleColor}; font-weight: ${isUnread || isExpanded ? '800' : '700'}; line-height: 1.35; white-space: ${isExpanded ? 'normal' : 'nowrap'}; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(msg.title)}</strong>
                             </div>
-                            <div>${priorityBadge}</div>
+                            <div style="flex-shrink: 0;">${statusBadge}</div>
                         </div>
-                        <p style="font-size: 13px; color: var(--text-secondary); margin: 0 0 6px 0; line-height: 1.4; white-space: pre-line;">${msg.message_body}</p>
-                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
-                            <span>👤 ${msg.sender_name || 'ผู้ดูแลระบบ'}</span>
-                            <span>🕒 ${msg.created_at ? msg.created_at.substring(0, 16) : ''}</span>
+
+                        <!-- Message Body -->
+                        ${bodyHtml}
+
+                        <!-- Footer Row: Relative Time & Sender -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); border-top: 1px dashed rgba(13,44,84,0.08); padding-top: 5px; margin-top: 2px;">
+                            <span>🕒 ส่งเมื่อ ${timeAgo}</span>
+                            <span style="font-weight: 600; color: var(--text-secondary);">โดย ${senderName}</span>
                         </div>
                     </div>
                 `;
@@ -1822,11 +1976,21 @@ if (DemoDataProvider::isDemoMode()) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: new URLSearchParams({ action: 'mark_all_read' })
-            }).then(() => fetchMessages());
+            }).then(() => {
+                window._expandedMessageId = null;
+                fetchMessages();
+            });
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             fetchMessages();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const m = document.getElementById('messages-modal');
+                if (m && m.style.display !== 'none') closeMessagesModal();
+            }
         });
     </script>
 

@@ -92,6 +92,43 @@ function renderRankTitleHeader($rank, $compact = false)
     </div>';
 }
 
+// 🎖️ Points Milestone Badges (Starting at 6 points after 5-pt base assessment, progressing every 5 pts)
+function getPointsMilestonesList()
+{
+    $district = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
+    return [
+        ['min' => 101, 'icon' => '🌌', 'title' => 'สุดยอดตำนานเกียรติภูมิ 101+ แต้ม', 'bg' => 'linear-gradient(135deg, #fde047, #f472b6, #38bdf8)', 'color' => '#1e1b4b', 'shadow' => '0 0 10px rgba(244, 114, 182, 0.6)', 'desc' => 'คัดกรอง & ติดตามสุขภาพครบ 101 แต้มขึ้นไป'],
+        ['min' => 81,  'icon' => '💫', 'title' => "ดาวจรัสแสงแห่ง{$district}", 'bg' => '#cffafe', 'color' => '#155e75', 'shadow' => '0 2px 6px rgba(6, 182, 212, 0.35)', 'desc' => 'ผลงานโดดเด่นระดับแนวหน้า 81 แต้มขึ้นไป'],
+        ['min' => 61,  'icon' => '🌟', 'title' => 'ขวัญใจสุขภาพชุมชน', 'bg' => '#ffedd5', 'color' => '#9a3412', 'shadow' => '0 2px 6px rgba(249, 115, 22, 0.35)', 'desc' => 'ทุ่มเทดูแลชาวบ้านอย่างต่อเนื่อง 61 แต้มขึ้นไป'],
+        ['min' => 51,  'icon' => '🔥', 'title' => 'มหาขุนพลไฟแรง', 'bg' => '#fef08a', 'color' => '#854d0e', 'shadow' => '0 2px 6px rgba(234, 179, 8, 0.45)', 'desc' => 'พลังขับเคลื่อนยอดเยี่ยม 51 แต้มขึ้นไป'],
+        ['min' => 46,  'icon' => '👑', 'title' => 'มงกุฎเกียรติยศ', 'bg' => '#f3e8ff', 'color' => '#6b21a8', 'shadow' => '0 2px 5px rgba(107, 33, 168, 0.25)', 'desc' => 'ความมุ่งมั่นเกียรติยศ 46 แต้มขึ้นไป'],
+        ['min' => 41,  'icon' => '🏆', 'title' => 'ยอดขุนศึกชุมชน', 'bg' => '#fed7aa', 'color' => '#9a3412', 'shadow' => '0 2px 5px rgba(154, 52, 18, 0.25)', 'desc' => 'แนวหน้างานคัดกรอง 41 แต้มขึ้นไป'],
+        ['min' => 36,  'icon' => '⚡', 'title' => 'พลังขับเคลื่อนไว', 'bg' => '#fef3c7', 'color' => '#92400e', 'shadow' => '0 2px 5px rgba(146, 64, 14, 0.25)', 'desc' => 'เข้าถึงพื้นที่รวดเร็วแม่นยำ 36 แต้มขึ้นไป'],
+        ['min' => 31,  'icon' => '💎', 'title' => 'เพชรน้ำเอกสุขภาพ', 'bg' => '#e0e7ff', 'color' => '#3730a3', 'shadow' => '0 2px 5px rgba(55, 48, 163, 0.25)', 'desc' => 'คุณภาพการคัดกรองทรงคุณค่า 31 แต้มขึ้นไป'],
+        ['min' => 26,  'icon' => '🛡️', 'title' => 'โล่พิทักษ์ชุมชน', 'bg' => '#e0f2fe', 'color' => '#075985', 'shadow' => '0 2px 5px rgba(7, 89, 133, 0.25)', 'desc' => 'เกราะคุ้มกันสุขภาพชาวบ้าน 26 แต้มขึ้นไป'],
+        ['min' => 21,  'icon' => '💖', 'title' => 'ผู้พิทักษ์หัวใจ', 'bg' => '#ffe4e6', 'color' => '#9f1239', 'shadow' => '0 2px 5px rgba(159, 18, 57, 0.25)', 'desc' => 'ดูแลใส่ใจด้วยหัวใจ 21 แต้มขึ้นไป'],
+        ['min' => 16,  'icon' => '🍀', 'title' => 'ทูตสุขภาพชุมชน', 'bg' => '#d1fae5', 'color' => '#065f46', 'shadow' => '0 2px 5px rgba(6, 95, 70, 0.25)', 'desc' => 'ส่งต่อรอยยิ้มและสุขภาพดี 16 แต้มขึ้นไป'],
+        ['min' => 11,  'icon' => '🌿', 'title' => 'ผู้บุกเบิกสุขภาพ', 'bg' => '#ccfbf1', 'color' => '#115e59', 'shadow' => '0 2px 5px rgba(17, 94, 89, 0.25)', 'desc' => 'ลงพื้นที่ค้นหากลุ่มเสี่ยง 11 แต้มขึ้นไป'],
+        ['min' => 6,   'icon' => '🌱', 'title' => 'ต้นกล้าสุขภาพ', 'bg' => '#dcfce7', 'color' => '#166534', 'shadow' => '0 2px 5px rgba(22, 101, 52, 0.25)', 'desc' => 'ประเดิมผลงานคัดกรองแรก 6 แต้มขึ้นไป']
+    ];
+}
+
+function getPointsMilestoneBadge($points)
+{
+    $p = (float)$points;
+    if ($p < 6) {
+        return '';
+    }
+
+    $milestones = getPointsMilestonesList();
+    foreach ($milestones as $m) {
+        if ($p >= $m['min']) {
+            return '<span class="badge-icon" style="background: ' . $m['bg'] . '; color: ' . $m['color'] . '; box-shadow: ' . $m['shadow'] . '; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; font-size: 13px; margin-left: 4px; vertical-align: middle; cursor: help;" title="' . htmlspecialchars($m['title']) . ' (' . $m['min'] . '+ แต้ม)">' . $m['icon'] . '</span>';
+        }
+    }
+    return '';
+}
+
 // 👑 PRESTIGE LEADERBOARD RANK EMBLEM CONFIG (TOP 1 to 50+)
 function getRankEmblemConfig($rank)
 {
@@ -227,6 +264,7 @@ if (DemoDataProvider::isDemoMode()) {
             u.vhv_name, 
             u.vhv_moo, 
             u.is_hl_coach,
+            COALESCE(NULLIF(u.hoscode, ''), v.hoscode) as hoscode,
             v.village_name,
             (
                 SELECT COALESCE(SUM(CASE WHEN (r.followup_id IS NULL AND r.assignment_id IS NULL) OR (r.followup_id IS NULL AND ta.assignment_id IS NOT NULL) OR (r.followup_id IS NOT NULL AND f.followup_id IS NOT NULL) THEN r.points_earned ELSE 0 END), 0)
@@ -568,6 +606,55 @@ try {
 }
 $hcNames = get_health_units();
 
+// Filter leaderboard for VHVs under current VHV's hospital (hoscode) for Zone Leaderboard ("สมรภูมิเขตรับผิดชอบ")
+$currentHoscode = $_SESSION['hoscode'] ?? '';
+if (empty($currentHoscode)) {
+    try {
+        $stmtH = $pdo->prepare("SELECT COALESCE(NULLIF(u.hoscode, ''), v.hoscode) FROM vhv_users u LEFT JOIN villages v ON u.vhid_code = v.vhid_code WHERE u.vhv_id = ?");
+        $stmtH->execute([$currentVhvId]);
+        $currentHoscode = (string)($stmtH->fetchColumn() ?: '');
+        if (!empty($currentHoscode)) {
+            $_SESSION['hoscode'] = $currentHoscode;
+        }
+    } catch (\Throwable $e) {}
+}
+
+$normCurrentHos = ltrim(trim((string)$currentHoscode), '0');
+$zoneLeaders = [];
+$currentVhvZoneRank = 0;
+
+foreach ($allLeaders as $leader) {
+    $lHos = $leader['hoscode'] ?? '';
+    $normLHos = ltrim(trim((string)$lHos), '0');
+    if ($normCurrentHos !== '' && $normLHos !== '' && ($normLHos === $normCurrentHos || (string)$lHos === (string)$currentHoscode)) {
+        $zoneLeaders[] = $leader;
+    }
+}
+
+foreach ($zoneLeaders as $zIdx => $zLeader) {
+    if ($zLeader['vhv_id'] === $currentVhvId) {
+        $currentVhvZoneRank = $zIdx + 1;
+        break;
+    }
+}
+$totalZoneVhvs = count($zoneLeaders);
+$currentHospitalName = $hcNames[$currentHoscode] ?? ('รพ.สต. ' . $currentHoscode);
+
+// Hospital rank of current VHV's hospital in the District League
+$myHospitalRank = 0;
+$myHospitalScore = 0;
+$totalHosCount = count($hospitalStats);
+
+foreach ($hospitalStats as $hIdx => $hStat) {
+    $hHos = $hStat['hoscode'] ?? '';
+    $normHHos = ltrim(trim((string)$hHos), '0');
+    if ($normCurrentHos !== '' && ($normHHos === $normCurrentHos || (string)$hHos === (string)$currentHoscode)) {
+        $myHospitalRank = $hIdx + 1;
+        $myHospitalScore = $hStat['fair_score'] ?? 0;
+        break;
+    }
+}
+
 // ==========================================
 // REWARD STORE DATA PREPARATION
 // ==========================================
@@ -665,7 +752,7 @@ try {
     <meta name="application-name" content="NCDs Portal">
     <meta name="theme-color" content="#0d2c54">
     <title>กระดานคะแนน & แลกรางวัล - NCDs <?= DISTRICT_NAME ?></title>
-    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/style.css?v=<?= time() ?>">
     <link rel="apple-touch-icon" href="../assets/icon.png">
     <link rel="manifest" href="manifest.json">
     <style>
@@ -676,17 +763,19 @@ try {
             --rank-banner: linear-gradient(130deg, #f2f7fc 0%, #ffffff 55%, #eaf5f8 100%);
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
             position: relative;
             overflow: hidden;
-            margin-top: 10px;
-            padding: 8px 12px;
-            min-height: 40px;
+            margin: 0 auto;
+            padding: 6px 16px;
+            min-height: 38px;
             border: 1px solid rgba(255, 255, 255, 0.7);
-            border-radius: 14px;
+            border-radius: 999px;
             color: var(--rank-ink);
             background: transparent;
             box-shadow: 0 4px 14px var(--rank-glow);
+            box-sizing: border-box;
         }
         .rank-title-header::before {
             content: '';
@@ -1185,61 +1274,147 @@ try {
         <!-- TAB 1: LEADERBOARD PANE                                 -->
         <!-- ======================================================= -->
         <div id="main-pane-leaderboard" class="main-tab-pane">
-            <!-- Current VHV Score Widget (Hero Split Prestige Emblem Card) -->
+            <!-- Current VHV Score Widget (Dynamic Hero Card matching active tab) -->
             <div class="card-dark" style="padding: 18px 20px; box-shadow: var(--neumorph-flat); border-radius: var(--border-radius); position: relative; overflow: hidden;">
-                <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-                    
-                    <!-- Left: Full-Height Prestige Emblem Icon -->
-                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; min-width: 80px;">
-                        <div style="position: relative; display: inline-flex;">
-                            <?= renderVhvRankEmblem($currentVhvRank, 'xl', 'width: 72px; height: 72px;') ?>
-                            <span style="position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); background: var(--bg-card); color: var(--color-accent); font-size: 11px; font-weight: 900; padding: 2px 8px; border-radius: 999px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color); white-space: nowrap;">
-                                #<?= $currentVhvRank ?: 'N/A' ?>
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Right: Performance Stats -->
-                    <div style="flex: 1; min-width: 180px;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; text-align: center; background: rgba(13, 44, 84, 0.04); padding: 10px 12px; border-radius: 14px; box-shadow: var(--neumorph-inset);">
-                            <div style="border-right: 1px solid rgba(13, 44, 84, 0.1); padding-right: 6px;">
-                                <span style="color: var(--text-secondary); font-size: 11.5px; font-weight: 700; display: block; margin-bottom: 2px;">อันดับของคุณ</span>
-                                <div style="font-size: 26px; font-weight: 900; color: var(--color-accent); line-height: 1.1;">
-                                    #<?= $currentVhvRank ?: 'N/A' ?>
-                                </div>
-                            </div>
-                            <div>
-                                <span style="color: var(--text-secondary); font-size: 11.5px; font-weight: 700; display: block; margin-bottom: 2px;">ผลงานสะสม</span>
-                                <div style="font-size: 26px; font-weight: 900; color: var(--text-primary); line-height: 1.1;">
-                                    <?= (float)$currentVhvPoints ?> <span style="font-size: 13px; color: var(--text-secondary); font-weight: normal;">แต้ม</span>
-                                </div>
+                
+                <!-- View 1: District Level (Tab 1: อันดับ อสม. ทั้งอำเภอ & Tab 4: ฉายาเกียรติยศ) -->
+                <div id="hero-subcard-district" class="hero-subcard">
+                    <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                        <!-- Left: Prestige Emblem -->
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; min-width: 80px;">
+                            <div style="position: relative; display: inline-flex;">
+                                <?= renderVhvRankEmblem($currentVhvRank, 'xl', 'width: 72px; height: 72px;') ?>
                             </div>
                         </div>
+                        <!-- Right: Stats -->
+                        <div style="flex: 1; min-width: 180px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; text-align: center; background: rgba(13, 44, 84, 0.04); padding: 10px 12px; border-radius: 14px; box-shadow: var(--neumorph-inset);">
+                                <div style="border-right: 1px solid rgba(13, 44, 84, 0.1); padding-right: 6px;">
+                                    <span style="color: var(--text-secondary); font-size: 11.5px; font-weight: 700; display: block; margin-bottom: 2px;">ระดับอำเภอ</span>
+                                    <div style="font-size: 26px; font-weight: 900; color: var(--color-accent); line-height: 1.1;">
+                                        <?= $currentVhvRank ?: '-' ?>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span style="color: var(--text-secondary); font-size: 11.5px; font-weight: 700; display: block; margin-bottom: 2px;">ผลงานสะสม</span>
+                                    <div style="font-size: 26px; font-weight: 900; color: var(--text-primary); line-height: 1.1;">
+                                        <?= (float)$currentVhvPoints ?> <span style="font-size: 13px; color: var(--text-secondary); font-weight: normal;">แต้ม</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-
+                    <!-- Footer Text -->
+                    <div style="margin-top: 14px; font-size: 13px; text-align: center; color: var(--text-primary); border-top: 1px solid rgba(13, 44, 84, 0.08); padding-top: 10px; font-weight: 700; line-height: 1.4;">
+                        คุณอยู่อันดับที่ <?= $currentVhvRank ?: 'N/A' ?> จาก อสม.ทั้งหมด <?= $totalVhvs ?> คน ทั้งอำเภอ<?= DISTRICT_NAME ?>
+                    </div>
+                    <div style="margin-top: 10px; display: flex; justify-content: center; align-items: center; min-height: 42px; width: 100%;">
+                        <?php
+                        $myTitle = getPositiveTitle($currentVhvRank);
+                        if ($myTitle):
+                        ?>
+                            <?= renderRankTitleHeader($currentVhvRank) ?>
+                        <?php else: ?>
+                            <div class="rank-title-header rank-title-header--sunrise" aria-label="สมาชิก อสม. คุณภาพ">
+                                <span class="rank-title-header__title">🌱 อสม. นักขับเคลื่อนสุขภาพชุมชน</span>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
 
-                <!-- Footer Summary Text -->
-                <div style="margin-top: 14px; font-size: 13px; text-align: center; color: var(--text-primary); border-top: 1px solid rgba(13, 44, 84, 0.08); padding-top: 10px; font-weight: 700; line-height: 1.4;">
-                    คุณอยู่อันดับที่ <?= $currentVhvRank ?: 'N/A' ?> จาก อสม.ทั้งหมด <?= $totalVhvs ?> คน
-                </div>
-                <?php
-                $myTitle = getPositiveTitle($currentVhvRank);
-                if ($myTitle):
-                ?>
-                    <div style="margin-top: 8px;">
-                        <?= renderRankTitleHeader($currentVhvRank) ?>
+                <!-- View 2: Zone / Hospital Subordinate (Tab 2: สมรภูมิเขตรับผิดชอบ) -->
+                <div id="hero-subcard-zone" class="hero-subcard" style="display: none;">
+                    <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                        <!-- Left: Prestige Emblem for Zone Rank -->
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; min-width: 80px;">
+                            <div style="position: relative; display: inline-flex;">
+                                <?= renderVhvRankEmblem($currentVhvZoneRank, 'xl', 'width: 72px; height: 72px;') ?>
+                            </div>
+                        </div>
+                        <!-- Right: Stats -->
+                        <div style="flex: 1; min-width: 180px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; text-align: center; background: rgba(13, 44, 84, 0.04); padding: 10px 12px; border-radius: 14px; box-shadow: var(--neumorph-inset);">
+                                <div style="border-right: 1px solid rgba(13, 44, 84, 0.1); padding-right: 6px;">
+                                    <span style="color: var(--text-secondary); font-size: 11.5px; font-weight: 700; display: block; margin-bottom: 2px;">อันดับในสังกัด</span>
+                                    <div style="font-size: 26px; font-weight: 900; color: var(--color-accent); line-height: 1.1;">
+                                        <?= $currentVhvZoneRank ?: '-' ?>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span style="color: var(--text-secondary); font-size: 11.5px; font-weight: 700; display: block; margin-bottom: 2px;">ผลงานสะสม</span>
+                                    <div style="font-size: 26px; font-weight: 900; color: var(--text-primary); line-height: 1.1;">
+                                        <?= (float)$currentVhvPoints ?> <span style="font-size: 13px; color: var(--text-secondary); font-weight: normal;">แต้ม</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                <?php endif; ?>
+                    <!-- Footer Text -->
+                    <div style="margin-top: 14px; font-size: 13px; text-align: center; color: var(--text-primary); border-top: 1px solid rgba(13, 44, 84, 0.08); padding-top: 10px; font-weight: 700; line-height: 1.4;">
+                        คุณอยู่อันดับที่ <?= $currentVhvZoneRank ?: 'N/A' ?> จาก อสม.ทั้งหมด <?= $totalZoneVhvs ?> คน ในสังกัด <?= htmlspecialchars($currentHospitalName) ?>
+                    </div>
+                    <div style="margin-top: 10px; display: flex; justify-content: center; align-items: center; min-height: 42px; width: 100%;">
+                        <?php
+                        $myZoneTitle = getPositiveTitle($currentVhvZoneRank);
+                        if ($myZoneTitle):
+                        ?>
+                            <?= renderRankTitleHeader($currentVhvZoneRank) ?>
+                        <?php else: ?>
+                            <div class="rank-title-header rank-title-header--sunrise" aria-label="สมาชิก อสม. คุณภาพ">
+                                <span class="rank-title-header__title">🌱 อสม. นักขับเคลื่อนสุขภาพชุมชน</span>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- View 3: Hospital League (Tab 3: ลีก รพ.สต. ทั้งอำเภอ) -->
+                <div id="hero-subcard-hospital" class="hero-subcard" style="display: none;">
+                    <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                        <!-- Left: Kingdom Badge -->
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; min-width: 80px;">
+                            <div style="position: relative; display: inline-flex;">
+                                <img src="<?= get_hospital_kingdom_badge_url($myHospitalRank) ?>" alt="" style="width: 72px; height: 72px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.22));">
+                            </div>
+                        </div>
+                        <!-- Right: Stats -->
+                        <div style="flex: 1; min-width: 180px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; text-align: center; background: rgba(13, 44, 84, 0.04); padding: 10px 12px; border-radius: 14px; box-shadow: var(--neumorph-inset);">
+                                <div style="border-right: 1px solid rgba(13, 44, 84, 0.1); padding-right: 6px;">
+                                    <span style="color: var(--text-secondary); font-size: 11.5px; font-weight: 700; display: block; margin-bottom: 2px;">อันดับ รพ.สต.</span>
+                                    <div style="font-size: 26px; font-weight: 900; color: var(--color-accent); line-height: 1.1;">
+                                        <?= $myHospitalRank ?: '-' ?>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span style="color: var(--text-secondary); font-size: 11.5px; font-weight: 700; display: block; margin-bottom: 2px;">คะแนนลีก</span>
+                                    <div style="font-size: 26px; font-weight: 900; color: var(--text-primary); line-height: 1.1;">
+                                        <?= (float)$myHospitalScore ?> <span style="font-size: 13px; color: var(--text-secondary); font-weight: normal;">คะแนน</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Footer Text -->
+                    <div style="margin-top: 14px; font-size: 13px; text-align: center; color: var(--text-primary); border-top: 1px solid rgba(13, 44, 84, 0.08); padding-top: 10px; font-weight: 700; line-height: 1.4;">
+                        <?= htmlspecialchars($currentHospitalName) ?> อยู่อันดับที่ <?= $myHospitalRank ?: 'N/A' ?> จากทั้งหมด <?= $totalHosCount ?> หน่วยบริการ 
+                    </div>
+                    <div style="margin-top: 10px; display: flex; justify-content: center; align-items: center; min-height: 42px; width: 100%;">
+                        <div class="rank-title-header rank-title-header--champion" aria-label="ลีกหน่วยบริการ">
+                            <img class="rank-title-header__icon" src="<?= get_hospital_kingdom_badge_url($myHospitalRank) ?>" alt="" style="width: 24px; height: 24px; object-fit: contain;">
+                            <span class="rank-title-header__title">👑 1 ใน <?= $totalHosCount ?> อาณาจักรสุขภาพแห่ง<?= DISTRICT_NAME ?></span>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
             <!-- Tab Bar for Mobile Responsiveness (3D Icons) -->
             <div class="tab-container" style="display: flex; gap: 8px; margin-top: 20px; margin-bottom: 20px; background: rgba(13,44,84,0.05); padding: 6px; border-radius: 16px; box-shadow: var(--neumorph-inset);">
-                <button onclick="switchTab('leaderboard')" id="btn-leaderboard" class="tab-btn active" title="อันดับ อสม.">
-                    <img src="../assets/icons/tab_vhv_leaderboard.png" alt="อันดับ อสม." class="tab-icon-img">
+                <button onclick="switchTab('leaderboard')" id="btn-leaderboard" class="tab-btn active" title="อันดับ อสม. ทั้งอำเภอ">
+                    <img src="../assets/icons/tab_vhv_leaderboard.png" alt="อันดับ อสม. ทั้งอำเภอ" class="tab-icon-img">
                 </button>
-                <button onclick="switchTab('villages')" id="btn-villages" class="tab-btn" title="ผลงานรายหมู่บ้าน">
-                    <img src="../assets/icons/tab_village_progress.png" alt="ผลงานรายหมู่บ้าน" class="tab-icon-img">
+                <button onclick="switchTab('villages')" id="btn-villages" class="tab-btn" title="สมรภูมิเขตรับผิดชอบ">
+                    <img src="../assets/icons/tab_village_progress.png" alt="สมรภูมิเขตรับผิดชอบ" class="tab-icon-img">
                 </button>
                 <button onclick="switchTab('hospitals')" id="btn-hospitals" class="tab-btn" title="ลีก รพ.สต.">
                     <img src="../assets/icons/tab_hospital_league.png" alt="ลีก รพ.สต." class="tab-icon-img">
@@ -1249,61 +1424,82 @@ try {
                 </button>
             </div>
 
-            <!-- Sub-Tab 2: Village Progress Board -->
+            <!-- Sub-Tab 2: Zone Leaderboard (สมรภูมิเขตรับผิดชอบ) -->
             <div id="content-villages" class="tab-content" style="display: none;">
-                <?php if (!empty($villageStats)): ?>
-                    <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
-                        <div style="margin-bottom: 16px;">
-                            <h4 style="color: var(--color-accent); font-size: 16px; margin: 0 0 4px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                                🏡 สมรภูมิคัดกรองรายหมู่บ้าน
-                            </h4>
-                            <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
-                                ความก้าวหน้าการคัดกรอง ติดตามสุขภาพประชาชนในตำบล
-                            </p>
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 12px;">
-                            <?php foreach ($villageStats as $vStat):
-                                $r1Dn = (int)($vStat['r1_done'] ?? 0);
-                                $r2Dn = (int)($vStat['r2_done'] ?? 0);
+                <div class="card-dark" style="padding: 20px; box-shadow: var(--neumorph-flat); margin-bottom: 20px;">
+                    <div style="margin-bottom: 16px;">
+                        <h4 style="color: var(--color-accent); font-size: 16.5px; margin: 0 0 4px 0; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                            🛡️ สมรภูมิเขตรับผิดชอบ
+                        </h4>
+                        <p style="font-size: 12.5px; color: var(--text-secondary); margin: 0;">
+                            อันดับและคะแนนผลงาน อสม. เฉพาะในสังกัด <strong><?= htmlspecialchars($currentHospitalName) ?></strong>
+                        </p>
+                    </div>
 
-                                if ($r2Dn > 0) {
-                                    $vBadge = "🔥 ลุยรอบ 2 ({$r2Dn} ราย)";
-                                    $vBadgeBg = 'linear-gradient(135deg, #0284c7, #0369a1)';
-                                    $vBadgeColor = '#ffffff';
-                                    $vBarGradient = 'linear-gradient(90deg, #10b981, #0284c7)';
-                                    $vStatusDesc = "รอบแรกครบ 100% • 🔄 กำลังติดตามกลุ่มเสี่ยงรอบ 2";
-                                } else {
-                                    $vBadge = "✅ ครบ 100%";
-                                    $vBadgeBg = 'rgba(16, 185, 129, 0.12)';
-                                    $vBadgeColor = '#10b981';
-                                    $vBarGradient = 'linear-gradient(90deg, #10b981, #34d399)';
-                                    $vStatusDesc = "✅ ดูแลและคัดกรองประชากรครบถ้วน ({$r1Dn} ราย)";
-                                }
+                    <!-- Zone Leaderboard List -->
+                    <?php if (!empty($zoneLeaders)): ?>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <?php
+                            $zRank = 1;
+                            foreach ($zoneLeaders as $leader):
+                                $points = $leader['total_points'] ?? 0;
+                                $shinyBadge = getPointsMilestoneBadge($points);
+                                $emblemSize = ($zRank <= 3) ? 'lg' : (($zRank <= 10) ? 'md' : 'sm');
+                                $trophyHtml = renderVhvRankEmblem($zRank, $emblemSize);
+                                $isMe = ($leader['vhv_id'] === $currentVhvId);
                             ?>
-                                <div class="leaderboard-row" style="background: var(--bg-card); box-shadow: var(--neumorph-flat); padding: 14px 14px; border-radius: var(--border-radius); margin-bottom: 12px; position: relative; overflow: hidden;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                        <strong style="font-size: 14.5px; font-weight: 800; color: var(--text-primary);">
-                                            หมู่ที่ <?= htmlspecialchars($vStat['moo']) ?> <?= !empty($vStat['village_name']) ? htmlspecialchars($vStat['village_name']) : '' ?>
+                                <div class="leaderboard-row"
+                                    style="<?= $isMe 
+                                        ? 'background: rgba(13, 110, 253, 0.09) !important; border: 2px solid var(--color-accent); box-shadow: var(--neumorph-inset) !important;' 
+                                        : 'background: var(--bg-card); box-shadow: var(--neumorph-flat);' ?> display: flex; align-items: center; padding: 14px 12px; border-radius: var(--border-radius); position: relative; overflow: hidden;">
+
+                                    <?php if (!empty($leader['is_hl_coach'])): ?>
+                                        <div style="position: absolute; top: 8px; right: 12px; font-size: 10px; font-weight: 800; color: #d97706; background: linear-gradient(135deg, rgba(251, 191, 36, 0.22), rgba(245, 158, 11, 0.12)); border: 1px solid rgba(245, 158, 11, 0.35); padding: 1px 6px; border-radius: 6px; z-index: 3;" title="HL-Coach">
+                                            <span>✨</span> <span>HL-Coach</span>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <!-- Watermark rank number -->
+                                    <div style="position: absolute; right: 70px; bottom: -18px; font-size: 68px; font-weight: 900; color: rgba(13, 44, 84, 0.05); pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif;">
+                                        <?= $zRank ?>
+                                    </div>
+
+                                    <div style="width: 48px; display: flex; align-items: center; justify-content: center; margin-right: 10px; flex-shrink: 0; position: relative; z-index: 2;">
+                                        <?= $trophyHtml ?>
+                                    </div>
+
+                                    <div class="leader-info" style="position: relative; z-index: 2; flex: 1; min-width: 0;">
+                                        <strong style="color: var(--text-primary); font-size: 15px; font-weight: 800; display: block; line-height: 1.3;">
+                                            <?= htmlspecialchars($leader['vhv_name']) ?> <?= $isMe ? '<span style="color: var(--color-accent); font-size: 12px; font-weight: bold;">(คุณ)</span>' : '' ?>
                                         </strong>
-                                        <span style="background: <?= $vBadgeBg ?>; color: <?= $vBadgeColor ?>; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);">
-                                            <?= $vBadge ?>
-                                        </span>
+                                        <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-secondary);">
+                                            หมู่ที่ <?= $leader['vhv_moo'] ?><?= !empty($leader['village_name']) ? ' ' . htmlspecialchars($leader['village_name']) : '' ?>
+                                        </p>
+                                        <?php
+                                        $rowTitle = getPositiveTitle($zRank);
+                                        if ($rowTitle):
+                                        ?>
+                                            <?= renderRankTitleHeader($zRank, true) ?>
+                                        <?php endif; ?>
                                     </div>
-                                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
-                                        <span><?= $vStatusDesc ?></span>
-                                    </div>
-                                    <div style="width: 100%; height: 6px; background: rgba(13, 44, 84, 0.08); border-radius: 3px; overflow: hidden; box-shadow: var(--neumorph-inset);">
-                                        <div style="width: 100%; height: 100%; background: <?= $vBarGradient ?>; border-radius: 3px;"></div>
+
+                                    <div class="leader-score" style="flex-shrink: 0; position: relative; z-index: 2; text-align: right; margin-top: <?= !empty($leader['is_hl_coach']) ? '10px' : '0' ?>; margin-left: 8px;">
+                                        <div style="font-size: 20px; font-weight: 900; color: var(--color-accent); line-height: 1;"><?= (float)$points ?></div>
+                                        <span style="font-size: 11px; color: var(--text-muted); font-weight: 700;">แต้ม</span>
+                                        <?= $shinyBadge ?>
                                     </div>
                                 </div>
-                            <?php endforeach; ?>
+                            <?php
+                                $zRank++;
+                            endforeach;
+                            ?>
                         </div>
-                    </div>
-                <?php else: ?>
-                    <div class="card-dark" style="padding: 30px; text-align: center; color: var(--text-muted); margin-bottom: 20px;">
-                        ไม่พบข้อมูลประชากรเป้าหมายของ รพ.สต. คุณ
-                    </div>
-                <?php endif; ?>
+                    <?php else: ?>
+                        <div style="padding: 30px; text-align: center; color: var(--text-muted); font-size: 13.5px;">
+                            ไม่พบข้อมูล อสม. ในสังกัดหน่วยบริการของคุณ
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
 
             <!-- Sub-Tab 3: Hospital / Zone League Standings -->
@@ -1321,6 +1517,7 @@ try {
                         <div style="display: flex; flex-direction: column; gap: 12px;">
                             <?php
                             $hRank = 1;
+                            $totalHosCount = count($hospitalStats);
                             $topScore = !empty($hospitalStats) ? max(1, $hospitalStats[0]['fair_score']) : 100;
                             
                             foreach ($hospitalStats as $hStat):
@@ -1332,10 +1529,10 @@ try {
                                 // Relative visual bar width based on fair score relative to #1
                                 $barPct = min(100, max(35, round(($hStat['fair_score'] / $topScore) * 100)));
 
-                                // Tier Badge & Colors: 8 Realms & Citadels Theme
+                                // Tier Badge & Colors: Dynamic Kingdom Realms Theme
                                 if ($hRank === 1) {
                                     $realmTheme = 'champion';
-                                    $tierBadge = '👑 ผู้ครอง 8 อาณาจักร';
+                                    $tierBadge = '👑 ผู้ครอง ' . ($totalHosCount > 0 ? $totalHosCount : 8) . ' อาณาจักร';
                                     $barGradient = 'linear-gradient(90deg, #f59e0b, #fbbf24)';
                                 } elseif ($hRank === 2) {
                                     $realmTheme = 'knight';
@@ -1558,13 +1755,40 @@ try {
                             </div>
                         </div>
                     </div>
+
+                    <!-- Category 3: Points Milestone Badges (Every 5 Points) -->
+                    <div style="margin-top: 20px;">
+                        <div style="font-size: 13px; font-weight: 800; color: #059669; display: flex; align-items: center; gap: 6px; margin-bottom: 10px; padding-bottom: 4px; border-bottom: 1px dashed rgba(16, 185, 129, 0.3);">
+                            <span>🎖️</span> <span>ตราสัญลักษณ์ความก้าวหน้าตามแต้มผลงาน (ทุกๆ 5 แต้ม)</span>
+                        </div>
+                        <p style="font-size: 11.5px; color: var(--text-secondary); margin: 0 0 10px 0;">
+                            ทุกๆ แต้มที่ อสม. ลงพื้นที่คัดกรองและติดตามสุขภาพประชาชนจริง (เริ่มต้นตราแรกที่ 6 แต้ม หลังทำแบบประเมินพื้นฐาน 5 แต้ม) จะสะสมเพื่อปลดล็อกตราสัญลักษณ์เกียรติยศทุก 5 แต้ม
+                        </p>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 8px;">
+                            <?php foreach (array_reverse(getPointsMilestonesList()) as $m): ?>
+                                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 8px 10px; box-shadow: var(--neumorph-flat); display: flex; align-items: center; gap: 8px;">
+                                    <span style="background: <?= $m['bg'] ?>; color: <?= $m['color'] ?>; box-shadow: <?= $m['shadow'] ?>; display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; font-size: 14px; flex-shrink: 0;">
+                                        <?= $m['icon'] ?>
+                                    </span>
+                                    <div style="min-width: 0; flex: 1;">
+                                        <div style="font-size: 11.5px; font-weight: 800; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="<?= htmlspecialchars($m['title']) ?>">
+                                            <?= $m['title'] ?>
+                                        </div>
+                                        <div style="font-size: 10.5px; color: var(--text-secondary); font-weight: 700;">
+                                            <?= $m['min'] ?>+ แต้ม
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Sub-Tab 1: Leaderboard List -->
             <div id="content-leaderboard" class="tab-content">
                 <div style="margin-top: 10px;">
-                    <h4 style="color: var(--text-primary); font-size: 16px; margin-bottom: 12px; font-weight: 800;">ผลงานการคัดกรอง 50 อันดับสูงสุด</h4>
+                    <h4 style="color: var(--text-primary); font-size: 16px; margin-bottom: 12px; font-weight: 800;">ผลงานการคัดกรองสูงสุด 50 อันดับ ระดับอำเภอ</h4>
 
                     <?php
                     $rankNum = 1;
@@ -1588,13 +1812,8 @@ try {
                             $badgeText = '🎖️';
                         }
 
-                        // Add special shiny badging based on points milestones
-                        $shinyBadge = '';
-                        if ($points >= 50) {
-                            $shinyBadge = '<span class="badge-icon badge-gold" title="ฮีโร่' . DISTRICT_NAME . '">🔥</span>';
-                        } elseif ($points >= 20) {
-                            $shinyBadge = '<span class="badge-icon badge-silver" title="ผู้พิทักษ์หัวใจ">💖</span>';
-                        }
+                        // Add special shiny badging based on points milestones (5-point intervals)
+                        $shinyBadge = getPointsMilestoneBadge($points);
                     ?>
                         <?php
                         // Display prestige Neumorphic rank emblem based on tier
@@ -2003,6 +2222,20 @@ try {
             const targetBtn = document.getElementById('btn-' + tabId);
             if (targetContent) targetContent.style.display = 'block';
             if (targetBtn) targetBtn.classList.add('active');
+
+            // Switch Hero Card View Dynamically
+            document.querySelectorAll('.hero-subcard').forEach(el => el.style.display = 'none');
+            if (tabId === 'villages') {
+                const zCard = document.getElementById('hero-subcard-zone');
+                if (zCard) zCard.style.display = 'block';
+            } else if (tabId === 'hospitals') {
+                const hCard = document.getElementById('hero-subcard-hospital');
+                if (hCard) hCard.style.display = 'block';
+            } else {
+                // 'leaderboard' or 'badges' -> district view
+                const dCard = document.getElementById('hero-subcard-district');
+                if (dCard) dCard.style.display = 'block';
+            }
         }
 
         // Auto-select main tab on load if specified in URL query
@@ -2088,6 +2321,7 @@ try {
             document.getElementById('myRedemptionsModal').style.display = 'none';
         }
     </script>
+    <script src="../assets/js/app.js?v=<?= time() ?>"></script>
 </body>
 
 </html>

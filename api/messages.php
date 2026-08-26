@@ -16,16 +16,6 @@ if (DemoDataProvider::isDemoMode()) {
     if ($action === 'get_messages') {
         $messages = [
             [
-                'message_id' => 1,
-                'title' => 'ยินดีต้อนรับสู่ NCD Portal ตาลสุม 2026',
-                'message_body' => 'ขอขอบคุณ อสม. และเจ้าหน้าที่ทุกท่านที่ร่วมขับเคลื่อนการคัดกรองสุขภาพเชิงรุก (3อ. 2ส. 1น.) ในพื้นที่อำเภอตาลสุม',
-                'sender_name' => 'ผู้ดูแลระบบ สสอ.ตาลสุม (จำลอง)',
-                'sender_role' => 'super_admin',
-                'priority' => 'normal',
-                'created_at' => date('Y-m-d H:i:s', strtotime('-2 days')),
-                'is_read' => in_array(1, $_SESSION['demo_read_message_ids']) ? 1 : 0
-            ],
-            [
                 'message_id' => 2,
                 'title' => 'แจ้งเตือนรณรงค์ติดตามกลุ่มเสี่ยง DPAC รอบ 2',
                 'message_body' => 'ขอความร่วมมือ อสม. ทุกท่าน ติดตามเยี่ยมบ้านและบันทึกผลการนอนหลับ 1น. ร่วมกับการวัดความดันและน้ำตาลกลุ่มเสี่ยงในความดูแล',
@@ -34,6 +24,16 @@ if (DemoDataProvider::isDemoMode()) {
                 'priority' => 'urgent',
                 'created_at' => date('Y-m-d H:i:s', strtotime('-2 hours')),
                 'is_read' => in_array(2, $_SESSION['demo_read_message_ids']) ? 1 : 0
+            ],
+            [
+                'message_id' => 1,
+                'title' => 'ยินดีต้อนรับสู่ NCD Portal ตาลสุม 2026',
+                'message_body' => 'ขอขอบคุณ อสม. และเจ้าหน้าที่ทุกท่านที่ร่วมขับเคลื่อนการคัดกรองสุขภาพเชิงรุก (3อ. 2ส. 1น.) ในพื้นที่อำเภอตาลสุม',
+                'sender_name' => 'ผู้ดูแลระบบ สสอ.ตาลสุม (จำลอง)',
+                'sender_role' => 'super_admin',
+                'priority' => 'normal',
+                'created_at' => date('Y-m-d H:i:s', strtotime('-2 days')),
+                'is_read' => in_array(1, $_SESSION['demo_read_message_ids']) ? 1 : 0
             ]
         ];
 
@@ -114,7 +114,7 @@ try {
                 OR (m.target_hcode IS NOT NULL AND m.target_hcode = :user_hcode)
                 OR (m.target_sub_district IS NOT NULL AND m.target_sub_district = :user_sub_dist)
             )
-            ORDER BY m.priority = 'emergency' DESC, m.priority = 'urgent' DESC, m.created_at DESC
+            ORDER BY m.created_at DESC, m.message_id DESC
             LIMIT 50
         ";
 

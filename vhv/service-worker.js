@@ -1,6 +1,4 @@
-// vhv/service-worker.js
-
-const CACHE_NAME = 'ncd-tansum-v8_20260725'; // bumped: compact dev modal & auto-dismiss update for mobile PWA
+const CACHE_NAME = 'ncd-tansum-v9_20260826_1027'; // Tuned: 0.5s snappy transition
 const ASSETS_TO_CACHE = [
     'login.php',
     'index.php',
@@ -8,6 +6,7 @@ const ASSETS_TO_CACHE = [
     'screening_form.php?shell=true',
     'dpac_form.php?shell=true',
     'leaderboard.php',
+    'profile.php',
     'manifest.json',
     '../assets/css/style.css',
     '../assets/js/app.js',
@@ -15,19 +14,26 @@ const ASSETS_TO_CACHE = [
     'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Sarabun:wght@300;400;600;800&display=swap'
 ];
 
+// Force update message handler
+self.addEventListener('message', event => {
+    if (event.data && (event.data.action === 'skipWaiting' || event.data.type === 'SKIP_WAITING')) {
+        self.skipWaiting();
+    }
+});
+
 // Install Event - Pre-cache all static assets and dynamic offline shells
 self.addEventListener('install', event => {
+    self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => {
                 console.log('SW: Pre-caching static assets and offline shells...');
                 return cache.addAll(ASSETS_TO_CACHE);
             })
-            .then(() => self.skipWaiting())
     );
 });
 
-// Activate Event - Clear old caches
+// Activate Event - Clear old caches and take immediate control of clients
 self.addEventListener('activate', event => {
     event.waitUntil(
         caches.keys().then(keys => {
@@ -40,11 +46,12 @@ self.addEventListener('activate', event => {
                 })
             );
         }).then(() => {
-            self.clients.claim();
+            return self.clients.claim();
+        }).then(() => {
             // Notify all open tabs that a new version is active
-            self.clients.matchAll({ type: 'window' }).then(clients => {
+            return self.clients.matchAll({ type: 'window' }).then(clients => {
                 clients.forEach(client => {
-                    client.postMessage({ type: 'SW_UPDATED' });
+                    client.postMessage({ type: 'SW_UPDATED', version: CACHE_NAME });
                 });
             });
         })

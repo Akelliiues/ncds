@@ -804,7 +804,7 @@ try {
                     <thead>
                         <tr>
                             <th>ชื่อ - นามสกุล</th>
-                            <th>เบอร์โทรศัพท์ (ID เข้าใช้งาน)</th>
+                            <th>เบอร์โทรศัพท์(ID)</th>
                             <th>หมู่บ้าน</th>
                             <th>รพ.สต. ที่สังกัด</th>
                             <th>วันที่สมัคร</th>
@@ -904,11 +904,11 @@ try {
                     <thead>
                         <tr>
                             <th>ชื่อ - นามสกุล</th>
-                            <th>เบอร์โทรศัพท์ (ID เข้าใช้งาน)</th>
+                            <th>เบอร์โทรศัพท์(ID)</th>
                             <th>หมู่บ้าน</th>
                             <th>รพ.สต. ที่สังกัด</th>
                             <th>สถานะ โค้ช (HL)</th>
-                            <th>สถานะประธาน</th>
+                            <th>สถานะ อสม.</th>
                             <th style="width: 180px; text-align: center;">จัดการ</th>
                         </tr>
                     </thead>
@@ -945,6 +945,11 @@ try {
                                     </td>
                                     <td style="text-align: center;">
                                         <div class="action-btn-container">
+                                            <!-- View As VHV (Impersonate) Button -->
+                                            <a href="switch_to_vhv.php?vhv_id=<?= urlencode($user['vhv_id']) ?>" class="action-btn" title="👁️ สลับดูหน้าจอ อสม. ท่านนี้ (จำลองมุมมอง)" style="border-color: #38bdf8; color: #0284c7; background: rgba(56,189,248,0.14); display: inline-flex; align-items: center; justify-content: center; text-decoration: none;">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                            </a>
+
                                             <!-- Suspend Button -->
                                             <form method="POST" class="action-form" onsubmit="return confirm('ยืนยันที่จะระงับสิทธิ์การใช้งานของ อสม. ท่านนี้? บัญชีจะถูกดึงกลับไปที่ส่วนรออนุมัติ')">
                                                 <input type="hidden" name="target_vhv_id" value="<?= $user['vhv_id'] ?>">
@@ -1038,7 +1043,7 @@ try {
                 </div>
 
                 <div class="modal-form-group">
-                    <label for="modal_vhv_id" class="modal-form-label">เบอร์โทรศัพท์ (ID เข้าใช้งาน)</label>
+                    <label for="modal_vhv_id" class="modal-form-label">เบอร์โทรศัพท์(ID)</label>
                     <input type="text" name="vhv_id" id="modal_vhv_id" class="form-input-text" style="box-shadow: var(--neumorph-inset); text-align: left;" required maxlength="10">
                 </div>
 

@@ -30,10 +30,10 @@ $presetHid = $_GET['hid'] ?? '';
     <meta name="application-name" content="NCDs Portal">
     <meta name="theme-color" content="#0d2c54">
     <title>อสม. ตาลสุม - สแกน QR Code ประจำบ้าน</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/style.css?v=<?= time() ?>">
     <link rel="apple-touch-icon" href="../assets/icon.png">
     <link rel="manifest" href="manifest.json">
-    <script src="../assets/js/app.js"></script>
+    <script src="../assets/js/app.js?v=<?= time() ?>"></script>
     <script src="../assets/js/html5-qrcode.min.js"></script>
     <style>
         /* QR reader container */
