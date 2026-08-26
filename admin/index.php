@@ -1303,14 +1303,13 @@ if (DemoDataProvider::isDemoMode()) {
                 <div id="chart-overall-progress" style="display: flex; justify-content: center;"></div>
             </div>
 
-            <!-- 2. Total vs Screened Pie Chart (Span 4) -->
+            <!-- 2. Total vs Screened Wave Area Chart (Span 4) -->
             <div class="bento-card bento-span-4">
                 <div class="bento-header">
                     <h3 class="bento-title">
-                        <span class="bento-icon-badge" style="background: rgba(34, 197, 94, 0.15); color: #22c55e;">
+                        <span class="bento-icon-badge" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.003 9.003 0 1020.945 13H11V3.055z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                             </svg>
                         </span>
                         <span>สัดส่วนคัดกรอง / เป้าหมาย (แยกรอบ)</span>
@@ -2873,76 +2872,98 @@ if (DemoDataProvider::isDemoMode()) {
                     </div>`;
             }
 
-            // 1. Total Multi-Round Radar Polygon Chart (Pariatur Polygon Style)
-            var r1PctVal = Math.min(100, Math.round(<?= floatval($cR1Pct) ?>));
-            var r2ReachVal = Math.min(100, Math.round(<?= floatval($cR2ReachPct) ?>));
-            var r2CompVal = Math.min(100, Math.round(<?= floatval($cR2CompPct) ?>));
-            var r3CompVal = Math.min(100, Math.round(<?= floatval($cR3CompPct) ?>));
+            // 1. Total Multi-Round Gradient Wave Area Chart (Smooth Purple/Blue Wave Peaks with Floating Milestone Numbers)
+            const totTargetNum = <?= intval($metrics['total_targets']) ?>;
+            const r1CompletedNum = <?= intval($r1All) ?>;
+            const r2AssignedNum = <?= intval($cR2AssignedTotal) ?>;
+            const r2CompletedNum = <?= intval($r2CompAll) ?>;
+            const r3CompletedNum = <?= intval($r3CompAll) ?>;
 
             var optionsTotalPie = {
                 series: [
                     {
-                        name: 'แผนเป้าหมาย (เกณฑ์ 100%)',
-                        data: [100, 100, 100, 100, 100]
+                        name: 'งานที่มอบหมาย / เป้าหมาย',
+                        data: [totTargetNum, r1CompletedNum, r2AssignedNum, r2AssignedNum, Math.max(r3CompletedNum, <?= intval($cR3AssignedTotal) ?>)]
                     },
                     {
-                        name: 'ผลงานจริงสะสม (%)',
-                        data: [100, r1PctVal, r2ReachVal, r2CompVal, r3CompVal]
+                        name: 'ผลงานคัดกรองสำเร็จจริง',
+                        data: [r1CompletedNum, r1CompletedNum, r2CompletedNum, r2CompletedNum, r3CompletedNum]
                     }
                 ],
                 chart: {
-                    type: 'radar',
+                    type: 'area',
                     height: 275,
                     background: 'transparent',
                     toolbar: { show: false },
-                    dropShadow: {
-                        enabled: true,
-                        blur: 4,
-                        left: 1,
-                        top: 1,
-                        opacity: 0.15
-                    }
+                    sparkline: { enabled: false }
                 },
-                colors: ['#3b82f6', '#10b981'],
+                colors: ['#818cf8', '#8b5cf6'],
                 stroke: {
-                    width: [2, 2.5],
-                    curve: 'smooth'
+                    curve: 'smooth',
+                    width: [2, 2.5]
                 },
                 fill: {
-                    opacity: [0.18, 0.55]
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 1,
+                        opacityFrom: 0.65,
+                        opacityTo: 0.08,
+                        stops: [0, 85, 100]
+                    }
                 },
                 markers: {
                     size: [0, 4],
+                    colors: ['#818cf8', '#8b5cf6'],
+                    strokeColors: isDark ? '#1e293b' : '#ffffff',
+                    strokeWidth: 2,
                     hover: { size: 6 }
                 },
-                plotOptions: {
-                    radar: {
-                        size: 85,
-                        polygons: {
-                            strokeColors: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
-                            connectorColors: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
-                            fill: {
-                                colors: isDark ? ['rgba(255, 255, 255, 0.02)', 'transparent'] : ['rgba(0, 0, 0, 0.02)', 'transparent']
+                annotations: {
+                    points: [
+                        {
+                            x: 'คัดกรอง R1',
+                            y: r1CompletedNum,
+                            marker: { size: 5, fillColor: '#8b5cf6', strokeColor: '#ffffff', strokeWidth: 2 },
+                            label: {
+                                borderColor: 'rgba(139, 92, 246, 0.4)',
+                                style: { color: '#ffffff', background: '#8b5cf6', fontSize: '11px', fontWeight: 800, fontFamily: 'Prompt' },
+                                text: Number(r1CompletedNum).toLocaleString() + ' คน (' + '<?= $cR1Pct ?>%' + ')'
+                            }
+                        },
+                        {
+                            x: 'สำเร็จ R2',
+                            y: r2CompletedNum,
+                            marker: { size: 5, fillColor: '#6366f1', strokeColor: '#ffffff', strokeWidth: 2 },
+                            label: {
+                                borderColor: 'rgba(99, 102, 241, 0.4)',
+                                style: { color: '#ffffff', background: '#6366f1', fontSize: '11px', fontWeight: 800, fontFamily: 'Prompt' },
+                                text: Number(r2CompletedNum).toLocaleString() + ' คน'
                             }
                         }
-                    }
+                    ]
                 },
                 xaxis: {
                     categories: ['เป้าหมายรวม', 'คัดกรอง R1', 'มอบหมาย R2', 'สำเร็จ R2', 'สำเร็จ R3+'],
                     labels: {
                         style: {
-                            colors: ['#9ca3af', '#9ca3af', '#9ca3af', '#9ca3af', '#9ca3af'],
-                            fontSize: '11px',
+                            colors: '#9ca3af',
+                            fontSize: '10.5px',
                             fontFamily: 'Prompt',
                             fontWeight: '600'
                         }
-                    }
+                    },
+                    axisBorder: { show: false },
+                    axisTicks: { show: false }
                 },
                 yaxis: {
-                    show: false,
-                    max: 100,
-                    min: 0,
-                    tickAmount: 4
+                    labels: {
+                        style: { colors: '#9ca3af', fontFamily: 'Prompt', fontSize: '10.5px' },
+                        formatter: function(val) { return Number(val).toLocaleString(); }
+                    }
+                },
+                grid: {
+                    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                    strokeDashArray: 4
                 },
                 legend: {
                     show: true,
@@ -2957,8 +2978,8 @@ if (DemoDataProvider::isDemoMode()) {
                 tooltip: {
                     theme: localStorage.getItem('theme') || 'light',
                     y: {
-                        formatter: function(val, opts) {
-                            return val + "%";
+                        formatter: function(val) {
+                            return Number(val).toLocaleString() + " ราย";
                         }
                     }
                 }
