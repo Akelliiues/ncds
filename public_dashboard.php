@@ -1321,17 +1321,10 @@ if (!function_exists('renderKpiGenderSplit')) {
                 </svg>
             </button>
 
-            <?php if (!empty($_SESSION['admin_username'])): ?>
-                <a href="admin/index.php" class="neu-btn-primary" style="background: linear-gradient(135deg, #0ea5e9, #6366f1); color: white; border: none; text-decoration: none;">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                    <span>กลับหน้า Admin</span>
-                </a>
-            <?php else: ?>
-                <a href="index.php" class="neu-btn-primary">
-                    <span>เข้าสู่ระบบ</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-                </a>
-            <?php endif; ?>
+            <a href="index.php" class="neu-btn-primary">
+                <span>เข้าสู่ระบบ</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            </a>
         </div>
     </header>
 
