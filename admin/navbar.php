@@ -350,6 +350,15 @@ try {
                     </svg>
                     แดชบอร์ดสรุปผล
                 </a>
+                <a href="../public_dashboard.php" target="_blank" onclick="showPageLoading('ศูนย์ข้อมูลเปิด (Open Data)', 'กำลังเปิดหน้าศูนย์ข้อมูลสุขภาพประชาชน...', '🌐');" style="color: #0284c7; font-weight: 700;">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                    </svg>
+                    <span>ศูนย์ข้อมูลเปิด (Open Data)</span>
+                    <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="margin-left: auto; opacity: 0.6;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                </a>
                 <a href="leaderboard.php" onclick="showPageLoading('กระดานคะแนน อสม.', 'กำลังจัดอันดับและประมวลผลคะแนน...', '🏆');" class="<?= $current_page == 'leaderboard.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
@@ -478,6 +487,15 @@ try {
                     </svg>
                     สถิติสุขภาพประชาชน
                 </a>
+                <a href="../public_dashboard.php" target="_blank" onclick="showPageLoading('ศูนย์ข้อมูลเปิด (Open Data)', 'กำลังเปิดหน้าศูนย์ข้อมูลสุขภาพประชาชน...', '🌐');" style="color: #0284c7; font-weight: 700;">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                    </svg>
+                    <span>ศูนย์ข้อมูลเปิด (Open Data)</span>
+                    <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="margin-left: auto; opacity: 0.6;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                </a>
                 <a href="analytics.php" onclick="showPageLoading('ระบบวิเคราะห์ข้อมูลเชิงลึก<br><span style=\'font-size: 13.5px; font-weight: 700; color: var(--color-accent); opacity: 0.95;\'> (Advanced Analytics)</span>', 'กำลังคำนวณสถิติสุขภาพ แผนภูมิ และประมวลผลแผนที่ GIS...', '📈');" class="<?= $current_page == 'analytics.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16 8v8m-4-5v5m-4-2v2M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12z" />
@@ -590,6 +608,17 @@ try {
                 </a>
             </div>
         </div>
+
+        <!-- Dedicated Open Data Quick Button -->
+        <a href="../public_dashboard.php" target="_blank" class="nav-dropbtn no-print" style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(99, 102, 241, 0.12)); border: 1px solid rgba(14, 165, 233, 0.35); color: #0284c7 !important; text-decoration: none; padding: 0 12px; font-size: 13px; font-weight: 800; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--neumorph-flat); height: 38px; box-sizing: border-box; margin-right: 4px;" title="เปิดหน้าศูนย์ข้อมูลสุขภาพประชาชน Open Data (แท็บใหม่ ไม่ต้องออกจากระบบ)">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+            </svg>
+            <span>Open Data</span>
+            <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="opacity: 0.7;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+        </a>
 
         <!-- Global Budget Year Selector -->
         <div class="budget-year-selector-nav no-print" style="display: flex; align-items: center; gap: 6px; margin-right: 12px; background: var(--bg-card); padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--neumorph-flat);">
