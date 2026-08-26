@@ -1,189 +1,160 @@
 <?php
-// config/cache.php - High-Performance Multi-Tier Cache Engine (APCu / Redis / Atomic File Cache)
-// 100% Standalone & Zero-Dependency Graceful Fallback
+// config/cache.php - High Performance Multi-tier Cache Manager for NCDs Portal
 
-if (!class_exists('NcdCache')) {
-    class NcdCache
-    {
-        private static $cacheDir = null;
-        private static $redis = null;
-        private static $hasRedis = null;
-        private static $hasApcu = null;
+class NcdCache {
+    private static $memoryStore = [];
+    private static $cacheDir = null;
 
-        /**
-         * Initialize storage paths and detect available in-memory backends
-         */
-        private static function init()
-        {
-            if (self::$cacheDir !== null) return;
-
-            self::$cacheDir = dirname(__DIR__) . '/runtime/cache';
-            if (!is_dir(self::$cacheDir)) {
-                @mkdir(self::$cacheDir, 0777, true);
+    public static function getCacheDir() {
+        if (self::$cacheDir === null) {
+            $dir = __DIR__ . '/../tmp/cache';
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0777, true);
             }
+            self::$cacheDir = $dir;
+        }
+        return self::$cacheDir;
+    }
 
-            // 1. Check APCu
-            self::$hasApcu = function_exists('apcu_fetch') && filter_var(ini_get('apc.enabled'), FILTER_VALIDATE_BOOLEAN);
+    public static function get($key, $default = null) {
+        // 1. Memory store
+        if (array_key_exists($key, self::$memoryStore)) {
+            $item = self::$memoryStore[$key];
+            if ($item['expire'] === 0 || $item['expire'] >= time()) {
+                return $item['data'];
+            }
+            unset(self::$memoryStore[$key]);
+        }
 
-            // 2. Check Redis (Optional external backend)
-            self::$hasRedis = false;
-            if (class_exists('Redis')) {
-                try {
-                    $r = new \Redis();
-                    $host = defined('REDIS_HOST') ? REDIS_HOST : '127.0.0.1';
-                    $port = defined('REDIS_PORT') ? (int)REDIS_PORT : 6379;
-                    if (@$r->connect($host, $port, 0.2)) { // 200ms timeout
-                        self::$redis = $r;
-                        self::$hasRedis = true;
+        // 2. APCu if available
+        if (function_exists('apcu_fetch')) {
+            $success = false;
+            $val = apcu_fetch('ncd_' . $key, $success);
+            if ($success) {
+                self::$memoryStore[$key] = ['data' => $val, 'expire' => time() + 60];
+                return $val;
+            }
+        }
+
+        // 3. File-based cache
+        $file = self::getCacheDir() . '/' . md5($key) . '.cache';
+        if (file_exists($file)) {
+            $content = @file_get_contents($file);
+            if ($content !== false) {
+                $payload = @unserialize($content);
+                if (is_array($payload) && isset($payload['expire']) && array_key_exists('data', $payload)) {
+                    if ($payload['expire'] === 0 || $payload['expire'] >= time()) {
+                        self::$memoryStore[$key] = $payload;
+                        return $payload['data'];
                     }
-                } catch (\Throwable $e) {
-                    self::$hasRedis = false;
+                    @unlink($file);
                 }
             }
         }
 
-        /**
-         * Get cached value or compute and store it atomically
-         * 
-         * @param string $key Cache key
-         * @param int $ttlSeconds Time to live in seconds (default 300 = 5 minutes)
-         * @param callable $callback Generator function
-         * @return mixed Cached or computed data
-         */
-        public static function remember($key, $ttlSeconds, $callback)
-        {
-            self::init();
+        return $default;
+    }
 
-            $cached = self::get($key);
-            if ($cached !== null) {
-                return $cached;
-            }
-
-            $data = call_user_func($callback);
-            if ($data !== null) {
-                self::set($key, $data, $ttlSeconds);
-            }
-            return $data;
-        }
-
-        /**
-         * Retrieve an item from cache
-         */
-        public static function get($key)
-        {
-            self::init();
-            $safeKey = 'ncd_' . preg_replace('/[^a-zA-Z0-9_\-]/', '_', $key);
-
-            // 1. Try APCu
-            if (self::$hasApcu) {
-                $success = false;
-                $val = apcu_fetch($safeKey, $success);
-                if ($success) return $val;
-            }
-
-            // 2. Try Redis
-            if (self::$hasRedis && self::$redis) {
-                try {
-                    $raw = self::$redis->get($safeKey);
-                    if ($raw !== false && $raw !== null) {
-                        return json_decode($raw, true);
-                    }
-                } catch (\Throwable $e) {}
-            }
-
-            // 3. Try Atomic File Cache
-            $filePath = self::$cacheDir . '/' . md5($safeKey) . '.cache';
-            if (file_exists($filePath)) {
-                $content = @file_get_contents($filePath);
-                if ($content) {
-                    $payload = @json_decode($content, true);
-                    if (is_array($payload) && isset($payload['exp']) && isset($payload['data'])) {
-                        if ($payload['exp'] > time()) {
-                            return $payload['data'];
-                        } else {
-                            @unlink($filePath); // Expired
-                        }
-                    }
+    public static function getMetadata($key) {
+        $file = self::getCacheDir() . '/' . md5($key) . '.cache';
+        if (file_exists($file)) {
+            $content = @file_get_contents($file);
+            if ($content !== false) {
+                $payload = @unserialize($content);
+                if (is_array($payload) && isset($payload['expire'])) {
+                    return [
+                        'cached' => true,
+                        'created_at' => $payload['created_at'] ?? filemtime($file),
+                        'expire' => $payload['expire']
+                    ];
                 }
             }
+        }
+        return ['cached' => false, 'created_at' => null, 'expire' => null];
+    }
 
-            return null;
+    public static function set($key, $value, $ttl = 300) {
+        $expire = $ttl > 0 ? time() + $ttl : 0;
+        $now = time();
+        self::$memoryStore[$key] = ['data' => $value, 'expire' => $expire, 'created_at' => $now];
+
+        if (function_exists('apcu_store')) {
+            apcu_store('ncd_' . $key, $value, $ttl);
         }
 
-        /**
-         * Store an item in the cache
-         */
-        public static function set($key, $data, $ttlSeconds = 300)
-        {
-            self::init();
-            $safeKey = 'ncd_' . preg_replace('/[^a-zA-Z0-9_\-]/', '_', $key);
-            $ttl = max(1, (int)$ttlSeconds);
+        $file = self::getCacheDir() . '/' . md5($key) . '.cache';
+        $payload = serialize(['data' => $value, 'expire' => $expire, 'created_at' => $now]);
+        @file_put_contents($file, $payload, LOCK_EX);
+        return true;
+    }
 
-            // 1. Save to APCu
-            if (self::$hasApcu) {
-                @apcu_store($safeKey, $data, $ttl);
-            }
-
-            // 2. Save to Redis
-            if (self::$hasRedis && self::$redis) {
-                try {
-                    self::$redis->setex($safeKey, $ttl, json_encode($data, JSON_UNESCAPED_UNICODE));
-                } catch (\Throwable $e) {}
-            }
-
-            // 3. Save to Atomic File Cache
-            $filePath = self::$cacheDir . '/' . md5($safeKey) . '.cache';
-            $payload = [
-                'exp' => time() + $ttl,
-                'created_at' => time(),
-                'key' => $key,
-                'data' => $data
-            ];
-            $tempFile = $filePath . '.' . uniqid('tmp', true);
-            if (@file_put_contents($tempFile, json_encode($payload, JSON_UNESCAPED_UNICODE)) !== false) {
-                @rename($tempFile, $filePath);
-            }
-            return true;
+    public static function forget($key) {
+        unset(self::$memoryStore[$key]);
+        if (function_exists('apcu_delete')) {
+            apcu_delete('ncd_' . $key);
         }
-
-        /**
-         * Invalidate a single key
-         */
-        public static function forget($key)
-        {
-            self::init();
-            $safeKey = 'ncd_' . preg_replace('/[^a-zA-Z0-9_\-]/', '_', $key);
-
-            if (self::$hasApcu) @apcu_delete($safeKey);
-            if (self::$hasRedis && self::$redis) {
-                try { self::$redis->del($safeKey); } catch (\Throwable $e) {}
-            }
-
-            $filePath = self::$cacheDir . '/' . md5($safeKey) . '.cache';
-            if (file_exists($filePath)) @unlink($filePath);
-            return true;
+        $file = self::getCacheDir() . '/' . md5($key) . '.cache';
+        if (file_exists($file)) {
+            @unlink($file);
         }
+        return true;
+    }
 
-        /**
-         * Flush all cached items
-         */
-        public static function flush()
-        {
-            self::init();
-            if (self::$hasApcu) @apcu_clear_cache();
-            if (self::$hasRedis && self::$redis) {
-                try { self::$redis->flushDB(); } catch (\Throwable $e) {}
-            }
-
-            if (is_dir(self::$cacheDir)) {
-                $files = glob(self::$cacheDir . '/*.cache*');
-                if (is_array($files)) {
-                    foreach ($files as $f) {
-                        @unlink($f);
-                    }
-                }
-            }
-            return true;
+    public static function flush() {
+        self::$memoryStore = [];
+        if (function_exists('apcu_clear_cache')) {
+            apcu_clear_cache();
         }
+        $dir = self::getCacheDir();
+        $files = @glob($dir . '/*.cache');
+        if ($files) {
+            foreach ($files as $f) {
+                @unlink($f);
+            }
+        }
+        return true;
+    }
+
+    public static function remember($key, $ttl, $callback) {
+        $val = self::get($key, null);
+        if ($val !== null) {
+            return $val;
+        }
+        $val = $callback();
+        self::set($key, $val, $ttl);
+        return $val;
+    }
+}
+
+if (!function_exists('remember_cache')) {
+    function remember_cache($key, $callback, $ttl = 300, $forceRefresh = false) {
+        if ($forceRefresh) {
+            NcdCache::forget($key);
+        }
+        return NcdCache::remember($key, $ttl, $callback);
+    }
+}
+
+if (!function_exists('get_cache')) {
+    function get_cache($key, $default = null) {
+        return NcdCache::get($key, $default);
+    }
+}
+
+if (!function_exists('set_cache')) {
+    function set_cache($key, $value, $ttl = 300) {
+        return NcdCache::set($key, $value, $ttl);
+    }
+}
+
+if (!function_exists('forget_cache')) {
+    function forget_cache($key) {
+        return NcdCache::forget($key);
+    }
+}
+
+if (!function_exists('get_cache_meta')) {
+    function get_cache_meta($key) {
+        return NcdCache::getMetadata($key);
     }
 }

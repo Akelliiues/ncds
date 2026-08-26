@@ -9,6 +9,7 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/cache.php';
+require_once __DIR__ . '/../config/cache.php';
 
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 $isSandboxVal = isSandboxMode($admin_hoscode ?: null) ? 1 : 0;
@@ -254,12 +255,18 @@ if (DemoDataProvider::isDemoMode()) {
     $dateFrom = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFromInput) ? $dateFromInput : '';
     $dateTo = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateToInput) ? $dateToInput : '';
 
-    $analyticsCacheKey = "admin_analytics_v2_by{$selectedBudgetYear}_u" . ($selectedHoscode ?: 'all') . "_sb{$isSandboxVal}_r{$selectedRound}_f{$dateFrom}_t{$dateTo}";
+    $forceRefresh = isset($_GET['refresh']) && $_GET['refresh'] === '1';
+    $analyticsCacheKey = "admin_analytics_v4_by{$selectedBudgetYear}_u" . ($selectedHoscode ?: 'all') . "_sb{$isSandboxVal}_r{$selectedRound}_f{$dateFrom}_t{$dateTo}";
 
-    $analyticsData = NcdCache::remember($analyticsCacheKey, 60, function() use (
+    $cacheMeta = get_cache_meta($analyticsCacheKey);
+    $isDataFromCache = !empty($cacheMeta['cached']) && !$forceRefresh;
+    $cacheUpdatedTime = !empty($cacheMeta['created_at']) ? date('H:i:s น.', $cacheMeta['created_at']) : date('H:i:s น.');
+
+    $analyticsData = remember_cache($analyticsCacheKey, function() use (
         $pdo, $isSandboxVal, $selectedBudgetYear, $selectedRound, $dateFrom, $dateTo,
         $hoscodes, $inPlaceholders, $hc_names, $admin_hoscode
     ) {
+        global $hoscode_villages;
         // 1. Before-After Query for DPAC progress tracking
         $dpacBeforeAfterData = [];
     try {
@@ -678,14 +685,37 @@ $historyStmt = $pdo->prepare("
 $historyStmt->execute($hoscodes);
 $historyRecords = $historyStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Unique targets with coordinates for the map
+// Unique targets with coordinates for the map (Optimized: Screened / DPAC participants within bounding box)
 $mapTargetsStmt = $pdo->prepare("
-    SELECT cid, first_name, last_name, house_no, moo, hoscode, latitude, longitude
-    FROM target_population
-    WHERE latitude IS NOT NULL AND longitude IS NOT NULL AND hoscode IN ($inPlaceholders)
+    SELECT DISTINCT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode, p.latitude, p.longitude
+    FROM target_population p
+    WHERE p.latitude IS NOT NULL 
+      AND p.longitude IS NOT NULL 
+      AND p.latitude BETWEEN 15.1 AND 15.6 
+      AND p.longitude BETWEEN 104.8 AND 105.3
+      AND p.hoscode IN ($inPlaceholders)
+      AND (
+          EXISTS (SELECT 1 FROM task_assignments ta WHERE ta.target_cid = p.cid AND ta.budget_year = ? AND ta.is_sandbox = ?)
+          OR EXISTS (SELECT 1 FROM dpac_enrollments de WHERE de.cid = p.cid AND de.budget_year = ?)
+      )
+    LIMIT 2000
 ");
-$mapTargetsStmt->execute($hoscodes);
+$mapTargetsStmt->execute(array_merge($hoscodes, [$selectedBudgetYear, $isSandboxVal, $selectedBudgetYear]));
 $mapTargets = $mapTargetsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// If no specific enrolled/screened targets with geo found, fallback to targets with coordinates
+if (empty($mapTargets)) {
+    $mapTargetsFallbackStmt = $pdo->prepare("
+        SELECT cid, first_name, last_name, house_no, moo, hoscode, latitude, longitude
+        FROM target_population
+        WHERE latitude IS NOT NULL AND longitude IS NOT NULL 
+          AND latitude BETWEEN 15.1 AND 15.6 AND longitude BETWEEN 104.8 AND 105.3
+          AND hoscode IN ($inPlaceholders)
+        LIMIT 1000
+    ");
+    $mapTargetsFallbackStmt->execute($hoscodes);
+    $mapTargets = $mapTargetsFallbackStmt->fetchAll(PDO::FETCH_ASSOC);
+}
 
 // Map centroid calculation (filtered to Tansum District boundaries to ignore incorrect coordinate entries)
 $latSum = 0;
@@ -1330,7 +1360,7 @@ try {
         'ncdImprovedDtxCount', 'totalAnalyzed', 'improvedBpCount', 'improvedFbsCount', 'totalHtCases',
         'totalDmCases'
     );
-});
+}, 300, $forceRefresh);
 
 if (is_array($analyticsData)) {
     extract($analyticsData);
@@ -1472,28 +1502,7 @@ if (is_array($analyticsData)) {
     </style>
 </head>
 
-<body class="admin-body dashboard-page" data-preserve-loader="true">
-    <!-- Dedicated Analytics Preloader (Active while preparing charts & GIS maps) -->
-    <div id="analytics-preloader" class="ncd-page-overlay active" style="display: flex; position: fixed; inset: 0; z-index: 999999; background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); align-items: center; justify-content: center; transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.45s;">
-        <div class="loading-modal-card" style="box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
-            <div class="loading-spinner-ring" style="width: 64px; height: 64px;">
-                <span class="loading-pulse-icon" style="font-size: 28px;">📈</span>
-            </div>
-            <div style="text-align: center;">
-                <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin-bottom: 6px; line-height: 1.4;">
-                    ระบบวิเคราะห์ข้อมูลเชิงลึก<br>
-                    <span style="font-size: 13.5px; font-weight: 700; color: var(--color-accent); opacity: 0.95;">(Advanced Analytics)</span>
-                </div>
-                <div style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;">
-                    กำลังคำนวณสถิติสุขภาพ แผนภูมิ และประมวลผลแผนที่ GIS...
-                </div>
-            </div>
-            <div class="loading-progress-track" style="width: 100%; height: 5px;">
-                <div class="loading-progress-bar"></div>
-            </div>
-        </div>
-    </div>
-
+<body class="admin-body dashboard-page">
     <?php include 'navbar.php'; ?>
 
     <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
@@ -1526,7 +1535,21 @@ if (is_array($analyticsData)) {
                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
                     <span>ตัวกรองมิติข้อมูลการวิเคราะห์ (Analytics Filters)</span>
                 </div>
-                <div style="font-size: 12.5px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+                <div style="font-size: 12.5px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <?php if (!DemoDataProvider::isDemoMode()): ?>
+                        <?php if (!empty($isDataFromCache)): ?>
+                            <span style="background: #e8f5e9; color: #2e7d32; font-weight: 700; padding: 4px 9px; border-radius: 8px; border: 1px solid #c8e6c9; display: inline-flex; align-items: center; gap: 4px;" title="โหลดรวดเร็วจาก Server Cache (5 นาที)">
+                                ⚡ แคชด่วน (<?= htmlspecialchars($cacheUpdatedTime ?? '') ?>)
+                            </span>
+                        <?php else: ?>
+                            <span style="background: #e1f5fe; color: #0288d1; font-weight: 700; padding: 4px 9px; border-radius: 8px; border: 1px solid #b3e5fc; display: inline-flex; align-items: center; gap: 4px;">
+                                🔄 ข้อมูลสดล่าสุด
+                            </span>
+                        <?php endif; ?>
+                        <a href="?<?= http_build_query(array_merge($_GET, ['refresh' => '1'])) ?>" class="btn-primary" style="padding: 4px 10px; font-size: 12px; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" title="ล้างแคชและดึงข้อมูลสดจากฐานข้อมูล">
+                            <i class="bi bi-arrow-clockwise"></i> รีเฟรชสด
+                        </a>
+                    <?php endif; ?>
                     <span>ปีงบประมาณที่เลือก:</span>
                     <span style="background: rgba(13, 44, 84, 0.08); color: var(--color-primary); font-weight: 800; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--border-color);">
                         พ.ศ. <?= (int)$selectedBudgetYear + 543 ?> (<?= (int)$selectedBudgetYear ?>)
@@ -2681,15 +2704,19 @@ if (is_array($analyticsData)) {
         // Create feature group to track bounds
         const markerGroup = L.featureGroup();
 
-        // Create circles
+        // Create circles in batch for maximum performance
         targets.forEach(t => {
-            const marker = L.circleMarker([t.latitude, t.longitude], {
+            const lat = parseFloat(t.latitude);
+            const lng = parseFloat(t.longitude);
+            if (isNaN(lat) || isNaN(lng)) return;
+
+            const marker = L.circleMarker([lat, lng], {
                 radius: 6,
                 fillColor: colors['UNSCREENED'],
                 color: '#1e293b',
                 weight: 1.5,
                 fillOpacity: 0.85
-            }).addTo(map);
+            });
 
             marker.bindPopup(`
                 <div style="font-family: var(--font-sans); color: #1e293b; font-size: 13px;">
@@ -2701,13 +2728,14 @@ if (is_array($analyticsData)) {
 
             markers[t.cid] = marker;
 
-            // Check if coordinates fall within Tansum, Ubon boundaries to ignore incorrect marks
-            const lat = parseFloat(t.latitude);
-            const lng = parseFloat(t.longitude);
+            // Add marker to layer group
             if (lat >= 15.1 && lat <= 15.6 && lng >= 104.8 && lng <= 105.3) {
                 markerGroup.addLayer(marker);
             }
         });
+
+        // Add whole group to map in single DOM transaction
+        markerGroup.addTo(map);
 
         // Fit map bounds automatically if there are valid markers
         if (markerGroup.getLayers().length > 0) {
@@ -2803,9 +2831,10 @@ if (is_array($analyticsData)) {
             }
         }
 
-        // Load first quarter initially
+        // Load map and initialize charts on DOMContentLoaded
         document.addEventListener("DOMContentLoaded", function() {
             updateMapForQuarter(0);
+            initAnalyticsCharts();
         });
 
         // ── Charts Render ──────────────────────────────────────────
@@ -2883,8 +2912,32 @@ if (is_array($analyticsData)) {
             }
         };
 
-        var chartOutcome = new ApexCharts(document.querySelector("#chart-outcome-comparison"), optionsOutcome);
-        chartOutcome.render();
+        // Progressive chart initialization function
+        function initAnalyticsCharts() {
+            var chartOutcome = new ApexCharts(document.querySelector("#chart-outcome-comparison"), optionsOutcome);
+            chartOutcome.render();
+
+            setTimeout(function() {
+                var chartTransition = new ApexCharts(document.querySelector("#chart-risk-transition"), optionsTransition);
+                chartTransition.render();
+            }, 50);
+
+            setTimeout(function() {
+                var chartForecast = new ApexCharts(document.querySelector("#chart-forecast"), optionsForecast);
+                chartForecast.render();
+            }, 100);
+
+            setTimeout(function() {
+                var chartPyramid = new ApexCharts(document.querySelector("#chart-age-gender-pyramid"), optionsPyramid);
+                chartPyramid.render();
+            }, 150);
+
+            setTimeout(function() {
+                var chartRetention = new ApexCharts(document.querySelector("#chart-dpac-retention"), optionsRetention);
+                chartRetention.render();
+                dismissAnalyticsPreloader();
+            }, 200);
+        }
 
         // Chart 2: Risk Transitions
         var optionsTransition = {
@@ -2942,8 +2995,7 @@ if (is_array($analyticsData)) {
             }
         };
 
-        var chartTransition = new ApexCharts(document.querySelector("#chart-risk-transition"), optionsTransition);
-        chartTransition.render();
+        // Rendered progressively in initAnalyticsCharts()
 
         // ------------------ FORECAST CHART ------------------
         const forecastData = forecastTrend(trendRawData, 3);
@@ -3009,8 +3061,7 @@ if (is_array($analyticsData)) {
             }
         };
 
-        var chartForecast = new ApexCharts(document.querySelector("#chart-forecast"), optionsForecast);
-        chartForecast.render();
+        // Rendered progressively in initAnalyticsCharts()
 
         // Update insight text dynamically based on the slope of the forecast
         const insightElement = document.getElementById('forecast-insight-text');
@@ -3073,8 +3124,7 @@ if (is_array($analyticsData)) {
             },
             legend: { labels: { colors: '#9ca3af' } }
         };
-        var chartPyramid = new ApexCharts(document.querySelector("#chart-age-gender-pyramid"), optionsPyramid);
-        chartPyramid.render();
+        // Rendered progressively in initAnalyticsCharts()
 
         // ------------------ DPAC RETENTION FUNNEL CHART ------------------
         var optionsRetention = {
@@ -3110,8 +3160,7 @@ if (is_array($analyticsData)) {
             yaxis: { labels: { style: { colors: '#9ca3af' } } },
             legend: { show: false }
         };
-        var chartRetention = new ApexCharts(document.querySelector("#chart-dpac-retention"), optionsRetention);
-        chartRetention.render();
+        // Rendered progressively in initAnalyticsCharts()
 
         // CSV R2R Export function
         function exportR2RCSV() {
@@ -3161,27 +3210,19 @@ if (is_array($analyticsData)) {
 
         // Auto-dismiss analytics preloader smoothly once all charts, Leaflet GIS & DOM assets are 100% rendered
         function dismissAnalyticsPreloader() {
-            var ap = document.getElementById('analytics-preloader');
-            if (ap) {
-                ap.style.transition = 'opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.45s';
-                ap.style.opacity = '0';
-                ap.style.visibility = 'hidden';
-                setTimeout(function() {
-                    if (ap && ap.parentNode) ap.parentNode.removeChild(ap);
-                }, 500);
-            }
-            if (window.hidePageLoading) {
+            if (window.dismissAllLoaders) {
+                window.dismissAllLoaders();
+            } else if (window.hidePageLoading) {
                 window.hidePageLoading();
             }
         }
 
-        // Trigger dismissal ONLY when full page (including Leaflet tiles & Chart libraries) is 100% loaded
         window.addEventListener('load', function() {
-            setTimeout(dismissAnalyticsPreloader, 300);
+            dismissAnalyticsPreloader();
         });
 
-        // Fallback safety dismissal (5s max)
-        setTimeout(dismissAnalyticsPreloader, 5000);
+        // Fallback safety dismissal
+        setTimeout(dismissAnalyticsPreloader, 1000);
     </script>
 </body>
 
