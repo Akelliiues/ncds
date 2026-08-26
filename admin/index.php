@@ -954,42 +954,42 @@ if (DemoDataProvider::isDemoMode()) {
         .admin-bento-grid {
             display: grid;
             grid-template-columns: repeat(12, 1fr);
-            gap: 14px;
-            margin-bottom: 14px;
+            gap: 10px;
+            margin-bottom: 10px;
         }
         .bento-card {
             background: var(--bg-card, #ffffff);
             border: 1px solid var(--border-color, #e5e7eb);
-            border-radius: 14px;
-            padding: 16px 18px;
-            box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.04);
+            border-radius: 12px;
+            padding: 12px 14px;
+            box-shadow: 0 2px 10px -2px rgba(0, 0, 0, 0.04);
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: flex-start;
             transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         }
         .bento-card:hover {
             border-color: rgba(99, 102, 241, 0.25);
-            box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.08);
         }
         .bento-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid var(--border-color, #e5e7eb);
-            padding-bottom: 10px;
-            margin-bottom: 12px;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 6px;
         }
         .bento-title {
             color: var(--color-accent, #1e293b);
             margin: 0;
-            font-size: 14.5px;
+            font-size: 13.5px;
             font-weight: 700;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 7px;
         }
         .bento-icon-badge {
             display: inline-flex;
@@ -1344,78 +1344,78 @@ if (DemoDataProvider::isDemoMode()) {
                     $cR3CompPct = $cR3AssignedTotal > 0 ? round(($r3CompAll / $cR3AssignedTotal) * 100, 1) : 0;
                     ?>
 
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
                         <!-- 1. Round 1 Coverage -->
-                        <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 10px; padding: 7px 10px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                <div style="display: flex; align-items: center; gap: 6px;">
-                                    <span style="width: 17px; height: 17px; border-radius: 4px; background: #10b981; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900;">1</span>
-                                    <span style="font-size: 12px; font-weight: 700; color: var(--text-primary);">ครอบคลุมรอบ 1</span>
+                        <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 8px; padding: 5px 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                                <div style="display: flex; align-items: center; gap: 5px;">
+                                    <span style="width: 16px; height: 16px; border-radius: 4px; background: #10b981; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 9.5px; font-weight: 900;">1</span>
+                                    <span style="font-size: 11.5px; font-weight: 700; color: var(--text-primary);">ครอบคลุมรอบ 1</span>
                                 </div>
                                 <div style="display: flex; align-items: baseline; gap: 3px;">
-                                    <span style="font-size: 13px; font-weight: 900; color: #10b981;"><?= $cR1Pct ?>%</span>
-                                    <span style="font-size: 10px; color: var(--text-muted);">(<?= number_format($r1All) ?>/<?= number_format($totAll) ?>)</span>
+                                    <span style="font-size: 12.5px; font-weight: 900; color: #10b981;"><?= $cR1Pct ?>%</span>
+                                    <span style="font-size: 9.5px; color: var(--text-muted);">(<?= number_format($r1All) ?>/<?= number_format($totAll) ?>)</span>
                                 </div>
                             </div>
-                            <div style="height: 5px; background: var(--bg-darker); border-radius: 9999px; overflow: hidden;">
+                            <div style="height: 4px; background: var(--bg-darker); border-radius: 9999px; overflow: hidden;">
                                 <div style="height: 100%; width: <?= min(100, $cR1Pct) ?>%; background: linear-gradient(90deg, #10b981, #34d399); border-radius: 9999px;"></div>
                             </div>
                         </div>
 
                         <!-- 2. Round 2 Assigned -->
-                        <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 10px; padding: 7px 10px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                <div style="display: flex; align-items: center; gap: 6px;">
-                                    <span style="width: 17px; height: 17px; border-radius: 4px; background: #0ea5e9; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900;">2</span>
-                                    <span style="font-size: 12px; font-weight: 700; color: var(--text-primary);">มอบหมายติดตาม R2</span>
+                        <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 8px; padding: 5px 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                                <div style="display: flex; align-items: center; gap: 5px;">
+                                    <span style="width: 16px; height: 16px; border-radius: 4px; background: #0ea5e9; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 9.5px; font-weight: 900;">2</span>
+                                    <span style="font-size: 11.5px; font-weight: 700; color: var(--text-primary);">มอบหมายติดตาม R2</span>
                                 </div>
                                 <div style="display: flex; align-items: baseline; gap: 3px;">
-                                    <span style="font-size: 13px; font-weight: 900; color: #0ea5e9;"><?= $cR2ReachPct ?>%</span>
-                                    <span style="font-size: 10px; color: var(--text-muted);">(<?= number_format($cR2AssignedTotal) ?>/<?= number_format($r1All) ?>)</span>
+                                    <span style="font-size: 12.5px; font-weight: 900; color: #0ea5e9;"><?= $cR2ReachPct ?>%</span>
+                                    <span style="font-size: 9.5px; color: var(--text-muted);">(<?= number_format($cR2AssignedTotal) ?>/<?= number_format($r1All) ?>)</span>
                                 </div>
                             </div>
-                            <div style="height: 5px; background: var(--bg-darker); border-radius: 9999px; overflow: hidden;">
+                            <div style="height: 4px; background: var(--bg-darker); border-radius: 9999px; overflow: hidden;">
                                 <div style="height: 100%; width: <?= min(100, $cR2ReachPct) ?>%; background: linear-gradient(90deg, #0ea5e9, #38bdf8); border-radius: 9999px;"></div>
                             </div>
                         </div>
 
                         <!-- 3. Round 2 Completed -->
-                        <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 10px; padding: 7px 10px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                <div style="display: flex; align-items: center; gap: 6px;">
-                                    <span style="width: 17px; height: 17px; border-radius: 4px; background: #3b82f6; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900;">✓</span>
-                                    <span style="font-size: 12px; font-weight: 700; color: var(--text-primary);">ติดตามสำเร็จรอบ 2</span>
+                        <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 8px; padding: 5px 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                                <div style="display: flex; align-items: center; gap: 5px;">
+                                    <span style="width: 16px; height: 16px; border-radius: 4px; background: #3b82f6; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 9.5px; font-weight: 900;">✓</span>
+                                    <span style="font-size: 11.5px; font-weight: 700; color: var(--text-primary);">ติดตามสำเร็จรอบ 2</span>
                                 </div>
                                 <div style="display: flex; align-items: baseline; gap: 3px;">
-                                    <span style="font-size: 13px; font-weight: 900; color: #3b82f6;"><?= $cR2CompPct ?>%</span>
-                                    <span style="font-size: 10px; color: var(--text-muted);">(<?= number_format($r2CompAll) ?>/<?= number_format(max(1, $cR2AssignedTotal)) ?>)</span>
+                                    <span style="font-size: 12.5px; font-weight: 900; color: #3b82f6;"><?= $cR2CompPct ?>%</span>
+                                    <span style="font-size: 9.5px; color: var(--text-muted);">(<?= number_format($r2CompAll) ?>/<?= number_format(max(1, $cR2AssignedTotal)) ?>)</span>
                                 </div>
                             </div>
-                            <div style="height: 5px; background: var(--bg-darker); border-radius: 9999px; overflow: hidden;">
+                            <div style="height: 4px; background: var(--bg-darker); border-radius: 9999px; overflow: hidden;">
                                 <div style="height: 100%; width: <?= min(100, $cR2CompPct) ?>%; background: linear-gradient(90deg, #3b82f6, #60a5fa); border-radius: 9999px;"></div>
                             </div>
                         </div>
 
                         <!-- 4. Round 3+ Completed -->
-                        <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 10px; padding: 7px 10px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                <div style="display: flex; align-items: center; gap: 6px;">
-                                    <span style="width: 17px; height: 17px; border-radius: 4px; background: #8b5cf6; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900;">3+</span>
-                                    <span style="font-size: 12px; font-weight: 700; color: var(--text-primary);">ติดตามสำเร็จรอบ 3+</span>
+                        <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 8px; padding: 5px 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                                <div style="display: flex; align-items: center; gap: 5px;">
+                                    <span style="width: 16px; height: 16px; border-radius: 4px; background: #8b5cf6; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 9.5px; font-weight: 900;">3+</span>
+                                    <span style="font-size: 11.5px; font-weight: 700; color: var(--text-primary);">ติดตามสำเร็จรอบ 3+</span>
                                 </div>
                                 <div style="display: flex; align-items: baseline; gap: 3px;">
-                                    <span style="font-size: 13px; font-weight: 900; color: #8b5cf6;"><?= $cR3CompPct ?>%</span>
-                                    <span style="font-size: 10px; color: var(--text-muted);">(<?= number_format($r3CompAll) ?>/<?= number_format(max(1, $cR3AssignedTotal)) ?>)</span>
+                                    <span style="font-size: 12.5px; font-weight: 900; color: #8b5cf6;"><?= $cR3CompPct ?>%</span>
+                                    <span style="font-size: 9.5px; color: var(--text-muted);">(<?= number_format($r3CompAll) ?>/<?= number_format(max(1, $cR3AssignedTotal)) ?>)</span>
                                 </div>
                             </div>
-                            <div style="height: 5px; background: var(--bg-darker); border-radius: 9999px; overflow: hidden;">
+                            <div style="height: 4px; background: var(--bg-darker); border-radius: 9999px; overflow: hidden;">
                                 <div style="height: 100%; width: <?= min(100, $cR3CompPct) ?>%; background: linear-gradient(90deg, #8b5cf6, #a78bfa); border-radius: 9999px;"></div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-secondary);">
+                <div style="margin-top: 5px; padding-top: 4px; border-top: 1px dashed var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; color: var(--text-secondary);">
                     <span>⚡ อัตราส่งมอบงานติดตามต่อ:</span>
                     <strong style="color: #2563eb;"><?= $cR2ReachPct ?>%</strong>
                 </div>
@@ -1961,7 +1961,7 @@ if (DemoDataProvider::isDemoMode()) {
                     series: initCovData.series,
                     chart: {
                         type: 'bar',
-                        height: 310,
+                        height: 240,
                         background: 'transparent',
                         toolbar: {
                             show: false
@@ -2144,7 +2144,7 @@ if (DemoDataProvider::isDemoMode()) {
                     series: initRiskSeries,
                     chart: {
                         type: 'bar',
-                        height: 310,
+                        height: 240,
                         stacked: true,
                         stackType: '100%',
                         background: 'transparent',
@@ -2158,6 +2158,8 @@ if (DemoDataProvider::isDemoMode()) {
                     colors: ['#22c55e', '#f59e0b', '#ef4444', '#4b5563'],
                     legend: {
                         position: 'bottom',
+                        offsetY: 0,
+                        fontSize: '10.5px',
                         labels: {
                             colors: '#9ca3af'
                         }
@@ -2171,16 +2173,21 @@ if (DemoDataProvider::isDemoMode()) {
                         categories: riskCategories,
                         labels: {
                             style: {
-                                colors: '#9ca3af'
+                                colors: '#9ca3af',
+                                fontSize: '10.5px'
                             }
                         }
                     },
                     yaxis: {
                         labels: {
                             style: {
-                                colors: '#9ca3af'
+                                colors: '#9ca3af',
+                                fontSize: '10.5px'
                             }
                         }
+                    },
+                    grid: {
+                        padding: { top: -10, bottom: -5 }
                     },
                     tooltip: {
                         theme: localStorage.getItem('theme') || 'light',
@@ -2221,16 +2228,16 @@ if (DemoDataProvider::isDemoMode()) {
                     }],
                     chart: {
                         type: 'bar',
-                        height: 275,
+                        height: 215,
                         background: 'transparent',
                         toolbar: { show: false }
                     },
                     plotOptions: {
                         bar: {
                             horizontal: true,
-                            borderRadius: 7,
+                            borderRadius: 6,
                             borderRadiusApplication: 'end',
-                            barHeight: '56%',
+                            barHeight: '62%',
                             distributed: true,
                             dataLabels: {
                                 position: 'right'
@@ -2248,7 +2255,7 @@ if (DemoDataProvider::isDemoMode()) {
                             return Number(val).toLocaleString() + ' คน (' + pct + '%)';
                         },
                         style: {
-                            fontSize: '11px',
+                            fontSize: '10.5px',
                             fontFamily: 'Prompt',
                             fontWeight: '800',
                             colors: [isDark ? '#cbd5e1' : '#334155']
@@ -2257,7 +2264,7 @@ if (DemoDataProvider::isDemoMode()) {
                     xaxis: {
                         categories: diseaseCats,
                         labels: {
-                            style: { colors: '#9ca3af', fontFamily: 'Prompt', fontSize: '11px' },
+                            style: { colors: '#9ca3af', fontFamily: 'Prompt', fontSize: '10px' },
                             formatter: function(val) { return Number(val).toLocaleString(); }
                         },
                         axisBorder: { show: false },
@@ -2268,14 +2275,15 @@ if (DemoDataProvider::isDemoMode()) {
                             style: {
                                 colors: '#9ca3af',
                                 fontFamily: 'Prompt',
-                                fontSize: '11.5px',
+                                fontSize: '10.5px',
                                 fontWeight: '700'
                             }
                         }
                     },
                     grid: {
                         borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-                        strokeDashArray: 4
+                        strokeDashArray: 4,
+                        padding: { top: -10, bottom: -5 }
                     },
                     legend: { show: false },
                     tooltip: {
@@ -2306,7 +2314,7 @@ if (DemoDataProvider::isDemoMode()) {
                     }],
                     chart: {
                         type: 'area',
-                        height: 270,
+                        height: 215,
                         background: 'transparent',
                         toolbar: {
                             show: false
@@ -2318,12 +2326,14 @@ if (DemoDataProvider::isDemoMode()) {
                     colors: ['#0ea5e9'],
                     legend: {
                         position: 'bottom',
+                        offsetY: 0,
                         labels: {
                             colors: '#9ca3af'
                         }
                     },
                     dataLabels: {
-                        enabled: true
+                        enabled: true,
+                        style: { fontSize: '10px' }
                     },
                     stroke: {
                         curve: 'smooth',
@@ -2333,7 +2343,8 @@ if (DemoDataProvider::isDemoMode()) {
                         categories: trendCategories,
                         labels: {
                             style: {
-                                colors: '#9ca3af'
+                                colors: '#9ca3af',
+                                fontSize: '10px'
                             },
                             formatter: function(val) {
                                 if (!val) return '';
@@ -2346,12 +2357,16 @@ if (DemoDataProvider::isDemoMode()) {
                     yaxis: {
                         labels: {
                             style: {
-                                colors: '#9ca3af'
+                                colors: '#9ca3af',
+                                fontSize: '10px'
                             }
                         }
                     },
                     tooltip: {
                         theme: localStorage.getItem('theme') || 'light'
+                    },
+                    grid: {
+                        padding: { top: -10, bottom: -5 }
                     },
                     fill: {
                         type: 'gradient',
@@ -2388,7 +2403,7 @@ if (DemoDataProvider::isDemoMode()) {
                     }],
                     chart: {
                         type: 'bar',
-                        height: 300,
+                        height: 240,
                         background: 'transparent',
                         toolbar: {
                             show: false
@@ -2562,7 +2577,7 @@ if (DemoDataProvider::isDemoMode()) {
                         data: getProgressDataset('all')
                     }],
                     chart: {
-                        height: 310,
+                        height: 215,
                         type: 'bar',
                         background: 'transparent',
                         toolbar: {
@@ -2575,7 +2590,8 @@ if (DemoDataProvider::isDemoMode()) {
                     plotOptions: {
                         bar: {
                             horizontal: true,
-                            borderRadius: 4,
+                            borderRadius: 3,
+                            barHeight: '72%',
                             dataLabels: {
                                 position: 'top'
                             }
@@ -2583,9 +2599,10 @@ if (DemoDataProvider::isDemoMode()) {
                     },
                     dataLabels: {
                         enabled: true,
-                        offsetX: 20,
+                        offsetX: 16,
                         style: {
-                            colors: ['#9ca3af']
+                            colors: ['#9ca3af'],
+                            fontSize: '10.5px'
                         },
                         formatter: function(val) {
                             return val + "%"
@@ -2595,7 +2612,8 @@ if (DemoDataProvider::isDemoMode()) {
                         max: 100,
                         labels: {
                             style: {
-                                colors: '#9ca3af'
+                                colors: '#9ca3af',
+                                fontSize: '10px'
                             },
                             formatter: function(val) {
                                 return val + "%"
@@ -2606,10 +2624,13 @@ if (DemoDataProvider::isDemoMode()) {
                         labels: {
                             style: {
                                 colors: '#9ca3af',
-                                fontSize: '12px',
+                                fontSize: '11px',
                                 fontWeight: 'bold'
                             }
                         }
+                    },
+                    grid: {
+                        padding: { top: -10, bottom: -5 }
                     },
                     tooltip: {
                         theme: localStorage.getItem('theme') || 'light',
@@ -2627,7 +2648,7 @@ if (DemoDataProvider::isDemoMode()) {
                 chartOverallProgressInstance = new ApexCharts(document.querySelector("#chart-overall-progress"), optionsProgress);
                 chartOverallProgressInstance.render();
             } else {
-                document.querySelector("#chart-overall-progress").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 100px; font-size: 14px;">ยังไม่มีข้อมูลความคืบหน้า</div>';
+                document.querySelector("#chart-overall-progress").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 60px; font-size: 13px;">ยังไม่มีข้อมูลความคืบหน้า</div>';
             }
 
             // Screened Risk Distribution Data (Semi-Circle Donut Health Gauge)
@@ -2645,43 +2666,43 @@ if (DemoDataProvider::isDemoMode()) {
                     labels: ['🟢 ปกติ (เสี่ยงต่ำ)', '🟡 เสี่ยงปานกลาง', '🔴 เสี่ยงสูง (สงสัยป่วย)'],
                     chart: {
                         type: 'donut',
-                        height: 275,
+                        height: 185,
                         background: 'transparent'
                     },
                     plotOptions: {
                         pie: {
                             startAngle: -90,
                             endAngle: 90,
-                            offsetY: 20,
+                            offsetY: 0,
                             donut: {
-                                size: '75%',
+                                size: '72%',
                                 labels: {
                                     show: true,
                                     name: {
                                         show: true,
-                                        fontSize: '12px',
+                                        fontSize: '11px',
                                         fontFamily: 'Prompt',
                                         color: '#9ca3af',
-                                        offsetY: -22
+                                        offsetY: -18
                                     },
                                     value: {
                                         show: true,
-                                        fontSize: '22px',
+                                        fontSize: '19px',
                                         fontFamily: 'Prompt',
                                         fontWeight: '900',
                                         color: isDark ? '#f8fafc' : '#0f172a',
-                                        offsetY: -8,
+                                        offsetY: -6,
                                         formatter: function(val) { return Number(val).toLocaleString() + ' คน'; }
                                     },
                                     total: {
                                         show: true,
                                         label: 'คัดกรองทั้งหมด',
                                         color: '#64748b',
-                                        fontSize: '11.5px',
+                                        fontSize: '10.5px',
                                         fontFamily: 'Prompt',
                                         fontWeight: '700',
                                         formatter: function(w) {
-                                            return w.globals.seriesTotals.reduce((a, b) => a + b, 0).toLocaleString() + ' คน';
+                                             return w.globals.seriesTotals.reduce((a, b) => a + b, 0).toLocaleString() + ' คน';
                                         }
                                     }
                                 }
@@ -2690,16 +2711,16 @@ if (DemoDataProvider::isDemoMode()) {
                     },
                     colors: ['#10b981', '#f59e0b', '#ef4444'],
                     stroke: {
-                        width: 3,
+                        width: 2.5,
                         colors: [isDark ? '#1e293b' : '#ffffff']
                     },
                     legend: {
                         position: 'bottom',
-                        offsetY: -10,
-                        fontSize: '11px',
+                        offsetY: -14,
+                        fontSize: '10.5px',
                         fontFamily: 'Prompt',
                         labels: { colors: '#9ca3af' },
-                        markers: { width: 9, height: 9, radius: 4 }
+                        markers: { width: 8, height: 8, radius: 3 }
                     },
                     dataLabels: {
                         enabled: false
@@ -2713,21 +2734,21 @@ if (DemoDataProvider::isDemoMode()) {
                         }
                     },
                     grid: {
-                        padding: { bottom: -70 }
+                        padding: { bottom: -60, top: -10 }
                     }
                 };
                 new ApexCharts(document.querySelector("#chart-screened-risk-pie"), optionsScreenedRisk).render();
             } else {
                 document.querySelector("#chart-screened-risk-pie").innerHTML = `
-                    <div style="height: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 18px 20px; background: rgba(100, 116, 139, 0.04); border: 1.5px dashed rgba(100, 116, 139, 0.2); border-radius: 18px; box-sizing: border-box;">
-                        <div style="width: 50px; height: 50px; border-radius: 50%; background: rgba(100, 116, 139, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 12px;">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <div style="height: 185px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 12px 14px; background: rgba(100, 116, 139, 0.04); border: 1.5px dashed rgba(100, 116, 139, 0.2); border-radius: 12px; box-sizing: border-box;">
+                        <div style="width: 38px; height: 38px; border-radius: 50%; background: rgba(100, 116, 139, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
                                 <path d="M22 12A10 10 0 0 0 12 2v10z"/>
                             </svg>
                         </div>
-                        <div style="font-size: 15px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">ยังไม่มีข้อมูลผลการคัดกรอง</div>
-                        <div style="font-size: 12px; color: var(--text-secondary); max-width: 240px; line-height: 1.45;">ไม่พบข้อมูลระดับความเสี่ยงในเงื่อนไขและพื้นที่ที่เลือก</div>
+                        <div style="font-size: 13.5px; font-weight: 800; color: var(--text-primary); margin-bottom: 2px;">ยังไม่มีข้อมูลผลการคัดกรอง</div>
+                        <div style="font-size: 11px; color: var(--text-secondary); max-width: 220px; line-height: 1.35;">ไม่พบข้อมูลระดับความเสี่ยงในเงื่อนไขและพื้นที่ที่เลือก</div>
                     </div>`;
             }
 
@@ -2739,7 +2760,7 @@ if (DemoDataProvider::isDemoMode()) {
                     labels: skippedRaw.map(d => d.skipped_reason || 'ไม่ระบุ'),
                     chart: {
                         type: 'donut',
-                        height: 260,
+                        height: 185,
                         background: 'transparent'
                     },
                     theme: {
@@ -2751,6 +2772,8 @@ if (DemoDataProvider::isDemoMode()) {
                     },
                     legend: {
                         position: 'bottom',
+                        offsetY: -5,
+                        fontSize: '10.5px',
                         labels: {
                             colors: '#9ca3af'
                         }
@@ -2763,21 +2786,21 @@ if (DemoDataProvider::isDemoMode()) {
                 new ApexCharts(document.querySelector("#chart-skipped"), optionsSkipped).render();
             } else {
                 document.querySelector("#chart-skipped").innerHTML = `
-                    <div style="height: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 18px 20px; background: rgba(16, 185, 129, 0.04); border: 1.5px dashed rgba(16, 185, 129, 0.25); border-radius: 18px; box-sizing: border-box;">
-                        <div style="width: 52px; height: 52px; border-radius: 50%; background: rgba(16, 185, 129, 0.12); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.05);">
-                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <div style="height: 185px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 10px 12px; background: rgba(16, 185, 129, 0.04); border: 1.5px dashed rgba(16, 185, 129, 0.25); border-radius: 12px; box-sizing: border-box;">
+                        <div style="width: 38px; height: 38px; border-radius: 50%; background: rgba(16, 185, 129, 0.12); display: flex; align-items: center; justify-content: center; margin-bottom: 6px; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.05);">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                                 <polyline points="22 4 12 14.01 9 11.01"/>
                             </svg>
                         </div>
-                        <div style="font-size: 15.5px; font-weight: 800; color: #10b981; margin-bottom: 4px; letter-spacing: -0.2px;">
+                        <div style="font-size: 14px; font-weight: 800; color: #10b981; margin-bottom: 2px; letter-spacing: -0.2px;">
                             คัดกรองสมบูรณ์ 100%
                         </div>
-                        <div style="font-size: 12.5px; color: var(--text-secondary); max-width: 250px; line-height: 1.45; margin-bottom: 12px;">
+                        <div style="font-size: 11px; color: var(--text-secondary); max-width: 230px; line-height: 1.35; margin-bottom: 6px;">
                             ไม่พบประวัติการข้ามเคส อสม. ติดตามตรวจคัดกรองกลุ่มเป้าหมายได้ครบถ้วนโดยไม่มีการตกหล่น
                         </div>
-                        <span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(16, 185, 129, 0.12); color: #059669; font-size: 11.5px; font-weight: 800; padding: 4px 12px; border-radius: 9999px; border: 1px solid rgba(16, 185, 129, 0.2);">
-                            <span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981;"></span>
+                        <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(16, 185, 129, 0.12); color: #059669; font-size: 10.5px; font-weight: 800; padding: 2px 10px; border-radius: 9999px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                            <span style="width: 5px; height: 5px; border-radius: 50%; background: #10b981;"></span>
                             เคสที่ถูกข้าม: 0 ราย
                         </span>
                     </div>`;
@@ -2785,9 +2808,18 @@ if (DemoDataProvider::isDemoMode()) {
 
             // DPAC Enrollments Chart (Modern Rounded Gradient Columns)
             const dpacRaw = <?= json_encode($chartDpacData) ?>;
+            const mapDpacRiskType = function(rt) {
+                if (!rt) return 'ไม่ระบุ';
+                const s = String(rt).toUpperCase().trim();
+                if (s === '1' || s === 'DM' || s === 'DIABETES') return 'เสี่ยงเบาหวาน';
+                if (s === '2' || s === 'HT' || s === 'HYPERTENSION') return 'เสี่ยงความดัน';
+                if (s === '3' || s === 'BOTH' || s === 'DM_HT' || s === 'HT_DM') return 'เสี่ยงทั้งคู่ (DM+HT)';
+                return s;
+            };
+
             if (dpacRaw && dpacRaw.length > 0) {
                 const dpacCounts = dpacRaw.map(d => parseInt(d.count));
-                const dpacCats = dpacRaw.map(d => d.risk_type == '1' ? 'เสี่ยงเบาหวาน' : (d.risk_type == '2' ? 'เสี่ยงความดัน' : (d.risk_type == '3' ? 'กลุ่มป่วย/อื่นๆ' : 'ไม่ระบุ')));
+                const dpacCats = dpacRaw.map(d => mapDpacRiskType(d.risk_type));
                 const dpacTotalSum = dpacCounts.reduce((a, b) => a + b, 0);
 
                 var optionsDpac = {
@@ -2797,15 +2829,15 @@ if (DemoDataProvider::isDemoMode()) {
                     }],
                     chart: {
                         type: 'bar',
-                        height: 260,
+                        height: 185,
                         background: 'transparent',
                         toolbar: { show: false }
                     },
                     plotOptions: {
                         bar: {
-                            borderRadius: 8,
+                            borderRadius: 6,
                             borderRadiusApplication: 'end',
-                            columnWidth: '45%',
+                            columnWidth: '38%',
                             distributed: true,
                             dataLabels: {
                                 position: 'top'
@@ -2816,9 +2848,9 @@ if (DemoDataProvider::isDemoMode()) {
                     dataLabels: {
                         enabled: true,
                         formatter: function(val) { return Number(val).toLocaleString() + " คน"; },
-                        offsetY: -20,
+                        offsetY: -16,
                         style: {
-                            fontSize: '11.5px',
+                            fontSize: '10.5px',
                             fontFamily: 'Prompt',
                             fontWeight: '800',
                             colors: [isDark ? '#f8fafc' : '#0f172a']
@@ -2830,7 +2862,7 @@ if (DemoDataProvider::isDemoMode()) {
                             style: {
                                 colors: '#9ca3af',
                                 fontFamily: 'Prompt',
-                                fontSize: '11px',
+                                fontSize: '10.5px',
                                 fontWeight: '700'
                             }
                         },
@@ -2839,13 +2871,14 @@ if (DemoDataProvider::isDemoMode()) {
                     },
                     yaxis: {
                         labels: {
-                            style: { colors: '#9ca3af', fontFamily: 'Prompt' },
+                            style: { colors: '#9ca3af', fontFamily: 'Prompt', fontSize: '10px' },
                             formatter: function(val) { return Math.round(val); }
                         }
                     },
                     grid: {
                         borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-                        strokeDashArray: 4
+                        strokeDashArray: 4,
+                        padding: { top: -10, bottom: -5 }
                     },
                     legend: { show: false },
                     tooltip: {
@@ -2861,14 +2894,14 @@ if (DemoDataProvider::isDemoMode()) {
                 new ApexCharts(document.querySelector("#chart-dpac"), optionsDpac).render();
             } else {
                 document.querySelector("#chart-dpac").innerHTML = `
-                    <div style="height: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 18px 20px; background: rgba(6, 182, 212, 0.04); border: 1.5px dashed rgba(6, 182, 212, 0.25); border-radius: 18px; box-sizing: border-box;">
-                        <div style="width: 50px; height: 50px; border-radius: 50%; background: rgba(6, 182, 212, 0.12); display: flex; align-items: center; justify-content: center; margin-bottom: 12px;">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <div style="height: 185px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 12px 14px; background: rgba(6, 182, 212, 0.04); border: 1.5px dashed rgba(6, 182, 212, 0.25); border-radius: 12px; box-sizing: border-box;">
+                        <div style="width: 38px; height: 38px; border-radius: 50%; background: rgba(6, 182, 212, 0.12); display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
                             </svg>
                         </div>
-                        <div style="font-size: 15px; font-weight: 800; color: #0891b2; margin-bottom: 4px;">ยังไม่มีข้อมูลผู้เข้าร่วม DPAC</div>
-                        <div style="font-size: 12px; color: var(--text-secondary); max-width: 240px; line-height: 1.45;">ยังไม่มีการส่งต่อกลุ่มเสี่ยงเข้าร่วมกิจกรรมปรับพฤติกรรมในรอบนี้</div>
+                        <div style="font-size: 13.5px; font-weight: 800; color: #0891b2; margin-bottom: 2px;">ยังไม่มีข้อมูลผู้เข้าร่วม DPAC</div>
+                        <div style="font-size: 11px; color: var(--text-secondary); max-width: 220px; line-height: 1.35;">ยังไม่มีการส่งต่อกลุ่มเสี่ยงเข้าร่วมกิจกรรมปรับพฤติกรรมในรอบนี้</div>
                     </div>`;
             }
 
@@ -2892,7 +2925,7 @@ if (DemoDataProvider::isDemoMode()) {
                 ],
                 chart: {
                     type: 'area',
-                    height: 275,
+                    height: 215,
                     background: 'transparent',
                     toolbar: { show: false },
                     sparkline: { enabled: false }
@@ -2912,31 +2945,31 @@ if (DemoDataProvider::isDemoMode()) {
                     }
                 },
                 markers: {
-                    size: [0, 4],
+                    size: [0, 3.5],
                     colors: ['#818cf8', '#8b5cf6'],
                     strokeColors: isDark ? '#1e293b' : '#ffffff',
                     strokeWidth: 2,
-                    hover: { size: 6 }
+                    hover: { size: 5 }
                 },
                 annotations: {
                     points: [
                         {
                             x: 'คัดกรอง R1',
                             y: r1CompletedNum,
-                            marker: { size: 5, fillColor: '#8b5cf6', strokeColor: '#ffffff', strokeWidth: 2 },
+                            marker: { size: 4, fillColor: '#8b5cf6', strokeColor: '#ffffff', strokeWidth: 2 },
                             label: {
                                 borderColor: 'rgba(139, 92, 246, 0.4)',
-                                style: { color: '#ffffff', background: '#8b5cf6', fontSize: '11px', fontWeight: 800, fontFamily: 'Prompt' },
+                                style: { color: '#ffffff', background: '#8b5cf6', fontSize: '10px', fontWeight: 800, fontFamily: 'Prompt' },
                                 text: Number(r1CompletedNum).toLocaleString() + ' คน (' + '<?= $cR1Pct ?>%' + ')'
                             }
                         },
                         {
                             x: 'สำเร็จ R2',
                             y: r2CompletedNum,
-                            marker: { size: 5, fillColor: '#6366f1', strokeColor: '#ffffff', strokeWidth: 2 },
+                            marker: { size: 4, fillColor: '#6366f1', strokeColor: '#ffffff', strokeWidth: 2 },
                             label: {
                                 borderColor: 'rgba(99, 102, 241, 0.4)',
-                                style: { color: '#ffffff', background: '#6366f1', fontSize: '11px', fontWeight: 800, fontFamily: 'Prompt' },
+                                style: { color: '#ffffff', background: '#6366f1', fontSize: '10px', fontWeight: 800, fontFamily: 'Prompt' },
                                 text: Number(r2CompletedNum).toLocaleString() + ' คน'
                             }
                         }
@@ -2947,7 +2980,7 @@ if (DemoDataProvider::isDemoMode()) {
                     labels: {
                         style: {
                             colors: '#9ca3af',
-                            fontSize: '10.5px',
+                            fontSize: '10px',
                             fontFamily: 'Prompt',
                             fontWeight: '600'
                         }
@@ -2957,23 +2990,24 @@ if (DemoDataProvider::isDemoMode()) {
                 },
                 yaxis: {
                     labels: {
-                        style: { colors: '#9ca3af', fontFamily: 'Prompt', fontSize: '10.5px' },
+                        style: { colors: '#9ca3af', fontFamily: 'Prompt', fontSize: '10px' },
                         formatter: function(val) { return Number(val).toLocaleString(); }
                     }
                 },
                 grid: {
                     borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-                    strokeDashArray: 4
+                    strokeDashArray: 4,
+                    padding: { top: -10, bottom: -5 }
                 },
                 legend: {
                     show: true,
                     position: 'bottom',
-                    offsetY: 2,
-                    fontSize: '11px',
+                    offsetY: 0,
+                    fontSize: '10.5px',
                     fontFamily: 'Prompt',
                     fontWeight: 600,
                     labels: { colors: '#9ca3af' },
-                    markers: { width: 9, height: 9, radius: 4 }
+                    markers: { width: 8, height: 8, radius: 3 }
                 },
                 tooltip: {
                     theme: localStorage.getItem('theme') || 'light',
