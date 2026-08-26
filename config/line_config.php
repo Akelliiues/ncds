@@ -9,7 +9,7 @@ define('LINE_CHANNEL_SECRET', 'YOUR_CHANNEL_SECRET');
 // District-specific settings: Tal Sum District (อำเภอตาลสุม)
 define('DISTRICT_NAME', 'ตาลสุม');
 define('PROVINCE_NAME', 'อุบลราชธานี');
-define('APP_VERSION', '2.5');
+define('APP_VERSION', '2.95');
 
 // High-sodium warning foods specific to Tal Sum local culture
 define('SODIUM_WARNING_FOODS', [

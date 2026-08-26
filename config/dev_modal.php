@@ -337,7 +337,7 @@ if (file_exists('assets/aboutus.png')) {
         </div>
 
         <div class="dev-footer-info">
-            <span class="dev-version-tag">v2.7 (Stable Version 2.7 - Build <?= htmlspecialchars($build_number) ?>)</span>
+            <span class="dev-version-tag">v2.95 (Stable Version 2.95 - Build <?= htmlspecialchars($build_number) ?>)</span>
         </div>
     </div>
 </div>
