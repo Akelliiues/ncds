@@ -2629,7 +2629,7 @@ if (DemoDataProvider::isDemoMode()) {
                 document.querySelector("#chart-overall-progress").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 100px; font-size: 14px;">ยังไม่มีข้อมูลความคืบหน้า</div>';
             }
 
-            // Screened Risk Distribution Data (Semi-Circle Donut Health Gauge)
+            // Screened Risk Distribution Data (Compact Semi-Circle Donut Health Gauge)
             const screenedDetailRaw = <?= json_encode($screenedDetail) ?>;
             const screenedRiskSeries = [
                 parseInt(screenedDetailRaw?.normal || 0),
@@ -2644,39 +2644,39 @@ if (DemoDataProvider::isDemoMode()) {
                     labels: ['🟢 ปกติ (เสี่ยงต่ำ)', '🟡 เสี่ยงปานกลาง', '🔴 เสี่ยงสูง (สงสัยป่วย)'],
                     chart: {
                         type: 'donut',
-                        height: 275,
+                        height: 195,
                         background: 'transparent'
                     },
                     plotOptions: {
                         pie: {
                             startAngle: -90,
                             endAngle: 90,
-                            offsetY: 20,
+                            offsetY: 0,
                             donut: {
-                                size: '75%',
+                                size: '72%',
                                 labels: {
                                     show: true,
                                     name: {
                                         show: true,
-                                        fontSize: '12px',
+                                        fontSize: '11px',
                                         fontFamily: 'Prompt',
                                         color: '#9ca3af',
-                                        offsetY: -22
+                                        offsetY: -16
                                     },
                                     value: {
                                         show: true,
-                                        fontSize: '22px',
+                                        fontSize: '17px',
                                         fontFamily: 'Prompt',
                                         fontWeight: '900',
                                         color: isDark ? '#f8fafc' : '#0f172a',
-                                        offsetY: -8,
+                                        offsetY: -4,
                                         formatter: function(val) { return Number(val).toLocaleString() + ' คน'; }
                                     },
                                     total: {
                                         show: true,
                                         label: 'คัดกรองทั้งหมด',
                                         color: '#64748b',
-                                        fontSize: '11.5px',
+                                        fontSize: '10.5px',
                                         fontFamily: 'Prompt',
                                         fontWeight: '700',
                                         formatter: function(w) {
@@ -2689,16 +2689,16 @@ if (DemoDataProvider::isDemoMode()) {
                     },
                     colors: ['#10b981', '#f59e0b', '#ef4444'],
                     stroke: {
-                        width: 3,
+                        width: 2.5,
                         colors: [isDark ? '#1e293b' : '#ffffff']
                     },
                     legend: {
                         position: 'bottom',
-                        offsetY: -10,
-                        fontSize: '11px',
+                        offsetY: -6,
+                        fontSize: '10.5px',
                         fontFamily: 'Prompt',
                         labels: { colors: '#9ca3af' },
-                        markers: { width: 9, height: 9, radius: 4 }
+                        markers: { width: 8, height: 8, radius: 4 }
                     },
                     dataLabels: {
                         enabled: false
@@ -2712,25 +2712,25 @@ if (DemoDataProvider::isDemoMode()) {
                         }
                     },
                     grid: {
-                        padding: { bottom: -70 }
+                        padding: { top: -15, bottom: -45, left: 0, right: 0 }
                     }
                 };
                 new ApexCharts(document.querySelector("#chart-screened-risk-pie"), optionsScreenedRisk).render();
             } else {
                 document.querySelector("#chart-screened-risk-pie").innerHTML = `
-                    <div style="height: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 18px 20px; background: rgba(100, 116, 139, 0.04); border: 1.5px dashed rgba(100, 116, 139, 0.2); border-radius: 18px; box-sizing: border-box;">
-                        <div style="width: 50px; height: 50px; border-radius: 50%; background: rgba(100, 116, 139, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 12px;">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <div style="height: 185px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 12px 15px; background: rgba(100, 116, 139, 0.04); border: 1.5px dashed rgba(100, 116, 139, 0.2); border-radius: 14px; box-sizing: border-box;">
+                        <div style="width: 38px; height: 38px; border-radius: 50%; background: rgba(100, 116, 139, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
                                 <path d="M22 12A10 10 0 0 0 12 2v10z"/>
                             </svg>
                         </div>
-                        <div style="font-size: 15px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">ยังไม่มีข้อมูลผลการคัดกรอง</div>
-                        <div style="font-size: 12px; color: var(--text-secondary); max-width: 240px; line-height: 1.45;">ไม่พบข้อมูลระดับความเสี่ยงในเงื่อนไขและพื้นที่ที่เลือก</div>
+                        <div style="font-size: 13.5px; font-weight: 800; color: var(--text-primary); margin-bottom: 2px;">ยังไม่มีข้อมูลผลการคัดกรอง</div>
+                        <div style="font-size: 11px; color: var(--text-secondary); max-width: 220px; line-height: 1.35;">ไม่พบข้อมูลระดับความเสี่ยงในเงื่อนไขและพื้นที่ที่เลือก</div>
                     </div>`;
             }
 
-            // Skipped Reasons Chart
+            // Skipped Reasons Chart (Compact Height)
             const skippedRaw = <?= json_encode($chartSkippedData) ?>;
             if (skippedRaw && skippedRaw.length > 0) {
                 var optionsSkipped = {
@@ -2738,7 +2738,7 @@ if (DemoDataProvider::isDemoMode()) {
                     labels: skippedRaw.map(d => d.skipped_reason || 'ไม่ระบุ'),
                     chart: {
                         type: 'donut',
-                        height: 260,
+                        height: 185,
                         background: 'transparent'
                     },
                     theme: {
@@ -2750,6 +2750,8 @@ if (DemoDataProvider::isDemoMode()) {
                     },
                     legend: {
                         position: 'bottom',
+                        offsetY: -5,
+                        fontSize: '10.5px',
                         labels: {
                             colors: '#9ca3af'
                         }
@@ -2762,31 +2764,31 @@ if (DemoDataProvider::isDemoMode()) {
                 new ApexCharts(document.querySelector("#chart-skipped"), optionsSkipped).render();
             } else {
                 document.querySelector("#chart-skipped").innerHTML = `
-                    <div style="height: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 18px 20px; background: rgba(16, 185, 129, 0.04); border: 1.5px dashed rgba(16, 185, 129, 0.25); border-radius: 18px; box-sizing: border-box;">
-                        <div style="width: 52px; height: 52px; border-radius: 50%; background: rgba(16, 185, 129, 0.12); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.05);">
-                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <div style="height: 185px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 12px 15px; background: rgba(16, 185, 129, 0.04); border: 1.5px dashed rgba(16, 185, 129, 0.25); border-radius: 14px; box-sizing: border-box;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(16, 185, 129, 0.12); display: flex; align-items: center; justify-content: center; margin-bottom: 8px; box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.05);">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                                 <polyline points="22 4 12 14.01 9 11.01"/>
                             </svg>
                         </div>
-                        <div style="font-size: 15.5px; font-weight: 800; color: #10b981; margin-bottom: 4px; letter-spacing: -0.2px;">
+                        <div style="font-size: 14px; font-weight: 800; color: #10b981; margin-bottom: 2px; letter-spacing: -0.2px;">
                             คัดกรองสมบูรณ์ 100%
                         </div>
-                        <div style="font-size: 12.5px; color: var(--text-secondary); max-width: 250px; line-height: 1.45; margin-bottom: 12px;">
-                            ไม่พบประวัติการข้ามเคส อสม. ติดตามตรวจคัดกรองกลุ่มเป้าหมายได้ครบถ้วนโดยไม่มีการตกหล่น
+                        <div style="font-size: 11px; color: var(--text-secondary); max-width: 230px; line-height: 1.35; margin-bottom: 8px;">
+                            ไม่พบประวัติการข้ามเคส อสม. ติดตามตรวจคัดกรองได้ครบถ้วน
                         </div>
-                        <span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(16, 185, 129, 0.12); color: #059669; font-size: 11.5px; font-weight: 800; padding: 4px 12px; border-radius: 9999px; border: 1px solid rgba(16, 185, 129, 0.2);">
-                            <span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981;"></span>
+                        <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(16, 185, 129, 0.12); color: #059669; font-size: 10.5px; font-weight: 800; padding: 2px 10px; border-radius: 9999px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                            <span style="width: 5px; height: 5px; border-radius: 50%; background: #10b981;"></span>
                             เคสที่ถูกข้าม: 0 ราย
                         </span>
                     </div>`;
             }
 
-            // DPAC Enrollments Chart (Modern Rounded Gradient Columns)
+            // DPAC Enrollments Chart (Compact Modern Rounded Gradient Columns)
             const dpacRaw = <?= json_encode($chartDpacData) ?>;
             if (dpacRaw && dpacRaw.length > 0) {
                 const dpacCounts = dpacRaw.map(d => parseInt(d.count));
-                const dpacCats = dpacRaw.map(d => d.risk_type == '1' ? 'เสี่ยงเบาหวาน' : (d.risk_type == '2' ? 'เสี่ยงความดัน' : (d.risk_type == '3' ? 'กลุ่มป่วย/อื่นๆ' : 'ไม่ระบุ')));
+                const dpacCats = dpacRaw.map(d => d.risk_type == '1' ? 'เสี่ยง DM' : (d.risk_type == '2' ? 'เสี่ยง HT' : (d.risk_type == '3' ? 'กลุ่มป่วย' : 'ไม่ระบุ')));
                 const dpacTotalSum = dpacCounts.reduce((a, b) => a + b, 0);
 
                 var optionsDpac = {
@@ -2796,15 +2798,15 @@ if (DemoDataProvider::isDemoMode()) {
                     }],
                     chart: {
                         type: 'bar',
-                        height: 260,
+                        height: 185,
                         background: 'transparent',
                         toolbar: { show: false }
                     },
                     plotOptions: {
                         bar: {
-                            borderRadius: 8,
+                            borderRadius: 6,
                             borderRadiusApplication: 'end',
-                            columnWidth: '45%',
+                            columnWidth: '42%',
                             distributed: true,
                             dataLabels: {
                                 position: 'top'
@@ -2815,9 +2817,9 @@ if (DemoDataProvider::isDemoMode()) {
                     dataLabels: {
                         enabled: true,
                         formatter: function(val) { return Number(val).toLocaleString() + " คน"; },
-                        offsetY: -20,
+                        offsetY: -18,
                         style: {
-                            fontSize: '11.5px',
+                            fontSize: '10.5px',
                             fontFamily: 'Prompt',
                             fontWeight: '800',
                             colors: [isDark ? '#f8fafc' : '#0f172a']
@@ -2829,7 +2831,7 @@ if (DemoDataProvider::isDemoMode()) {
                             style: {
                                 colors: '#9ca3af',
                                 fontFamily: 'Prompt',
-                                fontSize: '11px',
+                                fontSize: '10.5px',
                                 fontWeight: '700'
                             }
                         },
@@ -2838,13 +2840,14 @@ if (DemoDataProvider::isDemoMode()) {
                     },
                     yaxis: {
                         labels: {
-                            style: { colors: '#9ca3af', fontFamily: 'Prompt' },
+                            style: { colors: '#9ca3af', fontFamily: 'Prompt', fontSize: '10px' },
                             formatter: function(val) { return Math.round(val); }
                         }
                     },
                     grid: {
                         borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-                        strokeDashArray: 4
+                        strokeDashArray: 4,
+                        padding: { top: -10 }
                     },
                     legend: { show: false },
                     tooltip: {
@@ -2860,86 +2863,105 @@ if (DemoDataProvider::isDemoMode()) {
                 new ApexCharts(document.querySelector("#chart-dpac"), optionsDpac).render();
             } else {
                 document.querySelector("#chart-dpac").innerHTML = `
-                    <div style="height: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 18px 20px; background: rgba(6, 182, 212, 0.04); border: 1.5px dashed rgba(6, 182, 212, 0.25); border-radius: 18px; box-sizing: border-box;">
-                        <div style="width: 50px; height: 50px; border-radius: 50%; background: rgba(6, 182, 212, 0.12); display: flex; align-items: center; justify-content: center; margin-bottom: 12px;">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <div style="height: 185px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 12px 15px; background: rgba(6, 182, 212, 0.04); border: 1.5px dashed rgba(6, 182, 212, 0.25); border-radius: 14px; box-sizing: border-box;">
+                        <div style="width: 38px; height: 38px; border-radius: 50%; background: rgba(6, 182, 212, 0.12); display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
                             </svg>
                         </div>
-                        <div style="font-size: 15px; font-weight: 800; color: #0891b2; margin-bottom: 4px;">ยังไม่มีข้อมูลผู้เข้าร่วม DPAC</div>
-                        <div style="font-size: 12px; color: var(--text-secondary); max-width: 240px; line-height: 1.45;">ยังไม่มีการส่งต่อกลุ่มเสี่ยงเข้าร่วมกิจกรรมปรับพฤติกรรมในรอบนี้</div>
+                        <div style="font-size: 13.5px; font-weight: 800; color: #0891b2; margin-bottom: 2px;">ยังไม่มีข้อมูลผู้เข้าร่วม DPAC</div>
+                        <div style="font-size: 11px; color: var(--text-secondary); max-width: 220px; line-height: 1.35;">ยังไม่มีการส่งต่อกลุ่มเสี่ยงเข้าร่วมกิจกรรมปรับพฤติกรรมในรอบนี้</div>
                     </div>`;
             }
 
-            // 1. Total Multi-Round Radial Progress Gauge (Apple Health / Modern Concentric Rings)
+            // 1. Total Multi-Round Radar Polygon Chart (Pariatur Polygon Style)
             var r1PctVal = Math.min(100, Math.round(<?= floatval($cR1Pct) ?>));
-            var r2PctVal = Math.min(100, Math.round(<?= floatval($cR2CompPct) ?>));
-            var r3PctVal = Math.min(100, Math.round(<?= floatval($cR3CompPct) ?>));
+            var r2ReachVal = Math.min(100, Math.round(<?= floatval($cR2ReachPct) ?>));
+            var r2CompVal = Math.min(100, Math.round(<?= floatval($cR2CompPct) ?>));
+            var r3CompVal = Math.min(100, Math.round(<?= floatval($cR3CompPct) ?>));
 
             var optionsTotalPie = {
-                series: [r1PctVal, r2PctVal, r3PctVal],
+                series: [
+                    {
+                        name: 'แผนเป้าหมาย (เกณฑ์ 100%)',
+                        data: [100, 100, 100, 100, 100]
+                    },
+                    {
+                        name: 'ผลงานจริงสะสม (%)',
+                        data: [100, r1PctVal, r2ReachVal, r2CompVal, r3CompVal]
+                    }
+                ],
                 chart: {
-                    type: 'radialBar',
-                    height: 285,
+                    type: 'radar',
+                    height: 230,
                     background: 'transparent',
-                    sparkline: { enabled: false }
+                    toolbar: { show: false },
+                    dropShadow: {
+                        enabled: true,
+                        blur: 4,
+                        left: 1,
+                        top: 1,
+                        opacity: 0.15
+                    }
+                },
+                colors: ['#3b82f6', '#10b981'],
+                stroke: {
+                    width: [2, 2.5],
+                    curve: 'smooth'
+                },
+                fill: {
+                    opacity: [0.18, 0.55]
+                },
+                markers: {
+                    size: [0, 4],
+                    hover: { size: 6 }
                 },
                 plotOptions: {
-                    radialBar: {
-                        startAngle: -135,
-                        endAngle: 225,
-                        hollow: {
-                            size: '32%',
-                            background: 'transparent'
-                        },
-                        track: {
-                            background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#e2e8f0',
-                            strokeWidth: '100%',
-                            margin: 6
-                        },
-                        dataLabels: {
-                            name: {
-                                show: true,
-                                fontSize: '12px',
-                                fontFamily: 'Prompt',
-                                fontWeight: '600',
-                                color: '#9ca3af',
-                                offsetY: -8
-                            },
-                            value: {
-                                show: true,
-                                fontSize: '18px',
-                                fontFamily: 'Prompt',
-                                fontWeight: '900',
-                                color: isDark ? '#f8fafc' : '#0f172a',
-                                offsetY: 4,
-                                formatter: function(val) { return val + "%"; }
-                            },
-                            total: {
-                                show: true,
-                                label: 'ครอบคลุม R1',
-                                color: '#10b981',
-                                fontSize: '12px',
-                                fontFamily: 'Prompt',
-                                fontWeight: '800',
-                                formatter: function() { return '<?= $cR1Pct ?>%'; }
+                    radar: {
+                        size: 78,
+                        polygons: {
+                            strokeColors: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
+                            connectorColors: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
+                            fill: {
+                                colors: isDark ? ['rgba(255, 255, 255, 0.02)', 'transparent'] : ['rgba(0, 0, 0, 0.02)', 'transparent']
                             }
                         }
                     }
                 },
-                labels: ['รอบ 1 (Baseline)', 'รอบ 2 (ติดตาม)', 'รอบ 3+ (ต่อเนื่อง)'],
-                colors: ['#10b981', '#0ea5e9', '#8b5cf6'],
-                stroke: {
-                    lineCap: 'round'
+                xaxis: {
+                    categories: ['เป้าหมายรวม', 'คัดกรอง R1', 'มอบหมาย R2', 'สำเร็จ R2', 'สำเร็จ R3+'],
+                    labels: {
+                        style: {
+                            colors: ['#9ca3af', '#9ca3af', '#9ca3af', '#9ca3af', '#9ca3af'],
+                            fontSize: '11px',
+                            fontFamily: 'Prompt',
+                            fontWeight: '600'
+                        }
+                    }
+                },
+                yaxis: {
+                    show: false,
+                    max: 100,
+                    min: 0,
+                    tickAmount: 4
                 },
                 legend: {
                     show: true,
                     position: 'bottom',
-                    fontSize: '11.5px',
+                    offsetY: 2,
+                    fontSize: '11px',
                     fontFamily: 'Prompt',
                     fontWeight: 600,
                     labels: { colors: '#9ca3af' },
-                    markers: { width: 10, height: 10, radius: 4 }
+                    markers: { width: 9, height: 9, radius: 4 }
+                },
+                tooltip: {
+                    theme: localStorage.getItem('theme') || 'light',
+                    y: {
+                        formatter: function(val, opts) {
+                            return val + "%";
+                        }
+                    }
                 }
             };
             if (<?= intval($metrics['total_targets']) ?> > 0) {
