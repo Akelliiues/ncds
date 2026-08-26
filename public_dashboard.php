@@ -1320,11 +1320,6 @@ if (!function_exists('renderKpiGenderSplit')) {
                     <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
                 </svg>
             </button>
-
-            <a href="index.php" class="neu-btn-primary">
-                <span>เข้าสู่ระบบ</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-            </a>
         </div>
     </header>
 
