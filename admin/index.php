@@ -979,17 +979,22 @@ if (DemoDataProvider::isDemoMode()) {
             border-bottom: 1px solid var(--border-color, #e5e7eb);
             padding-bottom: 6px;
             margin-bottom: 8px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             gap: 6px;
+            min-height: 32px;
         }
         .bento-title {
             color: var(--color-accent, #1e293b);
             margin: 0;
-            font-size: 13.5px;
+            font-size: 13px;
             font-weight: 700;
             display: flex;
             align-items: center;
-            gap: 7px;
+            gap: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
         }
         .bento-icon-badge {
             display: inline-flex;
@@ -1277,25 +1282,25 @@ if (DemoDataProvider::isDemoMode()) {
             <!-- 1. Overall Progress (Span 4) -->
             <div class="bento-card bento-span-4">
                 <div class="bento-header">
-                    <h3 class="bento-title">
-                        <span class="bento-icon-badge" style="background: rgba(14, 165, 233, 0.15); color: #0ea5e9;">
+                    <h3 class="bento-title" style="flex: 1; min-width: 0;">
+                        <span class="bento-icon-badge" style="background: rgba(14, 165, 233, 0.15); color: #0ea5e9; flex-shrink: 0;">
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                             </svg>
                         </span>
-                        <span id="overall-progress-title">Overall Progress</span>
+                        <span id="overall-progress-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">ความคืบหน้า (ทุกรอบ)</span>
                     </h3>
-                    <div style="display: inline-flex; gap: 3px; background: var(--bg-darker); padding: 2px; border-radius: 7px; border: 1px solid var(--border-color);">
-                        <button type="button" class="btn-progress-round active" onclick="switchOverallRound('all')" id="btn-ovr-all" style="padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; background: #0ea5e9; color: #ffffff; transition: all 0.2s;">
+                    <div style="display: inline-flex; gap: 2px; background: var(--bg-darker); padding: 2px; border-radius: 6px; border: 1px solid var(--border-color); flex-shrink: 0;">
+                        <button type="button" class="btn-progress-round active" onclick="switchOverallRound('all')" id="btn-ovr-all" style="padding: 2px 7px; font-size: 10.5px; font-weight: bold; border-radius: 4px; border: none; cursor: pointer; background: #0ea5e9; color: #ffffff; transition: all 0.2s;">
                             ทุกรอบ
                         </button>
-                        <button type="button" class="btn-progress-round" onclick="switchOverallRound('r1')" id="btn-ovr-r1" style="padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">
+                        <button type="button" class="btn-progress-round" onclick="switchOverallRound('r1')" id="btn-ovr-r1" style="padding: 2px 7px; font-size: 10.5px; font-weight: bold; border-radius: 4px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">
                             รอบ 1
                         </button>
-                        <button type="button" class="btn-progress-round" onclick="switchOverallRound('r2')" id="btn-ovr-r2" style="padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">
+                        <button type="button" class="btn-progress-round" onclick="switchOverallRound('r2')" id="btn-ovr-r2" style="padding: 2px 7px; font-size: 10.5px; font-weight: bold; border-radius: 4px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">
                             รอบ 2
                         </button>
-                        <button type="button" class="btn-progress-round" onclick="switchOverallRound('r3')" id="btn-ovr-r3" style="padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">
+                        <button type="button" class="btn-progress-round" onclick="switchOverallRound('r3')" id="btn-ovr-r3" style="padding: 2px 7px; font-size: 10.5px; font-weight: bold; border-radius: 4px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">
                             รอบ 3+
                         </button>
                     </div>
@@ -1934,10 +1939,10 @@ if (DemoDataProvider::isDemoMode()) {
                 }
 
                 const roundTitles = {
-                    'all': 'ความครอบคลุมการคัดกรอง (ภาพรวมทุกรอบ)',
-                    'r1': 'ความครอบคลุมการคัดกรอง - รอบที่ 1 (Baseline)',
-                    'r2': 'ความครอบคลุมการคัดกรอง - ติดตามรอบที่ 2',
-                    'r3': 'ความครอบคลุมการคัดกรอง - ติดตามรอบที่ 3+'
+                    'all': 'ความครอบคลุมการคัดกรอง (ทุกรอบ)',
+                    'r1': 'ความครอบคลุมการคัดกรอง (รอบ 1)',
+                    'r2': 'ความครอบคลุมการคัดกรอง (รอบ 2)',
+                    'r3': 'ความครอบคลุมการคัดกรอง (รอบ 3+)'
                 };
                 const titleEl = document.getElementById('coverage-chart-title');
                 if (titleEl && roundTitles[roundKey]) {
@@ -2120,10 +2125,10 @@ if (DemoDataProvider::isDemoMode()) {
                 }
 
                 const roundTitles = {
-                    'all': 'ระดับความเสี่ยงประชากร (ภาพรวมล่าสุด)',
-                    'r1': 'ระดับความเสี่ยงประชากร - รอบที่ 1 (Baseline)',
-                    'r2': 'ระดับความเสี่ยงประชากร - ติดตามรอบที่ 2',
-                    'r3': 'ระดับความเสี่ยงประชากร - ติดตามรอบที่ 3+'
+                    'all': 'ระดับความเสี่ยงประชากร (ล่าสุด)',
+                    'r1': 'ระดับความเสี่ยงประชากร (รอบ 1)',
+                    'r2': 'ระดับความเสี่ยงประชากร (รอบ 2)',
+                    'r3': 'ระดับความเสี่ยงประชากร (รอบ 3+)'
                 };
                 const titleEl = document.getElementById('risk-chart-title');
                 if (titleEl && roundTitles[roundKey]) {
@@ -2544,10 +2549,10 @@ if (DemoDataProvider::isDemoMode()) {
                 }
 
                 const roundTitles = {
-                    'all': 'Overall Progress (ภาพรวมทุกรอบ)',
-                    'r1': 'ความคืบหน้า รอบที่ 1 (Baseline)',
-                    'r2': 'ความคืบหน้า ติดตามรอบที่ 2',
-                    'r3': 'ความคืบหน้า ติดตามรอบที่ 3+'
+                    'all': 'ความคืบหน้า (ทุกรอบ)',
+                    'r1': 'ความคืบหน้า (รอบ 1)',
+                    'r2': 'ความคืบหน้า (รอบ 2)',
+                    'r3': 'ความคืบหน้า (รอบ 3+)'
                 };
                 const titleEl = document.getElementById('overall-progress-title');
                 if (titleEl && roundTitles[roundKey]) {
