@@ -466,7 +466,7 @@ try {
                     <label for="modal_add_role" class="modal-form-label">ประเภทบทบาทการใช้งาน (Role)</label>
                     <select name="role" id="modal_add_role" class="form-select" style="box-shadow: var(--neumorph-inset);">
                         <option value="admin">🛠️ ผู้ดูแลระบบ (จัดการข้อมูลและสั่งประมวลผลได้)</option>
-                        <option value="executive">👔 ผู้บริหาร / ผู้ตรวจประเมิน (Read-Only & ปกปิดข้อมูลส่วนบุคคล PDPA)</option>
+                        <option value="executive">👔 ผู้บริหาร / กรรมการประเมิน (Read-Only & Privacy-Preserving PDPA Mode)</option>
                     </select>
                 </div>
 
@@ -522,7 +522,7 @@ try {
                     <label for="modal_edit_role" class="modal-form-label">ประเภทบทบาทการใช้งาน (Role)</label>
                     <select name="role" id="modal_edit_role" class="form-select" style="box-shadow: var(--neumorph-inset);">
                         <option value="admin">🛠️ ผู้ดูแลระบบ (จัดการข้อมูลและสั่งประมวลผลได้)</option>
-                        <option value="executive">👔 ผู้บริหาร / ผู้ตรวจประเมิน (Read-Only & ปกปิดข้อมูลส่วนบุคคล PDPA)</option>
+                        <option value="executive">👔 ผู้บริหาร / กรรมการประเมิน (Read-Only & Privacy-Preserving PDPA Mode)</option>
                     </select>
                 </div>
 

@@ -250,6 +250,7 @@ $improvedFbsCount = 0;
 $monitoringFbsCount = 0;
 $worsenedFbsCount = 0;
 
+$improvedPatientsCount = 0;
 $monitoringCount = 0;
 $worsenedCount = 0;
 
@@ -298,8 +299,9 @@ if ($isDemo) {
     $scrFemale = 5696;
     $riskMale = 840;
     $riskFemale = 1140;
-    $dpacMale = 18;
-    $dpacFemale = 26;
+    $dpacMale = 16;
+    $dpacFemale = 22;
+    $improvedPatientsCount = 38;
 } else {
     try {
         // Query all screening records for filtered population in one indexed query
@@ -434,6 +436,7 @@ if ($isDemo) {
             }
 
             if ($isPatientImproved) {
+                $improvedPatientsCount++;
                 $isM = in_array(strtoupper(trim((string)($patientR1[$cid]['sex'] ?? ''))), ['1', 'ชาย', 'M', 'MALE']);
                 if ($isM) $dpacMale++;
                 else $dpacFemale++;
@@ -480,11 +483,13 @@ $pctFbsImprovement = $totalDmCases > 0 ? round(($improvedFbsCount / $totalDmCase
 $pctFbsMonitoring = $totalDmCases > 0 ? round(($monitoringFbsCount / $totalDmCases) * 100, 1) : 0;
 $pctFbsWorsened = $totalDmCases > 0 ? round(($worsenedFbsCount / $totalDmCases) * 100, 1) : 0;
 
-$dpacImprovementPct = ($totalHtCases + $totalDmCases) > 0 
-    ? round((($improvedBpCount + $improvedFbsCount) / ($totalHtCases + $totalDmCases)) * 100, 1) 
-    : 76.9;
-$dpacImprovedCount = $improvedBpCount + $improvedFbsCount;
 $dpacCompletedFollowups = $totalAnalyzed;
+$dpacImprovedCount = $improvedPatientsCount > 0 
+    ? min($dpacCompletedFollowups, $improvedPatientsCount) 
+    : ($dpacCompletedFollowups > 0 ? min($dpacCompletedFollowups, ($improvedBpCount + $improvedFbsCount)) : 0);
+$dpacImprovementPct = $dpacCompletedFollowups > 0 
+    ? round(($dpacImprovedCount / $dpacCompletedFollowups) * 100, 1) 
+    : 0;
 
 // Compute Gender Percentages for each Macro KPI Card
 $tgtMale = $genderMale;

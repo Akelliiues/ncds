@@ -281,8 +281,8 @@ try {
     }
 </style>
 <?php if (function_exists('isExecutiveMode') ? isExecutiveMode() : (!empty($_SESSION['is_visitor']) || !empty($_SESSION['is_executive']))): ?>
-    <div class="no-print" style="background: linear-gradient(90deg, #065f46, #047857, #0d9488); color: white; text-align: center; padding: 10px 20px; font-weight: 800; font-size: 13.5px; letter-spacing: 0.3px; box-shadow: 0 4px 12px rgba(6, 95, 70, 0.25); border-radius: 0 0 14px 14px; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; animation: slideDown 0.4s ease;">
-        <span>👔 <strong>ระบบอยู่ในโหมดผู้บริหาร (Executive Read-Only)</strong> : ข้อมูลส่วนบุคคลถูกปกปิดตามหลัก PDPA คุณสามารถดูสถิติ กราฟ และรายงานได้ครบถ้วน</span>
+    <div class="no-print" style="background: linear-gradient(90deg, #065f46, #047857, #0d9488); color: white; text-align: center; padding: 10px 20px; font-weight: 800; font-size: 13px; letter-spacing: 0.3px; box-shadow: 0 4px 12px rgba(6, 95, 70, 0.25); border-radius: 0 0 14px 14px; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; animation: slideDown 0.4s ease;">
+        <span>👔 <strong>โหมดผู้บริหาร / กรรมการประเมิน (Executive Read-Only & Privacy-Preserving View)</strong> : ระบบพรางข้อมูลระบุตัวตน (ชื่อ-สกุล, เลขบัตร, เบอร์โทร, บ้านเลขที่, พิกัดระดับกริด และช่วงค่าสุขภาพ) ตามหลัก PDPA เพื่อความปลอดภัยสูงสุด</span>
     </div>
     <style>
         @keyframes slideDown {

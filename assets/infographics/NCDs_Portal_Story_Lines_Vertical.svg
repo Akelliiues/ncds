@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2160" height="3840" viewBox="0 0 1080 1920">
+  <defs>
+    <style>
+      .brand{font-family:'Leelaw UI','Tahoma',sans-serif;font-size:18px;font-weight:700;letter-spacing:2px;fill:#0f4667}
+      .lead{font-family:'Leelaw UI','Tahoma',sans-serif;font-size:38px;font-weight:700;fill:#123e5b}
+      .quote{font-family:'Leelaw UI','Tahoma',sans-serif;font-size:25px;font-weight:700;fill:#173f5a}
+      .body{font-family:'Leelaw UI','Tahoma',sans-serif;font-size:19px;font-weight:400;fill:#416078}
+      .tag{font-family:'Leelaw UI','Tahoma',sans-serif;font-size:29px;font-weight:700;fill:#ffffff}
+      .eng{font-family:'Leelaw UI','Tahoma',sans-serif;font-size:18px;font-weight:400;letter-spacing:1px;fill:#d7f3f3}
+    </style>
+  </defs>
+  <image href="ncd-portal-story-lines-bg.png" width="1080" height="1920" preserveAspectRatio="xMidYMid slice"/>
+  <text x="540" y="82" text-anchor="middle" class="brand">NCDs PORTAL  •  SIMPLE &amp; EASY</text>
+  <text x="540" y="132" text-anchor="middle" class="lead">งานสุขภาพที่เบาลง</text>
+  <text x="540" y="174" text-anchor="middle" class="lead">เพื่อให้คนหน้างานได้อยู่กับคนมากขึ้น</text>
+
+  <text x="348" y="462" class="quote"><tspan x="348" dy="0">“ไอเดียทั้งหมดนี้ เกิดจากความขี้เกียจ</tspan><tspan x="348" dy="32">ในการตามทวงเอกสารของผมครับ”</tspan></text>
+  <text x="348" y="540" class="body"><tspan x="348" dy="0">เทคโนโลยีที่ดี ต้องทำให้คนทำงานเหนื่อยน้อยลง</tspan><tspan x="348" dy="27">และได้ผลลัพธ์ที่มีคุณค่ามากขึ้น</tspan></text>
+
+  <text x="348" y="745" class="quote"><tspan x="348" dy="0">“อสม. มีหน้าที่ลงพื้นที่ ไปนั่งคุย</tspan><tspan x="348" dy="32">จับมือ และให้กำลังใจชาวบ้าน”</tspan></text>
+  <text x="348" y="822" class="body"><tspan x="348" dy="0">จึงออกแบบให้ใช้ง่าย และรูปแบบบนมือถือคงที่</tspan><tspan x="348" dy="27">เพื่อให้งานหน้างานเดินต่อได้อย่างสบายขึ้น</tspan></text>
+
+  <text x="348" y="1038" class="quote"><tspan x="348" dy="0">“ทุกการคัดกรอง อาจเป็นสะพาน</tspan><tspan x="348" dy="32">ไปสู่การช่วยเหลือที่เร็วขึ้น”</tspan></text>
+  <text x="348" y="1115" class="body"><tspan x="348" dy="0">เมื่อพบค่าที่ต้องติดตาม ระบบรวมข้อมูลเคส</tspan><tspan x="348" dy="27">และจุดเริ่มต้นของการประสานงานไว้ในที่เดียว</tspan></text>
+
+  <text x="348" y="1325" class="quote"><tspan x="348" dy="0">“เราไม่จำเป็นต้องเรียกระบบว่า Smart</tspan><tspan x="348" dy="32">เพียงเพื่อให้ดูฉลาด”</tspan></text>
+  <text x="348" y="1402" class="body"><tspan x="348" dy="0">ให้ผลงานและคุณค่าที่เกิดขึ้นจริง เป็นสิ่งที่</tspan><tspan x="348" dy="27">บอกว่าระบบนิเวศสุขภาพชุมชนทำงานได้แค่ไหน</tspan></text>
+
+  <g transform="translate(95,1575)">
+    <rect width="890" height="176" rx="44" fill="#0f4e6b" opacity=".94"/>
+    <circle cx="77" cy="88" r="42" fill="#e7b83b"/>
+    <path d="M57 88h40M77 68v40" stroke="#0f4e6b" stroke-width="11" stroke-linecap="round"/>
+    <text x="145" y="74" class="tag">NCDs Portal — ระบบนิเวศสุขภาพชุมชนครบวงจร</text>
+    <text x="145" y="116" class="eng">NCDs Portal — The Community Health Ecosystem</text>
+  </g>
+  <text x="540" y="1812" text-anchor="middle" class="brand">คัดกรอง  •  ดูแล  •  ติดตาม</text>
+</svg>

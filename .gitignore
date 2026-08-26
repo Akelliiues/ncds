@@ -38,4 +38,5 @@ scratch_*.php
 scratch_*.py
 scratch_out.txt
 .tmp_*
+tmp/
 

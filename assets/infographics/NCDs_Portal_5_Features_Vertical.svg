@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920" role="img" aria-labelledby="title desc">
+  <title id="title">5 ฟีเจอร์เด่น NCDs Portal</title>
+  <desc id="desc">อินโฟกราฟิกแนวตั้งสรุปฟีเจอร์เด่นของ NCDs Portal</desc>
+  <defs>
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="10" dy="12" stdDeviation="12" flood-color="#8aa4bc" flood-opacity=".2"/></filter>
+    <style>
+      .thai { font-family: 'Leelawadee UI','Tahoma',sans-serif; fill:#123454; }
+      .kicker { font-size:18px; font-weight:900; letter-spacing:2px; fill:#00979d; }
+      .title { font-size:44px; font-weight:900; }
+      .tag { font-size:17px; font-weight:800; fill:#00979d; }
+      .feature { font-size:27px; font-weight:900; }
+      .desc { font-size:17px; fill:#587087; }
+      .num { font-size:20px; font-weight:900; fill:#fff; }
+      .footer { font-size:14px; font-weight:800; fill:#00979d; }
+    </style>
+  </defs>
+  <image href="ncd-killer-features-vertical-bg.png" x="0" y="0" width="1080" height="1920" preserveAspectRatio="xMidYMid slice"/>
+  <rect x="0" y="0" width="1080" height="1920" fill="#f7fbff" opacity=".1"/>
+
+  <text class="thai kicker" x="72" y="68">NCDs PORTAL • SIMPLE &amp; EASY</text>
+  <text class="thai title" x="72" y="120">5 ฟีเจอร์เด่น</text>
+  <text class="thai title" x="72" y="171">ที่เชื่อมงานสุขภาพให้เป็นระบบ</text>
+  <text class="thai desc" x="72" y="208">จากงานคัดกรอง สู่การติดตาม การวิเคราะห์ และการจัดการข้อมูล</text>
+
+  <g filter="url(#cardShadow)"><rect x="54" y="255" width="565" height="180" rx="28" fill="#fff" fill-opacity=".88"/></g>
+  <circle cx="95" cy="300" r="24" fill="#e75752"/><text class="thai num" x="95" y="307" text-anchor="middle">1</text>
+  <text class="thai tag" x="134" y="306">CASE RESPONSE</text>
+  <text class="thai feature" x="78" y="355">Red Alert &amp; การส่งต่อ</text>
+  <text class="thai desc" x="78" y="391">รวมจุดเริ่มต้นสำหรับเคสที่ต้องติดตาม</text>
+  <text class="thai desc" x="78" y="416">พร้อมเมนูเคสวิกฤตและ Red Alert Station</text>
+
+  <g filter="url(#cardShadow)"><rect x="54" y="575" width="565" height="180" rx="28" fill="#fff" fill-opacity=".88"/></g>
+  <circle cx="95" cy="620" r="24" fill="#e6aa25"/><text class="thai num" x="95" y="627" text-anchor="middle">2</text>
+  <text class="thai tag" x="134" y="626">RECOGNITION</text>
+  <text class="thai feature" x="78" y="675">คะแนน รางวัล และฉายา</text>
+  <text class="thai desc" x="78" y="711">กระดานคะแนน ฉายา Top 50 และการแลกรางวัล</text>
+  <text class="thai desc" x="78" y="736">ทำให้ผลงานที่ทำมองเห็นและติดตามได้</text>
+
+  <g filter="url(#cardShadow)"><rect x="54" y="895" width="565" height="180" rx="28" fill="#fff" fill-opacity=".88"/></g>
+  <circle cx="95" cy="940" r="24" fill="#7a67b4"/><text class="thai num" x="95" y="947" text-anchor="middle">3</text>
+  <text class="thai tag" x="134" y="946">CONTINUITY</text>
+  <text class="thai feature" x="78" y="995">ติดตามหลายรอบด้วย DPAC</text>
+  <text class="thai desc" x="78" y="1031">แยกรอบคัดกรองหลัก งานติดตามซ้ำ และงานค้าง</text>
+  <text class="thai desc" x="78" y="1056">เพื่อให้ทีมเห็นก้าวถัดไปของการดูแล</text>
+
+  <g filter="url(#cardShadow)"><rect x="54" y="1215" width="565" height="180" rx="28" fill="#fff" fill-opacity=".88"/></g>
+  <circle cx="95" cy="1260" r="24" fill="#167f95"/><text class="thai num" x="95" y="1267" text-anchor="middle">4</text>
+  <text class="thai tag" x="134" y="1266">SPATIAL INSIGHT</text>
+  <text class="thai feature" x="78" y="1315">แผนที่กลุ่มเสี่ยงตามพื้นที่</text>
+  <text class="thai desc" x="78" y="1351">กรองผลตามระดับความเสี่ยงและเขต รพ.สต.</text>
+  <text class="thai desc" x="78" y="1376">ใช้ประกอบการติดตามและวางแผนลงพื้นที่</text>
+
+  <g filter="url(#cardShadow)"><rect x="54" y="1535" width="565" height="180" rx="28" fill="#fff" fill-opacity=".88"/></g>
+  <circle cx="95" cy="1580" r="24" fill="#d46446"/><text class="thai num" x="95" y="1587" text-anchor="middle">5</text>
+  <text class="thai tag" x="134" y="1586">DATA OPERATIONS</text>
+  <text class="thai feature" x="78" y="1635">การจัดการข้อมูลและระบบหลังบ้าน</text>
+  <text class="thai desc" x="78" y="1671">จัดการเป้าหมาย ซิงค์ JHCIS และโหมดทดลอง</text>
+  <text class="thai desc" x="78" y="1696">รองรับงานผู้ดูแลและการกำกับระบบประจำวัน</text>
+
+  <text class="thai footer" x="72" y="1854">NCDs Portal  •  สำนักงานสาธารณสุขอำเภอตาลสุม</text>
+  <text class="thai footer" x="1008" y="1854" text-anchor="end">คัดกรอง • ดูแล • ติดตาม</text>
+</svg>
