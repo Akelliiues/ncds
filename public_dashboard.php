@@ -1620,7 +1620,7 @@ if (!function_exists('renderKpiGenderSplit')) {
                     </div>
 
                     <div class="badge-pill-inset" style="padding: 10px 14px; font-size: 12px; color: var(--text-secondary); width: 100%; box-sizing: border-box; justify-content: flex-start; line-height: 1.5;">
-                        💡 ข้อมูลทางระบาดวิทยาชี้ว่ากลุ่ม 60+ มีโอกาสพบความดันโลหิตและน้ำตาลสูงกว่าวัยทำงาน 1.8 เท่า
+                        💡 ข้อมูลทางระบาดวิทยาชี้ว่า กลุ่มอายุตั้งแต่ 60+ ปีขึ้นไป มีโอกาสพบความดันโลหิตและน้ำตาลสูงกว่ากลุ่มคนวัยทำงานถึง 1.8 เท่า
                     </div>
                 </div>
             </div>

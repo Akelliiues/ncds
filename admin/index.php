@@ -1228,7 +1228,7 @@ if (DemoDataProvider::isDemoMode()) {
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <?= render_neu_icon('chart-line', 'sm', 'disc-blue') ?>
-                    <h3 style="color: var(--color-accent); margin: 0; font-size: 15px; font-weight: 700;">🔄 ความก้าวหน้าและร้อยละผลงานการคัดกรองติดตามซ้ำรายรอบ (Multi-Round Re-screening)</h3>
+                    <h3 style="color: var(--color-accent); margin: 0; font-size: 15px; font-weight: 700;">ความก้าวหน้าและร้อยละผลงานการคัดกรองติดตามซ้ำรายรอบ (Multi-Round Re-screening)</h3>
                 </div>
                 <div style="font-size: 12px; font-weight: 600; color: var(--text-muted);">
                     <?= $admin_hoscode ? 'เปรียบเทียบรายหมู่บ้าน' : 'เปรียบเทียบรายหน่วยบริการ (รพ.สต.)' ?>
@@ -1442,7 +1442,7 @@ if (DemoDataProvider::isDemoMode()) {
 
             <!-- 5. Skipped Reasons (Span 4) -->
             <div class="bento-card bento-span-4">
-                <div class="bento-header">
+                <div class="bento-header" style="display: flex; justify-content: space-between; align-items: center;">
                     <h3 class="bento-title">
                         <span class="bento-icon-badge" style="background: rgba(100, 116, 139, 0.15); color: #64748b;">
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -1451,6 +1451,11 @@ if (DemoDataProvider::isDemoMode()) {
                         </span>
                         <span>สาเหตุการข้ามเคส (เคสไม่สมบูรณ์)</span>
                     </h3>
+                    <?php if (empty($chartSkippedData)): ?>
+                        <span style="background: rgba(16, 185, 129, 0.12); color: #10b981; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 9999px; border: 1px solid rgba(16, 185, 129, 0.25);">
+                            ✓ 0 เคส
+                        </span>
+                    <?php endif; ?>
                 </div>
                 <div id="chart-skipped"></div>
             </div>
@@ -2621,7 +2626,17 @@ if (DemoDataProvider::isDemoMode()) {
                 };
                 new ApexCharts(document.querySelector("#chart-screened-risk-pie"), optionsScreenedRisk).render();
             } else {
-                document.querySelector("#chart-screened-risk-pie").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 100px; font-size: 14px;">ยังไม่มีข้อมูลผลการคัดกรองแยกตามระดับความเสี่ยง</div>';
+                document.querySelector("#chart-screened-risk-pie").innerHTML = `
+                    <div style="height: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 18px 20px; background: rgba(100, 116, 139, 0.04); border: 1.5px dashed rgba(100, 116, 139, 0.2); border-radius: 18px; box-sizing: border-box;">
+                        <div style="width: 50px; height: 50px; border-radius: 50%; background: rgba(100, 116, 139, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 12px;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
+                                <path d="M22 12A10 10 0 0 0 12 2v10z"/>
+                            </svg>
+                        </div>
+                        <div style="font-size: 15px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">ยังไม่มีข้อมูลผลการคัดกรอง</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); max-width: 240px; line-height: 1.45;">ไม่พบข้อมูลระดับความเสี่ยงในเงื่อนไขและพื้นที่ที่เลือก</div>
+                    </div>`;
             }
 
             // Skipped Reasons Chart
@@ -2655,7 +2670,25 @@ if (DemoDataProvider::isDemoMode()) {
                 };
                 new ApexCharts(document.querySelector("#chart-skipped"), optionsSkipped).render();
             } else {
-                document.querySelector("#chart-skipped").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 50px;">ไม่มีข้อมูลการข้ามเคส</div>';
+                document.querySelector("#chart-skipped").innerHTML = `
+                    <div style="height: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 18px 20px; background: rgba(16, 185, 129, 0.04); border: 1.5px dashed rgba(16, 185, 129, 0.25); border-radius: 18px; box-sizing: border-box;">
+                        <div style="width: 52px; height: 52px; border-radius: 50%; background: rgba(16, 185, 129, 0.12); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.05);">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                        </div>
+                        <div style="font-size: 15.5px; font-weight: 800; color: #10b981; margin-bottom: 4px; letter-spacing: -0.2px;">
+                            คัดกรองสมบูรณ์ 100%
+                        </div>
+                        <div style="font-size: 12.5px; color: var(--text-secondary); max-width: 250px; line-height: 1.45; margin-bottom: 12px;">
+                            ไม่พบประวัติการข้ามเคส อสม. ติดตามตรวจคัดกรองกลุ่มเป้าหมายได้ครบถ้วนโดยไม่มีการตกหล่น
+                        </div>
+                        <span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(16, 185, 129, 0.12); color: #059669; font-size: 11.5px; font-weight: 800; padding: 4px 12px; border-radius: 9999px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                            <span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981;"></span>
+                            เคสที่ถูกข้าม: 0 ราย
+                        </span>
+                    </div>`;
             }
 
             // DPAC Enrollments Chart
@@ -2689,7 +2722,16 @@ if (DemoDataProvider::isDemoMode()) {
                 };
                 new ApexCharts(document.querySelector("#chart-dpac"), optionsDpac).render();
             } else {
-                document.querySelector("#chart-dpac").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 50px;">ไม่มีข้อมูลผู้เข้าร่วมโครงการ</div>';
+                document.querySelector("#chart-dpac").innerHTML = `
+                    <div style="height: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 18px 20px; background: rgba(6, 182, 212, 0.04); border: 1.5px dashed rgba(6, 182, 212, 0.25); border-radius: 18px; box-sizing: border-box;">
+                        <div style="width: 50px; height: 50px; border-radius: 50%; background: rgba(6, 182, 212, 0.12); display: flex; align-items: center; justify-content: center; margin-bottom: 12px;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                            </svg>
+                        </div>
+                        <div style="font-size: 15px; font-weight: 800; color: #0891b2; margin-bottom: 4px;">ยังไม่มีข้อมูลผู้เข้าร่วม DPAC</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); max-width: 240px; line-height: 1.45;">ยังไม่มีการส่งต่อกลุ่มเสี่ยงเข้าร่วมกิจกรรมปรับพฤติกรรมในรอบนี้</div>
+                    </div>`;
             }
 
             var optionsTotalPie = {
