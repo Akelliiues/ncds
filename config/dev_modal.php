@@ -350,8 +350,8 @@ if (file_exists('assets/aboutus.png')) {
     }
 </style>
 
-<div id="dev-portal-modal" class="dev-modal-overlay" style="display: none;" onclick="closeDevModal()">
-    <div class="dev-modal-container" onclick="event.stopPropagation()">
+<div id="dev-portal-modal" class="dev-modal-overlay" style="display: none;" onclick="closeDevModal()" title="แตะตรงไหนก็ได้เพื่อปิด">
+    <div class="dev-modal-container" onclick="closeDevModal()" style="cursor: pointer;" title="แตะตรงไหนก็ได้บนหน้าจอเพื่อปิด">
         <button type="button" class="dev-modal-close" onclick="closeDevModal()" title="ปิดหน้าต่าง">&times;</button>
 
         <!-- Developer & App Info Header (Wide PC Layout) -->
@@ -403,7 +403,9 @@ if (file_exists('assets/aboutus.png')) {
             <span class="dev-version-tag">
                 <span style="color: #10B981;">●</span> v3.0 (Stable Build <?= htmlspecialchars($build_number) ?>)
             </span>
-            <span class="dev-dismiss-hint">คลิกด้านนอก หรือกดปุ่ม ✕ เพื่อปิด</span>
+            <span class="dev-dismiss-hint" style="color: var(--color-primary, #2563eb); font-weight: 800; cursor: pointer;">
+                👉 แตะตรงไหนก็ได้บนหน้าจอเพื่อปิด
+            </span>
         </div>
     </div>
 </div>
@@ -425,7 +427,8 @@ if (file_exists('assets/aboutus.png')) {
     });
 
     function openDevModal(e) {
-        if (e) e.preventDefault();
+        if (e && e.stopPropagation) e.stopPropagation();
+        if (e && e.preventDefault) e.preventDefault();
         const modal = document.getElementById('dev-portal-modal');
         if (!modal) return;
 
@@ -433,20 +436,33 @@ if (file_exists('assets/aboutus.png')) {
         modal.offsetHeight; // Force reflow
         modal.classList.add('show');
 
+        // Add global click/touch dismissal listener on window so any touch outside/inside closes it
+        setTimeout(() => {
+            window.addEventListener('click', handleGlobalDevModalClose, { capture: true, once: true });
+            window.addEventListener('touchstart', handleGlobalDevModalClose, { capture: true, once: true });
+        }, 80);
+
         // Clear existing auto-close timer if any
         if (devModalAutoCloseTimer) {
             clearTimeout(devModalAutoCloseTimer);
         }
 
-        // Auto-close after 8 seconds (longer on PC to comfortably read)
+        // Auto-close after 8 seconds
         devModalAutoCloseTimer = setTimeout(function() {
             closeDevModal();
         }, 8000);
     }
 
+    function handleGlobalDevModalClose(e) {
+        closeDevModal();
+    }
+
     function closeDevModal() {
         const modal = document.getElementById('dev-portal-modal');
         if (!modal || !modal.classList.contains('show')) return;
+
+        window.removeEventListener('click', handleGlobalDevModalClose, { capture: true });
+        window.removeEventListener('touchstart', handleGlobalDevModalClose, { capture: true });
 
         if (devModalAutoCloseTimer) {
             clearTimeout(devModalAutoCloseTimer);
@@ -462,4 +478,11 @@ if (file_exists('assets/aboutus.png')) {
             localStorage.setItem('ncd_dev_modal_last_shown_v2', today);
         }, 200);
     }
+
+    // Support keyboard ESC to close
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeDevModal();
+        }
+    });
 </script>
