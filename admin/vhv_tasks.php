@@ -654,7 +654,7 @@ if ($admin_hoscode !== null) {
                             <div class="item-row" id="vhv-row-${v.vhv_id}" onclick="selectVhv('${v.vhv_id}')">
                                 <div class="item-info">
                                     <h4>${v.vhv_name}</h4>
-                                    <p>⏳ งานค้าง: <strong>${v.total_task_count}</strong> ใบ | 📍 ทั้งหมด: <strong>${v.overall_total_count}</strong> ใบ</p>
+                                    <p>📍 ทั้งหมด: <strong>${v.overall_total_count}</strong> ใบ | ⏳ งานค้าง: <strong>${v.total_task_count}</strong> ใบ</p>
                                 </div>
                             </div>
                         `;
