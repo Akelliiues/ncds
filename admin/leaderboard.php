@@ -77,32 +77,9 @@ $sql = "
             WHERE r.vhv_id = u.vhv_id 
               AND r.approval_status IN ('approved', 'waiting') 
               AND r.is_sandbox = :is_sandbox3
-        ) as raw_rewards_points,
-        GREATEST(
-            (
-                SELECT COALESCE(SUM(CASE WHEN (r.followup_id IS NULL AND r.assignment_id IS NULL) OR (r.followup_id IS NULL AND ta.assignment_id IS NOT NULL) OR (r.followup_id IS NOT NULL AND f.followup_id IS NOT NULL) THEN r.points_earned ELSE 0 END), 0)
-                FROM vhv_rewards r
-                LEFT JOIN task_assignments ta ON r.assignment_id = ta.assignment_id
-                LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id
-                WHERE r.vhv_id = u.vhv_id 
-                  AND r.approval_status IN ('approved', 'waiting') 
-                  AND r.is_sandbox = :is_sandbox3b
-            ),
-            (
-                SELECT COALESCE(SUM(CASE WHEN s.round_number >= 2 THEN 2 ELSE 1 END), 0)
-                FROM screening_results s
-                WHERE (s.vhv_id = u.vhv_id OR s.assessor_name = u.vhv_name)
-                  AND COALESCE(s.is_sandbox, 0) = :is_sandbox_sc1
-            )
         ) as total_points,
-        GREATEST(
-            (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026 AND is_sandbox = :is_sandbox4),
-            (SELECT COUNT(DISTINCT s.target_cid) FROM screening_results s WHERE (s.vhv_id = u.vhv_id OR s.assessor_name = u.vhv_name) AND COALESCE(s.is_sandbox, 0) = :is_sandbox_sc2)
-        ) as total_assigned,
-        GREATEST(
-            (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026 AND assignment_status = 'completed' AND is_sandbox = :is_sandbox5),
-            (SELECT COUNT(DISTINCT s.target_cid) FROM screening_results s WHERE (s.vhv_id = u.vhv_id OR s.assessor_name = u.vhv_name) AND COALESCE(s.is_sandbox, 0) = :is_sandbox_sc3)
-        ) as completed,
+        (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026 AND is_sandbox = :is_sandbox4) as total_assigned,
+        (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026 AND assignment_status = 'completed' AND is_sandbox = :is_sandbox5) as completed,
         (SELECT COUNT(*) FROM vhv_rewards WHERE vhv_id = u.vhv_id AND approval_status = 'waiting' AND is_sandbox = :is_sandbox6) as waiting_rewards
     FROM vhv_users u
     WHERE u.approved = 1
@@ -121,13 +98,9 @@ if (DemoDataProvider::isDemoMode()) {
             'is_sandbox1' => $isSandboxVal,
             'is_sandbox2' => $isSandboxVal,
             'is_sandbox3' => $isSandboxVal,
-            'is_sandbox3b' => $isSandboxVal,
             'is_sandbox4' => $isSandboxVal,
             'is_sandbox5' => $isSandboxVal,
-            'is_sandbox6' => $isSandboxVal,
-            'is_sandbox_sc1' => $isSandboxVal,
-            'is_sandbox_sc2' => $isSandboxVal,
-            'is_sandbox_sc3' => $isSandboxVal
+            'is_sandbox6' => $isSandboxVal
         ]);
         $vhv_list = $stmt->fetchAll();
     } catch (\PDOException $e) {

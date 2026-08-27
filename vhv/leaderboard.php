@@ -269,66 +269,42 @@ if (DemoDataProvider::isDemoMode()) {
                 u.is_hl_coach,
                 COALESCE(NULLIF(u.hoscode, ''), v.hoscode) as hoscode,
                 v.village_name,
-                GREATEST(
-                    (
-                        SELECT COALESCE(SUM(CASE WHEN (r.followup_id IS NULL AND r.assignment_id IS NULL) OR (r.followup_id IS NULL AND ta.assignment_id IS NOT NULL) OR (r.followup_id IS NOT NULL AND f.followup_id IS NOT NULL) THEN r.points_earned ELSE 0 END), 0)
-                        FROM vhv_rewards r
-                        LEFT JOIN task_assignments ta ON r.assignment_id = ta.assignment_id
-                        LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id
-                        WHERE r.vhv_id = u.vhv_id AND r.approval_status IN ('approved', 'waiting') AND r.is_sandbox = :is_sandbox1
-                    ),
-                    (
-                        SELECT COALESCE(SUM(CASE WHEN s.round_number >= 2 THEN 2 ELSE 1 END), 0)
-                        FROM screening_results s
-                        WHERE (s.vhv_id = u.vhv_id OR s.assessor_name = u.vhv_name)
-                          AND COALESCE(s.is_sandbox, 0) = :is_sandbox_sc1
-                    )
+                (
+                    SELECT COALESCE(SUM(CASE WHEN (r.followup_id IS NULL AND r.assignment_id IS NULL) OR (r.followup_id IS NULL AND ta.assignment_id IS NOT NULL) OR (r.followup_id IS NOT NULL AND f.followup_id IS NOT NULL) THEN r.points_earned ELSE 0 END), 0)
+                    FROM vhv_rewards r
+                    LEFT JOIN task_assignments ta ON r.assignment_id = ta.assignment_id
+                    LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id
+                    WHERE r.vhv_id = u.vhv_id AND r.approval_status IN ('approved', 'waiting') AND r.is_sandbox = :is_sandbox1
                 ) as total_points,
-                GREATEST(
-                    (
-                        SELECT COUNT(*) 
-                        FROM task_assignments ta 
-                        JOIN target_population p ON ta.target_cid = p.cid 
-                        WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = :budget_year1 AND ta.is_sandbox = :is_sandbox2
-                          AND (
-                              (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-                              OR 
-                              (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
-                              OR
-                              p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
-                              OR
-                              COALESCE(p.is_manual, 0) = 1
-                          )
-                    ),
-                    (
-                        SELECT COUNT(DISTINCT s.target_cid)
-                        FROM screening_results s
-                        WHERE (s.vhv_id = u.vhv_id OR s.assessor_name = u.vhv_name)
-                          AND COALESCE(s.is_sandbox, 0) = :is_sandbox_sc2
-                    )
+                (
+                    SELECT COUNT(*) 
+                    FROM task_assignments ta 
+                    JOIN target_population p ON ta.target_cid = p.cid 
+                    WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = :budget_year1 AND ta.is_sandbox = :is_sandbox2
+                      AND (
+                          (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+                          OR 
+                          (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+                          OR
+                          p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+                          OR
+                          COALESCE(p.is_manual, 0) = 1
+                      )
                 ) as total_assigned,
-                GREATEST(
-                    (
-                        SELECT COUNT(*) 
-                        FROM task_assignments ta 
-                        JOIN target_population p ON ta.target_cid = p.cid 
-                        WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = :budget_year2 AND ta.assignment_status = 'completed' AND ta.is_sandbox = :is_sandbox3
-                          AND (
-                              (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-                              OR 
-                              (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
-                              OR
-                              p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
-                              OR
-                              COALESCE(p.is_manual, 0) = 1
-                          )
-                    ),
-                    (
-                        SELECT COUNT(DISTINCT s.target_cid)
-                        FROM screening_results s
-                        WHERE (s.vhv_id = u.vhv_id OR s.assessor_name = u.vhv_name)
-                          AND COALESCE(s.is_sandbox, 0) = :is_sandbox_sc3
-                    )
+                (
+                    SELECT COUNT(*) 
+                    FROM task_assignments ta 
+                    JOIN target_population p ON ta.target_cid = p.cid 
+                    WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = :budget_year2 AND ta.assignment_status = 'completed' AND ta.is_sandbox = :is_sandbox3
+                      AND (
+                          (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+                          OR 
+                          (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
+                          OR
+                          p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+                          OR
+                          COALESCE(p.is_manual, 0) = 1
+                      )
                 ) as completed,
                 (SELECT COUNT(*) FROM vhv_rewards WHERE vhv_id = u.vhv_id AND approval_status = 'waiting' AND is_sandbox = :is_sandbox4) as waiting_rewards
             FROM vhv_users u
@@ -341,9 +317,6 @@ if (DemoDataProvider::isDemoMode()) {
             'is_sandbox2' => $isSandboxVal,
             'is_sandbox3' => $isSandboxVal,
             'is_sandbox4' => $isSandboxVal,
-            'is_sandbox_sc1' => $isSandboxVal,
-            'is_sandbox_sc2' => $isSandboxVal,
-            'is_sandbox_sc3' => $isSandboxVal,
             'budget_year1' => $currentBudgetYear,
             'budget_year2' => $currentBudgetYear
         ]);
