@@ -217,7 +217,6 @@ $incident_labels = [
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
             gap: 16px;
-            margin-bottom: 28px;
         }
 
         .stat-card {
@@ -226,6 +225,37 @@ $incident_labels = [
             padding: 20px 18px;
             box-shadow: var(--neumorph-flat);
             text-align: center;
+        }
+
+        .btn-neumorph-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--neumorph-flat);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: var(--color-accent);
+            cursor: pointer;
+            transition: all var(--transition-speed);
+            outline: none;
+            padding: 0;
+            flex-shrink: 0;
+            text-decoration: none;
+        }
+
+        .btn-neumorph-icon:hover {
+            transform: translateY(-2px);
+            color: var(--color-primary);
+            box-shadow: 0 4px 14px rgba(13, 44, 84, 0.18);
+        }
+
+        .btn-neumorph-icon:active {
+            transform: translateY(1px);
+            box-shadow: var(--neumorph-inset);
         }
 
         .stat-num {
@@ -385,20 +415,14 @@ $incident_labels = [
     <div style="max-width:1300px;margin:40px auto;padding:0 20px;">
 
         <!-- Page header -->
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
-            <div>
-                <h2 style="color:var(--color-accent);margin:0 0 6px;">🔐 Security & Activity Log — การสแกนและบันทึกกิจกรรม</h2>
-                <p style="color:var(--text-secondary);margin:0;font-size:14px;">
-                    รายการบันทึกเหตุการณ์ความปลอดภัย การสแกน QR Code ที่ผิดปกติ หรือประวัติการตอบแบบสอบถาม
-                    <?php if ($admin_hoscode): ?>
-                        • แสดงเฉพาะ <strong><?= htmlspecialchars($hc_names[$admin_hoscode] ?? $admin_hoscode) ?></strong>
-                    <?php endif; ?>
-                </p>
-            </div>
-            <a href="javascript:window.print()" class="btn-giant btn-giant-secondary"
-                style="margin:0;padding:10px 18px;font-size:14px;display:inline-flex;align-items:center;gap:6px;">
-                🖨️ พิมพ์รายงาน
-            </a>
+        <div style="margin-bottom:24px;">
+            <h2 style="color:var(--color-accent);margin:0 0 6px;">🔐 Security & Activity Log — การสแกนและบันทึกกิจกรรม</h2>
+            <p style="color:var(--text-secondary);margin:0;font-size:14px;">
+                รายการบันทึกเหตุการณ์ความปลอดภัย การสแกน QR Code ที่ผิดปกติ หรือประวัติการตอบแบบสอบถาม
+                <?php if ($admin_hoscode): ?>
+                    • แสดงเฉพาะ <strong><?= htmlspecialchars($hc_names[$admin_hoscode] ?? $admin_hoscode) ?></strong>
+                <?php endif; ?>
+            </p>
         </div>
 
         <!-- Success message -->
@@ -409,24 +433,29 @@ $incident_labels = [
             </div>
         <?php endif; ?>
 
-        <!-- Summary Stats -->
-        <div class="stat-grid">
-            <div class="stat-card">
-                <div class="stat-num" style="color:var(--color-red);"><?= number_format((float)($stats['total_all'] ?? 0)) ?></div>
-                <div class="stat-label">ทั้งหมด (ทุกช่วง)</div>
+        <!-- Summary Stats + Print Icon in the Same Row -->
+        <div style="display:flex;gap:14px;align-items:center;margin-bottom:24px;flex-wrap:wrap;">
+            <div class="stat-grid" style="flex:1;min-width:280px;">
+                <div class="stat-card">
+                    <div class="stat-num" style="color:var(--color-red);"><?= number_format((float)($stats['total_all'] ?? 0)) ?></div>
+                    <div class="stat-label">ทั้งหมด (ทุกช่วง)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num" style="color:var(--color-yellow);"><?= number_format((float)($stats['today'] ?? 0)) ?></div>
+                    <div class="stat-label">วันนี้</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num" style="color:var(--color-primary);"><?= number_format((float)($stats['this_week'] ?? 0)) ?></div>
+                    <div class="stat-label">7 วันล่าสุด</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num" style="color:var(--color-accent);"><?= number_format((float)($stats['unique_vhvs'] ?? 0)) ?></div>
+                    <div class="stat-label">อสม. ที่เกิดเหตุ (ไม่ซ้ำ)</div>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-num" style="color:var(--color-yellow);"><?= number_format((float)($stats['today'] ?? 0)) ?></div>
-                <div class="stat-label">วันนี้</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-num" style="color:var(--color-primary);"><?= number_format((float)($stats['this_week'] ?? 0)) ?></div>
-                <div class="stat-label">7 วันล่าสุด</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-num" style="color:var(--color-accent);"><?= number_format((float)($stats['unique_vhvs'] ?? 0)) ?></div>
-                <div class="stat-label">อสม. ที่เกิดเหตุ (ไม่ซ้ำ)</div>
-            </div>
+            <button type="button" onclick="window.print()" class="btn-neumorph-icon no-print" title="พิมพ์รายงาน" aria-label="พิมพ์รายงาน">
+                🖨️
+            </button>
         </div>
 
         <!-- Filter bar -->
