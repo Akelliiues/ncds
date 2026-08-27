@@ -155,8 +155,8 @@ if ($admin_hoscode !== null) {
 
         .grid-container {
             display: grid;
-            grid-template-columns: 0.6fr 1.4fr;
-            gap: 24px;
+            grid-template-columns: 290px 1fr;
+            gap: 20px;
             margin-top: 20px;
         }
 
@@ -248,24 +248,19 @@ if ($admin_hoscode !== null) {
 
         .task-table {
             width: 100%;
+            min-width: 780px;
             border-collapse: separate;
             border-spacing: 0;
             color: var(--text-primary);
-            table-layout: fixed;
-            /* บังคับใช้ขนาดกว้างคงที่ตามกำหนด */
         }
 
         .task-table th,
         .task-table td {
-            padding: 10px 12px;
+            padding: 8px 10px;
             text-align: left;
             vertical-align: middle;
             font-size: 13px;
             white-space: nowrap;
-            /* ป้องกันการตัดคำ */
-            overflow: hidden;
-            text-overflow: ellipsis;
-            /* ตัดคำที่ล้นด้วย ... กรณีบีบแคบ */
         }
 
         .task-table thead th {
@@ -354,6 +349,30 @@ if ($admin_hoscode !== null) {
             background-color: #2563eb;
             color: white;
             transform: translateY(-1px);
+        }
+
+        .btn-view-detail-icon {
+            background: rgba(59, 130, 246, 0.1);
+            color: #2563eb;
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 0;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-view-detail-icon:hover {
+            background-color: #2563eb;
+            color: white;
+            transform: translateY(-1px) scale(1.08);
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
         }
 
         .badge-rescreen {
@@ -482,13 +501,13 @@ if ($admin_hoscode !== null) {
                         <table class="task-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 105px;">เลขบัตร (CID)</th>
-                                    <th style="width: 140px;">ชื่อ - นามสกุล</th>
+                                    <th style="width: 120px;">เลขบัตร (CID)</th>
+                                    <th>ชื่อ - นามสกุล</th>
                                     <th style="width: 45px; text-align: center;">อายุ</th>
                                     <th style="width: 75px;">ที่อยู่</th>
-                                    <th style="width: 95px;">สถานะ</th>
-                                    <th style="width: 110px;">วันที่มอบหมาย</th>
-                                    <th style="width: 70px; text-align: center;">จัดการ</th>
+                                    <th style="width: 160px;">สถานะ</th>
+                                    <th style="width: 130px;">วันที่มอบหมาย</th>
+                                    <th style="width: 55px; text-align: center;">ประวัติ</th>
                                 </tr>
                             </thead>
                             <tbody id="ncd-list-body">
@@ -504,7 +523,7 @@ if ($admin_hoscode !== null) {
                         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                             <div>
                                 <h3 style="margin: 0; color: #6366f1; font-size: 15px;">🏃 งานติดตาม DPAC</h3>
-                                <p style="color: var(--text-muted); margin: 3px 0 0 0; font-size: 12px;" id="dpac-summary-text">ค้าง 0 | ทั้งหมด 0 ใบ</p>
+                                <p style="color: var(--text-muted); margin: 3px 0 0 0; font-size: 12px;" id="dpac-summary-text">ทั้งหมด 0 ใบ | ค้าง 0 ใบ</p>
                             </div>
                             <button class="btn-cancel-all" id="btn-cancel-dpac" style="display: none;" onclick="cancelAllDpacTasks()">
                                 ดึงคืนทั้งหมด
@@ -515,13 +534,13 @@ if ($admin_hoscode !== null) {
                         <table class="task-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 105px;">เลขบัตร (CID)</th>
-                                    <th style="width: 140px;">ชื่อ - นามสกุล</th>
+                                    <th style="width: 120px;">เลขบัตร (CID)</th>
+                                    <th>ชื่อ - นามสกุล</th>
                                     <th style="width: 45px; text-align: center;">อายุ</th>
-                                    <th style="width: 100px;">รอบติดตาม</th>
-                                    <th style="width: 95px;">สถานะ</th>
-                                    <th style="width: 110px;">วันที่มอบหมาย</th>
-                                    <th style="width: 70px; text-align: center;">จัดการ</th>
+                                    <th style="width: 130px;">รอบติดตาม</th>
+                                    <th style="width: 150px;">สถานะ</th>
+                                    <th style="width: 130px;">วันที่มอบหมาย</th>
+                                    <th style="width: 55px; text-align: center;">ประวัติ</th>
                                 </tr>
                             </thead>
                             <tbody id="dpac-list-body">
@@ -735,11 +754,11 @@ if ($admin_hoscode !== null) {
                             summaryBadge = `<div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">BP: <strong>${bpText}</strong> | DTX: <strong>${dtxText}</strong></div>`;
                         }
                         statusHtml = `<span style="color:var(--color-green); font-weight:bold;">✅ คัดกรองแล้ว</span> ${roundBadge}${summaryBadge}`;
-                        actionHtml = `<button class="btn-view-detail" onclick="openScreeningModal(${t.task_id})">🔍 ดูผลเดิม</button>`;
+                        actionHtml = `<button class="btn-view-detail-icon" title="ดูประวัติผลการคัดกรอง" onclick="openScreeningModal(${t.task_id})">🔍</button>`;
                     } else if (t.assignment_status === 'skipped') {
                         const reasonText = t.skipped_reason ? `<div style="font-size:11px; color:var(--text-muted); margin-top:2px;">เหตุ: ${t.skipped_reason}</div>` : '';
                         statusHtml = `<span style="color:var(--color-red); font-weight:bold;">❌ ข้ามเคสแล้ว</span> ${roundBadge}${reasonText}`;
-                        actionHtml = `<button class="btn-view-detail" onclick="openScreeningModal(${t.task_id})">🔍 ดูเหตุผล</button>`;
+                        actionHtml = `<button class="btn-view-detail-icon" title="ดูเหตุผลการข้ามเคส" onclick="openScreeningModal(${t.task_id})">🔍</button>`;
                     } else {
                         let prevInfoBadge = '';
                         if (t.prev_sys_bp1 || t.prev_dtx_value) {
@@ -749,7 +768,7 @@ if ($admin_hoscode !== null) {
                             prevInfoBadge = `<div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">📜 ผลเดิม (${pRound}): BP <strong>${pBp}</strong> | DTX <strong>${pDtx}</strong></div>`;
                         }
                         statusHtml = `<span style="color:var(--color-yellow); font-weight:bold;">⏳ รอคัดกรอง</span> ${roundBadge}${prevInfoBadge}`;
-                        actionHtml = `<button class="btn-cancel-assign" onclick="cancelAssignment('screen', '${t.cid}', ${t.task_id}, '${(t.first_name + ' ' + t.last_name).replace(/'/g, "\\'")}')">ดึงคืน</button>`;
+                        actionHtml = `<button class="btn-cancel-assign" title="ดึงคืนใบงานนี้" onclick="cancelAssignment('screen', '${t.cid}', ${t.task_id}, '${(t.first_name + ' ' + t.last_name).replace(/'/g, "\\'")}')">ดึงคืน</button>`;
                         ncdPending++;
                     }
 
@@ -775,7 +794,7 @@ if ($admin_hoscode !== null) {
             }
             const ncdCompleted = currentNcdTasks.filter(t => t.assignment_status === 'completed').length;
             const ncdSkipped = currentNcdTasks.filter(t => t.assignment_status === 'skipped').length;
-            ncdText.innerHTML = `งานค้าง: <strong style="color:var(--color-yellow);">${ncdPending}</strong> | คัดกรองสำเร็จ: <strong style="color:var(--color-green);">${ncdCompleted}</strong> | ข้ามเคส: <strong style="color:var(--color-red);">${ncdSkipped}</strong> | รวมมอบหมายทั้งหมด: <strong>${currentNcdTasks.length}</strong> ใบ`;
+            ncdText.innerHTML = `ทั้งหมด: <strong>${currentNcdTasks.length}</strong> ใบ | งานค้าง: <strong style="color:var(--color-yellow);">${ncdPending}</strong> | คัดกรองสำเร็จ: <strong style="color:var(--color-green);">${ncdCompleted}</strong> | ข้ามเคส: <strong style="color:var(--color-red);">${ncdSkipped}</strong>`;
 
             // 2. Render DPAC Followups
             const dpacTbody = document.getElementById('dpac-list-body');
@@ -802,14 +821,14 @@ if ($admin_hoscode !== null) {
                             summaryBadge = `<div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">BP: <strong>${bpText}</strong> | FBS: <strong>${dtxText}</strong></div>`;
                         }
                         statusHtml = `<span style="color:var(--color-green); font-weight:bold;">✅ ติดตามแล้ว</span>${summaryBadge}`;
-                        actionHtml = `<button class="btn-view-detail" onclick="openDpacModal(${t.task_id})">🔍 ดูผลเดิม</button>`;
+                        actionHtml = `<button class="btn-view-detail-icon" title="ดูประวัติการติดตาม DPAC" onclick="openDpacModal(${t.task_id})">🔍</button>`;
                     } else if (t.assignment_status === 'skipped') {
                         const reasonText = t.skipped_reason ? `<div style="font-size:11px; color:var(--text-muted); margin-top:2px;">เหตุ: ${t.skipped_reason}</div>` : '';
                         statusHtml = `<span style="color:var(--color-red); font-weight:bold;">❌ ข้ามรอบแล้ว</span>${reasonText}`;
-                        actionHtml = `<button class="btn-view-detail" onclick="openDpacModal(${t.task_id})">🔍 ดูเหตุผล</button>`;
+                        actionHtml = `<button class="btn-view-detail-icon" title="ดูเหตุผลการข้ามเคส" onclick="openDpacModal(${t.task_id})">🔍</button>`;
                     } else {
                         statusHtml = '<span style="color:var(--color-yellow); font-weight:bold;">⏳ รอติดตาม</span>';
-                        actionHtml = `<button class="btn-cancel-assign" onclick="cancelAssignment('dpac', '${t.cid}', ${t.task_id}, '${(t.first_name + ' ' + t.last_name).replace(/'/g, "\\'")}')">ดึงคืน</button>`;
+                        actionHtml = `<button class="btn-cancel-assign" title="ดึงคืนใบงานนี้" onclick="cancelAssignment('dpac', '${t.cid}', ${t.task_id}, '${(t.first_name + ' ' + t.last_name).replace(/'/g, "\\'")}')">ดึงคืน</button>`;
                         dpacPending++;
                     }
 
@@ -835,7 +854,7 @@ if ($admin_hoscode !== null) {
             }
             const dpacCompleted = currentDpacTasks.filter(t => t.assignment_status === 'completed').length;
             const dpacSkipped = currentDpacTasks.filter(t => t.assignment_status === 'skipped').length;
-            dpacText.innerHTML = `งานค้าง: <strong style="color:var(--color-yellow);">${dpacPending}</strong> | ติดตามสำเร็จ: <strong style="color:var(--color-green);">${dpacCompleted}</strong> | รวมมอบหมายทั้งหมด: <strong>${currentDpacTasks.length}</strong> ใบ`;
+            dpacText.innerHTML = `ทั้งหมด: <strong>${currentDpacTasks.length}</strong> ใบ | งานค้าง: <strong style="color:var(--color-yellow);">${dpacPending}</strong> | ติดตามสำเร็จ: <strong style="color:var(--color-green);">${dpacCompleted}</strong> | ข้ามเคส: <strong style="color:var(--color-red);">${dpacSkipped}</strong>`;
         }
 
         function openScreeningModal(taskId) {
