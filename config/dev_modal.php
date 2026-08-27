@@ -401,7 +401,7 @@ if (file_exists('assets/aboutus.png')) {
         <!-- Footer System Version & Build Info -->
         <div class="dev-footer-info">
             <span class="dev-version-tag">
-                <span style="color: #10B981;">●</span> v2.95 (Stable Build <?= htmlspecialchars($build_number) ?>)
+                <span style="color: #10B981;">●</span> v3.0 (Stable Build <?= htmlspecialchars($build_number) ?>)
             </span>
             <span class="dev-dismiss-hint">คลิกด้านนอก หรือกดปุ่ม ✕ เพื่อปิด</span>
         </div>

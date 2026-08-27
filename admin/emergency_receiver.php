@@ -1350,7 +1350,7 @@ try {
         <span>NCDs Red Alert Station • ศูนย์รับสัญญาณวิกฤตฉุกเฉิน 24 ชม.</span>
         <span>•</span>
         <button type="button" onclick="openDevModal(event)" style="background: none; border: none; padding: 0; color: var(--text-muted); font-size: 11.5px; cursor: pointer; text-decoration: underline; opacity: 0.85; transition: color 0.2s ease;" onmouseover="this.style.color='#2563EB'" onmouseout="this.style.color='var(--text-muted)'" title="คลิกดูรายละเอียดระบบและทีมพัฒนา">
-            v2.95 (Build Info & Developer)
+            v3.0 (Build Info & Developer)
         </button>
     </footer>
 
