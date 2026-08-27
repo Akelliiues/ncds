@@ -18,6 +18,11 @@ $hc_names = function_exists('get_health_units') ? get_health_units() : [];
 $selected_hoscode = $_GET['hoscode'] ?? ($admin_hoscode ?? '');
 $selected_tab = $_GET['tab'] ?? 'tab1';
 
+// Pagination parameters
+$page = isset($_GET['page']) && is_numeric($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$limit = isset($_GET['limit']) && is_numeric($_GET['limit']) ? min(200, max(10, (int)$_GET['limit'])) : 25;
+$offset = ($page - 1) * $limit;
+
 $activeBudgetYear = isset($_GET['budget_year']) && is_numeric($_GET['budget_year'])
     ? (int)$_GET['budget_year']
     : (isset($_SESSION['active_budget_year']) ? (int)$_SESSION['active_budget_year'] : (function_exists('get_current_budget_year') ? get_current_budget_year() : 2026));
@@ -33,48 +38,64 @@ try {
 // -------------------------------------------------------------
 // DIMENSION 1: ทะเบียนติดตามกลุ่มเสี่ยง / เยี่ยมบ้าน (Risk Registry)
 // -------------------------------------------------------------
+$dim1_total = 0;
 $dim1_data = [];
 try {
-    $sql1 = "
-        SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
-               sr.sys_bp1, sr.dia_bp1, sr.dtx_value, sr.bmi,
-               COALESCE(sr.care_level, 'good') AS care_level,
-               sr.next_visit_date,
-               COALESCE(sr.health_progress, 'baseline') AS health_progress,
-               COALESCE(sr.sleep_quality, 'good') AS sleep_quality,
-               sr.created_at AS last_screen_date,
-               v.vhv_name
+    $countSql1 = "
+        SELECT COUNT(*)
         FROM screening_results sr
         JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id
         JOIN target_population p ON ta.target_cid = p.cid
-        LEFT JOIN vhv_users v ON ta.vhv_id = v.vhv_id
         WHERE (sr.care_level IN ('fair', 'poor', 'critical') OR sr.sys_bp1 >= 130 OR sr.dtx_value >= 100)
     ";
-    $params1 = [];
+    $paramsCount1 = [];
     if (!empty($selected_hoscode)) {
-        $sql1 .= " AND p.hoscode = ?";
-        $params1[] = $selected_hoscode;
+        $countSql1 .= " AND p.hoscode = ?";
+        $paramsCount1[] = $selected_hoscode;
     }
-    $sql1 .= " ORDER BY sr.care_level = 'critical' DESC, sr.care_level = 'poor' DESC, sr.next_visit_date ASC LIMIT 150";
-    $stmt1 = $pdo->prepare($sql1);
-    $stmt1->execute($params1);
-    $dim1_data = $stmt1->fetchAll(PDO::FETCH_ASSOC);
+    $stmtCount1 = $pdo->prepare($countSql1);
+    $stmtCount1->execute($paramsCount1);
+    $dim1_total = (int)$stmtCount1->fetchColumn();
+
+    if ($selected_tab === 'tab1' || empty($selected_tab)) {
+        $sql1 = "
+            SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
+                   sr.sys_bp1, sr.dia_bp1, sr.dtx_value, sr.bmi,
+                   COALESCE(sr.care_level, 'good') AS care_level,
+                   sr.next_visit_date,
+                   COALESCE(sr.health_progress, 'baseline') AS health_progress,
+                   COALESCE(sr.sleep_quality, 'good') AS sleep_quality,
+                   sr.created_at AS last_screen_date,
+                   v.vhv_name
+            FROM screening_results sr
+            JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id
+            JOIN target_population p ON ta.target_cid = p.cid
+            LEFT JOIN vhv_users v ON ta.vhv_id = v.vhv_id
+            WHERE (sr.care_level IN ('fair', 'poor', 'critical') OR sr.sys_bp1 >= 130 OR sr.dtx_value >= 100)
+        ";
+        $params1 = [];
+        if (!empty($selected_hoscode)) {
+            $sql1 .= " AND p.hoscode = ?";
+            $params1[] = $selected_hoscode;
+        }
+        $sql1 .= " ORDER BY sr.care_level = 'critical' DESC, sr.care_level = 'poor' DESC, sr.next_visit_date ASC LIMIT $limit OFFSET $offset";
+        $stmt1 = $pdo->prepare($sql1);
+        $stmt1->execute($params1);
+        $dim1_data = $stmt1->fetchAll(PDO::FETCH_ASSOC);
+    }
 } catch (\Exception $e) { $dim1_data = []; }
 
 // -------------------------------------------------------------
 // DIMENSION 2: กลุ่มที่ควรตรวจซ้ำ (Retest Due)
 // -------------------------------------------------------------
+$dim2_total = 0;
 $dim2_data = [];
 try {
-    $sql2 = "
-        SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
-               sr.sys_bp1, sr.dia_bp1, sr.dtx_value, sr.round_number, sr.created_at AS round1_date,
-               DATEDIFF(CURDATE(), sr.created_at) AS days_since_r1,
-               v.vhv_name
+    $countSql2 = "
+        SELECT COUNT(*)
         FROM screening_results sr
         JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id
         JOIN target_population p ON ta.target_cid = p.cid
-        LEFT JOIN vhv_users v ON ta.vhv_id = v.vhv_id
         WHERE sr.round_number = 1 
           AND ( (sr.sys_bp1 BETWEEN 130 AND 159 OR sr.dia_bp1 BETWEEN 85 AND 99) OR (sr.dtx_value BETWEEN 100 AND 125) )
           AND NOT EXISTS (
@@ -83,70 +104,136 @@ try {
               WHERE ta2.target_cid = p.cid AND sr2.round_number >= 2
           )
     ";
-    $params2 = [];
+    $paramsCount2 = [];
     if (!empty($selected_hoscode)) {
-        $sql2 .= " AND p.hoscode = ?";
-        $params2[] = $selected_hoscode;
+        $countSql2 .= " AND p.hoscode = ?";
+        $paramsCount2[] = $selected_hoscode;
     }
-    $sql2 .= " ORDER BY days_since_r1 DESC LIMIT 150";
-    $stmt2 = $pdo->prepare($sql2);
-    $stmt2->execute($params2);
-    $dim2_data = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+    $stmtCount2 = $pdo->prepare($countSql2);
+    $stmtCount2->execute($paramsCount2);
+    $dim2_total = (int)$stmtCount2->fetchColumn();
+
+    if ($selected_tab === 'tab2') {
+        $sql2 = "
+            SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
+                   sr.sys_bp1, sr.dia_bp1, sr.dtx_value, sr.round_number, sr.created_at AS round1_date,
+                   DATEDIFF(CURDATE(), sr.created_at) AS days_since_r1,
+                   v.vhv_name
+            FROM screening_results sr
+            JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id
+            JOIN target_population p ON ta.target_cid = p.cid
+            LEFT JOIN vhv_users v ON ta.vhv_id = v.vhv_id
+            WHERE sr.round_number = 1 
+              AND ( (sr.sys_bp1 BETWEEN 130 AND 159 OR sr.dia_bp1 BETWEEN 85 AND 99) OR (sr.dtx_value BETWEEN 100 AND 125) )
+              AND NOT EXISTS (
+                  SELECT 1 FROM screening_results sr2 
+                  JOIN task_assignments ta2 ON sr2.assignment_id = ta2.assignment_id 
+                  WHERE ta2.target_cid = p.cid AND sr2.round_number >= 2
+              )
+        ";
+        $params2 = [];
+        if (!empty($selected_hoscode)) {
+            $sql2 .= " AND p.hoscode = ?";
+            $params2[] = $selected_hoscode;
+        }
+        $sql2 .= " ORDER BY days_since_r1 DESC LIMIT $limit OFFSET $offset";
+        $stmt2 = $pdo->prepare($sql2);
+        $stmt2->execute($params2);
+        $dim2_data = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+    }
 } catch (\Exception $e) { $dim2_data = []; }
 
 // -------------------------------------------------------------
 // DIMENSION 3: กลุ่มที่ขาดการติดตามในรอบเดือน (Overdue Followup)
 // -------------------------------------------------------------
+$dim3_total = 0;
 $dim3_data = [];
 try {
-    $sql3 = "
-        SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
-               sr.care_level, sr.next_visit_date,
-               DATEDIFF(CURDATE(), sr.next_visit_date) AS overdue_days,
-               sr.sys_bp1, sr.dia_bp1, sr.dtx_value,
-               v.vhv_name
+    $countSql3 = "
+        SELECT COUNT(*)
         FROM screening_results sr
         JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id
         JOIN target_population p ON ta.target_cid = p.cid
-        LEFT JOIN vhv_users v ON ta.vhv_id = v.vhv_id
         WHERE sr.next_visit_date IS NOT NULL AND sr.next_visit_date < CURDATE()
     ";
-    $params3 = [];
+    $paramsCount3 = [];
     if (!empty($selected_hoscode)) {
-        $sql3 .= " AND p.hoscode = ?";
-        $params3[] = $selected_hoscode;
+        $countSql3 .= " AND p.hoscode = ?";
+        $paramsCount3[] = $selected_hoscode;
     }
-    $sql3 .= " ORDER BY overdue_days DESC LIMIT 150";
-    $stmt3 = $pdo->prepare($sql3);
-    $stmt3->execute($params3);
-    $dim3_data = $stmt3->fetchAll(PDO::FETCH_ASSOC);
+    $stmtCount3 = $pdo->prepare($countSql3);
+    $stmtCount3->execute($paramsCount3);
+    $dim3_total = (int)$stmtCount3->fetchColumn();
+
+    if ($selected_tab === 'tab3') {
+        $sql3 = "
+            SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
+                   sr.care_level, sr.next_visit_date,
+                   DATEDIFF(CURDATE(), sr.next_visit_date) AS overdue_days,
+                   sr.sys_bp1, sr.dia_bp1, sr.dtx_value,
+                   v.vhv_name
+            FROM screening_results sr
+            JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id
+            JOIN target_population p ON ta.target_cid = p.cid
+            LEFT JOIN vhv_users v ON ta.vhv_id = v.vhv_id
+            WHERE sr.next_visit_date IS NOT NULL AND sr.next_visit_date < CURDATE()
+        ";
+        $params3 = [];
+        if (!empty($selected_hoscode)) {
+            $sql3 .= " AND p.hoscode = ?";
+            $params3[] = $selected_hoscode;
+        }
+        $sql3 .= " ORDER BY overdue_days DESC LIMIT $limit OFFSET $offset";
+        $stmt3 = $pdo->prepare($sql3);
+        $stmt3->execute($params3);
+        $dim3_data = $stmt3->fetchAll(PDO::FETCH_ASSOC);
+    }
 } catch (\Exception $e) { $dim3_data = []; }
 
 // -------------------------------------------------------------
 // DIMENSION 4: กลุ่มที่ไม่เคยได้รับการคัดกรอง (Unscreened Population)
 // -------------------------------------------------------------
+$dim4_total = 0;
 $dim4_data = [];
 try {
-    $sql4 = "
-        SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
-               TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) AS age,
-               p.sex, p.health_status_origin,
-               v.vhv_name
+    $countSql4 = "
+        SELECT COUNT(*)
         FROM target_population p
         LEFT JOIN task_assignments ta ON p.cid = ta.target_cid AND ta.budget_year = ?
-        LEFT JOIN vhv_users v ON ta.vhv_id = v.vhv_id
         WHERE (ta.assignment_status IS NULL OR ta.assignment_status = 'pending')
           AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35
     ";
-    $params4 = [$activeBudgetYear];
+    $paramsCount4 = [$activeBudgetYear];
     if (!empty($selected_hoscode)) {
-        $sql4 .= " AND p.hoscode = ?";
-        $params4[] = $selected_hoscode;
+        $countSql4 .= " AND p.hoscode = ?";
+        $paramsCount4[] = $selected_hoscode;
     }
-    $sql4 .= " ORDER BY LENGTH(p.house_no), p.house_no LIMIT 150";
-    $stmt4 = $pdo->prepare($sql4);
-    $stmt4->execute($params4);
-    $dim4_data = $stmt4->fetchAll(PDO::FETCH_ASSOC);
+    $stmtCount4 = $pdo->prepare($countSql4);
+    $stmtCount4->execute($paramsCount4);
+    $dim4_total = (int)$stmtCount4->fetchColumn();
+
+    if ($selected_tab === 'tab4') {
+        $sql4 = "
+            SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
+                   TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) AS age,
+                   p.sex, p.health_status_origin,
+                   v.vhv_name
+            FROM target_population p
+            LEFT JOIN task_assignments ta ON p.cid = ta.target_cid AND ta.budget_year = ?
+            LEFT JOIN vhv_users v ON ta.vhv_id = v.vhv_id
+            WHERE (ta.assignment_status IS NULL OR ta.assignment_status = 'pending')
+              AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35
+        ";
+        $params4 = [$activeBudgetYear];
+        if (!empty($selected_hoscode)) {
+            $sql4 .= " AND p.hoscode = ?";
+            $params4[] = $selected_hoscode;
+        }
+        $sql4 .= " ORDER BY LENGTH(p.house_no), p.house_no LIMIT $limit OFFSET $offset";
+        $stmt4 = $pdo->prepare($sql4);
+        $stmt4->execute($params4);
+        $dim4_data = $stmt4->fetchAll(PDO::FETCH_ASSOC);
+    }
 } catch (\Exception $e) { $dim4_data = []; }
 
 // -------------------------------------------------------------
@@ -192,25 +279,14 @@ try {
 // -------------------------------------------------------------
 // DIMENSION 6: ตรวจสอบคุณภาพข้อมูล (Data Quality Audit)
 // -------------------------------------------------------------
+$dim6_total = 0;
 $dim6_anomalies = [];
 try {
-    $sql6 = "
-        SELECT sr.screening_id, p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
-               sr.sys_bp1, sr.dia_bp1, sr.dtx_value, sr.weight, sr.height, sr.bmi,
-               v.vhv_name,
-               CASE
-                   WHEN sr.sys_bp1 > 260 OR sr.sys_bp1 < 50 THEN 'ค่าความดันตัวบนผิดปกติ (Out of Range)'
-                   WHEN sr.dia_bp1 > 160 OR sr.dia_bp1 < 30 THEN 'ค่าความดันตัวล่างผิดปกติ (Out of Range)'
-                   WHEN sr.sys_bp1 <= sr.dia_bp1 THEN 'ความดันตัวบนน้อยกว่าหรือเท่ากับตัวล่าง (SYS <= DIA)'
-                   WHEN sr.dtx_value > 600 OR sr.dtx_value < 20 THEN 'ค่าน้ำตาลผิดปกติ (Out of Range)'
-                   WHEN sr.weight > 250 OR sr.weight < 25 THEN 'ค่าน้ำหนักตัวผิดปกติ'
-                   WHEN sr.height > 230 OR sr.height < 100 THEN 'ค่าส่วนสูงผิดปกติ'
-                   ELSE 'ตรวจพบค่าผิดปกติ'
-               END AS anomaly_reason
+    $countSql6 = "
+        SELECT COUNT(*)
         FROM screening_results sr
         JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id
         JOIN target_population p ON ta.target_cid = p.cid
-        LEFT JOIN vhv_users v ON ta.vhv_id = v.vhv_id
         WHERE (sr.sys_bp1 > 260 OR sr.sys_bp1 < 50)
            OR (sr.dia_bp1 > 160 OR sr.dia_bp1 < 30)
            OR (sr.sys_bp1 <= sr.dia_bp1 AND sr.sys_bp1 > 0)
@@ -218,16 +294,143 @@ try {
            OR (sr.weight > 250 OR (sr.weight < 25 AND sr.weight > 0))
            OR (sr.height > 230 OR (sr.height < 100 AND sr.height > 0))
     ";
-    $params6 = [];
+    $paramsCount6 = [];
     if (!empty($selected_hoscode)) {
-        $sql6 .= " AND p.hoscode = ?";
-        $params6[] = $selected_hoscode;
+        $countSql6 .= " AND p.hoscode = ?";
+        $paramsCount6[] = $selected_hoscode;
     }
-    $sql6 .= " LIMIT 100";
-    $stmt6 = $pdo->prepare($sql6);
-    $stmt6->execute($params6);
-    $dim6_anomalies = $stmt6->fetchAll(PDO::FETCH_ASSOC);
+    $stmtCount6 = $pdo->prepare($countSql6);
+    $stmtCount6->execute($paramsCount6);
+    $dim6_total = (int)$stmtCount6->fetchColumn();
+
+    if ($selected_tab === 'tab6') {
+        $sql6 = "
+            SELECT sr.screening_id, p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.hoscode,
+                   sr.sys_bp1, sr.dia_bp1, sr.dtx_value, sr.weight, sr.height, sr.bmi,
+                   v.vhv_name,
+                   CASE
+                       WHEN sr.sys_bp1 > 260 OR sr.sys_bp1 < 50 THEN 'ค่าความดันตัวบนผิดปกติ (Out of Range)'
+                       WHEN sr.dia_bp1 > 160 OR sr.dia_bp1 < 30 THEN 'ค่าความดันตัวล่างผิดปกติ (Out of Range)'
+                       WHEN sr.sys_bp1 <= sr.dia_bp1 THEN 'ความดันตัวบนน้อยกว่าหรือเท่ากับตัวล่าง (SYS <= DIA)'
+                       WHEN sr.dtx_value > 600 OR sr.dtx_value < 20 THEN 'ค่าน้ำตาลผิดปกติ (Out of Range)'
+                       WHEN sr.weight > 250 OR sr.weight < 25 THEN 'ค่าน้ำหนักตัวผิดปกติ'
+                       WHEN sr.height > 230 OR sr.height < 100 THEN 'ค่าส่วนสูงผิดปกติ'
+                       ELSE 'ตรวจพบค่าผิดปกติ'
+                   END AS anomaly_reason
+            FROM screening_results sr
+            JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id
+            JOIN target_population p ON ta.target_cid = p.cid
+            LEFT JOIN vhv_users v ON ta.vhv_id = v.vhv_id
+            WHERE (sr.sys_bp1 > 260 OR sr.sys_bp1 < 50)
+               OR (sr.dia_bp1 > 160 OR sr.dia_bp1 < 30)
+               OR (sr.sys_bp1 <= sr.dia_bp1 AND sr.sys_bp1 > 0)
+               OR (sr.dtx_value > 600 OR (sr.dtx_value < 30 AND sr.dtx_value > 0))
+               OR (sr.weight > 250 OR (sr.weight < 25 AND sr.weight > 0))
+               OR (sr.height > 230 OR (sr.height < 100 AND sr.height > 0))
+        ";
+        $params6 = [];
+        if (!empty($selected_hoscode)) {
+            $sql6 .= " AND p.hoscode = ?";
+            $params6[] = $selected_hoscode;
+        }
+        $sql6 .= " LIMIT $limit OFFSET $offset";
+        $stmt6 = $pdo->prepare($sql6);
+        $stmt6->execute($params6);
+        $dim6_anomalies = $stmt6->fetchAll(PDO::FETCH_ASSOC);
+    }
 } catch (\Exception $e) { $dim6_anomalies = []; }
+
+// Helper Functions for Pagination and Section Headers
+function render_surveillance_table_header($title, $iconName, $iconClass, $totalRecords, $page, $limit, $tab, $tableId, $exportFilename) {
+    global $selected_hoscode;
+    $startItem = $totalRecords > 0 ? ($page - 1) * $limit + 1 : 0;
+    $endItem = min($totalRecords, $page * $limit);
+    ?>
+    <div class="pagination-header-info">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <h4 style="margin: 0; color: var(--color-accent); font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                <?= render_neu_icon($iconName, 'sm', $iconClass) ?>
+                <span><?= htmlspecialchars($title) ?></span>
+            </h4>
+            <span class="pagination-records-info">
+                (แสดง <?= number_format($startItem) ?> - <?= number_format($endItem) ?> จากทั้งหมด <?= number_format($totalRecords) ?> รายการ)
+            </span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <label for="limit-select-<?= $tab ?>" style="font-size: 12px; font-weight: 700; color: var(--text-secondary);">แสดง:</label>
+                <select id="limit-select-<?= $tab ?>" class="per-page-select" onchange="changeLimit(this.value, '<?= $tab ?>')">
+                    <option value="25" <?= $limit == 25 ? 'selected' : '' ?>>25 แถว/หน้า</option>
+                    <option value="50" <?= $limit == 50 ? 'selected' : '' ?>>50 แถว/หน้า</option>
+                    <option value="100" <?= $limit == 100 ? 'selected' : '' ?>>100 แถว/หน้า</option>
+                    <option value="200" <?= $limit == 200 ? 'selected' : '' ?>>200 แถว/หน้า</option>
+                </select>
+            </div>
+            <button type="button" class="btn-export-excel" onclick="exportTableToExcel('<?= $tableId ?>', '<?= htmlspecialchars($exportFilename, ENT_QUOTES) ?>')">
+                📥 ส่งออก Excel
+            </button>
+        </div>
+    </div>
+    <?php
+}
+
+function render_surveillance_pagination($totalRecords, $page, $limit, $tab, $selected_hoscode) {
+    $totalPages = max(1, (int)ceil($totalRecords / $limit));
+    if ($totalPages <= 1 && $totalRecords <= $limit) {
+        return;
+    }
+    
+    $buildUrl = function($p) use ($tab, $selected_hoscode, $limit) {
+        $params = ['tab' => $tab, 'page' => $p, 'limit' => $limit];
+        if (!empty($selected_hoscode)) $params['hoscode'] = $selected_hoscode;
+        return '?' . http_build_query($params);
+    };
+
+    echo '<div class="pagination no-print">';
+    
+    // First & Previous Page
+    if ($page > 1) {
+        echo '<a href="' . $buildUrl(1) . '" class="page-link" title="หน้าแรก">«</a>';
+        echo '<a href="' . $buildUrl($page - 1) . '" class="page-link" title="ก่อนหน้า">‹</a>';
+    } else {
+        echo '<span class="page-link disabled">«</span>';
+        echo '<span class="page-link disabled">‹</span>';
+    }
+    
+    // Page Numbers with Window
+    $startPage = max(1, $page - 2);
+    $endPage = min($totalPages, $page + 2);
+    
+    if ($startPage > 1) {
+        echo '<a href="' . $buildUrl(1) . '" class="page-link ' . ($page == 1 ? 'active' : '') . '">1</a>';
+        if ($startPage > 2) {
+            echo '<span style="padding: 0 4px; color: var(--text-secondary); line-height: 38px;">...</span>';
+        }
+    }
+    
+    for ($i = $startPage; $i <= $endPage; $i++) {
+        $active = ($i == $page) ? 'active' : '';
+        echo '<a href="' . $buildUrl($i) . '" class="page-link ' . $active . '">' . $i . '</a>';
+    }
+    
+    if ($endPage < $totalPages) {
+        if ($endPage < $totalPages - 1) {
+            echo '<span style="padding: 0 4px; color: var(--text-secondary); line-height: 38px;">...</span>';
+        }
+        echo '<a href="' . $buildUrl($totalPages) . '" class="page-link ' . ($page == $totalPages ? 'active' : '') . '">' . $totalPages . '</a>';
+    }
+    
+    // Next & Last Page
+    if ($page < $totalPages) {
+        echo '<a href="' . $buildUrl($page + 1) . '" class="page-link" title="ถัดไป">›</a>';
+        echo '<a href="' . $buildUrl($totalPages) . '" class="page-link" title="หน้าสุดท้าย">»</a>';
+    } else {
+        echo '<span class="page-link disabled">›</span>';
+        echo '<span class="page-link disabled">»</span>';
+    }
+    
+    echo '</div>';
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -366,10 +569,85 @@ try {
             align-items: center;
             gap: 6px;
             transition: all 0.2s;
+            box-shadow: var(--neumorph-flat);
         }
         .btn-export-excel:hover {
             background: #059669;
             transform: translateY(-1px);
+        }
+
+        /* Pagination & Layout Controls */
+        .pagination-header-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .pagination-records-info {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+        .per-page-select {
+            padding: 7px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-weight: 700;
+            font-size: 12.5px;
+            cursor: pointer;
+            box-shadow: var(--neumorph-flat);
+            outline: none;
+        }
+        .per-page-select:focus {
+            border-color: var(--color-primary);
+        }
+        .pagination {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            align-items: center;
+            margin-top: 24px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .page-link {
+            padding: 8px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 700;
+            box-shadow: var(--neumorph-flat);
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 38px;
+            height: 38px;
+            box-sizing: border-box;
+        }
+        .page-link:hover:not(.disabled):not(.active) {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+            transform: translateY(-1px);
+        }
+        .page-link.active {
+            background: var(--color-primary);
+            color: #ffffff !important;
+            border-color: var(--color-primary);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+        }
+        .page-link.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+            box-shadow: none;
         }
     </style>
 </head>
@@ -392,7 +670,8 @@ try {
             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                 <form method="GET" style="display: flex; align-items: center; gap: 8px; margin: 0;">
                     <input type="hidden" name="tab" value="<?= htmlspecialchars($selected_tab) ?>">
-                    <select name="hoscode" onchange="this.form.submit()" style="padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-weight: 700; font-size: 13px;">
+                    <input type="hidden" name="limit" value="<?= (int)$limit ?>">
+                    <select name="hoscode" onchange="this.form.submit()" style="padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-weight: 700; font-size: 13px; box-shadow: var(--neumorph-flat);">
                         <option value="">-- แสดงทุก รพ.สต. ในอำเภอ --</option>
                         <?php foreach ($hc_names as $code => $name): ?>
                             <option value="<?= htmlspecialchars($code) ?>" <?= $selected_hoscode == $code ? 'selected' : '' ?>>
@@ -410,28 +689,28 @@ try {
                 <?= render_neu_icon('clipboard-record', 'md', 'text-blue') ?>
                 <div class="tab-label">
                     <span class="tab-title">1. ทะเบียนติดตามกลุ่มเสี่ยง</span>
-                    <span class="tab-count"><?= number_format(count($dim1_data)) ?> คน</span>
+                    <span class="tab-count"><?= number_format($dim1_total) ?> คน</span>
                 </div>
             </button>
             <button class="surv-tab-btn <?= $selected_tab === 'tab2' ? 'active' : '' ?>" onclick="switchSurvTab('tab2')">
                 <?= render_neu_icon('refresh-repeat', 'md', 'text-green') ?>
                 <div class="tab-label">
                     <span class="tab-title">2. กลุ่มที่ควรตรวจซ้ำ</span>
-                    <span class="tab-count"><?= number_format(count($dim2_data)) ?> คน</span>
+                    <span class="tab-count"><?= number_format($dim2_total) ?> คน</span>
                 </div>
             </button>
             <button class="surv-tab-btn <?= $selected_tab === 'tab3' ? 'active' : '' ?>" onclick="switchSurvTab('tab3')">
                 <?= render_neu_icon('warning-alert', 'md', 'text-yellow') ?>
                 <div class="tab-label">
                     <span class="tab-title">3. ขาดการติดตาม</span>
-                    <span class="tab-count"><?= number_format(count($dim3_data)) ?> คน</span>
+                    <span class="tab-count"><?= number_format($dim3_total) ?> คน</span>
                 </div>
             </button>
             <button class="surv-tab-btn <?= $selected_tab === 'tab4' ? 'active' : '' ?>" onclick="switchSurvTab('tab4')">
                 <?= render_neu_icon('doctor', 'md', 'text-purple') ?>
                 <div class="tab-label">
                     <span class="tab-title">4. ยังไม่ได้รับการคัดกรอง</span>
-                    <span class="tab-count"><?= number_format(count($dim4_data)) ?> คน</span>
+                    <span class="tab-count"><?= number_format($dim4_total) ?> คน</span>
                 </div>
             </button>
             <button class="surv-tab-btn <?= $selected_tab === 'tab5' ? 'active' : '' ?>" onclick="switchSurvTab('tab5')">
@@ -445,22 +724,24 @@ try {
                 <?= render_neu_icon('search-inspect', 'md', 'text-red') ?>
                 <div class="tab-label">
                     <span class="tab-title">6. ตรวจสอบคุณภาพข้อมูล</span>
-                    <span class="tab-count"><?= number_format(count($dim6_anomalies)) ?> รายการ</span>
+                    <span class="tab-count"><?= number_format($dim6_total) ?> รายการ</span>
                 </div>
             </button>
         </div>
 
         <!-- TAB 1: ทะเบียนติดตามกลุ่มเสี่ยง/เยี่ยมบ้าน -->
         <div id="tab1-content" class="surv-content" style="display: <?= $selected_tab === 'tab1' ? 'block' : 'none' ?>;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
-                <h4 style="margin: 0; color: var(--color-accent); font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                    <?= render_neu_icon('clipboard-record', 'sm', 'text-blue') ?>
-                    <span>ทะเบียนประชากรกลุ่มเสี่ยงสูงและภาวะวิกฤตที่ต้องได้รับการเยี่ยมบ้าน</span>
-                </h4>
-                <button type="button" class="btn-export-excel" onclick="exportTableToExcel('table-tab1', 'ทะเบียนติดตามกลุ่มเสี่ยง_สสอตาลสุม')">
-                    📥 ส่งออก Excel
-                </button>
-            </div>
+            <?php render_surveillance_table_header(
+                'ทะเบียนประชากรกลุ่มเสี่ยงสูงและภาวะวิกฤตที่ต้องได้รับการเยี่ยมบ้าน',
+                'clipboard-record',
+                'text-blue',
+                $dim1_total,
+                $page,
+                $limit,
+                'tab1',
+                'table-tab1',
+                'ทะเบียนติดตามกลุ่มเสี่ยง_สสอตาลสุม'
+            ); ?>
             <div class="table-responsive">
                 <table class="surv-table" id="table-tab1">
                     <thead>
@@ -491,7 +772,7 @@ try {
                                     elseif ($r['care_level'] === 'critical') { $clBadge = 'background:rgba(239,68,68,0.15); color:#DC2626;'; $clText = '🔴 วิกฤตด่วน'; }
                                 ?>
                                 <tr>
-                                    <td><?= $idx + 1 ?></td>
+                                    <td><?= ($page - 1) * $limit + $idx + 1 ?></td>
                                     <td><strong><?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?></strong></td>
                                     <td><?= htmlspecialchars($r['house_no']) ?> ม.<?= htmlspecialchars($r['moo']) ?></td>
                                     <td>[<?= htmlspecialchars($r['hoscode']) ?>]</td>
@@ -518,19 +799,22 @@ try {
                     </tbody>
                 </table>
             </div>
+            <?php render_surveillance_pagination($dim1_total, $page, $limit, 'tab1', $selected_hoscode); ?>
         </div>
 
         <!-- TAB 2: กลุ่มที่ควรตรวจซ้ำ (Retest Due) -->
         <div id="tab2-content" class="surv-content" style="display: <?= $selected_tab === 'tab2' ? 'block' : 'none' ?>;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
-                <h4 style="margin: 0; color: var(--color-accent); font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                    <?= render_neu_icon('refresh-repeat', 'sm', 'text-green') ?>
-                    <span>กลุ่มสงสัยป่วย/ปริ่มเสี่ยง ที่ควรได้รับการตรวจซ้ำ (Retest Due)</span>
-                </h4>
-                <button type="button" class="btn-export-excel" onclick="exportTableToExcel('table-tab2', 'กลุ่มที่ควรตรวจซ้ำ_สสอตาลสุม')">
-                    📥 ส่งออก Excel
-                </button>
-            </div>
+            <?php render_surveillance_table_header(
+                'กลุ่มสงสัยป่วย/ปริ่มเสี่ยง ที่ควรได้รับการตรวจซ้ำ (Retest Due)',
+                'refresh-repeat',
+                'text-green',
+                $dim2_total,
+                $page,
+                $limit,
+                'tab2',
+                'table-tab2',
+                'กลุ่มที่ควรตรวจซ้ำ_สสอตาลสุม'
+            ); ?>
             <div class="table-responsive">
                 <table class="surv-table" id="table-tab2">
                     <thead>
@@ -552,7 +836,7 @@ try {
                         <?php else: ?>
                             <?php foreach ($dim2_data as $idx => $r): ?>
                                 <tr>
-                                    <td><?= $idx + 1 ?></td>
+                                    <td><?= ($page - 1) * $limit + $idx + 1 ?></td>
                                     <td><strong><?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?></strong></td>
                                     <td><?= htmlspecialchars($r['house_no']) ?> ม.<?= htmlspecialchars($r['moo']) ?></td>
                                     <td>[<?= htmlspecialchars($r['hoscode']) ?>]</td>
@@ -571,19 +855,22 @@ try {
                     </tbody>
                 </table>
             </div>
+            <?php render_surveillance_pagination($dim2_total, $page, $limit, 'tab2', $selected_hoscode); ?>
         </div>
 
         <!-- TAB 3: ขาดการติดตามในรอบเดือน (Overdue Followup) -->
         <div id="tab3-content" class="surv-content" style="display: <?= $selected_tab === 'tab3' ? 'block' : 'none' ?>;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
-                <h4 style="margin: 0; color: var(--color-accent); font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                    <?= render_neu_icon('warning-alert', 'sm', 'text-yellow') ?>
-                    <span>รายชื่อผู้ที่เกินกำหนดวันนัดติดตามเยี่ยมบ้าน (Overdue Followup)</span>
-                </h4>
-                <button type="button" class="btn-export-excel" onclick="exportTableToExcel('table-tab3', 'กลุ่มขาดการติดตาม_สสอตาลสุม')">
-                    📥 ส่งออก Excel
-                </button>
-            </div>
+            <?php render_surveillance_table_header(
+                'รายชื่อผู้ที่เกินกำหนดวันนัดติดตามเยี่ยมบ้าน (Overdue Followup)',
+                'warning-alert',
+                'text-yellow',
+                $dim3_total,
+                $page,
+                $limit,
+                'tab3',
+                'table-tab3',
+                'กลุ่มขาดการติดตาม_สสอตาลสุม'
+            ); ?>
             <div class="table-responsive">
                 <table class="surv-table" id="table-tab3">
                     <thead>
@@ -605,7 +892,7 @@ try {
                         <?php else: ?>
                             <?php foreach ($dim3_data as $idx => $r): ?>
                                 <tr>
-                                    <td><?= $idx + 1 ?></td>
+                                    <td><?= ($page - 1) * $limit + $idx + 1 ?></td>
                                     <td><strong><?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?></strong></td>
                                     <td><?= htmlspecialchars($r['house_no']) ?> ม.<?= htmlspecialchars($r['moo']) ?></td>
                                     <td>[<?= htmlspecialchars($r['hoscode']) ?>]</td>
@@ -620,19 +907,22 @@ try {
                     </tbody>
                 </table>
             </div>
+            <?php render_surveillance_pagination($dim3_total, $page, $limit, 'tab3', $selected_hoscode); ?>
         </div>
 
         <!-- TAB 4: กลุ่มที่ยังไม่เคยได้รับการคัดกรอง -->
         <div id="tab4-content" class="surv-content" style="display: <?= $selected_tab === 'tab4' ? 'block' : 'none' ?>;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
-                <h4 style="margin: 0; color: var(--color-accent); font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                    <?= render_neu_icon('doctor', 'sm', 'text-purple') ?>
-                    <span>ประชากรอายุ 35 ปีขึ้นไปที่ยังไม่ได้รับการคัดกรองในปีงบประมาณ <?= $activeBudgetYear + 543 ?></span>
-                </h4>
-                <button type="button" class="btn-export-excel" onclick="exportTableToExcel('table-tab4', 'กลุ่มยังไม่ได้รับการคัดกรอง_สสอตาลสุม')">
-                    📥 ส่งออก Excel
-                </button>
-            </div>
+            <?php render_surveillance_table_header(
+                'ประชากรอายุ 35 ปีขึ้นไปที่ยังไม่ได้รับการคัดกรองในปีงบประมาณ ' . ($activeBudgetYear + 543),
+                'doctor',
+                'text-purple',
+                $dim4_total,
+                $page,
+                $limit,
+                'tab4',
+                'table-tab4',
+                'กลุ่มยังไม่ได้รับการคัดกรอง_สสอตาลสุม'
+            ); ?>
             <div class="table-responsive">
                 <table class="surv-table" id="table-tab4">
                     <thead>
@@ -653,7 +943,7 @@ try {
                         <?php else: ?>
                             <?php foreach ($dim4_data as $idx => $r): ?>
                                 <tr>
-                                    <td><?= $idx + 1 ?></td>
+                                    <td><?= ($page - 1) * $limit + $idx + 1 ?></td>
                                     <td><strong><?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?></strong></td>
                                     <td><?= $r['age'] ?> ปี</td>
                                     <td><?= $r['sex'] == 1 ? 'ชาย' : 'หญิง' ?></td>
@@ -667,6 +957,7 @@ try {
                     </tbody>
                 </table>
             </div>
+            <?php render_surveillance_pagination($dim4_total, $page, $limit, 'tab4', $selected_hoscode); ?>
         </div>
 
         <!-- TAB 5: สรุปผลสัมฤทธิ์โครงการ & คุณภาพการนอนหลับ -->
@@ -724,57 +1015,17 @@ try {
 
         <!-- TAB 6: ตรวจสอบคุณภาพข้อมูล (Data Quality Audit) -->
         <div id="tab6-content" class="surv-content" style="display: <?= $selected_tab === 'tab6' ? 'block' : 'none' ?>;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
-                <h4 style="margin: 0; color: var(--color-accent); font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                    <?= render_neu_icon('search-inspect', 'sm', 'text-red') ?>
-                    <span>ตรวจจับค่าข้อมูลผิดปกติและค่าผิดวิสัย (Data Quality & Anomaly Audit)</span>
-                </h4>
-                <button type="button" class="btn-export-excel" onclick="exportTableToExcel('table-tab6', 'ตรวจสอบคุณภาพข้อมูล_สสอตาลสุม')">
-                    📥 ส่งออก Excel
-                </button>
-            </div>n style="font-weight: 700; color: #DC2626;">🔴 ต้องระวัง / แย่ลง (Worsened)</span>
-                            <span style="font-size: 18px; font-weight: 800; color: #DC2626;"><?= number_format($dim5_stats['worsened']) ?> คน</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(100,116,139,0.1); border-radius: 12px; border-left: 4px solid #64748B;">
-                            <span style="font-weight: 700; color: #64748B;">⚪ ค่าตั้งต้น (Baseline Checkpoint)</span>
-                            <span style="font-size: 18px; font-weight: 800; color: #64748B;"><?= number_format($dim5_stats['baseline']) ?> คน</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Sleep Quality Analysis -->
-                <div class="card-dark" style="padding: 20px; background: var(--bg-card); border-radius: 20px; box-shadow: var(--neumorph-flat); border: 1px solid var(--border-color);">
-                    <h4 style="margin: 0 0 16px 0; color: var(--color-accent); font-size: 16px; font-weight: 800;">
-                        😴 คุณภาพการนอนหลับของกลุ่มเป้าหมาย (1น.)
-                    </h4>
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(16,185,129,0.1); border-radius: 12px; border-left: 4px solid #10B981;">
-                            <span style="font-weight: 700; color: #10B981;">😴 หลับสนิทดี (Good Sleep)</span>
-                            <span style="font-size: 18px; font-weight: 800; color: #10B981;"><?= number_format($dim5_stats['sleep_good']) ?> คน</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(245,158,11,0.1); border-radius: 12px; border-left: 4px solid #F59E0B;">
-                            <span style="font-weight: 700; color: #D97706;">🥱 หลับๆ ตื่นๆ (Restless Sleep)</span>
-                            <span style="font-size: 18px; font-weight: 800; color: #D97706;"><?= number_format($dim5_stats['sleep_restless']) ?> คน</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(239,68,68,0.1); border-radius: 12px; border-left: 4px solid #EF4444;">
-                            <span style="font-weight: 700; color: #DC2626;">😫 นอนไม่ค่อยหลับ / หลับยาก (Poor Sleep)</span>
-                            <span style="font-size: 18px; font-weight: 800; color: #DC2626;"><?= number_format($dim5_stats['sleep_poor']) ?> คน</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 6: ตรวจสอบคุณภาพข้อมูล (Data Quality Audit) -->
-        <div id="tab6-content" class="surv-content" style="display: <?= $selected_tab === 'tab6' ? 'block' : 'none' ?>;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h4 style="margin: 0; color: var(--color-accent); font-size: 16px; font-weight: 800;">
-                    🔍 ตรวจจับค่าข้อมูลผิดปกติและค่าผิดวิสัย (Data Quality & Anomaly Audit)
-                </h4>
-                <button type="button" class="btn-export-excel" onclick="exportTableToExcel('table-tab6', 'ตรวจสอบคุณภาพข้อมูล_สสอตาลสุม')">
-                    📥 ส่งออก Excel
-                </button>
-            </div>
+            <?php render_surveillance_table_header(
+                'ตรวจจับค่าข้อมูลผิดปกติและค่าผิดวิสัย (Data Quality & Anomaly Audit)',
+                'search-inspect',
+                'text-red',
+                $dim6_total,
+                $page,
+                $limit,
+                'tab6',
+                'table-tab6',
+                'ตรวจสอบคุณภาพข้อมูล_สสอตาลสุม'
+            ); ?>
             <div class="table-responsive">
                 <table class="surv-table" id="table-tab6">
                     <thead>
@@ -796,7 +1047,7 @@ try {
                         <?php else: ?>
                             <?php foreach ($dim6_anomalies as $idx => $r): ?>
                                 <tr>
-                                    <td><?= $idx + 1 ?></td>
+                                    <td><?= ($page - 1) * $limit + $idx + 1 ?></td>
                                     <td><strong><?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?></strong></td>
                                     <td><?= htmlspecialchars($r['house_no']) ?> ม.<?= htmlspecialchars($r['moo']) ?></td>
                                     <td>[<?= htmlspecialchars($r['hoscode']) ?>]</td>
@@ -811,24 +1062,24 @@ try {
                     </tbody>
                 </table>
             </div>
+            <?php render_surveillance_pagination($dim6_total, $page, $limit, 'tab6', $selected_hoscode); ?>
         </div>
     </div>
 
     <script>
         function switchSurvTab(tabId) {
-            document.querySelectorAll('.surv-content').forEach(el => el.style.display = 'none');
-            document.querySelectorAll('.surv-tab-btn').forEach(btn => btn.classList.remove('active'));
-            
-            const target = document.getElementById(tabId + '-content');
-            if (target) target.style.display = 'block';
-
-            const activeBtn = Array.from(document.querySelectorAll('.surv-tab-btn')).find(b => b.getAttribute('onclick').includes(tabId));
-            if (activeBtn) activeBtn.classList.add('active');
-
-            // Update URL without reload
-            const url = new URL(window.location);
+            const url = new URL(window.location.href);
             url.searchParams.set('tab', tabId);
-            window.history.pushState({}, '', url);
+            url.searchParams.set('page', '1');
+            window.location.href = url.toString();
+        }
+
+        function changeLimit(newLimit, tabId) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('limit', newLimit);
+            url.searchParams.set('tab', tabId);
+            url.searchParams.set('page', '1');
+            window.location.href = url.toString();
         }
 
         function exportTableToExcel(tableId, filename = 'รายงานเฝ้าระวัง') {
