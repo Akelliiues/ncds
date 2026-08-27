@@ -181,6 +181,14 @@ if ($filter_source === 'screened') {
     $sql .= " ORDER BY p.moo, LENGTH(p.house_no), p.house_no, s.created_at DESC";
 
 } elseif ($filter_source === 'unscreened') {
+    $roundCondTa = "";
+    $roundCondSr = "";
+    if ($filter_round !== 'all') {
+        $rNum = intval($filter_round);
+        $roundCondTa = " AND (ta.round_number = $rNum OR (ta.round_number IS NULL AND $rNum = 1))";
+        $roundCondSr = " AND (sr.round_number = $rNum OR (sr.round_number IS NULL AND $rNum = 1))";
+    }
+
     // Query targets with customizable screening status
     $sql = "
         SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.sub_district_code, COALESCE(v.hoscode, p.hoscode) as hoscode,
@@ -190,13 +198,13 @@ if ($filter_source === 'screened') {
         FROM target_population p
         LEFT JOIN task_assignments a ON a.assignment_id = (
             SELECT assignment_id FROM task_assignments ta 
-            WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' 
+            WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' {$roundCondTa}
             ORDER BY ta.round_number DESC, ta.assignment_id DESC LIMIT 1
         )
         LEFT JOIN screening_results s ON s.screening_id = (
             SELECT sr.screening_id FROM screening_results sr 
             LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id
-            WHERE sr.target_cid = p.cid OR ta2.target_cid = p.cid
+            WHERE (sr.target_cid = p.cid OR ta2.target_cid = p.cid) {$roundCondSr}
             ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1
         )
         LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
@@ -903,6 +911,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
             หน่วยบริการ = <?= $filter_hoscode ? ($hc_names[$filter_hoscode] ?? $filter_hoscode) : 'ทุกแห่ง' ?> |
             หมู่ = <?= $filter_moo ? 'หมู่ที่ ' . $filter_moo : 'ทุกหมู่' ?> |
             <?php if (in_array($filter_source, ['screened', 'baseline', 'unscreened'])): ?>
+                <?php if (in_array($filter_source, ['screened', 'unscreened'])): ?>
+                    รอบคัดกรอง = <?= $filter_round === 'all' ? 'ทุกรอบ' : "รอบที่ {$filter_round}" ?> |
+                <?php endif; ?>
                 ระดับความเสี่ยง =
                 <?= $filter_risk == 'high' ? 'กลุ่มเสี่ยงสูง' : ($filter_risk == 'risk' ? 'กลุ่มเสี่ยง' : ($filter_risk == 'all_risk' ? 'กลุ่มเสี่ยงทั้งหมด' : ($filter_risk == 'normal' ? 'กลุ่มปกติ' : 'ทั้งหมด'))) ?>
                 |
@@ -959,7 +970,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                         </select>
                     </div>
 
-                    <?php if ($filter_source === 'screened'): ?>
+                    <?php if (in_array($filter_source, ['screened', 'unscreened'])): ?>
                         <!-- Screening Round selection -->
                         <div class="form-group">
                             <label>รอบการคัดกรอง</label>
