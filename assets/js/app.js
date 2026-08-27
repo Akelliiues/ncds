@@ -1,7 +1,7 @@
 // assets/js/app.js
 // PWA Service Worker Registration & Installation Prompt Handler (Forced Auto-Update Engine)
 
-const CURRENT_APP_BUILD_ID = '20260827_1635';
+const CURRENT_APP_BUILD_ID = '20260827_1640';
 
 document.addEventListener('DOMContentLoaded', () => {
     // 0. Proactive Cache & Build Version Validation
@@ -550,67 +550,106 @@ window.VhvSyncEngine = {
         }
     },
 
-    syncAll: async function() {
+    syncAll: async function(isAutomatic = false) {
         if (this.isSyncing) return;
 
         const queue = this.getQueue();
         if (queue.length === 0) {
-            alert('✅ ไม่มีข้อมูลค้างส่งในเครื่องครับ ข้อมูลทั้งหมดเป็นปัจจุบันแล้ว');
+            if (!isAutomatic) {
+                alert('✅ ไม่มีข้อมูลค้างส่งในเครื่องครับ ข้อมูลทั้งหมดเป็นปัจจุบันแล้ว');
+            }
             return;
         }
 
         if (!navigator.onLine) {
-            alert('⚠️ โทรศัพท์ยังไม่ได้เชื่อมต่ออินเทอร์เน็ตครับ\n\nกรุณาเปิดสัญญาณเน็ตมือถือ หรือเชื่อมต่อ Wi-Fi ก่อนกดส่งข้อมูลเข้าระบบครับ');
+            if (!isAutomatic) {
+                alert('⚠️ โทรศัพท์ยังไม่ได้เชื่อมต่ออินเทอร์เน็ตครับ\n\nกรุณาเปิดสัญญาณเน็ตมือถือ หรือเชื่อมต่อ Wi-Fi ก่อนกดส่งข้อมูลเข้าระบบครับ');
+            }
             return;
         }
 
         this.isSyncing = true;
 
-        // Create or show progress overlay
-        let overlay = document.getElementById('sync-progress-overlay');
-        if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.id = 'sync-progress-overlay';
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(15, 23, 42, 0.75);
-                backdrop-filter: blur(6px);
-                z-index: 10000;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 20px;
-                box-sizing: border-box;
-            `;
-            document.body.appendChild(overlay);
-        }
-        overlay.style.display = 'flex';
-
         const totalItems = queue.length;
         let successCount = 0;
         let failCount = 0;
 
-        const updateOverlayText = (currentIndex, residentName) => {
-            overlay.innerHTML = `
-                <div style="background: var(--bg-card, #1e293b); color: var(--text-primary, #ffffff); border-radius: 20px; padding: 28px 24px; max-width: 380px; width: 100%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: 1px solid var(--border-color, rgba(255,255,255,0.1));">
-                    <div style="font-size: 44px; margin-bottom: 12px;">🚀</div>
-                    <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 800; color: var(--color-accent, #38bdf8);">กำลังส่งข้อมูลเข้าระบบ</h3>
-                    <p style="margin: 0 0 14px 0; font-size: 13.5px; color: var(--text-secondary, #94a3b8);">
-                        กำลังส่งคนที่ <strong>${currentIndex + 1}</strong> จากทั้งหมด <strong>${totalItems}</strong> คน
-                    </p>
-                    <div style="font-size: 13px; font-weight: 700; color: #10B981; margin-bottom: 16px; padding: 6px 12px; background: rgba(16,185,129,0.1); border-radius: 10px; display: inline-block;">
-                        👤 ${residentName || 'ผู้รับการตรวจ'}
-                    </div>
-                    <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; margin-bottom: 12px;">
-                        <div style="width: ${((currentIndex + 1) / totalItems) * 100}%; height: 100%; background: #10B981; transition: width 0.3s ease;"></div>
-                    </div>
-                    <div style="font-size: 12px; color: var(--text-muted, #64748b);">กรุณาอย่าเพิ่งปิดหน้าจอนี้ จนกว่าจะส่งเสร็จสิ้น...</div>
-                </div>
+        // Visual feedback banner during background auto-sync
+        let autoToast = null;
+        if (isAutomatic) {
+            autoToast = document.createElement('div');
+            autoToast.id = 'auto-sync-toast';
+            autoToast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #0d2c54;
+                color: #ffffff;
+                border: 2px solid #10B981;
+                border-radius: 50px;
+                padding: 10px 20px;
+                font-size: 13.5px;
+                font-weight: 800;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                animation: slideDown 0.3s ease;
             `;
+            autoToast.innerHTML = `✨ มีสัญญาณเน็ตแล้ว ระบบกำลังบันทึกข้อมูล ${totalItems} คน เข้าระบบให้อัตโนมัติ...`;
+            document.body.appendChild(autoToast);
+        }
+
+        // Overlay for manual sync (if user explicitly pressed the button)
+        let overlay = null;
+        if (!isAutomatic) {
+            overlay = document.getElementById('sync-progress-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'sync-progress-overlay';
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(15, 23, 42, 0.75);
+                    backdrop-filter: blur(6px);
+                    z-index: 10000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px;
+                    box-sizing: border-box;
+                `;
+                document.body.appendChild(overlay);
+            }
+            overlay.style.display = 'flex';
+        }
+
+        const updateStatusText = (currentIndex, residentName) => {
+            if (isAutomatic && autoToast) {
+                autoToast.innerHTML = `✨ กำลังบันทึกข้อมูลคนที่ <strong>${currentIndex + 1}/${totalItems}</strong>: ${residentName || ''}...`;
+            } else if (overlay) {
+                overlay.innerHTML = `
+                    <div style="background: var(--bg-card, #1e293b); color: var(--text-primary, #ffffff); border-radius: 20px; padding: 28px 24px; max-width: 380px; width: 100%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: 1px solid var(--border-color, rgba(255,255,255,0.1));">
+                        <div style="font-size: 44px; margin-bottom: 12px;">🚀</div>
+                        <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 800; color: var(--color-accent, #38bdf8);">กำลังส่งข้อมูลเข้าระบบ</h3>
+                        <p style="margin: 0 0 14px 0; font-size: 13.5px; color: var(--text-secondary, #94a3b8);">
+                            กำลังส่งคนที่ <strong>${currentIndex + 1}</strong> จากทั้งหมด <strong>${totalItems}</strong> คน
+                        </p>
+                        <div style="font-size: 13px; font-weight: 700; color: #10B981; margin-bottom: 16px; padding: 6px 12px; background: rgba(16,185,129,0.1); border-radius: 10px; display: inline-block;">
+                            👤 ${residentName || 'ผู้รับการตรวจ'}
+                        </div>
+                        <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; margin-bottom: 12px;">
+                            <div style="width: ${((currentIndex + 1) / totalItems) * 100}%; height: 100%; background: #10B981; transition: width 0.3s ease;"></div>
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-muted, #64748b);">กรุณาอย่าเพิ่งปิดหน้าจอนี้ จนกว่าจะส่งเสร็จสิ้น...</div>
+                    </div>
+                `;
+            }
         };
 
         const isVhvDir = window.location.pathname.includes('/vhv/');
@@ -621,7 +660,7 @@ window.VhvSyncEngine = {
 
         for (let i = 0; i < queue.length; i++) {
             const item = queue[i];
-            updateOverlayText(i, item._residentName);
+            updateStatusText(i, item._residentName);
 
             try {
                 let targetUrl = screeningApiUrl;
@@ -663,59 +702,102 @@ window.VhvSyncEngine = {
         this.setQueue(remainingQueue);
         this.isSyncing = false;
 
+        // Cleanup auto toast
+        if (autoToast) {
+            autoToast.remove();
+        }
+
         if (successCount > 0 && failCount === 0) {
-            overlay.innerHTML = `
-                <div style="background: var(--bg-card, #1e293b); color: var(--text-primary, #ffffff); border-radius: 20px; padding: 28px 24px; max-width: 380px; width: 100%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: 2px solid #10B981;">
-                    <div style="font-size: 48px; margin-bottom: 12px;">🎉</div>
-                    <h3 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 800; color: #10B981;">ส่งข้อมูลสำเร็จครบถ้วน!</h3>
-                    <p style="margin: 0 0 16px 0; font-size: 14px; color: var(--text-secondary, #94a3b8);">
-                        ส่งข้อมูลคัดกรองทั้งหมด <strong>${successCount} รายการ</strong> เข้าระบบและบันทึกแต้มสะสมเรียบร้อยแล้ว
-                    </p>
-                    <button type="button" onclick="window.location.reload()" style="background: #10B981; color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 800; font-size: 15px; cursor: pointer; width: 100%; box-shadow: 0 4px 14px rgba(16,185,129,0.4);">
-                        ตกลง (รีเฟรชหน้าจอ)
-                    </button>
-                </div>
-            `;
-            setTimeout(() => {
-                window.location.reload();
-            }, 1800);
+            if (isAutomatic) {
+                const finishToast = document.createElement('div');
+                finishToast.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: #10B981;
+                    color: #ffffff;
+                    border-radius: 50px;
+                    padding: 12px 24px;
+                    font-size: 14px;
+                    font-weight: 800;
+                    box-shadow: 0 10px 25px rgba(16,185,129,0.4);
+                    z-index: 10000;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    animation: slideDown 0.3s ease;
+                `;
+                finishToast.innerHTML = `🎉 บันทึกข้อมูลคัดกรอง ${successCount} คน เข้าระบบอัตโนมัติเรียบร้อยแล้ว!`;
+                document.body.appendChild(finishToast);
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else if (overlay) {
+                overlay.innerHTML = `
+                    <div style="background: var(--bg-card, #1e293b); color: var(--text-primary, #ffffff); border-radius: 20px; padding: 28px 24px; max-width: 380px; width: 100%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: 2px solid #10B981;">
+                        <div style="font-size: 48px; margin-bottom: 12px;">🎉</div>
+                        <h3 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 800; color: #10B981;">ส่งข้อมูลสำเร็จครบถ้วน!</h3>
+                        <p style="margin: 0 0 16px 0; font-size: 14px; color: var(--text-secondary, #94a3b8);">
+                            ส่งข้อมูลคัดกรองทั้งหมด <strong>${successCount} รายการ</strong> เข้าระบบและบันทึกแต้มสะสมเรียบร้อยแล้ว
+                        </p>
+                        <button type="button" onclick="window.location.reload()" style="background: #10B981; color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 800; font-size: 15px; cursor: pointer; width: 100%; box-shadow: 0 4px 14px rgba(16,185,129,0.4);">
+                            ตกลง (รีเฟรชหน้าจอ)
+                        </button>
+                    </div>
+                `;
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            }
         } else if (successCount > 0 && failCount > 0) {
-            overlay.innerHTML = `
-                <div style="background: var(--bg-card, #1e293b); color: var(--text-primary, #ffffff); border-radius: 20px; padding: 28px 24px; max-width: 380px; width: 100%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: 2px solid #F59E0B;">
-                    <div style="font-size: 48px; margin-bottom: 12px;">⚠️</div>
-                    <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 800; color: #F59E0B;">ส่งสำเร็จบางส่วน</h3>
-                    <p style="margin: 0 0 16px 0; font-size: 13.5px; color: var(--text-secondary, #94a3b8);">
-                        ส่งสำเร็จ <strong>${successCount} คน</strong>, ค้างส่ง <strong>${failCount} คน</strong> (ข้อมูลยังปลอดภัยในเครื่อง)<br>โปรดลองกดส่งใหม่อีกครั้งเมื่อเน็ตเสถียรครับ
-                    </p>
-                    <button type="button" onclick="document.getElementById('sync-progress-overlay').style.display='none'; window.location.reload();" style="background: #F59E0B; color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer; width: 100%;">
-                        ปิดหน้าต่างนี้
-                    </button>
-                </div>
-            `;
-        } else {
-            overlay.innerHTML = `
-                <div style="background: var(--bg-card, #1e293b); color: var(--text-primary, #ffffff); border-radius: 20px; padding: 28px 24px; max-width: 380px; width: 100%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: 2px solid #EF4444;">
-                    <div style="font-size: 48px; margin-bottom: 12px;">❌</div>
-                    <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 800; color: #EF4444;">ไม่สามารถส่งข้อมูลได้</h3>
-                    <p style="margin: 0 0 16px 0; font-size: 13.5px; color: var(--text-secondary, #94a3b8);">
-                        สัญญาณอินเทอร์เน็ตอาจหลุด ข้อมูลทั้งหมด <strong>${totalItems} รายการ</strong> ยังคงถูกเก็บไว้อย่างปลอดภัยในเครื่องครับ
-                    </p>
-                    <button type="button" onclick="document.getElementById('sync-progress-overlay').style.display='none';" style="background: #EF4444; color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer; width: 100%;">
-                        ลองใหม่ภายหลัง
-                    </button>
-                </div>
-            `;
+            if (overlay) {
+                overlay.innerHTML = `
+                    <div style="background: var(--bg-card, #1e293b); color: var(--text-primary, #ffffff); border-radius: 20px; padding: 28px 24px; max-width: 380px; width: 100%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: 2px solid #F59E0B;">
+                        <div style="font-size: 48px; margin-bottom: 12px;">⚠️</div>
+                        <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 800; color: #F59E0B;">ส่งสำเร็จบางส่วน</h3>
+                        <p style="margin: 0 0 16px 0; font-size: 13.5px; color: var(--text-secondary, #94a3b8);">
+                            ส่งสำเร็จ <strong>${successCount} คน</strong>, ค้างส่ง <strong>${failCount} คน</strong> (ข้อมูลยังปลอดภัยในเครื่อง)<br>โปรดลองกดส่งใหม่อีกครั้งเมื่อเน็ตเสถียรครับ
+                        </p>
+                        <button type="button" onclick="document.getElementById('sync-progress-overlay').style.display='none'; window.location.reload();" style="background: #F59E0B; color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer; width: 100%;">
+                            ปิดหน้าต่างนี้
+                        </button>
+                    </div>
+                `;
+            }
         }
     },
 
     init: function() {
         this.updateSyncUI();
+        
+        // Automatic Background Sync on Launch (if online and items exist)
+        if (navigator.onLine && this.getQueueCount() > 0) {
+            setTimeout(() => {
+                this.syncAll(true);
+            }, 1200);
+        }
+
+        // Automatic Background Sync when internet connection is restored
         window.addEventListener('online', () => {
             this.updateSyncUI();
+            if (this.getQueueCount() > 0) {
+                setTimeout(() => {
+                    this.syncAll(true);
+                }, 1000);
+            }
         });
+
         window.addEventListener('offline', () => {
             this.updateSyncUI();
         });
+
+        // Periodic Background Sync check every 25 seconds
+        setInterval(() => {
+            if (navigator.onLine && this.getQueueCount() > 0 && !this.isSyncing) {
+                this.syncAll(true);
+            }
+        }, 25 * 1000);
     }
 };
 

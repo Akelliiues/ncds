@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ncd-tansum-v10_20260827_1635'; // Offline Sync Engine Ready
+const CACHE_NAME = 'ncd-tansum-v11_20260827_1640'; // Auto-Sync Default Ready
 const ASSETS_TO_CACHE = [
     'login.php',
     'index.php',
