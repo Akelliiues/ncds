@@ -198,12 +198,13 @@ if (DemoDataProvider::isDemoMode()) {
         }
 
         .modal-content {
-            background: var(--bg-main);
+            background: var(--bg-card);
             border-radius: 20px;
             padding: 24px;
             width: 90%;
             max-width: 500px;
-            box-shadow: var(--neumorph-flat);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--border-color);
         }
 
         .row-grid {

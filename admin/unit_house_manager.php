@@ -541,7 +541,8 @@ $houses_list = $house_stmt->fetchAll();
         .modal-container {
             background: var(--bg-card);
             border-radius: var(--border-radius);
-            box-shadow: var(--neumorph-flat);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--border-color);
             width: 100%;
             max-width: 500px;
             max-height: 90vh;

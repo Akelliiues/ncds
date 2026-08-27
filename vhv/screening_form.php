@@ -1076,8 +1076,8 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
         </div>
 
         <!-- Skip Case Modal Overlay -->
-        <div id="skip-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(13, 44, 84, 0.3); backdrop-filter: blur(4px); z-index: 3000; align-items: center; justify-content: center;">
-            <div class="card-dark" style="width: 90%; max-width: 420px; margin: 0 auto; background: var(--bg-main); box-shadow: var(--neumorph-flat); border-radius: 28px; padding: 24px;">
+        <div id="skip-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(13, 44, 84, 0.45); backdrop-filter: blur(8px); z-index: 3000; align-items: center; justify-content: center;">
+            <div class="card-dark" style="width: 90%; max-width: 420px; margin: 0 auto; background: var(--bg-card); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.15); border: 1px solid var(--border-color); border-radius: 28px; padding: 24px;">
                 <h3 style="color: var(--color-accent); text-align: center; margin-bottom: 8px; font-size: 22px; font-weight: 800;">ข้ามเคสชั่วคราว</h3>
                 <p style="color: var(--text-secondary); text-align: center; font-size: 14px; margin-bottom: 20px; line-height: 1.5;">ระบุเหตุผลที่ข้ามเคส (ยังได้ +1 คะแนนสะสม แต่อันดับใบงานจะพักรอคัดกรองใหม่)</p>
                 

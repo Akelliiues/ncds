@@ -293,7 +293,7 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
         .modal-container {
             background: var(--bg-card);
             border-radius: var(--border-radius);
-            box-shadow: var(--shadow-premium), 0 20px 45px -10px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.15);
             border: 1px solid var(--border-color);
             width: 100%;
             max-width: 800px;
