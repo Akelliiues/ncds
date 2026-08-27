@@ -408,7 +408,7 @@ if ($admin_hoscode !== null) {
             max-width: 580px;
             max-height: 85vh;
             overflow-y: auto;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 25px 50px -12px rgba(15, 23, 42, 0.25);
             border: 1px solid var(--border-color);
         }
 
