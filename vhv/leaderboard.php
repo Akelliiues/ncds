@@ -298,7 +298,7 @@ if (DemoDataProvider::isDemoMode()) {
                     WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = :budget_year2 
                       AND (
                           ta.assignment_status = 'completed' 
-                          OR EXISTS (SELECT 1 FROM screening_results sr WHERE sr.target_cid = ta.target_cid OR sr.assignment_id = ta.assignment_id)
+                          OR EXISTS (SELECT 1 FROM screening_results sr WHERE sr.assignment_id = ta.assignment_id OR (sr.target_cid = ta.target_cid AND (sr.round_number = ta.round_number OR sr.round_number IS NULL)))
                       )
                       AND ta.is_sandbox = :is_sandbox3
                       AND (

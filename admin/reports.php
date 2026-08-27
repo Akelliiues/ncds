@@ -181,12 +181,10 @@ if ($filter_source === 'screened') {
     $sql .= " ORDER BY p.moo, LENGTH(p.house_no), p.house_no, s.created_at DESC";
 
 } elseif ($filter_source === 'unscreened') {
-    $roundCondTa = "";
     $roundCondSr = "";
     if ($filter_round !== 'all') {
         $rNum = intval($filter_round);
-        $roundCondTa = " AND (ta.round_number = $rNum OR (ta.round_number IS NULL AND $rNum = 1))";
-        $roundCondSr = " AND (sr.round_number = $rNum OR (sr.round_number IS NULL AND $rNum = 1))";
+        $roundCondSr = " AND (IFNULL(sr.round_number, IFNULL(ta2.round_number, 1)) = $rNum)";
     }
 
     // Query targets with customizable screening status
@@ -194,13 +192,8 @@ if ($filter_source === 'screened') {
         SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.sub_district_code, COALESCE(v.hoscode, p.hoscode) as hoscode,
                s.sys_bp1, s.dia_bp1, s.dtx_value, s.weight, s.height, s.waist, s.bmi, s.cv_risk_score, s.created_at,
                p.health_status_origin as risk, p.need_screen_dm, p.need_screen_ht,
-               CASE WHEN (s.screening_id IS NOT NULL OR a.assignment_id IS NOT NULL) THEN 'screened' ELSE 'unscreened' END as screen_status
+               CASE WHEN s.screening_id IS NOT NULL THEN 'screened' ELSE 'unscreened' END as screen_status
         FROM target_population p
-        LEFT JOIN task_assignments a ON a.assignment_id = (
-            SELECT assignment_id FROM task_assignments ta 
-            WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' {$roundCondTa}
-            ORDER BY ta.round_number DESC, ta.assignment_id DESC LIMIT 1
-        )
         LEFT JOIN screening_results s ON s.screening_id = (
             SELECT sr.screening_id FROM screening_results sr 
             LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id
@@ -212,9 +205,9 @@ if ($filter_source === 'screened') {
     ";
 
     if ($filter_screen_status === 'screened') {
-        $sql .= " AND (s.screening_id IS NOT NULL OR a.assignment_id IS NOT NULL)";
+        $sql .= " AND s.screening_id IS NOT NULL";
     } elseif ($filter_screen_status === 'unscreened') {
-        $sql .= " AND s.screening_id IS NULL AND a.assignment_id IS NULL";
+        $sql .= " AND s.screening_id IS NULL";
     }
 
     if ($filter_hoscode) {
