@@ -242,6 +242,37 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
             align-items: flex-end;
         }
 
+        /* Neumorphic Icon Button */
+        .btn-neumorph-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--neumorph-flat);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: var(--color-accent);
+            cursor: pointer;
+            transition: all var(--transition-speed);
+            outline: none;
+            padding: 0;
+            flex-shrink: 0;
+        }
+
+        .btn-neumorph-icon:hover {
+            transform: translateY(-2px);
+            color: var(--color-primary);
+            box-shadow: var(--shadow-premium);
+        }
+
+        .btn-neumorph-icon:active {
+            transform: translateY(1px);
+            box-shadow: var(--neumorph-inset);
+        }
+
         /* Modal specific styles */
         .modal-overlay {
             display: none;
@@ -261,12 +292,15 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
 
         .modal-container {
             background: var(--bg-card);
-            border-radius: 16px;
-            box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.25), 0 0 0 1px var(--border-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-premium), 0 20px 45px -10px rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-color);
             width: 100%;
-            max-width: 760px;
-            max-height: 88vh;
-            overflow-y: auto;
+            max-width: 800px;
+            max-height: 86vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
             animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
             position: relative;
         }
@@ -278,11 +312,28 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
             justify-content: space-between;
             align-items: center;
             background: var(--bg-main);
-            border-radius: 16px 16px 0 0;
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
+            flex-shrink: 0;
         }
 
         .modal-body {
             padding: 24px;
+            overflow-y: auto;
+            max-height: 58vh;
+            flex-grow: 1;
+        }
+
+        .modal-footer-premium {
+            padding: 16px 24px;
+            background-color: var(--bg-main);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+            flex-wrap: wrap;
+            gap: 12px;
+            flex-shrink: 0;
         }
 
         .modal-close-btn {
@@ -293,6 +344,8 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
             font-weight: bold;
             cursor: pointer;
             transition: color var(--transition-speed);
+            line-height: 1;
+            padding: 4px;
         }
 
         .modal-close-btn:hover {
@@ -303,21 +356,22 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
         .settings-tab-nav {
             display: flex;
             gap: 8px;
-            border-bottom: 2px solid var(--border-color);
-            padding: 0 24px;
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 24px;
             background: var(--bg-main);
             overflow-x: auto;
+            flex-shrink: 0;
         }
 
         .settings-tab-btn {
-            padding: 12px 18px;
-            border: none;
+            padding: 8px 16px;
+            border: 1px solid transparent;
             background: transparent;
             color: var(--text-secondary);
             font-weight: 700;
-            font-size: 14px;
+            font-size: 13.5px;
             cursor: pointer;
-            border-bottom: 3px solid transparent;
+            border-radius: 12px;
             transition: all 0.2s ease;
             white-space: nowrap;
             display: inline-flex;
@@ -327,12 +381,14 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
 
         .settings-tab-btn:hover {
             color: var(--color-primary);
+            background: rgba(13, 44, 84, 0.04);
         }
 
         .settings-tab-btn.active {
-            color: var(--color-primary);
-            border-bottom-color: var(--color-primary);
-            background: rgba(59, 130, 246, 0.05);
+            color: var(--color-accent);
+            background: var(--bg-card);
+            border-color: var(--border-color);
+            box-shadow: var(--neumorph-flat);
         }
 
         .settings-tab-pane {
@@ -344,17 +400,18 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
         }
 
         .setting-field-card {
-            background: var(--bg-main);
+            background: var(--bg-card);
+            box-shadow: var(--neumorph-flat);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 14px 16px;
-            margin-bottom: 12px;
+            border-radius: 14px;
+            padding: 16px 18px;
+            margin-bottom: 14px;
             transition: all 0.2s;
         }
 
         .setting-field-card:hover {
-            border-color: rgba(59, 130, 246, 0.4);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            border-color: rgba(13, 44, 84, 0.25);
+            transform: translateY(-1px);
         }
 
         .baseline-hint {
@@ -365,12 +422,13 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
         }
 
         .btn-reset-section {
-            background: rgba(239, 68, 68, 0.08);
+            background: var(--bg-card);
             color: #dc2626;
-            border: 1px solid rgba(239, 68, 68, 0.25);
-            padding: 7px 14px;
-            border-radius: 8px;
-            font-size: 12.5px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            box-shadow: var(--neumorph-flat);
+            padding: 6px 14px;
+            border-radius: 10px;
+            font-size: 12px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s;
@@ -380,8 +438,16 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
         }
 
         .btn-reset-section:hover {
-            background: #dc2626;
+            background: #ef4444;
             color: white;
+            border-color: #ef4444;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(239, 68, 68, 0.25);
+        }
+
+        .btn-reset-section:active {
+            box-shadow: var(--neumorph-inset);
+            transform: translateY(1px);
         }
 
         /* Rank badges */
@@ -585,11 +651,10 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
                     ติดตาม จัดลำดับ และวิเคราะห์ผลการสะสมแต้มของ อสม. ทุกตำบลในอำเภอ<?= DISTRICT_NAME ?>
                 </p>
             </div>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <div style="display: flex; gap: 12px; align-items: center;">
                 <?php if ($admin_hoscode === null): ?>
-                    <button onclick="openGamificationModal()" class="btn-giant btn-giant-primary"
-                        style="margin: 0; padding: 10px 18px; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.25);">
-                        ⚙️ จัดการกระดาน & ฉายาเกียรติยศ
+                    <button onclick="openGamificationModal()" class="btn-neumorph-icon" title="จัดการกระดาน & ฉายาเกียรติยศ" aria-label="จัดการกระดาน & ฉายาเกียรติยศ">
+                        ⚙️
                     </button>
                 <?php endif; ?>
                 <button onclick="window.print()" class="btn-giant btn-giant-secondary"
@@ -816,10 +881,9 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
                     </table>
                 </div>
             </div>
-            <div
-                style="padding: 16px 24px; background-color: var(--bg-main); border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; border-radius: 0 0 16px 16px;">
+            <div class="modal-footer-premium" style="justify-content: flex-end;">
                 <button onclick="closeLogsModal()" class="btn-giant btn-giant-secondary"
-                    style="margin: 0; padding: 9px 24px; font-size: 14px; width: auto; background-color: #64748b; color: white; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                    style="margin: 0; padding: 9px 24px; font-size: 14px; width: auto; cursor: pointer;">
                     ปิดหน้าต่าง
                 </button>
             </div>
@@ -828,7 +892,7 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
 
     <!-- Gamification & Leaderboard Settings Modal -->
     <div id="gamification-modal" class="modal-overlay">
-        <div class="modal-container" style="max-width: 860px;">
+        <div class="modal-container">
             <div class="modal-header-premium">
                 <div>
                     <h3 style="margin: 0; color: var(--color-primary); font-size: 19px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
@@ -1021,15 +1085,15 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
             </div>
 
             <!-- Footer -->
-            <div style="padding: 16px 24px; background-color: var(--bg-main); border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; border-radius: 0 0 16px 16px; flex-wrap: wrap; gap: 12px;">
-                <button type="button" onclick="resetAllGamificationSettings()" class="btn-reset-section" style="padding: 9px 16px;">
+            <div class="modal-footer-premium">
+                <button type="button" onclick="resetAllGamificationSettings()" class="btn-reset-section" style="padding: 8px 16px;">
                     🔄 คืนค่าเริ่มต้นทั้งหมดของระบบ (Reset All)
                 </button>
                 <div style="display: flex; gap: 10px;">
-                    <button type="button" onclick="closeGamificationModal()" class="btn-giant btn-giant-secondary" style="margin: 0; padding: 9px 20px; font-size: 14px; width: auto; background-color: #64748b; color: white; border-radius: 8px; font-weight: 600; cursor: pointer; border: none;">
+                    <button type="button" onclick="closeGamificationModal()" class="btn-giant btn-giant-secondary" style="margin: 0; padding: 9px 20px; font-size: 14px; width: auto; cursor: pointer;">
                         ยกเลิก
                     </button>
-                    <button type="button" onclick="saveGamificationSettings()" class="btn-giant btn-giant-primary" style="margin: 0; padding: 9px 24px; font-size: 14px; width: auto; background: linear-gradient(135deg, #10b981, #059669); color: white; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; box-shadow: 0 4px 10px rgba(16,185,129,0.25);">
+                    <button type="button" onclick="saveGamificationSettings()" class="btn-giant btn-giant-primary" style="margin: 0; padding: 9px 24px; font-size: 14px; width: auto; cursor: pointer;">
                         💾 บันทึกการตั้งค่า
                     </button>
                 </div>
