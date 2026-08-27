@@ -66,6 +66,7 @@ function get_system_build_number_modal($last_update_ts)
 
 $last_update_ts = get_system_last_update_modal();
 $build_number = get_system_build_number_modal($last_update_ts);
+$district_display = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
 
 // Dynamic path prefix depending on execution directory context
 $path_prefix = '';
@@ -83,16 +84,16 @@ if (file_exists('assets/aboutus.png')) {
         left: 0;
         width: 100vw;
         height: 100vh;
-        background-color: rgba(11, 15, 25, 0.65);
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
+        background-color: rgba(11, 15, 25, 0.72);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         z-index: 99999;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 16px;
+        padding: 24px;
         opacity: 0;
-        transition: opacity 0.2s ease;
+        transition: opacity 0.25s ease;
         box-sizing: border-box;
         cursor: pointer;
     }
@@ -103,18 +104,18 @@ if (file_exists('assets/aboutus.png')) {
 
     .dev-modal-container {
         background: var(--bg-card, #ffffff);
-        border: 1px solid var(--border-color, rgba(226, 232, 240, 0.8));
-        border-radius: 24px;
+        border: 1px solid var(--border-color, rgba(226, 232, 240, 0.85));
+        border-radius: 28px;
         width: 100%;
-        max-width: 420px;
-        box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.4);
+        max-width: 640px;
+        box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.45);
         position: relative;
         overflow: hidden;
-        transform: scale(0.92);
-        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        transform: scale(0.94);
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         box-sizing: border-box;
-        padding: 24px 20px 20px 20px;
-        cursor: pointer;
+        padding: 32px 32px 28px 32px;
+        cursor: default;
         text-align: center;
     }
 
@@ -124,124 +125,130 @@ if (file_exists('assets/aboutus.png')) {
 
     .dev-modal-close {
         position: absolute;
-        top: 14px;
-        right: 16px;
-        background: none;
-        border: none;
+        top: 18px;
+        right: 20px;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--bg-main, rgba(0, 0, 0, 0.05));
+        border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
         color: var(--text-muted, #94a3b8);
-        font-size: 26px;
-        font-weight: bold;
+        font-size: 20px;
         cursor: pointer;
-        transition: color 0.15s ease;
-        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
         z-index: 10;
     }
 
     .dev-modal-close:hover {
-        color: #ef4444;
+        background: #ef4444;
+        color: #ffffff;
+        border-color: #ef4444;
+        transform: rotate(90deg);
     }
 
     .dev-app-header {
         display: flex;
-        flex-direction: column;
         align-items: center;
-        gap: 8px;
-        margin-bottom: 16px;
+        gap: 18px;
+        text-align: left;
+        margin-bottom: 20px;
+        padding-bottom: 18px;
+        border-bottom: 1px solid var(--border-color, rgba(226, 232, 240, 0.8));
     }
 
     .dev-app-logo {
-        width: 68px;
-        height: 68px;
+        width: 78px;
+        height: 78px;
         object-fit: contain;
-        border-radius: 16px;
-        filter: drop-shadow(0 6px 14px rgba(13, 44, 84, 0.15));
+        border-radius: 20px;
+        filter: drop-shadow(0 6px 16px rgba(13, 44, 84, 0.18));
+        flex-shrink: 0;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color, rgba(0,0,0,0.06));
     }
 
     .dev-app-title {
-        font-size: 18px;
-        font-weight: 800;
+        font-size: 21px;
+        font-weight: 900;
         margin: 0;
         color: var(--text-primary, #0f172a);
-        line-height: 1.3;
+        line-height: 1.25;
     }
 
     .dev-app-subtitle {
-        font-size: 12.5px;
+        font-size: 13.5px;
         color: var(--color-accent, #0284c7);
         font-weight: 700;
-        margin: 0;
-    }
-
-    .dev-divider {
-        width: 48px;
-        height: 3px;
-        background: var(--color-primary, #0284c7);
-        margin: 14px auto;
-        border-radius: 2px;
-        opacity: 0.8;
+        margin: 4px 0 0 0;
     }
 
     .dev-profile-section {
         display: flex;
         align-items: center;
-        gap: 14px;
+        gap: 18px;
         text-align: left;
         background: var(--bg-main, #f8fafc);
-        padding: 14px 16px;
-        border-radius: 18px;
+        padding: 18px 20px;
+        border-radius: 20px;
         width: 100%;
         box-sizing: border-box;
         border: 1px solid var(--border-color, rgba(226, 232, 240, 0.8));
-        margin-bottom: 16px;
+        margin-bottom: 18px;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.03);
     }
 
     .dev-avatar {
-        width: 52px;
-        height: 52px;
+        width: 68px;
+        height: 68px;
         border-radius: 50%;
         object-fit: cover;
-        border: 2px solid var(--color-primary, #0284c7);
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+        border: 3px solid var(--color-primary, #0284c7);
+        box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25);
         flex-shrink: 0;
     }
 
     .dev-profile-info {
         display: flex;
         flex-direction: column;
+        flex: 1;
     }
 
     .dev-badge {
-        background: rgba(2, 132, 199, 0.12);
+        background: linear-gradient(135deg, rgba(2, 132, 199, 0.15), rgba(14, 165, 233, 0.15));
         color: #0284c7;
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 800;
-        padding: 2px 8px;
-        border-radius: 6px;
+        padding: 3px 10px;
+        border-radius: 8px;
         display: inline-block;
-        margin-bottom: 3px;
+        margin-bottom: 4px;
         width: fit-content;
+        border: 1px solid rgba(2, 132, 199, 0.25);
     }
 
     .dev-name {
-        font-size: 14.5px;
-        font-weight: 800;
+        font-size: 16.5px;
+        font-weight: 900;
         margin: 0;
         color: var(--text-primary, #0f172a);
         line-height: 1.3;
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: 6px;
     }
 
     .verified-badge {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 20px;
-        height: 20px;
+        width: 22px;
+        height: 22px;
         background: var(--bg-card, #ffffff);
         border-radius: 50%;
-        box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.08), -2px -2px 5px rgba(255, 255, 255, 0.9), inset 1px 1px 1px rgba(255, 255, 255, 0.8);
+        box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.08), -2px -2px 5px rgba(255, 255, 255, 0.9);
         cursor: help;
         padding: 2px;
         box-sizing: border-box;
@@ -271,73 +278,132 @@ if (file_exists('assets/aboutus.png')) {
     }
 
     .dev-title {
-        font-size: 12px;
+        font-size: 13px;
         color: var(--text-secondary, #64748b);
         margin: 2px 0 0 0;
-        line-height: 1.3;
+        line-height: 1.4;
+        font-weight: 600;
+    }
+
+    /* System Feature Highlights for PC Screen */
+    .dev-features-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    .dev-feature-item {
+        background: var(--bg-main, #f8fafc);
+        border: 1px solid var(--border-color, rgba(226, 232, 240, 0.8));
+        padding: 10px 12px;
+        border-radius: 14px;
+        text-align: center;
+    }
+
+    .dev-feature-icon {
+        font-size: 16px;
+        margin-bottom: 3px;
+    }
+
+    .dev-feature-label {
+        font-size: 11.5px;
+        font-weight: 800;
+        color: var(--text-primary, #0f172a);
+    }
+
+    .dev-feature-sub {
+        font-size: 10.5px;
+        color: var(--text-muted, #94a3b8);
+        margin-top: 1px;
     }
 
     .dev-footer-info {
         display: flex;
-        flex-direction: column;
         align-items: center;
-        gap: 6px;
-        font-size: 11.5px;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 12px;
         color: var(--text-muted, #94a3b8);
+        padding-top: 12px;
+        border-top: 1px solid var(--border-color, rgba(226, 232, 240, 0.8));
+        flex-wrap: wrap;
     }
 
     .dev-version-tag {
-        font-weight: 700;
-        color: var(--text-secondary, #64748b);
-        background: rgba(0, 0, 0, 0.04);
-        padding: 3px 10px;
+        font-weight: 800;
+        color: var(--text-primary, #0f172a);
+        background: var(--bg-main, rgba(0, 0, 0, 0.05));
+        border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+        padding: 5px 12px;
         border-radius: 10px;
+        font-size: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
     }
 
     .dev-dismiss-hint {
-        font-size: 11px;
-        color: #0284c7;
+        font-size: 11.5px;
+        color: var(--text-muted, #94a3b8);
         font-weight: 600;
-        animation: pulseHint 2s infinite ease-in-out;
-    }
-
-    @keyframes pulseHint {
-        0%, 100% { opacity: 0.7; }
-        50% { opacity: 1; }
     }
 </style>
 
 <div id="dev-portal-modal" class="dev-modal-overlay" style="display: none;" onclick="closeDevModal()">
-    <div class="dev-modal-container" onclick="closeDevModal()">
-        <button class="dev-modal-close" onclick="closeDevModal()">&times;</button>
+    <div class="dev-modal-container" onclick="event.stopPropagation()">
+        <button type="button" class="dev-modal-close" onclick="closeDevModal()" title="ปิดหน้าต่าง">&times;</button>
 
-        <!-- Compact Developer Info Card -->
+        <!-- Developer & App Info Header (Wide PC Layout) -->
         <div class="dev-app-header">
             <img src="<?= $path_prefix ?>assets/aboutus.png" alt="App Logo" class="dev-app-logo">
-            <h2 class="dev-app-title">NCDs Portal</h2>
-            <p class="dev-app-subtitle">สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?></p>
+            <div>
+                <h2 class="dev-app-title">NCDs Prevention & Dispatcher Portal</h2>
+                <p class="dev-app-subtitle">สำนักงานสาธารณสุขอำเภอ<?= htmlspecialchars($district_display) ?> • จังหวัดอุบลราชธานี</p>
+            </div>
         </div>
 
-        <div class="dev-divider"></div>
-
+        <!-- Developer Profile Card -->
         <div class="dev-profile-section">
             <img src="<?= $path_prefix ?>assets/developer.jpg" alt="Developer Avatar" class="dev-avatar">
             <div class="dev-profile-info">
-                <span class="dev-badge">Solo Developer • ผู้พัฒนาระบบ</span>
+                <span class="dev-badge">Solo Developer & System Architect • ผู้พัฒนาระบบ</span>
                 <h4 class="dev-name">นายบุญธรรม พันธ์ใหญ่ <span class="verified-badge" title="ผู้พัฒนาระบบที่ได้รับการรับรอง (Verified Developer)">
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="12" cy="12" r="9" stroke="#72cd27" stroke-width="2.3" stroke-linecap="round" stroke-dasharray="41 5 4 5" transform="rotate(-30 12 12)" />
                         <path d="M8.5 12.2l2.3 2.3 5.2-5.5" stroke="#72cd27" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </span></h4>
-                <p class="dev-title">นักวิชาการคอมพิวเตอร์ </p>
-                <p class="dev-title">สำนักงานสาธารณสุขอำเภอตาลสุม</p>
-                <p class="dev-title">จังหวัดอุบลราชธานี</p>
+                <p class="dev-title">นักวิชาการคอมพิวเตอร์ปฏิบัติการ</p>
+                <p class="dev-title">สำนักงานสาธารณสุขอำเภอ<?= htmlspecialchars($district_display) ?> จังหวัดอุบลราชธานี</p>
             </div>
         </div>
 
+        <!-- System Architecture & Capabilities Grid (PC Spec) -->
+        <div class="dev-features-grid">
+            <div class="dev-feature-item">
+                <div class="dev-feature-icon">📡</div>
+                <div class="dev-feature-label">Realtime Dispatch</div>
+                <div class="dev-feature-sub">เฝ้าระวังเคสวิกฤตสด 24 ชม.</div>
+            </div>
+            <div class="dev-feature-item">
+                <div class="dev-feature-icon">🛡️</div>
+                <div class="dev-feature-label">PDPA Compliant</div>
+                <div class="dev-feature-sub">คุ้มครองข้อมูลสุขภาพระดับสูง</div>
+            </div>
+            <div class="dev-feature-item">
+                <div class="dev-feature-icon">🏥</div>
+                <div class="dev-feature-label">JHCIS / HIS Sync</div>
+                <div class="dev-feature-sub">ส่งต่อข้อมูลสู่ รพ. รวดเร็ว</div>
+            </div>
+        </div>
+
+        <!-- Footer System Version & Build Info -->
         <div class="dev-footer-info">
-            <span class="dev-version-tag">v2.95 (Stable Version 2.95 - Build <?= htmlspecialchars($build_number) ?>)</span>
+            <span class="dev-version-tag">
+                <span style="color: #10B981;">●</span> v2.95 (Stable Build <?= htmlspecialchars($build_number) ?>)
+            </span>
+            <span class="dev-dismiss-hint">คลิกด้านนอก หรือกดปุ่ม ✕ เพื่อปิด</span>
         </div>
     </div>
 </div>
@@ -372,10 +438,10 @@ if (file_exists('assets/aboutus.png')) {
             clearTimeout(devModalAutoCloseTimer);
         }
 
-        // Auto-close after 5 seconds
+        // Auto-close after 8 seconds (longer on PC to comfortably read)
         devModalAutoCloseTimer = setTimeout(function() {
             closeDevModal();
-        }, 5000);
+        }, 8000);
     }
 
     function closeDevModal() {
@@ -394,6 +460,6 @@ if (file_exists('assets/aboutus.png')) {
             // Save showing timestamp so it doesn't pop up again today unless clicked manually
             const today = new Date().toDateString();
             localStorage.setItem('ncd_dev_modal_last_shown_v2', today);
-        }, 180);
+        }, 200);
     }
 </script>
