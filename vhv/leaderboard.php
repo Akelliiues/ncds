@@ -9,6 +9,7 @@ if (!isset($_SESSION['vhv_id'])) {
 }
 
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/gamification_config.php';
 require_once __DIR__ . '/../config/cache.php';
 require_once __DIR__ . '/../config/icons.php';
 
@@ -17,9 +18,13 @@ $vhvName = $_SESSION['vhv_name'] ?? 'อสม.';
 $isSandboxVal = function_exists('isSandboxMode') && isSandboxMode() ? 1 : 0;
 $currentBudgetYear = function_exists('get_current_budget_year') ? get_current_budget_year() : 2026;
 
-// Positive title mapping for the top 50 ranks (Unique top 5, tiered classes for 6-50)
+// Positive title mapping for the top 50 ranks (Dynamic from gamification config with default fallback)
 function getPositiveTitle($rank)
 {
+    if (function_exists('get_active_vhv_title')) {
+        $custom = get_active_vhv_title($rank);
+        if ($custom !== '') return $custom;
+    }
     if ($rank <= 0 || $rank > 50)
         return '';
 

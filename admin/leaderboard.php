@@ -8,6 +8,7 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 }
 
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/gamification_config.php';
 
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 
@@ -38,6 +39,10 @@ try {
 } catch (\Exception $e) {
     // Fallback
 }
+
+// Gamification & Leaderboard settings
+$gamificationConfig = get_gamification_config();
+$defaultGamificationConfig = get_default_gamification_config();
 
 // Fetch all VHVs with their points breakdown and progress subqueries for achievements
 $isSandboxVal = isSandboxMode($admin_hoscode) ? 1 : 0;
@@ -294,6 +299,91 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
             color: var(--color-red);
         }
 
+        /* Settings Tabs */
+        .settings-tab-nav {
+            display: flex;
+            gap: 8px;
+            border-bottom: 2px solid var(--border-color);
+            padding: 0 24px;
+            background: var(--bg-main);
+            overflow-x: auto;
+        }
+
+        .settings-tab-btn {
+            padding: 12px 18px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .settings-tab-btn:hover {
+            color: var(--color-primary);
+        }
+
+        .settings-tab-btn.active {
+            color: var(--color-primary);
+            border-bottom-color: var(--color-primary);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .settings-tab-pane {
+            display: none;
+        }
+
+        .settings-tab-pane.active {
+            display: block;
+        }
+
+        .setting-field-card {
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+
+        .setting-field-card:hover {
+            border-color: rgba(59, 130, 246, 0.4);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .baseline-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            display: block;
+        }
+
+        .btn-reset-section {
+            background: rgba(239, 68, 68, 0.08);
+            color: #dc2626;
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 12.5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-reset-section:hover {
+            background: #dc2626;
+            color: white;
+        }
+
         /* Rank badges */
         .rank-badge {
             width: 32px;
@@ -495,7 +585,13 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
                     ติดตาม จัดลำดับ และวิเคราะห์ผลการสะสมแต้มของ อสม. ทุกตำบลในอำเภอ<?= DISTRICT_NAME ?>
                 </p>
             </div>
-            <div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <?php if ($admin_hoscode === null): ?>
+                    <button onclick="openGamificationModal()" class="btn-giant btn-giant-primary"
+                        style="margin: 0; padding: 10px 18px; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.25);">
+                        ⚙️ จัดการกระดาน & ฉายาเกียรติยศ
+                    </button>
+                <?php endif; ?>
                 <button onclick="window.print()" class="btn-giant btn-giant-secondary"
                     style="margin: 0; padding: 10px 20px; font-size: 14.5px; display: inline-flex; align-items: center; gap: 8px;">
                     🖨️ พิมพ์รายงานกระดาน
@@ -730,54 +826,256 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
         </div>
     </div>
 
+    <!-- Gamification & Leaderboard Settings Modal -->
+    <div id="gamification-modal" class="modal-overlay">
+        <div class="modal-container" style="max-width: 860px;">
+            <div class="modal-header-premium">
+                <div>
+                    <h3 style="margin: 0; color: var(--color-primary); font-size: 19px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                        ⚙️ จัดการกระดานคะแนน ฉายาเกียรติยศ & เงื่อนไขแต้มสะสม
+                    </h3>
+                    <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">
+                        ปรับแต่งฉายา อสม., สโลแกน รพ.สต., กฎการคำนวณแต้ม และการแสดงผลหน้าบ้านอย่างอิสระ
+                    </p>
+                </div>
+                <button onclick="closeGamificationModal()" class="modal-close-btn">&times;</button>
+            </div>
+
+            <!-- Tab Nav -->
+            <div class="settings-tab-nav">
+                <button type="button" class="settings-tab-btn active" onclick="switchGamificationTab('tab-titles', this)">
+                    🏆 1. ฉายา อสม.
+                </button>
+                <button type="button" class="settings-tab-btn" onclick="switchGamificationTab('tab-hospitals', this)">
+                    🏥 2. ฉายา & สโลแกน รพ.สต.
+                </button>
+                <button type="button" class="settings-tab-btn" onclick="switchGamificationTab('tab-scoring', this)">
+                    🪙 3. กฎการคิดแต้มคัดกรอง
+                </button>
+                <button type="button" class="settings-tab-btn" onclick="switchGamificationTab('tab-display', this)">
+                    👁️ 4. การแสดงผลหน้าบ้าน
+                </button>
+            </div>
+
+            <div class="modal-body" style="max-height: 58vh; overflow-y: auto;">
+                <!-- Tab 1: Titles -->
+                <div id="tab-titles" class="settings-tab-pane active">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+                        <h4 style="margin: 0; font-size: 15px; color: var(--color-primary); font-weight: 800;">
+                            👑 ฉายาระดับสูงสุด (Top 1 - 5)
+                        </h4>
+                        <button type="button" onclick="resetGamificationSection('top5_titles')" class="btn-reset-section">
+                            🔄 คืนค่าฉายา Top 5 เป็นค่าเริ่มต้น
+                        </button>
+                    </div>
+                    <div id="top5-inputs-container"></div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+                        <h4 style="margin: 0; font-size: 15px; color: var(--color-primary); font-weight: 800;">
+                            🎖️ ฉายากลุ่มอันดับ (อันดับ 6 - 50 แบ่งกลุ่มละ 5 อันดับ)
+                        </h4>
+                        <button type="button" onclick="resetGamificationSection('tier_titles')" class="btn-reset-section">
+                            🔄 คืนค่าฉายากลุ่มเป็นค่าเริ่มต้น
+                        </button>
+                    </div>
+                    <div id="tier-inputs-container"></div>
+                </div>
+
+                <!-- Tab 2: Hospitals -->
+                <div id="tab-hospitals" class="settings-tab-pane">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+                        <h4 style="margin: 0; font-size: 15px; color: var(--color-primary); font-weight: 800;">
+                            🏥 ฉายาเกียรติยศและสโลแกนประจำ รพ.สต.
+                        </h4>
+                        <button type="button" onclick="resetGamificationSection('hospital_titles')" class="btn-reset-section">
+                            🔄 คืนค่าฉายา รพ.สต. เป็นค่าเริ่มต้น
+                        </button>
+                    </div>
+                    <p style="font-size: 13px; color: var(--text-secondary); margin-top: -6px; margin-bottom: 16px;">
+                        ข้อความนี้จะแสดงเป็น Badge พิเศษประจำหน่วยบริการบนกระดานคะแนน เพื่อสร้างแรงบันดาลใจและเอกลักษณ์เฉพาะตำบล
+                    </p>
+                    <div id="hospital-inputs-container"></div>
+                </div>
+
+                <!-- Tab 3: Scoring -->
+                <div id="tab-scoring" class="settings-tab-pane">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+                        <h4 style="margin: 0; font-size: 15px; color: var(--color-primary); font-weight: 800;">
+                            🪙 กฎการคิดแต้มงานคัดกรองและการติดตาม
+                        </h4>
+                        <button type="button" onclick="resetGamificationSection('scoring_rules')" class="btn-reset-section">
+                            🔄 คืนค่ากฎแต้ม เป็นค่าเริ่มต้น
+                        </button>
+                    </div>
+
+                    <div class="setting-field-card">
+                        <label style="font-weight: bold; font-size: 14px; display: block; margin-bottom: 8px; color: var(--text-primary);">
+                            รูปแบบการให้แต้มงานคัดกรอง NCDs (DM/HT):
+                        </label>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13.5px; font-weight: 600;">
+                                <input type="radio" name="scoring_mode" value="progressive" id="scoring-mode-prog" onchange="toggleScoringModeInputs()">
+                                <span>🟢 <strong>แต้มทวีคูณตามเลขรอบ (Progressive Rewards)</strong> <span style="color: var(--text-secondary); font-weight: normal;">— รอบ 1 = 1 แต้ม, รอบ 2 = 2 แต้ม, รอบ 3 = 3 แต้ม, รอบ N = N แต้ม</span></span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13.5px; font-weight: 600;">
+                                <input type="radio" name="scoring_mode" value="custom" id="scoring-mode-custom" onchange="toggleScoringModeInputs()">
+                                <span>🔵 <strong>กำหนดแต้มรายรอบอิสระ (Custom per Round)</strong> <span style="color: var(--text-secondary); font-weight: normal;">— ระบุจำนวนแต้มของแต่ละรอบด้วยตนเอง</span></span>
+                            </label>
+                        </div>
+
+                        <div id="custom-round-points-box" style="display: none; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border-color);">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+                                <div>
+                                    <label style="font-size: 12.5px; font-weight: bold; display: block; margin-bottom: 4px;">รอบที่ 1 (Baseline):</label>
+                                    <input type="number" step="0.25" min="0.25" id="round-pts-1" class="form-input-text" style="height: 38px;">
+                                </div>
+                                <div>
+                                    <label style="font-size: 12.5px; font-weight: bold; display: block; margin-bottom: 4px;">รอบที่ 2:</label>
+                                    <input type="number" step="0.25" min="0.25" id="round-pts-2" class="form-input-text" style="height: 38px;">
+                                </div>
+                                <div>
+                                    <label style="font-size: 12.5px; font-weight: bold; display: block; margin-bottom: 4px;">รอบที่ 3:</label>
+                                    <input type="number" step="0.25" min="0.25" id="round-pts-3" class="form-input-text" style="height: 38px;">
+                                </div>
+                                <div>
+                                    <label style="font-size: 12.5px; font-weight: bold; display: block; margin-bottom: 4px;">รอบที่ 4:</label>
+                                    <input type="number" step="0.25" min="0.25" id="round-pts-4" class="form-input-text" style="height: 38px;">
+                                </div>
+                                <div>
+                                    <label style="font-size: 12.5px; font-weight: bold; display: block; margin-bottom: 4px;">รอบที่ 5 ขึ้นไป:</label>
+                                    <input type="number" step="0.25" min="0.25" id="round-pts-5" class="form-input-text" style="height: 38px;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="setting-field-card">
+                        <label for="dpac-pts-input" style="font-weight: bold; font-size: 14px; display: block; margin-bottom: 6px; color: var(--text-primary);">
+                            🏃 แต้มงานติดตามปรับเปลี่ยนพฤติกรรม DPAC (ต่อครั้ง):
+                        </label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="number" step="0.25" min="0.25" id="dpac-pts-input" class="form-input-text" style="width: 140px; height: 38px; margin: 0;">
+                            <span style="font-size: 13.5px; color: var(--text-secondary);">แต้มต่อการติดตามสำเร็จ 1 ครั้ง</span>
+                        </div>
+                        <span class="baseline-hint">ค่าเริ่มต้นของระบบ: 1.00 แต้ม</span>
+                    </div>
+
+                    <div class="setting-field-card" style="background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.3);">
+                        <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="sync-past-points-checkbox" style="margin-top: 3px; transform: scale(1.2);">
+                            <div>
+                                <span style="font-weight: bold; font-size: 13.5px; color: #b45309;">⚡ ปรับปรุงแต้มผลงานย้อนหลังทั้งหมดให้ตรงกับกฎใหม่ทันที (Sync Past Rewards)</span>
+                                <p style="margin: 3px 0 0 0; font-size: 12px; color: #92400e;">
+                                    หากเลือกตัวเลือกนี้ ระบบจะคำนวณแต้มสะสมของงานคัดกรองและ DPAC ในอดีตทั้งหมดใหม่ตามอัตราแต้มที่กำหนดด้านบน
+                                </p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Tab 4: Display -->
+                <div id="tab-display" class="settings-tab-pane">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+                        <h4 style="margin: 0; font-size: 15px; color: var(--color-primary); font-weight: 800;">
+                            👁️ การควบคุมการแสดงผลบนกระดานคะแนน
+                        </h4>
+                        <button type="button" onclick="resetGamificationSection('display_settings')" class="btn-reset-section">
+                            🔄 คืนค่าการแสดงผล เป็นค่าเริ่มต้น
+                        </button>
+                    </div>
+
+                    <div class="setting-field-card">
+                        <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+                            <div>
+                                <span style="font-weight: bold; font-size: 14px; color: var(--text-primary);">แสดงฉายาเกียรติยศ อสม. บนตารางคะแนน</span>
+                                <span class="baseline-hint">แสดง Badge ฉายาตามอันดับ 1 - 50 ในคอลัมน์สถานะพิเศษ</span>
+                            </div>
+                            <input type="checkbox" id="display-vhv-titles-toggle" style="transform: scale(1.3); cursor: pointer;">
+                        </label>
+                    </div>
+
+                    <div class="setting-field-card">
+                        <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+                            <div>
+                                <span style="font-weight: bold; font-size: 14px; color: var(--text-primary);">แสดงฉายาและสโลแกนประจำ รพ.สต.</span>
+                                <span class="baseline-hint">แสดงสโลแกนเกียรติยศใต้ชื่อหน่วยบริการที่สังกัด</span>
+                            </div>
+                            <input type="checkbox" id="display-hospital-titles-toggle" style="transform: scale(1.3); cursor: pointer;">
+                        </label>
+                    </div>
+
+                    <div class="setting-field-card">
+                        <label for="display-top-limit-select" style="font-weight: bold; font-size: 14px; display: block; margin-bottom: 6px; color: var(--text-primary);">
+                            จำนวนอันดับที่แสดงบน Top Leaderboard:
+                        </label>
+                        <select id="display-top-limit-select" class="form-select" style="max-width: 250px; height: 40px; margin: 0;">
+                            <option value="10">Top 10 อันดับแรก</option>
+                            <option value="20">Top 20 อันดับแรก</option>
+                            <option value="50">Top 50 อันดับแรก (ค่าเริ่มต้น)</option>
+                            <option value="100">Top 100 อันดับแรก</option>
+                            <option value="0">แสดงทั้งหมดทุกอันดับ</option>
+                        </select>
+                        <span class="baseline-hint">ค่าเริ่มต้นของระบบ: Top 50 อันดับแรก</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div style="padding: 16px 24px; background-color: var(--bg-main); border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; border-radius: 0 0 16px 16px; flex-wrap: wrap; gap: 12px;">
+                <button type="button" onclick="resetAllGamificationSettings()" class="btn-reset-section" style="padding: 9px 16px;">
+                    🔄 คืนค่าเริ่มต้นทั้งหมดของระบบ (Reset All)
+                </button>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" onclick="closeGamificationModal()" class="btn-giant btn-giant-secondary" style="margin: 0; padding: 9px 20px; font-size: 14px; width: auto; background-color: #64748b; color: white; border-radius: 8px; font-weight: 600; cursor: pointer; border: none;">
+                        ยกเลิก
+                    </button>
+                    <button type="button" onclick="saveGamificationSettings()" class="btn-giant btn-giant-primary" style="margin: 0; padding: 9px 24px; font-size: 14px; width: auto; background: linear-gradient(135deg, #10b981, #059669); color: white; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; box-shadow: 0 4px 10px rgba(16,185,129,0.25);">
+                        💾 บันทึกการตั้งค่า
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Load data from PHP
         const allVhvs = <?= json_encode($vhv_list, JSON_UNESCAPED_UNICODE) ?>;
         const hcNames = <?= json_encode($hc_names, JSON_UNESCAPED_UNICODE) ?>;
         const tambonNames = <?= json_encode($tambon_names, JSON_UNESCAPED_UNICODE) ?>;
         const loggedInHoscode = <?= json_encode($admin_hoscode, JSON_UNESCAPED_UNICODE) ?>;
+        
+        // Gamification Settings state
+        let gamificationConfig = <?= json_encode($gamificationConfig, JSON_UNESCAPED_UNICODE) ?>;
+        const defaultGamificationConfig = <?= json_encode($defaultGamificationConfig, JSON_UNESCAPED_UNICODE) ?>;
 
-        // Positive titles mapped to rankings (Unique top 5, tiered classes for 6-50)
+        // Dynamic rank title mapping based on active configuration
         function getRankTitle(rank) {
             if (rank <= 0 || rank > 50) return '';
-            
-            // Top 5 are unique supreme titles
-            if (rank === 1) return '🏆 สุดยอดขุนพลสาธารณสุข<?= DISTRICT_NAME ?>';
-            if (rank === 2) return '🏆 ยอดอัศวินสุขภาพชุมชน';
-            if (rank === 3) return '🏆 ดาวรุ่งแห่งความห่วงใย';
-            if (rank === 4) return '✨ ผู้พิทักษ์หัวใจไร้โรค';
-            if (rank === 5) return '🌟 ขวัญใจสุขภาพดีถ้วนหน้า';
+            if (gamificationConfig.display_settings && gamificationConfig.display_settings.show_vhv_titles === false) {
+                return '';
+            }
 
-            // Base titles for group tiers (ranks 6-50 in groups of 5)
-            const baseTitles = {
-                1: '💪 ยอดนักปราบเบาหวานและความดัน',
-                2: '🛡️ ผู้ปกป้องสุขภาวะ<?= DISTRICT_NAME ?>',
-                3: '❤️ เสาหลักสุขภาพดีชุมชน',
-                4: '🌱 ผู้หว่านเมล็ดพันธุ์สุขภาพ',
-                5: '🤝 พลังขับเคลื่อนตำบลสุขภาพดี',
-                6: '🎉 ผู้จุดประกายรักตนเอง',
-                7: '🍀 ทูตสุขภาพสร้างพลังบวก',
-                8: '💡 ปราชญ์สุขภาพคู่บ้านคู่เมือง',
-                9: '☀️ แสนสว่างนำทางชีวิตชีวา'
-            };
+            // Top 1-5
+            if (rank >= 1 && rank <= 5) {
+                return (gamificationConfig.top5_titles && gamificationConfig.top5_titles[rank]) 
+                    ? gamificationConfig.top5_titles[rank] 
+                    : (defaultGamificationConfig.top5_titles[rank] || '');
+            }
 
-            // Thai traditional civil service / military tiers
-            const suffixes = {
-                0: 'ชั้นเอก',
-                1: 'ชั้นโท',
-                2: 'ชั้นตรี',
-                3: 'ชั้นจัตวา',
-                4: 'ชั้นเบญจ'
-            };
-
+            // Group tiers 6-50
             const groupIndex = Math.floor((rank - 6) / 5) + 1;
             const suffixIndex = (rank - 6) % 5;
 
-            if (baseTitles[groupIndex] && suffixes[suffixIndex]) {
-                return baseTitles[groupIndex] + ' ' + suffixes[suffixIndex];
-            }
+            const baseTitles = gamificationConfig.tier_titles || defaultGamificationConfig.tier_titles;
+            const suffixes = gamificationConfig.tier_suffixes || defaultGamificationConfig.tier_suffixes;
 
-            return '';
+            const base = baseTitles[groupIndex] || defaultGamificationConfig.tier_titles[groupIndex];
+            const suffix = suffixes[suffixIndex] || defaultGamificationConfig.tier_suffixes[suffixIndex];
+
+            if (base && suffix) {
+                return base + ' ' + suffix;
+            }
+            return base || '';
         }
 
         // Set up event listeners for filters
@@ -800,14 +1098,11 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
             hoscodeSelect.innerHTML = '<option value="">-- ทุกหน่วยบริการ --</option>';
 
             for (const [code, name] of Object.entries(hcNames)) {
-                const tambonOfHospital = hospitalTambons[code];
-                if (!selectedTambon || tambonOfHospital === selectedTambon) {
+                if (!selectedTambon || hospitalTambons[code] === selectedTambon) {
                     const opt = document.createElement('option');
                     opt.value = code;
                     opt.textContent = name;
-                    if (code === currentSelected) {
-                        opt.selected = true;
-                    }
+                    if (code === currentSelected) opt.selected = true;
                     hoscodeSelect.appendChild(opt);
                 }
             }
@@ -826,102 +1121,100 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
             renderLeaderboard();
         }
 
+        // Achievement and milestone badges helper
         function getAchievementsHtml(vhv) {
             let html = '';
-            const totalAssigned = parseInt(vhv.total_assigned) || 0;
-            const completed = parseInt(vhv.completed) || 0;
-            const waitingRewards = parseInt(vhv.waiting_rewards) || 0;
-            
-            if (completed > 0) {
-                html += `<span style="background: rgba(13,44,84,0.05); font-size: 13px; display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; margin-left: 4px; cursor: help;" title="ประเดิมผลงาน: คัดกรองสำเร็จอย่างน้อย 1 รายการ">🚀</span>`;
+            const screen = parseFloat(vhv.screening_points) || 0;
+            const dpac = parseFloat(vhv.dpac_points) || 0;
+
+            if (screen >= 50) {
+                html += '<span title="ยอดนักคัดกรอง 50+ แต้ม" style="margin-left: 5px; cursor: help;">🏆</span>';
+            } else if (screen >= 20) {
+                html += '<span title="นักคัดกรองดีเด่น 20+ แต้ม" style="margin-left: 5px; cursor: help;">⭐</span>';
             }
-            
-            if (totalAssigned > 0) {
-                const rate = (completed / totalAssigned) * 100;
-                if (rate >= 100) {
-                    html += `<span style="background: rgba(13,44,84,0.05); font-size: 13px; display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; margin-left: 4px; cursor: help;" title="นักคัดกรองทองคำ: คัดกรองสำเร็จครบ 100%">🥇</span>`;
-                } else if (rate >= 75) {
-                    html += `<span style="background: rgba(13,44,84,0.05); font-size: 13px; display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; margin-left: 4px; cursor: help;" title="นักคัดกรองเงิน: คัดกรองสำเร็จ 75% ขึ้นไป">🥈</span>`;
-                } else if (rate >= 50) {
-                    html += `<span style="background: rgba(13,44,84,0.05); font-size: 13px; display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; margin-left: 4px; cursor: help;" title="นักคัดกรองทองแดง: คัดกรองสำเร็จ 50% ขึ้นไป">🥉</span>`;
-                }
+
+            if (dpac >= 30) {
+                html += '<span title="ผู้พิทักษ์พฤติกรรม DPAC 30+ แต้ม" style="margin-left: 5px; cursor: help;">❤️‍🔥</span>';
+            } else if (dpac >= 10) {
+                html += '<span title="นักติดตาม DPAC 10+ แต้ม" style="margin-left: 5px; cursor: help;">🌱</span>';
             }
-            
-            if (completed > 0 && waitingRewards === 0) {
-                html += `<span style="background: rgba(13,44,84,0.05); font-size: 13px; display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; margin-left: 4px; cursor: help;" title="ผู้พิทักษ์พิกัดจริง: คัดกรองพิกัดถูกต้องทุกเคส">📍</span>`;
-            }
-            
+
             return html;
         }
 
         // Main client-side sorting and filtering engine
         function renderLeaderboard() {
-            const query = document.getElementById('search-input').value.trim().toLowerCase();
-            const selectedTambon = document.getElementById('filter-tambon').value;
-            const selectedHoscode = document.getElementById('filter-hoscode').value;
-            const selectedCoach = document.getElementById('filter-coach').value;
+            const tbody = document.getElementById('leaderboard-tbody');
+            tbody.innerHTML = '';
+
+            const searchTerm = document.getElementById('search-input').value.trim().toLowerCase();
+            const tambonFilter = document.getElementById('filter-tambon').value;
+            const hoscodeFilter = document.getElementById('filter-hoscode').value;
+            const coachFilter = document.getElementById('filter-coach').value;
             const sortBy = document.getElementById('sort-by').value;
 
-            // 1. Filter
-            let filtered = allVhvs.filter(vhv => {
-                // Search term
-                if (query) {
-                    const nameMatch = vhv.vhv_name.toLowerCase().includes(query);
-                    const idMatch = vhv.vhv_id.toLowerCase().includes(query);
-                    if (!nameMatch && !idMatch) return false;
+            // Filter logic
+            const filtered = allVhvs.filter(vhv => {
+                // Search query
+                if (searchTerm) {
+                    const nameMatch = vhv.vhv_name.toLowerCase().includes(searchTerm);
+                    const idMatch = vhv.vhv_id.toLowerCase().includes(searchTerm);
+                    const mooMatch = `หมู่ ${parseInt(vhv.vhv_moo)}`.includes(searchTerm);
+                    if (!nameMatch && !idMatch && !mooMatch) return false;
                 }
 
-                // Tambon
-                if (selectedTambon) {
+                // Tambon filter
+                if (tambonFilter) {
                     const vhvTambon = vhv.vhid_code ? vhv.vhid_code.substring(0, 6) : '';
-                    if (vhvTambon !== selectedTambon) return false;
+                    if (vhvTambon !== tambonFilter) return false;
                 }
 
-                // Hoscode
-                if (selectedHoscode) {
-                    if (vhv.hoscode !== selectedHoscode) return false;
+                // Hoscode filter
+                if (hoscodeFilter && vhv.hoscode !== hoscodeFilter) {
+                    return false;
                 }
 
-                // Coach Status
-                if (selectedCoach === 'coach' && !vhv.is_hl_coach) return false;
-                if (selectedCoach === 'member' && vhv.is_hl_coach) return false;
+                // Coach filter
+                if (coachFilter === 'coach' && !vhv.is_hl_coach) return false;
+                if (coachFilter === 'member' && vhv.is_hl_coach) return false;
 
                 return true;
             });
 
-            // Show active filters badge
-            const hasFilters = query || selectedTambon || selectedHoscode || selectedCoach;
-            document.getElementById('filtered-label').style.display = hasFilters ? 'inline-block' : 'none';
-
-            // 2. Sort
+            // Sort logic
             filtered.sort((a, b) => {
-                if (sortBy === 'vhv_name') {
+                if (sortBy === 'total_points') {
+                    return parseFloat(b.total_points) - parseFloat(a.total_points);
+                } else if (sortBy === 'screening_points') {
+                    return parseFloat(b.screening_points) - parseFloat(a.screening_points);
+                } else if (sortBy === 'dpac_points') {
+                    return parseFloat(b.dpac_points) - parseFloat(a.dpac_points);
+                } else if (sortBy === 'vhv_name') {
                     return a.vhv_name.localeCompare(b.vhv_name, 'th');
                 }
-
-                let valA = parseFloat(a[sortBy]) || 0;
-                let valB = parseFloat(b[sortBy]) || 0;
-
-                if (valA !== valB) {
-                    return valB - valA; // Descending points
-                }
-                return a.vhv_name.localeCompare(b.vhv_name, 'th'); // Alphabetical tie-breaker
+                return 0;
             });
 
-            // 3. Render HTML
-            const tbody = document.getElementById('leaderboard-tbody');
-            tbody.innerHTML = '';
-
-            document.getElementById('results-count').textContent = filtered.length;
-
+            // Handle no data
             if (filtered.length === 0) {
                 document.getElementById('no-data-msg').style.display = 'block';
                 return;
+            } else {
+                document.getElementById('no-data-msg').style.display = 'none';
             }
-            document.getElementById('no-data-msg').style.display = 'none';
 
-            filtered.forEach((vhv, index) => {
-                const rankNum = index + 1;
+            // Top Limit Display
+            let displayList = filtered;
+            const topLimit = gamificationConfig.display_settings ? parseInt(gamificationConfig.display_settings.top_board_limit) : 50;
+            if (topLimit > 0 && !searchTerm && !tambonFilter && !hoscodeFilter && !coachFilter) {
+                displayList = filtered.slice(0, topLimit);
+            }
+
+            document.getElementById('results-count').textContent = filtered.length;
+
+            // Render Rows
+            displayList.forEach((vhv, idx) => {
+                const rankNum = idx + 1;
                 let rankHtml = '';
 
                 if (rankNum === 1) {
@@ -945,7 +1238,16 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
 
                 const rankTitle = getRankTitle(rankNum);
                 if (rankTitle) {
-                    badges += `<span style="color: var(--color-accent); font-weight: bold; background: rgba(13, 44, 84, 0.05); padding: 2px 6px; border-radius: 4px; font-size: 11px; box-shadow: var(--neumorph-inset);">${rankTitle}</span>`;
+                    badges += `<span style="color: var(--color-accent); font-weight: bold; background: rgba(13, 44, 84, 0.05); padding: 2px 6px; border-radius: 4px; font-size: 11px; box-shadow: var(--neumorph-inset);">${escapeHtml(rankTitle)}</span>`;
+                }
+
+                // Hospital slogan badge
+                let hosTitleHtml = '';
+                if (gamificationConfig.display_settings && gamificationConfig.display_settings.show_hospital_titles !== false) {
+                    const hosTitle = gamificationConfig.hospital_titles ? gamificationConfig.hospital_titles[vhv.hoscode] : '';
+                    if (hosTitle) {
+                        hosTitleHtml = `<div style="font-size: 11px; color: #0284c7; font-weight: bold; margin-top: 2px;">${escapeHtml(hosTitle)}</div>`;
+                    }
                 }
 
                 const totalPtsFormatted = parseFloat(vhv.total_points).toFixed(2).replace(/\.00$/, '');
@@ -954,7 +1256,7 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
 
                 const row = document.createElement('tr');
                 if (loggedInHoscode && vhv.hoscode === loggedInHoscode) {
-                    row.style.backgroundColor = 'rgba(13, 44, 84, 0.02)'; // Highlight local hospital VHVs slightly
+                    row.style.backgroundColor = 'rgba(13, 44, 84, 0.02)';
                 }
 
                 row.innerHTML = `
@@ -962,7 +1264,10 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
                     <td style="font-weight: 800; color: var(--text-primary);">${escapeHtml(vhv.vhv_name)}${getAchievementsHtml(vhv)}</td>
                     <td style="text-align: center; font-weight: bold;">${parseInt(vhv.vhv_moo)}</td>
                     <td style="white-space: nowrap;">${escapeHtml(tambonName)}</td>
-                    <td style="font-size: 13.5px; color: var(--text-secondary); white-space: nowrap;">${escapeHtml(hosName)}</td>
+                    <td style="font-size: 13.5px; color: var(--text-secondary); white-space: nowrap;">
+                        ${escapeHtml(hosName)}
+                        ${hosTitleHtml}
+                    </td>
                     <td style="text-align: right; font-weight: 600;">${screeningPtsFormatted}</td>
                     <td style="text-align: right; font-weight: 600;">${dpacPtsFormatted}</td>
                     <td style="text-align: right; font-weight: 800; color: var(--color-accent); font-size: 15px;">${totalPtsFormatted}</td>
@@ -980,11 +1285,250 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
         // HTML escaping helper
         function escapeHtml(str) {
             if (!str) return '';
-            return str.replace(/&/g, "&amp;")
+            return str.toString().replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;")
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#039;");
+        }
+
+        // Gamification Settings Modal Operations
+        function openGamificationModal() {
+            renderGamificationSettingsUI();
+            document.getElementById('gamification-modal').style.display = 'flex';
+        }
+
+        function closeGamificationModal() {
+            document.getElementById('gamification-modal').style.display = 'none';
+        }
+
+        function switchGamificationTab(tabId, btn) {
+            document.querySelectorAll('.settings-tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.settings-tab-pane').forEach(p => p.classList.remove('active'));
+
+            btn.classList.add('active');
+            const targetPane = document.getElementById(tabId);
+            if (targetPane) targetPane.classList.add('active');
+        }
+
+        function toggleScoringModeInputs() {
+            const isCustom = document.getElementById('scoring-mode-custom').checked;
+            document.getElementById('custom-round-points-box').style.display = isCustom ? 'block' : 'none';
+        }
+
+        function renderGamificationSettingsUI() {
+            // Tab 1: Top 5 Titles
+            const top5Box = document.getElementById('top5-inputs-container');
+            top5Box.innerHTML = '';
+            for (let r = 1; r <= 5; r++) {
+                const currentVal = (gamificationConfig.top5_titles && gamificationConfig.top5_titles[r]) || defaultGamificationConfig.top5_titles[r] || '';
+                const defaultVal = defaultGamificationConfig.top5_titles[r] || '';
+                
+                const card = document.createElement('div');
+                card.className = 'setting-field-card';
+                card.innerHTML = `
+                    <label style="font-size: 13.5px; font-weight: bold; display: block; margin-bottom: 4px;">
+                        อันดับที่ ${r}:
+                    </label>
+                    <input type="text" id="top5-input-${r}" class="form-input-text" value="${escapeHtml(currentVal)}" style="height: 38px; margin-bottom: 2px;">
+                    <span class="baseline-hint">ค่าเริ่มต้นเดิม: ${escapeHtml(defaultVal)}</span>
+                `;
+                top5Box.appendChild(card);
+            }
+
+            // Tab 1: Tier Titles
+            const tierBox = document.getElementById('tier-inputs-container');
+            tierBox.innerHTML = '';
+            for (let g = 1; g <= 9; g++) {
+                const startRank = (g - 1) * 5 + 6;
+                const endRank = startRank + 4;
+                const currentVal = (gamificationConfig.tier_titles && gamificationConfig.tier_titles[g]) || defaultGamificationConfig.tier_titles[g] || '';
+                const defaultVal = defaultGamificationConfig.tier_titles[g] || '';
+
+                const card = document.createElement('div');
+                card.className = 'setting-field-card';
+                card.innerHTML = `
+                    <label style="font-size: 13.5px; font-weight: bold; display: block; margin-bottom: 4px;">
+                        กลุ่มอันดับ ${startRank} - ${endRank}:
+                    </label>
+                    <input type="text" id="tier-input-${g}" class="form-input-text" value="${escapeHtml(currentVal)}" style="height: 38px; margin-bottom: 2px;">
+                    <span class="baseline-hint">ค่าเริ่มต้นเดิม: ${escapeHtml(defaultVal)}</span>
+                `;
+                tierBox.appendChild(card);
+            }
+
+            // Tab 2: Hospital Titles
+            const hosBox = document.getElementById('hospital-inputs-container');
+            hosBox.innerHTML = '';
+            for (const [code, name] of Object.entries(hcNames)) {
+                const currentVal = (gamificationConfig.hospital_titles && gamificationConfig.hospital_titles[code]) || defaultGamificationConfig.hospital_titles[code] || '';
+                const defaultVal = defaultGamificationConfig.hospital_titles[code] || '';
+
+                const card = document.createElement('div');
+                card.className = 'setting-field-card';
+                card.innerHTML = `
+                    <label style="font-size: 13.5px; font-weight: bold; display: block; margin-bottom: 4px;">
+                        ${escapeHtml(name)} <span style="font-family: monospace; font-size: 12px; color: var(--text-secondary);">(${escapeHtml(code)})</span>:
+                    </label>
+                    <input type="text" id="hospital-input-${code}" class="form-input-text" value="${escapeHtml(currentVal)}" placeholder="ระบุฉายา/สโลแกนประจำ รพ.สต..." style="height: 38px; margin-bottom: 2px;">
+                    <span class="baseline-hint">ค่าเริ่มต้นเดิม: ${escapeHtml(defaultVal || '-')}</span>
+                `;
+                hosBox.appendChild(card);
+            }
+
+            // Tab 3: Scoring Rules
+            const scoring = gamificationConfig.scoring_rules || defaultGamificationConfig.scoring_rules;
+            if (scoring.mode === 'custom') {
+                document.getElementById('scoring-mode-custom').checked = true;
+            } else {
+                document.getElementById('scoring-mode-prog').checked = true;
+            }
+            toggleScoringModeInputs();
+
+            const rPts = scoring.round_points || defaultGamificationConfig.scoring_rules.round_points;
+            document.getElementById('round-pts-1').value = rPts[1] || 1;
+            document.getElementById('round-pts-2').value = rPts[2] || 2;
+            document.getElementById('round-pts-3').value = rPts[3] || 3;
+            document.getElementById('round-pts-4').value = rPts[4] || 4;
+            document.getElementById('round-pts-5').value = rPts[5] || 5;
+
+            document.getElementById('dpac-pts-input').value = scoring.dpac_points || 1.00;
+            document.getElementById('sync-past-points-checkbox').checked = false;
+
+            // Tab 4: Display Settings
+            const display = gamificationConfig.display_settings || defaultGamificationConfig.display_settings;
+            document.getElementById('display-vhv-titles-toggle').checked = display.show_vhv_titles !== false;
+            document.getElementById('display-hospital-titles-toggle').checked = display.show_hospital_titles !== false;
+            document.getElementById('display-top-limit-select').value = display.top_board_limit !== undefined ? display.top_board_limit : 50;
+        }
+
+        function collectGamificationConfigFromUI() {
+            const config = JSON.parse(JSON.stringify(gamificationConfig));
+
+            // Tab 1: Top 5
+            config.top5_titles = {};
+            for (let r = 1; r <= 5; r++) {
+                const el = document.getElementById(`top5-input-${r}`);
+                if (el) config.top5_titles[r] = el.value.trim();
+            }
+
+            // Tab 1: Tiers
+            config.tier_titles = {};
+            for (let g = 1; g <= 9; g++) {
+                const el = document.getElementById(`tier-input-${g}`);
+                if (el) config.tier_titles[g] = el.value.trim();
+            }
+
+            // Tab 2: Hospitals
+            config.hospital_titles = {};
+            for (const code of Object.keys(hcNames)) {
+                const el = document.getElementById(`hospital-input-${code}`);
+                if (el) config.hospital_titles[code] = el.value.trim();
+            }
+
+            // Tab 3: Scoring
+            const isCustom = document.getElementById('scoring-mode-custom').checked;
+            config.scoring_rules = {
+                mode: isCustom ? 'custom' : 'progressive',
+                round_points: {
+                    1: parseFloat(document.getElementById('round-pts-1').value) || 1,
+                    2: parseFloat(document.getElementById('round-pts-2').value) || 2,
+                    3: parseFloat(document.getElementById('round-pts-3').value) || 3,
+                    4: parseFloat(document.getElementById('round-pts-4').value) || 4,
+                    5: parseFloat(document.getElementById('round-pts-5').value) || 5
+                },
+                dpac_points: parseFloat(document.getElementById('dpac-pts-input').value) || 1
+            };
+
+            // Tab 4: Display
+            config.display_settings = {
+                show_vhv_titles: document.getElementById('display-vhv-titles-toggle').checked,
+                show_hospital_titles: document.getElementById('display-hospital-titles-toggle').checked,
+                top_board_limit: parseInt(document.getElementById('display-top-limit-select').value)
+            };
+
+            return config;
+        }
+
+        function saveGamificationSettings() {
+            const configToSave = collectGamificationConfigFromUI();
+            const syncPoints = document.getElementById('sync-past-points-checkbox').checked;
+
+            fetch('../api/gamification_settings.php?action=save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    config: configToSave,
+                    sync_points: syncPoints
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    gamificationConfig = data.active_config;
+                    renderLeaderboard();
+                    closeGamificationModal();
+                    alert('✅ ' + data.message);
+                    if (syncPoints) {
+                        window.location.reload();
+                    }
+                } else {
+                    alert('⚠️ เกิดข้อผิดพลาด: ' + (data.message || 'ไม่สามารถบันทึกได้'));
+                }
+            })
+            .catch(err => {
+                alert('⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+            });
+        }
+
+        function resetGamificationSection(section) {
+            if (!confirm('ยืนยันการคืนค่าเริ่มต้นของส่วนนี้หรือไม่?')) return;
+
+            fetch('../api/gamification_settings.php?action=reset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ section: section })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    gamificationConfig = data.active_config;
+                    renderGamificationSettingsUI();
+                    renderLeaderboard();
+                    alert('✅ คืนค่าเริ่มต้นของส่วนนี้เรียบร้อยแล้ว');
+                } else {
+                    alert('⚠️ ' + data.message);
+                }
+            })
+            .catch(err => {
+                alert('⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+            });
+        }
+
+        function resetAllGamificationSettings() {
+            if (!confirm('⚠️ คำเตือน: คุณต้องการคืนค่าเริ่มต้นทั้งหมดของระบบ (ฉายา, สโลแกน รพ.สต., กฎแต้ม และการแสดงผล) ใช่หรือไม่?')) {
+                return;
+            }
+
+            fetch('../api/gamification_settings.php?action=reset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ section: 'all' })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    gamificationConfig = data.active_config;
+                    renderGamificationSettingsUI();
+                    renderLeaderboard();
+                    alert('✅ คืนค่าเริ่มต้นทั้งหมดของระบบเรียบร้อยแล้ว');
+                } else {
+                    alert('⚠️ ' + data.message);
+                }
+            })
+            .catch(err => {
+                alert('⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+            });
         }
 
         // Modal Operations
@@ -1097,9 +1641,12 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
 
         // Close modal when clicking outside contents
         window.onclick = function (event) {
-            const modal = document.getElementById('logs-modal');
-            if (event.target === modal) {
+            const logsModal = document.getElementById('logs-modal');
+            const gamificationModal = document.getElementById('gamification-modal');
+            if (event.target === logsModal) {
                 closeLogsModal();
+            } else if (event.target === gamificationModal) {
+                closeGamificationModal();
             }
         };
 
