@@ -91,11 +91,12 @@ if (file_exists('assets/aboutus.png')) {
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 24px;
+        padding: 20px;
         opacity: 0;
         transition: opacity 0.25s ease;
         box-sizing: border-box;
         cursor: pointer;
+        user-select: none;
     }
 
     .dev-modal-overlay.show {
@@ -107,15 +108,15 @@ if (file_exists('assets/aboutus.png')) {
         border: 1px solid var(--border-color, rgba(226, 232, 240, 0.85));
         border-radius: 28px;
         width: 100%;
-        max-width: 640px;
+        max-width: 440px;
         box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.45);
         position: relative;
         overflow: hidden;
         transform: scale(0.94);
         transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         box-sizing: border-box;
-        padding: 32px 32px 28px 32px;
-        cursor: default;
+        padding: 24px 20px 20px 20px;
+        cursor: pointer;
         text-align: center;
     }
 
@@ -123,120 +124,94 @@ if (file_exists('assets/aboutus.png')) {
         transform: scale(1);
     }
 
-    .dev-modal-close {
-        position: absolute;
-        top: 18px;
-        right: 20px;
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        background: var(--bg-main, rgba(0, 0, 0, 0.05));
-        border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
-        color: var(--text-muted, #94a3b8);
-        font-size: 20px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-        z-index: 10;
-    }
-
-    .dev-modal-close:hover {
-        background: #ef4444;
-        color: #ffffff;
-        border-color: #ef4444;
-        transform: rotate(90deg);
-    }
-
     .dev-app-header {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 18px;
-        text-align: left;
-        margin-bottom: 20px;
-        padding-bottom: 18px;
+        text-align: center;
+        margin-bottom: 16px;
+        padding-bottom: 14px;
         border-bottom: 1px solid var(--border-color, rgba(226, 232, 240, 0.8));
     }
 
     .dev-app-logo {
-        width: 78px;
-        height: 78px;
+        width: 64px;
+        height: 64px;
         object-fit: contain;
-        border-radius: 20px;
-        filter: drop-shadow(0 6px 16px rgba(13, 44, 84, 0.18));
-        flex-shrink: 0;
+        border-radius: 18px;
+        filter: drop-shadow(0 6px 14px rgba(13, 44, 84, 0.15));
         background: var(--bg-card);
         border: 1px solid var(--border-color, rgba(0,0,0,0.06));
+        margin-bottom: 8px;
     }
 
     .dev-app-title {
-        font-size: 21px;
+        font-size: 20px;
         font-weight: 900;
         margin: 0;
         color: var(--text-primary, #0f172a);
         line-height: 1.25;
+        letter-spacing: -0.02em;
     }
 
     .dev-app-subtitle {
-        font-size: 13.5px;
+        font-size: 13px;
         color: var(--color-accent, #0284c7);
         font-weight: 700;
-        margin: 4px 0 0 0;
+        margin: 3px 0 0 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
     }
 
     .dev-profile-section {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 18px;
-        text-align: left;
+        text-align: center;
         background: var(--bg-main, #f8fafc);
-        padding: 18px 20px;
+        padding: 16px 16px 14px 16px;
         border-radius: 20px;
         width: 100%;
         box-sizing: border-box;
         border: 1px solid var(--border-color, rgba(226, 232, 240, 0.8));
-        margin-bottom: 18px;
-        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.03);
-    }
-
-    .dev-avatar {
-        width: 68px;
-        height: 68px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 3px solid var(--color-primary, #0284c7);
-        box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25);
-        flex-shrink: 0;
-    }
-
-    .dev-profile-info {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
+        margin-bottom: 14px;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02);
     }
 
     .dev-badge {
-        background: linear-gradient(135deg, rgba(2, 132, 199, 0.15), rgba(14, 165, 233, 0.15));
+        background: linear-gradient(135deg, rgba(2, 132, 199, 0.12), rgba(14, 165, 233, 0.12));
         color: #0284c7;
         font-size: 11px;
         font-weight: 800;
-        padding: 3px 10px;
-        border-radius: 8px;
+        padding: 3px 12px;
+        border-radius: 20px;
         display: inline-block;
-        margin-bottom: 4px;
-        width: fit-content;
-        border: 1px solid rgba(2, 132, 199, 0.25);
+        margin-bottom: 10px;
+        border: 1px solid rgba(2, 132, 199, 0.22);
+        letter-spacing: 0.02em;
+    }
+
+    .dev-avatar {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid var(--color-primary, #0284c7);
+        box-shadow: 0 6px 16px rgba(2, 132, 199, 0.25);
+        margin-bottom: 8px;
     }
 
     .dev-name {
-        font-size: 16.5px;
+        font-size: 17px;
         font-weight: 900;
         margin: 0;
         color: var(--text-primary, #0f172a);
         line-height: 1.3;
-        display: flex;
+        display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 6px;
     }
 
@@ -244,21 +219,14 @@ if (file_exists('assets/aboutus.png')) {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 22px;
-        height: 22px;
+        width: 20px;
+        height: 20px;
         background: var(--bg-card, #ffffff);
         border-radius: 50%;
-        box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.08), -2px -2px 5px rgba(255, 255, 255, 0.9);
-        cursor: help;
-        padding: 2px;
+        box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);
+        padding: 1px;
         box-sizing: border-box;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
         flex-shrink: 0;
-    }
-
-    .verified-badge:hover {
-        transform: scale(1.2);
-        box-shadow: 0 0 10px rgba(114, 205, 39, 0.45);
     }
 
     .verified-badge svg {
@@ -269,7 +237,7 @@ if (file_exists('assets/aboutus.png')) {
 
     [data-theme="dark"] .verified-badge {
         background: #1e293b;
-        box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.5), -1px -1px 3px rgba(255, 255, 255, 0.05);
+        box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.5);
     }
 
     [data-theme="dark"] .verified-badge svg circle,
@@ -280,131 +248,128 @@ if (file_exists('assets/aboutus.png')) {
     .dev-title {
         font-size: 13px;
         color: var(--text-secondary, #64748b);
-        margin: 2px 0 0 0;
-        line-height: 1.4;
+        margin: 3px 0 0 0;
+        line-height: 1.35;
         font-weight: 600;
+        word-break: keep-all;
     }
 
-    /* System Feature Highlights for PC Screen */
+    .dev-title-sub {
+        font-size: 12px;
+        color: var(--text-muted, #94a3b8);
+        margin: 2px 0 0 0;
+        line-height: 1.35;
+        font-weight: 500;
+        word-break: keep-all;
+    }
+
+    /* System Feature Highlights */
     .dev-features-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
-        margin-bottom: 18px;
+        gap: 8px;
+        margin-bottom: 14px;
     }
 
     .dev-feature-item {
         background: var(--bg-main, #f8fafc);
         border: 1px solid var(--border-color, rgba(226, 232, 240, 0.8));
-        padding: 10px 12px;
+        padding: 8px 6px;
         border-radius: 14px;
         text-align: center;
     }
 
     .dev-feature-icon {
         font-size: 16px;
-        margin-bottom: 3px;
+        margin-bottom: 2px;
     }
 
     .dev-feature-label {
-        font-size: 11.5px;
+        font-size: 11px;
         font-weight: 800;
         color: var(--text-primary, #0f172a);
+        white-space: nowrap;
     }
 
     .dev-feature-sub {
-        font-size: 10.5px;
+        font-size: 10px;
         color: var(--text-muted, #94a3b8);
         margin-top: 1px;
+        white-space: nowrap;
     }
 
     .dev-footer-info {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        font-size: 12px;
-        color: var(--text-muted, #94a3b8);
-        padding-top: 12px;
-        border-top: 1px solid var(--border-color, rgba(226, 232, 240, 0.8));
-        flex-wrap: wrap;
+        justify-content: center;
+        padding-top: 6px;
     }
 
     .dev-version-tag {
         font-weight: 800;
         color: var(--text-primary, #0f172a);
-        background: var(--bg-main, rgba(0, 0, 0, 0.05));
-        border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
-        padding: 5px 12px;
-        border-radius: 10px;
-        font-size: 12px;
+        background: var(--bg-main, rgba(0, 0, 0, 0.04));
+        border: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11.5px;
         display: inline-flex;
         align-items: center;
         gap: 6px;
     }
-
-    .dev-dismiss-hint {
-        font-size: 11.5px;
-        color: var(--text-muted, #94a3b8);
-        font-weight: 600;
-    }
 </style>
 
-<div id="dev-portal-modal" class="dev-modal-overlay" style="display: none;" onclick="closeDevModal()" title="แตะตรงไหนก็ได้เพื่อปิด">
-    <div class="dev-modal-container" onclick="closeDevModal()" style="cursor: pointer;" title="แตะตรงไหนก็ได้บนหน้าจอเพื่อปิด">
-        <button type="button" class="dev-modal-close" onclick="closeDevModal()" title="ปิดหน้าต่าง">&times;</button>
+<div id="dev-portal-modal" class="dev-modal-overlay" style="display: none;" onclick="closeDevModal()">
+    <div class="dev-modal-container" onclick="closeDevModal()">
 
-        <!-- Developer & App Info Header (Wide PC Layout) -->
+        <!-- Developer & App Info Header -->
         <div class="dev-app-header">
             <img src="<?= $path_prefix ?>assets/aboutus.png" alt="App Logo" class="dev-app-logo">
-            <div>
-                <h2 class="dev-app-title">NCDs Prevention & Dispatcher Portal</h2>
-                <p class="dev-app-subtitle">สำนักงานสาธารณสุขอำเภอ<?= htmlspecialchars($district_display) ?> • จังหวัดอุบลราชธานี</p>
-            </div>
+            <h2 class="dev-app-title">NCDs Portal</h2>
+            <p class="dev-app-subtitle">สสอ.<?= htmlspecialchars($district_display) ?> • จ.อุบลราชธานี</p>
         </div>
 
         <!-- Developer Profile Card -->
         <div class="dev-profile-section">
+            <span class="dev-badge">Solo Developer & System Architect</span>
             <img src="<?= $path_prefix ?>assets/developer.jpg" alt="Developer Avatar" class="dev-avatar">
-            <div class="dev-profile-info">
-                <span class="dev-badge">Solo Developer & System Architect • ผู้พัฒนาระบบ</span>
-                <h4 class="dev-name">นายบุญธรรม พันธ์ใหญ่ <span class="verified-badge" title="ผู้พัฒนาระบบที่ได้รับการรับรอง (Verified Developer)">
+            
+            <h4 class="dev-name">
+                นายบุญธรรม พันธ์ใหญ่
+                <span class="verified-badge" title="ผู้พัฒนาระบบที่ได้รับการรับรอง (Verified Developer)">
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="12" cy="12" r="9" stroke="#72cd27" stroke-width="2.3" stroke-linecap="round" stroke-dasharray="41 5 4 5" transform="rotate(-30 12 12)" />
                         <path d="M8.5 12.2l2.3 2.3 5.2-5.5" stroke="#72cd27" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                </span></h4>
-                <p class="dev-title">นักวิชาการคอมพิวเตอร์ปฏิบัติการ</p>
-                <p class="dev-title">สำนักงานสาธารณสุขอำเภอ<?= htmlspecialchars($district_display) ?> จังหวัดอุบลราชธานี</p>
-            </div>
+                </span>
+            </h4>
+            <p class="dev-title">นักวิชาการคอมพิวเตอร์ปฏิบัติการ</p>
+            <p class="dev-title-sub">สำนักงานสาธารณสุขอำเภอ<?= htmlspecialchars($district_display) ?></p>
         </div>
 
-        <!-- System Architecture & Capabilities Grid (PC Spec) -->
+        <!-- System Architecture & Capabilities Grid -->
         <div class="dev-features-grid">
             <div class="dev-feature-item">
                 <div class="dev-feature-icon">📡</div>
-                <div class="dev-feature-label">Realtime Dispatch</div>
-                <div class="dev-feature-sub">เฝ้าระวังเคสวิกฤตสด 24 ชม.</div>
+                <div class="dev-feature-label">Realtime</div>
+                <div class="dev-feature-sub">เฝ้าระวัง 24 ชม.</div>
             </div>
             <div class="dev-feature-item">
                 <div class="dev-feature-icon">🛡️</div>
-                <div class="dev-feature-label">PDPA Compliant</div>
-                <div class="dev-feature-sub">คุ้มครองข้อมูลสุขภาพระดับสูง</div>
+                <div class="dev-feature-label">PDPA</div>
+                <div class="dev-feature-sub">คุ้มครองข้อมูล</div>
             </div>
             <div class="dev-feature-item">
                 <div class="dev-feature-icon">🏥</div>
-                <div class="dev-feature-label">JHCIS / HIS Sync</div>
-                <div class="dev-feature-sub">ส่งต่อข้อมูลสู่ รพ. รวดเร็ว</div>
+                <div class="dev-feature-label">HIS Sync</div>
+                <div class="dev-feature-sub">เชื่อม รพ.สต.</div>
             </div>
         </div>
 
         <!-- Footer System Version & Build Info -->
         <div class="dev-footer-info">
             <span class="dev-version-tag">
-                <span style="color: #10B981;">●</span> v3.0 (Stable Build <?= htmlspecialchars($build_number) ?>)
-            </span>
-            <span class="dev-dismiss-hint" style="color: var(--color-primary, #2563eb); font-weight: 800; cursor: pointer;">
-                👉 แตะตรงไหนก็ได้บนหน้าจอเพื่อปิด
+                <span style="color: #10B981;">●</span> v3.0 (Build <?= htmlspecialchars($build_number) ?>)
             </span>
         </div>
     </div>
@@ -417,7 +382,7 @@ if (file_exists('assets/aboutus.png')) {
         const modal = document.getElementById('dev-portal-modal');
         if (!modal) return;
 
-        // Check local storage for daily limit (or new version key)
+        // Check local storage for daily limit
         const today = new Date().toDateString();
         const lastShown = localStorage.getItem('ncd_dev_modal_last_shown_v2');
 
@@ -436,7 +401,7 @@ if (file_exists('assets/aboutus.png')) {
         modal.offsetHeight; // Force reflow
         modal.classList.add('show');
 
-        // Add global click/touch dismissal listener on window so any touch outside/inside closes it
+        // Add global click/touch dismissal listener on window so any touch closes it
         setTimeout(() => {
             window.addEventListener('click', handleGlobalDevModalClose, { capture: true, once: true });
             window.addEventListener('touchstart', handleGlobalDevModalClose, { capture: true, once: true });
