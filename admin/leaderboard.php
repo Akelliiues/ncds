@@ -245,8 +245,9 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(13, 44, 84, 0.45);
-            backdrop-filter: blur(5px);
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             z-index: 2000;
             align-items: center;
             justify-content: center;
@@ -255,28 +256,28 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
 
         .modal-container {
             background: var(--bg-card);
-            border-radius: var(--border-radius);
-            box-shadow: var(--neumorph-flat);
+            border-radius: 16px;
+            box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.25), 0 0 0 1px var(--border-color);
             width: 100%;
-            max-width: 750px;
-            max-height: 85vh;
+            max-width: 760px;
+            max-height: 88vh;
             overflow-y: auto;
-            animation: modalSlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
             position: relative;
         }
 
         .modal-header-premium {
-            padding: 24px 30px;
-            border-bottom: 2px solid var(--bg-darker);
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
             background: var(--bg-main);
-            border-radius: 20px 20px 0 0;
+            border-radius: 16px 16px 0 0;
         }
 
         .modal-body {
-            padding: 30px;
+            padding: 24px;
         }
 
         .modal-close-btn {
@@ -682,19 +683,19 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
             <div class="modal-body">
                 <div class="stats-grid" style="grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
                     <div
-                        style="background-color: var(--bg-darker); padding: 16px; border-radius: 12px; text-align: center; box-shadow: var(--neumorph-inset);">
+                        style="background-color: var(--bg-main); border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
                         <span
-                            style="font-size: 12.5px; color: var(--text-secondary); font-weight: bold; display: block; margin-bottom: 4px;">แต้มรวมงานคัดกรอง</span>
+                            style="font-size: 13px; color: var(--text-secondary); font-weight: bold; display: block; margin-bottom: 6px;">แต้มรวมงานคัดกรอง</span>
                         <div id="modal-stat-screening"
-                            style="font-size: 24px; font-weight: 800; color: var(--color-primary);">0.00</div>
+                            style="font-size: 26px; font-weight: 800; color: var(--color-primary);">0.00</div>
                     </div>
                     <div
-                        style="background-color: var(--bg-darker); padding: 16px; border-radius: 12px; text-align: center; box-shadow: var(--neumorph-inset);">
+                        style="background-color: var(--bg-main); border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
                         <span
-                            style="font-size: 12.5px; color: var(--text-secondary); font-weight: bold; display: block; margin-bottom: 4px;">แต้มรวมงานติดตาม
+                            style="font-size: 13px; color: var(--text-secondary); font-weight: bold; display: block; margin-bottom: 6px;">แต้มรวมงานติดตาม
                             DPAC</span>
                         <div id="modal-stat-dpac"
-                            style="font-size: 24px; font-weight: 800; color: var(--color-primary);">0.00</div>
+                            style="font-size: 26px; font-weight: 800; color: var(--color-primary);">0.00</div>
                     </div>
                 </div>
 
@@ -702,8 +703,8 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
                     style="margin-top: 0; margin-bottom: 12px; color: var(--text-primary); font-size: 15px; font-weight: 800;">
                     รายการการบันทึกงานที่ได้รับการอนุมัติ (Audit Log)</h4>
 
-                <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
-                    <table class="admin-table" style="font-size: 13.5px;">
+                <div class="table-responsive" style="max-height: 280px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 10px;">
+                    <table class="admin-table" style="font-size: 13.5px; margin: 0; width: 100%;">
                         <thead>
                             <tr>
                                 <th>วัน-เวลาบันทึก</th>
@@ -720,9 +721,9 @@ $avg_points = $total_vhvs > 0 ? round($total_points / $total_vhvs, 1) : 0;
                 </div>
             </div>
             <div
-                style="padding: 20px 30px; background-color: var(--bg-main); border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; border-radius: 0 0 20px 20px;">
+                style="padding: 16px 24px; background-color: var(--bg-main); border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; border-radius: 0 0 16px 16px;">
                 <button onclick="closeLogsModal()" class="btn-giant btn-giant-secondary"
-                    style="margin: 0; padding: 8px 20px; font-size: 14px; width: auto; background-color: var(--text-muted); color: white;">
+                    style="margin: 0; padding: 9px 24px; font-size: 14px; width: auto; background-color: #64748b; color: white; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
                     ปิดหน้าต่าง
                 </button>
             </div>
