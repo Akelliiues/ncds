@@ -35,6 +35,8 @@ try {
             window.name = "ncd_red_alert_station_tab";
             const theme = localStorage.getItem('theme') || 'light';
             document.documentElement.setAttribute('data-theme', theme);
+            // Suppress automatic dev modal popups on emergency dispatch screen so it only opens on click
+            localStorage.setItem('ncd_dev_modal_last_shown_v2', new Date().toDateString());
         })();
     </script>
     <meta charset="UTF-8">
@@ -177,6 +179,30 @@ try {
             transform: translateY(-1px) rotate(15deg);
             border-color: #2563EB;
             color: #2563EB;
+        }
+
+        .dev-info-subtle-btn {
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-muted, #64748B);
+            opacity: 0.6;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .dev-info-subtle-btn:hover {
+            opacity: 1;
+            background: var(--bg-card);
+            border-color: var(--border-color, #CBD5E1);
+            color: #2563EB;
+            transform: translateY(-1px);
+            box-shadow: var(--neumorph-flat);
         }
 
         .disc-red-subtle {
@@ -1071,7 +1097,16 @@ try {
 
             <div class="header-divider"></div>
 
-            <!-- 2. Dark/Light Theme Toggle (Icon only, pinned to top-right corner) -->
+            <!-- 2. Developer & System Info Button (ปุ่มดูรายละเอียดระบบและผู้พัฒนา ขนาดเล็ก ไม่โดดเด่น) -->
+            <button type="button" id="btn-dev-modal" class="dev-info-subtle-btn" onclick="openDevModal(event)" title="รายละเอียดระบบและผู้พัฒนา (System & Developer Info)">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+            </button>
+
+            <!-- 3. Dark/Light Theme Toggle (Icon only, pinned to top-right corner) -->
             <button id="theme-toggle-btn" class="theme-switch-btn" onclick="toggleTheme()" title="สลับโหมด มืด/สว่าง">
                 <!-- Sun Icon -->
                 <svg id="theme-toggle-sun" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display: none;">
@@ -1245,7 +1280,7 @@ try {
                         <option value="all">ทุกตำบล (ทุกเขต)</option>
                         <?php foreach ($sub_districts as $sd): ?>
                             <option value="<?= htmlspecialchars($sd['sub_district_code']) ?>">
-                                ต.<?= htmlspecialchars($sd['sub_district_name']) ?>
+                                ตำบล<?= htmlspecialchars($sd['sub_district_name']) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -1309,6 +1344,15 @@ try {
             </div>
         </div>
     </main>
+
+    <!-- Discreet Bottom Station Footer (คลิกดูเวอร์ชันและผู้พัฒนา) -->
+    <footer style="margin-top: auto; padding: 18px 24px 24px 24px; text-align: center; font-size: 11.5px; color: var(--text-muted); opacity: 0.75; display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;">
+        <span>NCDs Red Alert Station • ศูนย์รับสัญญาณวิกฤตฉุกเฉิน 24 ชม.</span>
+        <span>•</span>
+        <button type="button" onclick="openDevModal(event)" style="background: none; border: none; padding: 0; color: var(--text-muted); font-size: 11.5px; cursor: pointer; text-decoration: underline; opacity: 0.85; transition: color 0.2s ease;" onmouseover="this.style.color='#2563EB'" onmouseout="this.style.color='var(--text-muted)'" title="คลิกดูรายละเอียดระบบและทีมพัฒนา">
+            v2.95 (Build Info & Developer)
+        </button>
+    </footer>
 
     <!-- Fullscreen Emergency Pop-up Modal (Modern Clean Glassmorphism) -->
     <div id="emergency-popup-overlay">
@@ -1703,7 +1747,7 @@ try {
             selectVill.innerHTML = '';
 
             if (!subDistrictCode || subDistrictCode === 'all') {
-                let html = '<option value="all">ทุกหมู่บ้าน (ทุกตำบล / ทุก ม.)</option>';
+                let html = '<option value="all">หมู่บ้านทั้งหมด</option>';
                 
                 // Group ALL_VILLAGES by sub_district_code
                 const groups = {};
@@ -1724,7 +1768,7 @@ try {
                     g.villages.forEach(v => {
                         const valKey = `${v.sub_district_code || ''}_${v.moo}`;
                         const isSelected = (valKey === prevVal || String(v.moo) === prevVal) ? 'selected' : '';
-                        html += `<option value="${valKey}" data-sub="${v.sub_district_code || ''}" data-moo="${v.moo}" ${isSelected}>ม.${v.moo} บ้าน${v.village_name}</option>`;
+                        html += `<option value="${valKey}" data-sub="${v.sub_district_code || ''}" data-moo="${v.moo}" ${isSelected}>หมู่ที่ ${v.moo} บ้าน${v.village_name}</option>`;
                     });
                     html += `</optgroup>`;
                 });
@@ -1734,11 +1778,11 @@ try {
                 const subName = subObj ? subObj.sub_district_name : '';
                 const vills = ALL_VILLAGES.filter(v => String(v.sub_district_code) === String(subDistrictCode));
 
-                let html = `<option value="all">ทุกหมู่บ้านใน ต.${subName || subDistrictCode}</option>`;
+                let html = `<option value="all">ทุกหมู่บ้านในตำบล${subName || subDistrictCode}</option>`;
                 vills.forEach(v => {
                     const valKey = `${v.sub_district_code || ''}_${v.moo}`;
                     const isSelected = (valKey === prevVal || String(v.moo) === prevVal) ? 'selected' : '';
-                    html += `<option value="${valKey}" data-sub="${v.sub_district_code || ''}" data-moo="${v.moo}" ${isSelected}>ม.${v.moo} บ้าน${v.village_name}</option>`;
+                    html += `<option value="${valKey}" data-sub="${v.sub_district_code || ''}" data-moo="${v.moo}" ${isSelected}>หมู่ที่ ${v.moo} บ้าน${v.village_name}</option>`;
                 });
                 selectVill.innerHTML = html;
             }
@@ -2597,5 +2641,6 @@ try {
             });
         });
     </script>
+    <?php include_once __DIR__ . '/../config/dev_modal.php'; ?>
 </body>
 </html>
