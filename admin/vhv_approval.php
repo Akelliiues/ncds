@@ -347,7 +347,7 @@ try {
     }
 
     $page = max(1, intval($_GET['page'] ?? 1));
-    $limit = 50;
+    $limit = isset($_GET['limit']) && is_numeric($_GET['limit']) ? min(500, max(10, (int)$_GET['limit'])) : 50;
     $offset = ($page - 1) * $limit;
 
     // Search and Filter variables
@@ -486,6 +486,65 @@ try {
     $total_approved = 0;
     $total_pages = 0;
 }
+
+function render_vhv_pagination($total_pages, $page, $total_records, $limit, $tab) {
+    if ($total_pages <= 1 && $total_records <= $limit) return;
+    
+    $queryParams = $_GET;
+    $queryParams['tab'] = $tab;
+    $queryParams['limit'] = $limit;
+    
+    $buildUrl = function($p) use ($queryParams) {
+        $q = $queryParams;
+        $q['page'] = $p;
+        return '?' . http_build_query($q);
+    };
+
+    echo '<div class="pagination no-print">';
+    
+    // First & Previous
+    if ($page > 1) {
+        echo '<a href="' . $buildUrl(1) . '" class="page-link" title="หน้าแรก">«</a>';
+        echo '<a href="' . $buildUrl($page - 1) . '" class="page-link" title="ก่อนหน้า">‹</a>';
+    } else {
+        echo '<span class="page-link disabled">«</span>';
+        echo '<span class="page-link disabled">‹</span>';
+    }
+    
+    // Page Numbers
+    $startPage = max(1, $page - 2);
+    $endPage = min($total_pages, $page + 2);
+    
+    if ($startPage > 1) {
+        echo '<a href="' . $buildUrl(1) . '" class="page-link ' . ($page == 1 ? 'active' : '') . '">1</a>';
+        if ($startPage > 2) {
+            echo '<span style="padding: 0 4px; color: var(--text-secondary); line-height: 38px;">...</span>';
+        }
+    }
+    
+    for ($i = $startPage; $i <= $endPage; $i++) {
+        $active = ($i == $page) ? 'active' : '';
+        echo '<a href="' . $buildUrl($i) . '" class="page-link ' . $active . '">' . $i . '</a>';
+    }
+    
+    if ($endPage < $total_pages) {
+        if ($endPage < $total_pages - 1) {
+            echo '<span style="padding: 0 4px; color: var(--text-secondary); line-height: 38px;">...</span>';
+        }
+        echo '<a href="' . $buildUrl($total_pages) . '" class="page-link ' . ($page == $total_pages ? 'active' : '') . '">' . $total_pages . '</a>';
+    }
+    
+    // Next & Last
+    if ($page < $total_pages) {
+        echo '<a href="' . $buildUrl($page + 1) . '" class="page-link" title="ถัดไป">›</a>';
+        echo '<a href="' . $buildUrl($total_pages) . '" class="page-link" title="หน้าสุดท้าย">»</a>';
+    } else {
+        echo '<span class="page-link disabled">›</span>';
+        echo '<span class="page-link disabled">»</span>';
+    }
+    
+    echo '</div>';
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -613,28 +672,61 @@ try {
         }
         .pagination {
             display: flex;
-            gap: 5px;
+            gap: 6px;
             justify-content: center;
-            margin-top: 20px;
+            align-items: center;
+            margin-top: 24px;
+            margin-bottom: 12px;
             flex-wrap: wrap;
         }
         .page-link {
-            padding: 6px 12px;
+            padding: 8px 14px;
             border: 1px solid var(--border-color);
             background: var(--bg-card);
             color: var(--text-primary);
             text-decoration: none;
-            border-radius: 6px;
+            border-radius: 10px;
             font-size: 13px;
+            font-weight: 700;
+            box-shadow: var(--neumorph-flat);
             transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 38px;
+            height: 38px;
+            box-sizing: border-box;
         }
-        .page-link:hover {
+        .page-link:hover:not(.disabled):not(.active) {
             border-color: var(--color-primary);
-            background: var(--bg-darker);
+            color: var(--color-primary);
+            transform: translateY(-1px);
         }
         .page-link.active {
             background: var(--color-primary);
-            color: white;
+            color: white !important;
+            border-color: var(--color-primary);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+        }
+        .page-link.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+            box-shadow: none;
+        }
+        .per-page-select {
+            padding: 7px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            box-shadow: var(--neumorph-flat);
+            outline: none;
+        }
+        .per-page-select:focus {
             border-color: var(--color-primary);
         }
     </style>
@@ -777,6 +869,18 @@ try {
                     </select>
                 </div>
 
+                <!-- Per Page Limit filter -->
+                <div style="flex: 0.9; min-width: 130px;">
+                    <label for="filter_limit" style="display: block; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-primary);">แสดงต่อหน้า</label>
+                    <select name="limit" id="filter_limit" class="form-select" style="box-shadow: var(--neumorph-inset); height: 44px; font-size: 14px;">
+                        <option value="25" <?= $limit == 25 ? 'selected' : '' ?>>25 คน/หน้า</option>
+                        <option value="50" <?= $limit == 50 ? 'selected' : '' ?>>50 คน/หน้า</option>
+                        <option value="100" <?= $limit == 100 ? 'selected' : '' ?>>100 คน/หน้า</option>
+                        <option value="200" <?= $limit == 200 ? 'selected' : '' ?>>200 คน/หน้า</option>
+                        <option value="500" <?= $limit == 500 ? 'selected' : '' ?>>500 คน/หน้า</option>
+                    </select>
+                </div>
+
                 <!-- Action Buttons -->
                 <div style="display: flex; gap: 8px;">
                     <button type="submit" class="btn-giant btn-giant-primary" style="margin: 0; width: auto; padding: 0 20px; height: 44px; border-radius: var(--border-radius); font-size: 14px; display: inline-flex; align-items: center; gap: 6px;">
@@ -796,9 +900,24 @@ try {
 
         <!-- Pending Approvals Section -->
         <div id="pending-section" class="card-dark" style="display: <?= $tab === 'pending' ? 'block' : 'none' ?>;">
-            <h3 style="color: var(--color-accent); margin-top: 0; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
-                <span>⏳</span> รายการสิทธิ์ อสม. รอการอนุมัติ
-            </h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="color: var(--color-accent); margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <span>⏳</span> รายการสิทธิ์ อสม. รอการอนุมัติ
+                    <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary);">
+                        (แสดง <?= number_format($total_pending > 0 ? ($page - 1) * $limit + 1 : 0) ?> - <?= number_format(min((int)$total_pending, $page * $limit)) ?> จากทั้งหมด <?= number_format((int)$total_pending) ?> คน)
+                    </span>
+                </h3>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label for="limit-select-pending" style="font-size: 12.5px; font-weight: 700; color: var(--text-secondary);">แสดง:</label>
+                    <select id="limit-select-pending" class="per-page-select" onchange="changeLimit(this.value)">
+                        <option value="25" <?= $limit == 25 ? 'selected' : '' ?>>25 คน/หน้า</option>
+                        <option value="50" <?= $limit == 50 ? 'selected' : '' ?>>50 คน/หน้า</option>
+                        <option value="100" <?= $limit == 100 ? 'selected' : '' ?>>100 คน/หน้า</option>
+                        <option value="200" <?= $limit == 200 ? 'selected' : '' ?>>200 คน/หน้า</option>
+                        <option value="500" <?= $limit == 500 ? 'selected' : '' ?>>500 คน/หน้า</option>
+                    </select>
+                </div>
+            </div>
             
             <div class="table-responsive">
                 <table class="admin-table">
@@ -862,43 +981,30 @@ try {
                 </table>
             </div>
             
-            <!-- Pagination -->
-            <?php if ($tab === 'pending' && $total_pages > 1): ?>
-                <div class="pagination no-print">
-                    <?php
-                    $startPage = max(1, $page - 3);
-                    $endPage = min($total_pages, $page + 3);
-                    
-                    $queryParams = $_GET;
-                    $queryParams['tab'] = 'pending';
-                    
-                    if ($startPage > 1) {
-                        $queryParams['page'] = 1;
-                        echo '<a href="?' . http_build_query($queryParams) . '" class="page-link">1</a>';
-                        if ($startPage > 2) echo '<span style="padding: 6px; color: var(--text-secondary);">...</span>';
-                    }
-                    
-                    for ($i = $startPage; $i <= $endPage; $i++) {
-                        $active = ($i == $page) ? 'active' : '';
-                        $queryParams['page'] = $i;
-                        echo '<a href="?' . http_build_query($queryParams) . '" class="page-link ' . $active . '">' . $i . '</a>';
-                    }
-                    
-                    if ($endPage < $total_pages) {
-                        if ($endPage < $total_pages - 1) echo '<span style="padding: 6px; color: var(--text-secondary);">...</span>';
-                        $queryParams['page'] = $total_pages;
-                        echo '<a href="?' . http_build_query($queryParams) . '" class="page-link">' . $total_pages . '</a>';
-                    }
-                    ?>
-                </div>
-            <?php endif; ?>
+            <!-- Pagination (Pending) -->
+            <?php render_vhv_pagination($total_pages, $page, (int)$total_pending, $limit, 'pending'); ?>
         </div>
 
         <!-- Approved Users Section -->
         <div id="approved-section" class="card-dark" style="display: <?= $tab === 'approved' ? 'block' : 'none' ?>;">
-            <h3 style="color: var(--color-accent); margin-top: 0; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
-                <span>✅</span> รายการ อสม. ที่อนุมัติสิทธิ์เรียบร้อยแล้ว
-            </h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="color: var(--color-accent); margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <span>✅</span> รายการ อสม. ที่อนุมัติสิทธิ์เรียบร้อยแล้ว
+                    <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary);">
+                        (แสดง <?= number_format($total_approved > 0 ? ($page - 1) * $limit + 1 : 0) ?> - <?= number_format(min((int)$total_approved, $page * $limit)) ?> จากทั้งหมด <?= number_format((int)$total_approved) ?> คน)
+                    </span>
+                </h3>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label for="limit-select-approved" style="font-size: 12.5px; font-weight: 700; color: var(--text-secondary);">แสดง:</label>
+                    <select id="limit-select-approved" class="per-page-select" onchange="changeLimit(this.value)">
+                        <option value="25" <?= $limit == 25 ? 'selected' : '' ?>>25 คน/หน้า</option>
+                        <option value="50" <?= $limit == 50 ? 'selected' : '' ?>>50 คน/หน้า</option>
+                        <option value="100" <?= $limit == 100 ? 'selected' : '' ?>>100 คน/หน้า</option>
+                        <option value="200" <?= $limit == 200 ? 'selected' : '' ?>>200 คน/หน้า</option>
+                        <option value="500" <?= $limit == 500 ? 'selected' : '' ?>>500 คน/หน้า</option>
+                    </select>
+                </div>
+            </div>
 
             <div class="table-responsive">
                 <table class="admin-table">
@@ -995,35 +1101,7 @@ try {
             </div>
 
             <!-- Pagination (Approved) -->
-            <?php if ($tab === 'approved' && $total_pages > 1): ?>
-                <div class="pagination no-print">
-                    <?php
-                    $startPage = max(1, $page - 3);
-                    $endPage = min($total_pages, $page + 3);
-
-                    $queryParams = $_GET;
-                    $queryParams['tab'] = 'approved';
-
-                    if ($startPage > 1) {
-                        $queryParams['page'] = 1;
-                        echo '<a href="?' . http_build_query($queryParams) . '" class="page-link">1</a>';
-                        if ($startPage > 2) echo '<span style="padding: 6px; color: var(--text-secondary);">...</span>';
-                    }
-
-                    for ($i = $startPage; $i <= $endPage; $i++) {
-                        $active = ($i == $page) ? 'active' : '';
-                        $queryParams['page'] = $i;
-                        echo '<a href="?' . http_build_query($queryParams) . '" class="page-link ' . $active . '">' . $i . '</a>';
-                    }
-
-                    if ($endPage < $total_pages) {
-                        if ($endPage < $total_pages - 1) echo '<span style="padding: 6px; color: var(--text-secondary);">...</span>';
-                        $queryParams['page'] = $total_pages;
-                        echo '<a href="?' . http_build_query($queryParams) . '" class="page-link">' . $total_pages . '</a>';
-                    }
-                    ?>
-                </div>
-            <?php endif; ?>
+            <?php render_vhv_pagination($total_pages, $page, (int)$total_approved, $limit, 'approved'); ?>
         </div>
     </div>
 
@@ -1310,6 +1388,13 @@ try {
             hosSelectEl.addEventListener('change', updateMooFilterOptions);
         }
         
+        function changeLimit(newLimit) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('limit', newLimit);
+            url.searchParams.set('page', '1');
+            window.location.href = url.toString();
+        }
+
         document.addEventListener('DOMContentLoaded', updateMooFilterOptions);
     </script>
 </body>
