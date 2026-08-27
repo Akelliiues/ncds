@@ -1025,7 +1025,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             })
             .catch(err => {
-                alert('เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย: ' + err);
+                console.warn("Network error during save_dpac, saving to offline storage:", err);
+                const healthRisk = document.getElementById('health_risk_level').value;
+                const advice = document.getElementById('advice_given').value;
+
+                const urlParams = new URLSearchParams(window.location.search);
+                const fidVal = urlParams.get('fid');
+
+                const data = {
+                    'action': 'save_dpac',
+                    'followup_id': fidVal,
+                    'weight': weight,
+                    'height': height,
+                    'waist': waist,
+                    'fbs': fbs,
+                    'bp_sys': bp_sys,
+                    'bp_dia': bp_dia,
+                    'health_risk_level': healthRisk,
+                    'advice_given': advice,
+                    'sleep_quality': sleepVal,
+                    'care_level': guidanceResult ? guidanceResult.care_level : 'good',
+                    'next_visit_date': guidanceResult ? guidanceResult.next_visit_date : null,
+                    '_timestamp': Date.now(),
+                    '_type': 'dpac',
+                    '_residentName': residentName
+                };
+
+                const queue = JSON.parse(localStorage.getItem('offline_submissions') || '[]');
+                queue.push(data);
+                localStorage.setItem('offline_submissions', JSON.stringify(queue));
+
+                updateLocalDpacTask(fidVal);
+
+                alert("⚠️ สัญญาณอินเทอร์เน็ตขัดข้อง\n\nระบบได้บันทึกผลการติดตาม DPAC เก็บไว้ในโทรศัพท์ของท่านอย่างปลอดภัยแล้ว เมื่อมีสัญญาณเน็ตให้กดปุ่ม 'ส่งข้อมูลเข้าระบบ' ได้ทันทีครับ");
+                setTimeout(() => {
+                    window.location.href = 'index.php';
+                }, 1000);
             });
         };
 
@@ -1296,7 +1331,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 })
                 .catch(err => {
-                    alert("เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย");
+                    console.warn("Network error during skip_dpac_case, saving to offline storage:", err);
+                    const residentName = document.getElementById('dpac-name') ? document.getElementById('dpac-name').innerText : '';
+                    const data = {
+                        'action': 'skip_case',
+                        'followup_id': fidVal,
+                        'skipped_reason': reason,
+                        '_timestamp': Date.now(),
+                        '_type': 'skip_dpac_case',
+                        '_residentName': residentName
+                    };
+
+                    const queue = JSON.parse(localStorage.getItem('offline_submissions') || '[]');
+                    queue.push(data);
+                    localStorage.setItem('offline_submissions', JSON.stringify(queue));
+
+                    // Update local task cache
+                    const pending = JSON.parse(localStorage.getItem('vhv_dpac_tasks') || '[]');
+                    const idx = pending.findIndex(t => String(t.followup_id) === String(fidVal));
+                    if (idx !== -1) {
+                        pending[idx].skip_count = (parseInt(pending[idx].skip_count) || 0) + 1;
+                        localStorage.setItem('vhv_dpac_tasks', JSON.stringify(pending));
+                    }
+
+                    alert("⚠️ สัญญาณอินเทอร์เน็ตขัดข้อง\n\nระบบได้บันทึกการข้ามเคสเก็บไว้ในโทรศัพท์ของท่านแล้ว เมื่อมีสัญญาณเน็ตให้กดปุ่ม 'ส่งข้อมูลเข้าระบบ' ได้ทันทีครับ");
+                    window.location.href = 'index.php';
                 });
         // Full-Screen Counseling Summary Modal Implementation
         function showCounselingSummaryModal(data) {

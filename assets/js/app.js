@@ -1,7 +1,7 @@
 // assets/js/app.js
 // PWA Service Worker Registration & Installation Prompt Handler (Forced Auto-Update Engine)
 
-const CURRENT_APP_BUILD_ID = '20260826_1027';
+const CURRENT_APP_BUILD_ID = '20260827_1635';
 
 document.addEventListener('DOMContentLoaded', () => {
     // 0. Proactive Cache & Build Version Validation
@@ -423,40 +423,307 @@ function getCurrentLocation() {
     });
 }
 
-// Offline/Online Status Monitor
-window.addEventListener('online', updateOnlineStatus);
-window.addEventListener('offline', updateOnlineStatus);
+// ==========================================
+// VHV Offline Data & Sync Engine (ระบบส่งข้อมูลค้างส่ง - ภาษาเข้าใจง่ายสำหรับ อสม.)
+// ==========================================
+window.VhvSyncEngine = {
+    isSyncing: false,
 
-function updateOnlineStatus() {
-    const isOnline = navigator.onLine;
-    let statusBanner = document.getElementById('offline-banner');
-    
-    if (!isOnline) {
-        if (!statusBanner) {
-            statusBanner = document.createElement('div');
-            statusBanner.id = 'offline-banner';
-            statusBanner.style.cssText = `
+    getQueue: function() {
+        try {
+            return JSON.parse(localStorage.getItem('offline_submissions') || '[]');
+        } catch (e) {
+            return [];
+        }
+    },
+
+    setQueue: function(queue) {
+        localStorage.setItem('offline_submissions', JSON.stringify(queue));
+        this.updateSyncUI();
+    },
+
+    getQueueCount: function() {
+        return this.getQueue().length;
+    },
+
+    updateSyncUI: function() {
+        const count = this.getQueueCount();
+        const isOnline = navigator.onLine;
+        
+        // 1. Bottom floating friendly action card
+        let banner = document.getElementById('offline-sync-floating-banner');
+        if (count > 0) {
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'offline-sync-floating-banner';
+                banner.style.cssText = `
+                    position: fixed;
+                    bottom: 24px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: calc(100% - 32px);
+                    max-width: 460px;
+                    background: var(--bg-card, #1e293b);
+                    color: var(--text-primary, #ffffff);
+                    border: 2px solid ${isOnline ? '#10B981' : '#F59E0B'};
+                    border-radius: 20px;
+                    padding: 14px 18px;
+                    box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+                    z-index: 9999;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 12px;
+                    box-sizing: border-box;
+                    animation: slideUp 0.3s ease;
+                `;
+                document.body.appendChild(banner);
+            }
+            
+            if (isOnline) {
+                banner.style.borderColor = '#10B981';
+                banner.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+                        <span style="font-size: 26px; flex-shrink: 0;">📦</span>
+                        <div style="min-width: 0;">
+                            <div style="font-weight: 800; font-size: 14px; color: #10B981; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">มีข้อมูลรอส่ง ${count} คน</div>
+                            <div style="font-size: 12px; color: var(--text-secondary, #94a3b8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">มีเน็ตแล้ว พร้อมส่งเข้าระบบ</div>
+                        </div>
+                    </div>
+                    <button type="button" onclick="window.VhvSyncEngine.syncAll()" style="background: #10B981; color: white; border: none; padding: 9px 15px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; white-space: nowrap; box-shadow: 0 4px 14px rgba(16,185,129,0.4); display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                        🚀 ส่งข้อมูลทันที
+                    </button>
+                `;
+            } else {
+                banner.style.borderColor = '#F59E0B';
+                banner.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+                        <span style="font-size: 24px; flex-shrink: 0;">📶</span>
+                        <div>
+                            <div style="font-weight: 800; font-size: 13.5px; color: #F59E0B;">เก็บในเครื่องแล้ว ${count} คน (ไม่มีเน็ต)</div>
+                            <div style="font-size: 11.5px; color: var(--text-secondary, #94a3b8);">เมื่อต่อเน็ตแล้ว กดส่งข้อมูลได้ทันทีครับ</div>
+                        </div>
+                    </div>
+                `;
+            }
+        } else {
+            if (banner) {
+                banner.remove();
+            }
+        }
+
+        // 2. In-page static banner in vhv/index.php if container exists
+        const pageContainer = document.getElementById('offline-sync-card-container');
+        if (pageContainer) {
+            if (count > 0) {
+                pageContainer.style.display = 'block';
+                if (isOnline) {
+                    pageContainer.innerHTML = `
+                        <div style="background: rgba(16,185,129,0.12); border: 2px solid #10B981; border-radius: 16px; padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 28px;">📦</span>
+                                <div>
+                                    <h4 style="margin: 0; font-size: 15px; font-weight: 800; color: #10B981;">มีข้อมูลคัดกรองที่บันทึกไว้ในเครื่อง (${count} รายการ)</h4>
+                                    <p style="margin: 2px 0 0 0; font-size: 12.5px; color: var(--text-secondary);">มีสัญญาณอินเทอร์เน็ตแล้ว สามารถกดส่งข้อมูลเข้าระบบได้ทันที</p>
+                                </div>
+                            </div>
+                            <button type="button" onclick="window.VhvSyncEngine.syncAll()" class="btn-giant btn-giant-primary" style="margin: 0; width: auto; padding: 10px 18px; font-size: 13.5px; border-radius: 12px; background: #10B981; border-color: #10B981; color: white; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 14px rgba(16,185,129,0.35);">
+                                🚀 กดส่งข้อมูลเข้าระบบตอนนี้ (${count} คน)
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    pageContainer.innerHTML = `
+                        <div style="background: rgba(245,158,11,0.12); border: 2px solid #F59E0B; border-radius: 16px; padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px;">
+                            <span style="font-size: 28px;">📵</span>
+                            <div>
+                                <h4 style="margin: 0; font-size: 15px; font-weight: 800; color: #D97706;">กำลังใช้งานโหมดไม่มีสัญญาณเน็ต (ออฟไลน์)</h4>
+                                <p style="margin: 2px 0 0 0; font-size: 12.5px; color: var(--text-secondary);">บันทึกข้อมูลคัดกรองเก็บไว้ในโทรศัพท์แล้ว <strong>${count} รายการ</strong> (ปลอดภัย 100%) เมื่อกลับถึงจุดที่มีสัญญาณเน็ตให้กดส่งข้อมูลครับ</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            } else {
+                pageContainer.style.display = 'none';
+                pageContainer.innerHTML = '';
+            }
+        }
+    },
+
+    syncAll: async function() {
+        if (this.isSyncing) return;
+
+        const queue = this.getQueue();
+        if (queue.length === 0) {
+            alert('✅ ไม่มีข้อมูลค้างส่งในเครื่องครับ ข้อมูลทั้งหมดเป็นปัจจุบันแล้ว');
+            return;
+        }
+
+        if (!navigator.onLine) {
+            alert('⚠️ โทรศัพท์ยังไม่ได้เชื่อมต่ออินเทอร์เน็ตครับ\n\nกรุณาเปิดสัญญาณเน็ตมือถือ หรือเชื่อมต่อ Wi-Fi ก่อนกดส่งข้อมูลเข้าระบบครับ');
+            return;
+        }
+
+        this.isSyncing = true;
+
+        // Create or show progress overlay
+        let overlay = document.getElementById('sync-progress-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'sync-progress-overlay';
+            overlay.style.cssText = `
                 position: fixed;
                 top: 0;
                 left: 0;
                 width: 100%;
-                background-color: #ef4444;
-                color: white;
-                text-align: center;
-                padding: 10px;
-                font-weight: bold;
-                z-index: 9999;
-                font-size: 16px;
+                height: 100%;
+                background: rgba(15, 23, 42, 0.75);
+                backdrop-filter: blur(6px);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+                box-sizing: border-box;
             `;
-            statusBanner.innerHTML = '⚠️ คุณกำลังใช้งานโหมดออฟไลน์ - ข้อมูลจะถูกบันทึกเมื่อเชื่อมต่ออินเทอร์เน็ต';
-            document.body.prepend(statusBanner);
+            document.body.appendChild(overlay);
         }
-    } else {
-        if (statusBanner) {
-            statusBanner.remove();
+        overlay.style.display = 'flex';
+
+        const totalItems = queue.length;
+        let successCount = 0;
+        let failCount = 0;
+
+        const updateOverlayText = (currentIndex, residentName) => {
+            overlay.innerHTML = `
+                <div style="background: var(--bg-card, #1e293b); color: var(--text-primary, #ffffff); border-radius: 20px; padding: 28px 24px; max-width: 380px; width: 100%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: 1px solid var(--border-color, rgba(255,255,255,0.1));">
+                    <div style="font-size: 44px; margin-bottom: 12px;">🚀</div>
+                    <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 800; color: var(--color-accent, #38bdf8);">กำลังส่งข้อมูลเข้าระบบ</h3>
+                    <p style="margin: 0 0 14px 0; font-size: 13.5px; color: var(--text-secondary, #94a3b8);">
+                        กำลังส่งคนที่ <strong>${currentIndex + 1}</strong> จากทั้งหมด <strong>${totalItems}</strong> คน
+                    </p>
+                    <div style="font-size: 13px; font-weight: 700; color: #10B981; margin-bottom: 16px; padding: 6px 12px; background: rgba(16,185,129,0.1); border-radius: 10px; display: inline-block;">
+                        👤 ${residentName || 'ผู้รับการตรวจ'}
+                    </div>
+                    <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; margin-bottom: 12px;">
+                        <div style="width: ${((currentIndex + 1) / totalItems) * 100}%; height: 100%; background: #10B981; transition: width 0.3s ease;"></div>
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-muted, #64748b);">กรุณาอย่าเพิ่งปิดหน้าจอนี้ จนกว่าจะส่งเสร็จสิ้น...</div>
+                </div>
+            `;
+        };
+
+        const isVhvDir = window.location.pathname.includes('/vhv/');
+        const screeningApiUrl = isVhvDir ? '../api/save_screening.php' : 'api/save_screening.php';
+        const dpacApiUrl = isVhvDir ? '../api/save_dpac.php' : 'api/save_dpac.php';
+
+        const remainingQueue = [];
+
+        for (let i = 0; i < queue.length; i++) {
+            const item = queue[i];
+            updateOverlayText(i, item._residentName);
+
+            try {
+                let targetUrl = screeningApiUrl;
+                let bodyPayload = new URLSearchParams();
+
+                if (item._type === 'dpac' || item._type === 'skip_dpac_case') {
+                    targetUrl = dpacApiUrl;
+                }
+
+                for (const key in item) {
+                    if (!key.startsWith('_')) {
+                        bodyPayload.append(key, item[key]);
+                    }
+                }
+
+                const response = await fetch(targetUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: bodyPayload
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    successCount++;
+                } else {
+                    console.error("Sync item error:", data.message);
+                    failCount++;
+                    remainingQueue.push(item);
+                }
+            } catch (err) {
+                console.error("Sync network error:", err);
+                failCount++;
+                remainingQueue.push(item);
+            }
         }
+
+        this.setQueue(remainingQueue);
+        this.isSyncing = false;
+
+        if (successCount > 0 && failCount === 0) {
+            overlay.innerHTML = `
+                <div style="background: var(--bg-card, #1e293b); color: var(--text-primary, #ffffff); border-radius: 20px; padding: 28px 24px; max-width: 380px; width: 100%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: 2px solid #10B981;">
+                    <div style="font-size: 48px; margin-bottom: 12px;">🎉</div>
+                    <h3 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 800; color: #10B981;">ส่งข้อมูลสำเร็จครบถ้วน!</h3>
+                    <p style="margin: 0 0 16px 0; font-size: 14px; color: var(--text-secondary, #94a3b8);">
+                        ส่งข้อมูลคัดกรองทั้งหมด <strong>${successCount} รายการ</strong> เข้าระบบและบันทึกแต้มสะสมเรียบร้อยแล้ว
+                    </p>
+                    <button type="button" onclick="window.location.reload()" style="background: #10B981; color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 800; font-size: 15px; cursor: pointer; width: 100%; box-shadow: 0 4px 14px rgba(16,185,129,0.4);">
+                        ตกลง (รีเฟรชหน้าจอ)
+                    </button>
+                </div>
+            `;
+            setTimeout(() => {
+                window.location.reload();
+            }, 1800);
+        } else if (successCount > 0 && failCount > 0) {
+            overlay.innerHTML = `
+                <div style="background: var(--bg-card, #1e293b); color: var(--text-primary, #ffffff); border-radius: 20px; padding: 28px 24px; max-width: 380px; width: 100%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: 2px solid #F59E0B;">
+                    <div style="font-size: 48px; margin-bottom: 12px;">⚠️</div>
+                    <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 800; color: #F59E0B;">ส่งสำเร็จบางส่วน</h3>
+                    <p style="margin: 0 0 16px 0; font-size: 13.5px; color: var(--text-secondary, #94a3b8);">
+                        ส่งสำเร็จ <strong>${successCount} คน</strong>, ค้างส่ง <strong>${failCount} คน</strong> (ข้อมูลยังปลอดภัยในเครื่อง)<br>โปรดลองกดส่งใหม่อีกครั้งเมื่อเน็ตเสถียรครับ
+                    </p>
+                    <button type="button" onclick="document.getElementById('sync-progress-overlay').style.display='none'; window.location.reload();" style="background: #F59E0B; color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer; width: 100%;">
+                        ปิดหน้าต่างนี้
+                    </button>
+                </div>
+            `;
+        } else {
+            overlay.innerHTML = `
+                <div style="background: var(--bg-card, #1e293b); color: var(--text-primary, #ffffff); border-radius: 20px; padding: 28px 24px; max-width: 380px; width: 100%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: 2px solid #EF4444;">
+                    <div style="font-size: 48px; margin-bottom: 12px;">❌</div>
+                    <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 800; color: #EF4444;">ไม่สามารถส่งข้อมูลได้</h3>
+                    <p style="margin: 0 0 16px 0; font-size: 13.5px; color: var(--text-secondary, #94a3b8);">
+                        สัญญาณอินเทอร์เน็ตอาจหลุด ข้อมูลทั้งหมด <strong>${totalItems} รายการ</strong> ยังคงถูกเก็บไว้อย่างปลอดภัยในเครื่องครับ
+                    </p>
+                    <button type="button" onclick="document.getElementById('sync-progress-overlay').style.display='none';" style="background: #EF4444; color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer; width: 100%;">
+                        ลองใหม่ภายหลัง
+                    </button>
+                </div>
+            `;
+        }
+    },
+
+    init: function() {
+        this.updateSyncUI();
+        window.addEventListener('online', () => {
+            this.updateSyncUI();
+        });
+        window.addEventListener('offline', () => {
+            this.updateSyncUI();
+        });
     }
-}
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.VhvSyncEngine) {
+        window.VhvSyncEngine.init();
+    }
+});
 
 // Zero-Typing Numeric Pad Helper
 class VhvNumPad {

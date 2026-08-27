@@ -2284,7 +2284,28 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 }
             })
             .catch(err => {
-                alert("เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย: " + err);
+                console.warn("Network error during save_screening, saving to offline storage:", err);
+                const serialized = {};
+                formData.forEach((value, key) => {
+                    serialized[key] = value;
+                });
+                serialized.cv_risk_score = parseFloat(document.getElementById('cv-risk-display').innerText) || 0;
+                serialized._timestamp = Date.now();
+                serialized._type = 'screening';
+                serialized._residentName = selectedResident ? selectedResident.name : '';
+                
+                const queue = JSON.parse(localStorage.getItem('offline_submissions') || '[]');
+                queue.push(serialized);
+                localStorage.setItem('offline_submissions', JSON.stringify(queue));
+                
+                if (selectedResident && selectedResident.assignmentId) {
+                    updateLocalTask(selectedResident.assignmentId, 'completed');
+                }
+                
+                alert("⚠️ สัญญาณอินเทอร์เน็ตขัดข้อง\n\nระบบได้บันทึกข้อมูลเก็บไว้ในโทรศัพท์ของท่านอย่างปลอดภัยแล้ว เมื่อมีสัญญาณเน็ตให้กดปุ่ม 'ส่งข้อมูลเข้าระบบ' ได้ทันทีครับ");
+                setTimeout(() => {
+                    window.location.href = 'index.php';
+                }, 1000);
             });
         }
 
@@ -2440,7 +2461,28 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 }
             })
             .catch(err => {
-                alert("เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย");
+                console.warn("Network error during skip_case, saving to offline storage:", err);
+                const data = {
+                    'action': 'skip_case',
+                    'assignment_id': assignId,
+                    'skipped_reason': reason,
+                    'lat': gpsLocation.lat,
+                    'lng': gpsLocation.lng,
+                    '_timestamp': Date.now(),
+                    '_type': 'skip_case',
+                    '_residentName': selectedResident ? selectedResident.name : ''
+                };
+                
+                const queue = JSON.parse(localStorage.getItem('offline_submissions') || '[]');
+                queue.push(data);
+                localStorage.setItem('offline_submissions', JSON.stringify(queue));
+                
+                updateLocalTask(assignId, 'skipped', reason);
+                
+                alert("⚠️ สัญญาณอินเทอร์เน็ตขัดข้อง\n\nระบบได้บันทึกการข้ามเคสเก็บไว้ในโทรศัพท์ของท่านแล้ว เมื่อมีสัญญาณเน็ตให้กดปุ่ม 'ส่งข้อมูลเข้าระบบ' ได้ทันทีครับ");
+                setTimeout(() => {
+                    window.location.href = 'index.php';
+                }, 1000);
             });
         }
 

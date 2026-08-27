@@ -477,6 +477,9 @@ if (DemoDataProvider::isDemoMode()) {
             </div>
             <?php endif; ?>
 
+            <!-- Offline Sync Notification Container -->
+            <div id="offline-sync-card-container" style="display: none;"></div>
+
             <!-- Task Tabs (Original 3 Tabs) -->
             <div class="tabs">
                 <button class="tab-btn active" id="tab-btn-pending" onclick="switchTab('pending-list', this)">

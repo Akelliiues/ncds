@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ncd-tansum-v9_20260826_1027'; // Tuned: 0.5s snappy transition
+const CACHE_NAME = 'ncd-tansum-v10_20260827_1635'; // Offline Sync Engine Ready
 const ASSETS_TO_CACHE = [
     'login.php',
     'index.php',
