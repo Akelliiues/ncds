@@ -45,16 +45,139 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
         .station-header {
             background: var(--bg-card, #ffffff);
             border-bottom: 1px solid var(--border-color, rgba(0,0,0,0.06));
-            padding: 14px 24px;
+            padding: 10px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-wrap: wrap;
-            gap: 16px;
+            gap: 14px;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
             position: sticky;
             top: 0;
             z-index: 100;
+        }
+
+        .header-left-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-right-tools {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .station-action-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            background: var(--bg-darker, #f1f5f9);
+            padding: 5px 8px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color, #CBD5E1);
+            box-shadow: var(--neumorph-inset);
+        }
+
+        .station-select-ctrl {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color, #CBD5E1);
+            padding: 7px 12px;
+            border-radius: 11px;
+            font-size: 12.5px;
+            font-weight: 700;
+            outline: none;
+            cursor: pointer;
+            box-shadow: var(--neumorph-flat);
+            transition: all 0.2s ease;
+        }
+
+        .station-select-ctrl:focus {
+            border-color: #2563EB;
+        }
+
+        .btn-simulate-sos {
+            background: linear-gradient(135deg, #DC2626, #B91C1C) !important;
+            color: #ffffff !important;
+            border: none !important;
+            box-shadow: 0 3px 10px rgba(220, 38, 38, 0.35) !important;
+        }
+        .btn-simulate-sos:hover {
+            box-shadow: 0 5px 14px rgba(220, 38, 38, 0.5) !important;
+            transform: translateY(-1px);
+        }
+
+        .btn-download-app {
+            background: linear-gradient(135deg, #10B981, #059669) !important;
+            color: #ffffff !important;
+            border: none !important;
+            box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3) !important;
+        }
+        .btn-download-app:hover {
+            box-shadow: 0 5px 14px rgba(16, 185, 129, 0.45) !important;
+            transform: translateY(-1px);
+        }
+
+        .btn-referral-board {
+            background: #2563EB !important;
+            color: #ffffff !important;
+            border: none !important;
+            box-shadow: 0 3px 10px rgba(37, 99, 235, 0.3) !important;
+        }
+        .btn-referral-board:hover {
+            box-shadow: 0 5px 14px rgba(37, 99, 235, 0.45) !important;
+            transform: translateY(-1px);
+        }
+
+        .header-divider {
+            width: 1px;
+            height: 28px;
+            background: var(--border-color, #CBD5E1);
+            margin: 0 2px;
+        }
+
+        .theme-switch-btn {
+            width: 38px;
+            height: 38px;
+            padding: 0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color, #CBD5E1);
+            color: var(--text-primary);
+            box-shadow: var(--neumorph-flat);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .theme-switch-btn:hover {
+            transform: translateY(-1px) rotate(15deg);
+            border-color: #2563EB;
+            color: #2563EB;
+        }
+
+        .disc-red-subtle {
+            background: rgba(255,255,255,0.2) !important;
+            color: #fff !important;
+            border-color: rgba(255,255,255,0.4) !important;
+            box-shadow: none !important;
+        }
+        .disc-green-subtle {
+            background: rgba(255,255,255,0.2) !important;
+            color: #fff !important;
+            border-color: rgba(255,255,255,0.4) !important;
+            box-shadow: none !important;
+        }
+        .disc-blue-subtle {
+            background: rgba(255,255,255,0.2) !important;
+            color: #fff !important;
+            border-color: rgba(255,255,255,0.4) !important;
+            box-shadow: none !important;
         }
 
         .station-title {
@@ -106,35 +229,98 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
 
         .station-container {
             flex: 1;
-            padding: 24px;
+            padding: 18px 24px;
             max-width: 1280px;
             margin: 0 auto;
             width: 100%;
             box-sizing: border-box;
         }
 
-        .status-hero {
+        /* Compact Non-intrusive Live Status Bar */
+        .status-hero-bar {
             background: var(--bg-card, #ffffff);
             border: 1.5px solid var(--border-color, rgba(0,0,0,0.06));
-            border-radius: 26px;
-            padding: 24px 24px;
-            text-align: center;
+            border-radius: 16px;
+            padding: 8px 16px;
             box-shadow: var(--neumorph-flat);
-            margin-bottom: 22px;
+            margin-bottom: 16px;
             position: relative;
             overflow: hidden;
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .status-hero.alerting {
+        .status-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .status-bar-text-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .status-bar-title {
+            font-size: 13.5px;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .status-bar-subtitle {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .status-bar-right {
+            display: flex;
+            align-items: center;
+        }
+
+        .status-ping-capsule {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11.5px;
+            background: var(--bg-darker);
+            padding: 3px 12px;
+            border-radius: 50px;
+            box-shadow: var(--neumorph-inset);
+            border: 1px solid var(--border-color, transparent);
+            white-space: nowrap;
+        }
+
+        .status-hero-bar.alerting {
             background: linear-gradient(135deg, #DC2626 0%, #991B1B 100%) !important;
-            border-color: #EF4444;
+            border-color: #EF4444 !important;
             color: #FFFFFF !important;
-            box-shadow: 0 15px 40px rgba(220, 38, 38, 0.45);
+            box-shadow: 0 8px 24px rgba(220, 38, 38, 0.4);
         }
 
-        .status-hero.alerting p {
+        .status-hero-bar.alerting .status-bar-title {
+            color: #FFFFFF !important;
+            font-size: 14px;
+        }
+
+        .status-hero-bar.alerting .status-bar-subtitle {
             color: rgba(255, 255, 255, 0.92) !important;
+        }
+
+        .status-hero-bar.alerting .status-ping-capsule {
+            background: rgba(0, 0, 0, 0.25) !important;
+            border-color: rgba(255, 255, 255, 0.2) !important;
+            color: #FFFFFF !important;
+        }
+
+        .status-hero-bar.alerting #last-ping-time {
+            color: #FEF08A !important;
         }
 
         .alert-card-grid {
@@ -812,65 +998,70 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
 
     <!-- Station Top Bar (Hospital Emergency Dispatcher Header) -->
     <header class="station-header">
-        <div class="station-title">
+        <div class="header-left-brand">
             <div id="station-pulsing-dot" class="pulsing-dot"></div>
             <div>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <h1 style="margin: 0; font-size: 18px; font-weight: 900; color: var(--text-primary);">
                         NCDs Red Alert Station
                     </h1>
-                    <span style="font-size: 10.5px; background: #DC2626; color: white; padding: 2px 8px; border-radius: 6px; font-weight: 800;">LIVE DISPATCH</span>
+                    <span style="font-size: 10.5px; background: #DC2626; color: white; padding: 2px 8px; border-radius: 6px; font-weight: 800; letter-spacing: 0.5px;">LIVE DISPATCH</span>
                 </div>
-                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 1px;">
                     ศูนย์รับสัญญาณเคสวิกฤตฉุกเฉินประจำ รพ.สต. • เฝ้าระวังสด Realtime 24 ชม.
                 </div>
             </div>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-            <!-- Health Center Selector -->
-            <select id="select-hoscode" onchange="changeHoscode(this.value)" style="background: var(--bg-darker); color: var(--text-primary); border: 1.5px solid var(--border-color, #CBD5E1); padding: 8px 14px; border-radius: 12px; font-size: 13px; font-weight: 700; outline: none; box-shadow: var(--neumorph-inset);">
-                <option value="ALL">ทุก รพ.สต. (ภาพรวมอำเภอ)</option>
-                <?php foreach ($hc_names as $code => $name): ?>
-                    <option value="<?= $code ?>" <?= $selected_hoscode == $code ? 'selected' : '' ?>>
-                        [<?= $code ?>] <?= $name ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
+        <div class="header-right-tools">
+            <!-- 1. Grouped Menu Toolbar (ชุดเมนูเครื่องมือปฏิบัติการ รวมไว้ด้วยกัน) -->
+            <div class="station-action-group">
+                <!-- Health Center Selector -->
+                <select id="select-hoscode" onchange="changeHoscode(this.value)" class="station-select-ctrl" title="เลือกรหัส รพ.สต. หรือดูภาพรวม">
+                    <option value="ALL">ทุก รพ.สต. (ภาพรวมอำเภอ)</option>
+                    <?php foreach ($hc_names as $code => $name): ?>
+                        <option value="<?= $code ?>" <?= $selected_hoscode == $code ? 'selected' : '' ?>>
+                            [<?= $code ?>] <?= $name ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
 
-            <!-- Audio Siren Test Button -->
-            <button type="button" onclick="testAudio()" id="btn-audio-toggle" class="btn-station-ctrl">
-                <span class="neu-disc-icon xs disc-blue">🔊</span>
-                <span>ทดสอบเสียงไซเรน</span>
-            </button>
+                <!-- Audio Siren Test Button -->
+                <button type="button" onclick="testAudio()" id="btn-audio-toggle" class="btn-station-ctrl" title="ทดสอบเสียงไซเรนเตือนภัย">
+                    <span class="neu-disc-icon xs disc-blue">🔊</span>
+                    <span>ทดสอบเสียงไซเรน</span>
+                </button>
 
-            <!-- Test Alert Trigger -->
-            <button type="button" onclick="simulateTestAlert()" style="background: linear-gradient(135deg, #DC2626, #B91C1C); border: none; color: white; padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35); display: inline-flex; align-items: center; gap: 8px;">
-                <span class="neu-disc-icon xs" style="background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.4); box-shadow: none;">⚡</span>
-                <span>จำลองส่งสัญญาณฉุกเฉิน</span>
-            </button>
+                <!-- Test Alert Trigger -->
+                <button type="button" onclick="simulateTestAlert()" class="btn-station-ctrl btn-simulate-sos" title="จำลองส่งสัญญาณฉุกเฉินเข้าระบบ">
+                    <span class="neu-disc-icon xs disc-red-subtle">⚡</span>
+                    <span>จำลองส่งสัญญาณฉุกเฉิน</span>
+                </button>
 
-            <!-- Safe ZIP Download Link -->
-            <a href="download_station.php?format=zip" class="btn-station-ctrl" style="background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);" title="ดาวน์โหลดโปรแกรม NCDs Red Alert Station (ไฟล์ .ZIP ปลอดภัย ไม่โดนบล็อก)">
-                <span class="neu-disc-icon xs" style="background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.4); box-shadow: none;">📥</span>
-                <span>ดาวน์โหลดแอป (.zip)</span>
-            </a>
+                <!-- Safe ZIP Download Link -->
+                <a href="download_station.php?format=zip" class="btn-station-ctrl btn-download-app" title="ดาวน์โหลดโปรแกรม NCDs Red Alert Station (ไฟล์ .ZIP ปลอดภัย ไม่โดนบล็อก)">
+                    <span class="neu-disc-icon xs disc-green-subtle">📥</span>
+                    <span>ดาวน์โหลดแอป (.zip)</span>
+                </a>
 
-            <!-- Referral Board -->
-            <a href="critical_referrals.php" onclick="openOrFocusTab('critical_referrals.php', 'ncd_critical_referrals_tab'); return false;" class="btn-station-ctrl" style="background: #2563EB; color: white; border: none; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
-                <span class="neu-disc-icon xs" style="background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.4); box-shadow: none;">📋</span>
-                <span>บอร์ดส่งต่อ</span>
-            </a>
+                <!-- Referral Board -->
+                <a href="critical_referrals.php" onclick="openOrFocusTab('critical_referrals.php', 'ncd_critical_referrals_tab'); return false;" class="btn-station-ctrl btn-referral-board" title="เปิดบอร์ดส่งต่อเคสวิกฤต รพ.">
+                    <span class="neu-disc-icon xs disc-blue-subtle">📋</span>
+                    <span>บอร์ดส่งต่อ</span>
+                </a>
+            </div>
 
-            <!-- Theme Toggle Button (Icon only matching main navbar) -->
-            <button id="theme-toggle-btn" class="btn-station-ctrl" onclick="toggleTheme()" style="width: 38px; height: 38px; padding: 0; border-radius: 50%; justify-content: center;" title="สลับโหมด มืด/สว่าง">
+            <div class="header-divider"></div>
+
+            <!-- 2. Dark/Light Theme Toggle (Icon only, pinned to top-right corner) -->
+            <button id="theme-toggle-btn" class="theme-switch-btn" onclick="toggleTheme()" title="สลับโหมด มืด/สว่าง">
                 <!-- Sun Icon -->
-                <svg id="theme-toggle-sun" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display: none;">
+                <svg id="theme-toggle-sun" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display: none;">
                     <circle cx="12" cy="12" r="5"></circle>
                     <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
                 </svg>
                 <!-- Moon Icon -->
-                <svg id="theme-toggle-moon" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <svg id="theme-toggle-moon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                     <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
                 </svg>
             </button>
@@ -880,27 +1071,28 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
     <!-- Main Live Container -->
     <main class="station-container">
         
-        <!-- Live Status Hero Banner (Standby vs Active Alerting) -->
-        <div id="status-hero" class="status-hero">
-            <div style="display: flex; justify-content: center; margin-bottom: 12px;">
-                <div id="status-icon-container" class="neu-disc-icon" style="width: 72px; height: 72px; min-width: 72px; background: radial-gradient(circle at 35% 35%, #34D399 0%, #10B981 70%, #047857 100%); color: #fff; border: 2.5px solid rgba(255, 255, 255, 0.85); box-shadow: inset 2px 2px 4px rgba(255,255,255,0.7), 0 6px 18px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center;">
-                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.25));">
+        <!-- Compact Streamlined Live Status Bar (Low-profile & Non-intrusive) -->
+        <div id="status-hero" class="status-hero-bar">
+            <div class="status-bar-left">
+                <div id="status-icon-container" class="neu-disc-icon xs" style="width: 30px; height: 30px; min-width: 30px; background: radial-gradient(circle at 35% 35%, #34D399 0%, #10B981 70%, #047857 100%); color: #fff; border: 1.5px solid rgba(255, 255, 255, 0.85); box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center;">
+                    <svg width="18" height="18" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M24 4 L40 10 V22 C40 32.5 33.2 41.8 24 45 C14.8 41.8 8 32.5 8 22 V10 L24 4 Z" fill="#FFFFFF"/>
                         <path d="M24 8 L36 12.5 V22 C36 30.5 30.8 38 24 40.8 C17.2 38 12 30.5 12 22 V12.5 L24 8 Z" fill="#E6FDF5"/>
                         <path d="M16 23 L22 29 L32 17" stroke="#059669" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </div>
+                <div class="status-bar-text-group">
+                    <span id="status-headline" class="status-bar-title">สถานีพร้อมรับสัญญาณฉุกเฉิน (Active Standby)</span>
+                    <span id="status-sub" class="status-bar-subtitle">• เชื่อมต่อ Realtime Dispatcher แล้ว • เฝ้าระวังเคสวิกฤต 24 ชม.</span>
+                </div>
             </div>
-            <h2 id="status-headline" style="margin: 0 0 6px 0; font-size: 22px; font-weight: 900; color: var(--text-primary);">
-                สถานีพร้อมรับสัญญาณฉุกเฉิน (Active Standby)
-            </h2>
-            <p id="status-sub" style="margin: 0 0 14px 0; font-size: 14px; color: var(--text-secondary); max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.5;">
-                เชื่อมต่อระบบ Realtime Dispatcher แล้ว • เฝ้าระวังเคสความดัน/น้ำตาลวิกฤต และภาวะฉุกเฉินตลอด 24 ชม.
-            </p>
-            <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; background: var(--bg-darker); padding: 6px 16px; border-radius: 50px; box-shadow: var(--neumorph-inset); border: 1px solid var(--border-color, transparent);">
-                <div class="pulsing-dot" style="width: 10px; height: 10px;"></div>
-                <span style="color: var(--text-muted);">อัปเดตสตรีมข้อมูลสดล่าสุด:</span>
-                <span id="last-ping-time" style="color: #10B981; font-weight: 800;">เชื่อมต่อแล้ว</span>
+            
+            <div class="status-bar-right">
+                <div class="status-ping-capsule">
+                    <div class="pulsing-dot" style="width: 8px; height: 8px;"></div>
+                    <span style="color: var(--text-muted);">อัปเดตสตรีมสด:</span>
+                    <span id="last-ping-time" style="color: #10B981; font-weight: 800;">เชื่อมต่อแล้ว</span>
+                </div>
             </div>
         </div>
 
@@ -2118,20 +2310,14 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                             statusIconContainer.style.background = 'radial-gradient(circle at 35% 35%, #EF4444 0%, #DC2626 70%, #991B1B 100%)';
                             statusIconContainer.style.animation = 'emergencyBeaconPulse 1.8s infinite';
                             statusIconContainer.innerHTML = `
-                                <svg width="52" height="52" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.35));">
-                                    <line x1="24" y1="3" x2="24" y2="8" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
-                                    <line x1="10" y1="8" x2="14" y2="12" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
-                                    <line x1="38" y1="8" x2="34" y2="12" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
-                                    <line x1="3" y1="22" x2="8" y2="22" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
-                                    <line x1="45" y1="22" x2="40" y2="22" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
-                                    <path d="M14 26 C14 15, 34 15, 34 26 Z" fill="#FFFFFF"/>
-                                    <path d="M28 18 C31 20, 32 23, 31 25" stroke="rgba(220, 38, 38, 0.65)" stroke-width="2.2" stroke-linecap="round" fill="none"/>
-                                    <rect x="10" y="26" width="28" height="5" rx="2.5" fill="#1E293B"/>
-                                    <text x="24" y="42" text-anchor="middle" font-family="'Outfit', 'Sarabun', sans-serif" font-weight="900" font-size="11.5" fill="#FFFFFF" letter-spacing="1.2">SOS</text>
+                                <svg width="18" height="18" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M24 4 L44 40 H4 Z" fill="#FFFFFF"/>
+                                    <path d="M24 16 V28" stroke="#DC2626" stroke-width="4.5" stroke-linecap="round"/>
+                                    <circle cx="24" cy="34" r="2.5" fill="#DC2626"/>
                                 </svg>
                             `;
                             document.getElementById('status-headline').innerText = `⚠️ พบสัญญาณแจ้งเหตุวิกฤต! (${pendingCrisis.patient_name})`;
-                            document.getElementById('status-sub').innerText = `ค่าความดัน SBP ${pendingCrisis.sbp || '-'} / DBP ${pendingCrisis.dbp || '-'} | น้ำตาล DTX ${pendingCrisis.dtx || '-'} mg% • ต้องการการดูแลฉุกเฉินทันที`;
+                            document.getElementById('status-sub').innerText = `• ความดัน ${pendingCrisis.sbp || '-'}/${pendingCrisis.dbp || '-'} | น้ำตาล DTX ${pendingCrisis.dtx || '-'} mg% • ต้องการการดูแลฉุกเฉินด่วน`;
                             document.getElementById('station-pulsing-dot').className = 'pulsing-dot active-crisis';
 
                             // Trigger Modal + Siren if new or active
@@ -2144,14 +2330,14 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                             statusIconContainer.style.background = 'radial-gradient(circle at 35% 35%, #34D399 0%, #10B981 70%, #047857 100%)';
                             statusIconContainer.style.animation = 'none';
                             statusIconContainer.innerHTML = `
-                                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.25));">
+                                <svg width="18" height="18" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M24 4 L40 10 V22 C40 32.5 33.2 41.8 24 45 C14.8 41.8 8 32.5 8 22 V10 L24 4 Z" fill="#FFFFFF"/>
                                     <path d="M24 8 L36 12.5 V22 C36 30.5 30.8 38 24 40.8 C17.2 38 12 30.5 12 22 V12.5 L24 8 Z" fill="#E6FDF5"/>
                                     <path d="M16 23 L22 29 L32 17" stroke="#059669" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
                             `;
                             document.getElementById('status-headline').innerText = 'สถานีพร้อมรับสัญญาณฉุกเฉิน (Active Standby)';
-                            document.getElementById('status-sub').innerText = 'เชื่อมต่อระบบ Realtime Dispatcher แล้ว • เฝ้าระวังเคสความดัน/น้ำตาลวิกฤต และภาวะฉุกเฉินตลอด 24 ชม.';
+                            document.getElementById('status-sub').innerText = '• เชื่อมต่อ Realtime Dispatcher แล้ว • เฝ้าระวังเคสวิกฤต 24 ชม.';
                             document.getElementById('station-pulsing-dot').className = 'pulsing-dot';
                             
                             hideEmergencyPopup();
