@@ -140,21 +140,24 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
         .alert-card-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-            gap: 20px;
+            gap: 22px;
+            align-items: stretch;
         }
 
         .alert-item-card {
             background: var(--bg-card, #ffffff);
             border: 1.5px solid var(--border-color, rgba(0,0,0,0.06));
             border-radius: 24px;
-            padding: 22px;
-            transition: all 0.25s ease;
+            padding: 20px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
             box-shadow: var(--neumorph-flat);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            height: 100%;
+            box-sizing: border-box;
         }
 
         .alert-item-card:hover {
@@ -171,6 +174,157 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
         .alert-item-card.acknowledged {
             border-color: rgba(245, 158, 11, 0.45);
             background: linear-gradient(135deg, rgba(245, 158, 11, 0.04) 0%, var(--bg-card) 100%);
+        }
+
+        /* Standardized Card Sub-Blocks for Exact Equal Height */
+        .card-header-block {
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1.5px dashed var(--border-color, rgba(0,0,0,0.08));
+        }
+
+        .card-top-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .case-id-badge {
+            font-size: 11.5px;
+            color: var(--text-muted);
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+
+        .card-meta-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            justify-content: flex-end;
+            flex-wrap: nowrap;
+        }
+
+        .time-capsule {
+            background: var(--bg-darker);
+            border: 1px solid var(--border-color, #CBD5E1);
+            color: var(--text-primary);
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-weight: 800;
+            font-size: 11.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: var(--neumorph-flat);
+            white-space: nowrap;
+        }
+
+        .time-capsule.pending-time {
+            background: rgba(220, 38, 38, 0.12);
+            border-color: #DC2626;
+            color: #DC2626;
+        }
+
+        .patient-name-title {
+            margin: 4px 0 4px 0;
+            font-size: 17px;
+            font-weight: 900;
+            color: var(--text-primary);
+            letter-spacing: -0.2px;
+            line-height: 1.38;
+            word-break: normal;
+            overflow-wrap: break-word;
+            min-height: 24px;
+        }
+
+        .patient-age-tag {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-left: 4px;
+            white-space: nowrap;
+        }
+
+        .patient-cid-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11.5px;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        .hoscode-tag {
+            background: var(--bg-darker);
+            border: 1px solid var(--border-color, rgba(0,0,0,0.06));
+            padding: 1px 7px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--text-secondary);
+        }
+
+        .vitals-grid-block {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: var(--bg-darker);
+            border-radius: 16px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            box-shadow: var(--neumorph-inset);
+        }
+
+        .details-list-block {
+            font-size: 12.5px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            line-height: 1.45;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex-grow: 1; /* Key to push lower blocks down uniformly */
+        }
+
+        .detail-row-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .detail-crisis-text {
+            color: #DC2626;
+            font-weight: 800;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: normal;
+        }
+
+        .contact-phone-block {
+            min-height: 40px;
+            border-radius: 14px;
+            padding: 6px 12px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-sizing: border-box;
+        }
+
+        .card-actions-block {
+            display: flex;
+            gap: 8px;
+            margin-top: auto;
+            padding-top: 8px;
         }
 
         /* Fullscreen Overlay Popup */
@@ -1483,109 +1637,132 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
 
                 let statusTag = '';
                 if (isPending) {
-                    statusTag = `<span class="tag-pill tag-danger"><span class="neu-disc-icon xs disc-red" style="width:18px;height:18px;font-size:10px;">🚨</span> <span>รอรับเรื่องด่วน</span></span>`;
+                    statusTag = `<span class="tag-pill tag-danger"><span class="neu-disc-icon xs disc-red" style="width:16px;height:16px;font-size:10px;">🚨</span><span>รอรับเรื่องด่วน</span></span>`;
                 } else if (isReferred) {
-                    statusTag = `<span class="tag-pill tag-success"><span class="neu-disc-icon xs disc-green" style="width:18px;height:18px;font-size:10px;">🏥</span> <span>ส่งต่อ รพ. แล้ว</span></span>`;
+                    statusTag = `<span class="tag-pill tag-success"><span class="neu-disc-icon xs disc-green" style="width:16px;height:16px;font-size:10px;">🏥</span><span>ส่งต่อ รพ. แล้ว</span></span>`;
                 } else {
-                    statusTag = `<span class="tag-pill tag-warning"><span class="neu-disc-icon xs disc-yellow" style="width:18px;height:18px;font-size:10px;">⏳</span> <span>รับเรื่องแล้ว (${a.acknowledged_by || 'จนท.'})</span></span>`;
+                    let ackBy = a.acknowledged_by || 'จนท.';
+                    ackBy = ackBy.replace(/^เจ้าหน้าที่\s*|^จนท\.\s*/, '').trim();
+                    if (ackBy.length > 15) {
+                        ackBy = ackBy.substring(0, 13) + '...';
+                    }
+                    const ackLabel = (ackBy && ackBy !== 'รพ.สต.' && ackBy !== 'ส่วนกลาง') ? `รับเรื่องแล้ว (${ackBy})` : 'รับเรื่องแล้ว';
+                    statusTag = `<span class="tag-pill tag-warning" title="${a.acknowledged_by || ''}"><span class="neu-disc-icon xs disc-yellow" style="width:16px;height:16px;font-size:10px;">⏳</span><span>${ackLabel}</span></span>`;
                 }
 
                 const mapLink = (a.latitude && a.longitude)
                     ? `https://www.google.com/maps?q=${a.latitude},${a.longitude}`
                     : `https://www.google.com/maps/search/อำเภอตาลสุม+อุบลราชธานี`;
 
+                const phone = a.contact_phone || a.vhv_phone || '';
+                const phoneTypeLabel = a.contact_phone ? (a.contact_type === 'relative' ? 'ญาติ/ผู้ป่วย' : 'ผู้ป่วย') : 'อสม.';
+
                 html += `
                     <div class="alert-item-card ${a.alert_status}">
-                        <div>
-                            <!-- Top Info & Alert Time Header -->
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1.5px dashed var(--border-color, rgba(0,0,0,0.08));">
-                                <div>
-                                    <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 700;">รหัสเคส #${a.alert_id}</div>
-                                    <h4 style="margin: 3px 0 0 0; font-size: 18px; font-weight: 900; color: var(--text-primary); letter-spacing: -0.2px;">
-                                        ${a.patient_name} ${a.age ? `<span style="font-size: 14px; font-weight: 700; color: var(--text-secondary);">(${a.age} ปี)</span>` : ''}
-                                    </h4>
-                                    ${a.target_cid ? `<div style="font-size: 11.5px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">CID: ${a.target_cid}</div>` : ''}
+                        <!-- 1. Header Section (Top Meta + Full Width Patient Name) -->
+                        <div class="card-header-block">
+                            <div class="card-top-meta">
+                                <div class="case-id-badge">
+                                    <span class="neu-disc-icon xs disc-blue" style="width: 18px; height: 18px; font-size: 10px;">🏷️</span>
+                                    <span>รหัสเคส #${a.alert_id}</span>
                                 </div>
-
-                                <!-- Visible Time Capsule -->
-                                <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
-                                    <div style="background: ${isPending ? 'rgba(220, 38, 38, 0.12)' : 'var(--bg-darker)'}; border: 1.5px solid ${isPending ? '#DC2626' : 'var(--border-color)'}; color: ${isPending ? '#DC2626' : 'var(--text-primary)'}; padding: 4px 10px; border-radius: 12px; font-weight: 900; font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--neumorph-flat);">
-                                        <span class="neu-disc-icon xs ${isPending ? 'disc-red' : 'disc-blue'}" style="width: 20px; height: 20px; font-size: 10.5px;">🕒</span>
+                                <div class="card-meta-right">
+                                    <div class="time-capsule ${isPending ? 'pending-time' : ''}">
+                                        <span class="neu-disc-icon xs ${isPending ? 'disc-red' : 'disc-blue'}" style="width: 16px; height: 16px; font-size: 9.5px;">🕒</span>
                                         <span>${timeInfo.fullTime}</span>
-                                        <span style="font-size: 11px; opacity: 0.85; font-weight: 700;">(${timeInfo.timeAgo})</span>
+                                        <span style="font-size: 10.5px; opacity: 0.85; font-weight: 700;">(${timeInfo.timeAgo})</span>
                                     </div>
                                     ${statusTag}
                                 </div>
                             </div>
 
-                            <!-- Vital Signs Highlight Tiles -->
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: var(--bg-darker); border-radius: 16px; padding: 12px; margin-bottom: 14px; box-shadow: var(--neumorph-inset);">
-                                <div style="background: var(--bg-card); padding: 10px 12px; border-radius: 14px; box-shadow: var(--neumorph-flat);">
-                                    <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
-                                        <span class="neu-disc-icon xs disc-red" style="width: 20px; height: 20px; font-size: 10.5px;">🩺</span>
-                                        <span>ความดันโลหิต</span>
-                                    </div>
-                                    <div style="font-size: 17px; font-weight: 900; color: ${parseInt(a.sbp || 0) >= 180 ? '#DC2626' : '#10B981'};">
-                                        ${a.sbp ? `${a.sbp}/${a.dbp}` : '-'} <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">mmHg</span>
-                                    </div>
-                                </div>
-                                <div style="background: var(--bg-card); padding: 10px 12px; border-radius: 14px; box-shadow: var(--neumorph-flat);">
-                                    <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
-                                        <span class="neu-disc-icon xs disc-yellow" style="width: 20px; height: 20px; font-size: 10.5px;">🩸</span>
-                                        <span>น้ำตาล DTX</span>
-                                    </div>
-                                    <div style="font-size: 17px; font-weight: 900; color: ${parseInt(a.dtx || 0) >= 300 ? '#DC2626' : '#D97706'};">
-                                        ${a.dtx ? `${a.dtx}` : '-'} <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">mg%</span>
-                                    </div>
-                                </div>
-                            </div>
+                            <h4 class="patient-name-title">
+                                <span>${a.patient_name}</span>
+                                ${a.age ? `<span class="patient-age-tag">(${a.age} ปี)</span>` : ''}
+                            </h4>
 
-                            <!-- Location & Symptoms Details -->
-                            <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.45; display: flex; flex-direction: column; gap: 6px;">
-                                <div style="display: flex; align-items: flex-start; gap: 8px;">
-                                    <span class="neu-disc-icon xs disc-blue" style="width: 22px; height: 22px; font-size: 11px; margin-top: 1px;">📍</span>
-                                    <div><strong>ที่อยู่:</strong> บ้านเลขที่ ${a.house_no || '-'} ม.${a.moo || '-'} (รพ.สต. ${a.hoscode})</div>
-                                </div>
-                                <div style="display: flex; align-items: flex-start; gap: 8px;">
-                                    <span class="neu-disc-icon xs disc-red" style="width: 22px; height: 22px; font-size: 11px; margin-top: 1px;">⚠️</span>
-                                    <div style="color: #DC2626; font-weight: 800;">${a.crisis_type} ${a.red_flags ? `(${a.red_flags})` : ''}</div>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <span class="neu-disc-icon xs disc-green" style="width: 22px; height: 22px; font-size: 11px;">👩‍⚕️</span>
-                                    <div style="color: var(--text-muted);"><strong>อสม. ผู้แจ้ง:</strong> ${a.vhv_name || '-'} ${a.vhv_phone ? `(${a.vhv_phone})` : ''}</div>
-                                </div>
+                            <div class="patient-cid-row">
+                                <span>CID: <strong>${a.target_cid || '-'}</strong></span>
+                                <span class="hoscode-tag">รพ.สต. ${a.hoscode}</span>
                             </div>
-
-                            <!-- Callback Phone Highlight Pill -->
-                            ${(a.contact_phone || a.vhv_phone) ? `
-                                <div style="background: rgba(16, 185, 129, 0.12); border: 1.5px solid #10B981; border-radius: 14px; padding: 8px 12px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between;">
-                                    <div style="display: flex; align-items: center; gap: 8px;">
-                                        <span class="neu-disc-icon xs disc-green" style="width: 24px; height: 24px; font-size: 12px;">📱</span>
-                                        <div style="font-size: 12.5px; color: var(--text-primary);">
-                                            <strong>${a.contact_phone || a.vhv_phone}</strong> <span style="font-size: 11px; color: var(--text-muted);">(${a.contact_type === 'relative' ? 'ญาติ/ผู้ป่วย' : 'อสม.'})</span>
-                                        </div>
-                                    </div>
-                                    <a href="tel:${a.contact_phone || a.vhv_phone}" style="background: #10B981; color: white; text-decoration: none; padding: 5px 12px; border-radius: 8px; font-size: 11.5px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 3px 8px rgba(16, 185, 129, 0.35);">
-                                        <span>📞 โทรออก</span>
-                                    </a>
-                                </div>
-                            ` : ''}
                         </div>
 
-                        <!-- Action Buttons Row -->
-                        <div style="display: flex; gap: 8px; margin-top: 6px;">
+                        <!-- 2. Vital Signs Highlight Tiles (Standard Grid) -->
+                        <div class="vitals-grid-block">
+                            <div style="background: var(--bg-card); padding: 8px 10px; border-radius: 14px; box-shadow: var(--neumorph-flat);">
+                                <div style="font-size: 11px; color: var(--text-muted); font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                                    <span class="neu-disc-icon xs disc-red" style="width: 18px; height: 18px; font-size: 9.5px;">🩺</span>
+                                    <span>ความดันโลหิต</span>
+                                </div>
+                                <div style="font-size: 16.5px; font-weight: 900; color: ${parseInt(a.sbp || 0) >= 180 ? '#DC2626' : '#10B981'};">
+                                    ${a.sbp ? `${a.sbp}/${a.dbp}` : '-'} <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">mmHg</span>
+                                </div>
+                            </div>
+                            <div style="background: var(--bg-card); padding: 8px 10px; border-radius: 14px; box-shadow: var(--neumorph-flat);">
+                                <div style="font-size: 11px; color: var(--text-muted); font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                                    <span class="neu-disc-icon xs disc-yellow" style="width: 18px; height: 18px; font-size: 9.5px;">🩸</span>
+                                    <span>น้ำตาล DTX</span>
+                                </div>
+                                <div style="font-size: 16.5px; font-weight: 900; color: ${parseInt(a.dtx || 0) >= 300 ? '#DC2626' : '#D97706'};">
+                                    ${a.dtx ? `${a.dtx}` : '-'} <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">mg%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Details List Section (Location, Symptoms, VHV) -->
+                        <div class="details-list-block">
+                            <div class="detail-row-item">
+                                <span class="neu-disc-icon xs disc-blue" style="width: 20px; height: 20px; font-size: 10px; margin-top: 1px; flex-shrink: 0;">📍</span>
+                                <div><strong>ที่อยู่:</strong> บ้านเลขที่ ${a.house_no || '-'} ม.${a.moo || '-'}</div>
+                            </div>
+                            <div class="detail-row-item">
+                                <span class="neu-disc-icon xs disc-red" style="width: 20px; height: 20px; font-size: 10px; margin-top: 1px; flex-shrink: 0;">⚠️</span>
+                                <div class="detail-crisis-text" title="${a.crisis_type} ${a.red_flags || ''}">
+                                    ${a.crisis_type} ${a.red_flags ? `(${a.red_flags})` : ''}
+                                </div>
+                            </div>
+                            <div class="detail-row-item">
+                                <span class="neu-disc-icon xs disc-green" style="width: 20px; height: 20px; font-size: 10px; flex-shrink: 0;">👩‍⚕️</span>
+                                <div style="color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    <strong>อสม.:</strong> ${a.vhv_name || '-'} ${a.vhv_phone ? `(${a.vhv_phone})` : ''}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Callback Phone Highlight Pill (Always Standard Height) -->
+                        <div class="contact-phone-block" style="${phone ? 'background: rgba(16, 185, 129, 0.12); border: 1.5px solid #10B981;' : 'background: var(--bg-darker); border: 1px dashed var(--border-color, #CBD5E1);'}">
+                            ${phone ? `
+                                <div style="display: flex; align-items: center; gap: 8px; overflow: hidden;">
+                                    <span class="neu-disc-icon xs disc-green" style="width: 22px; height: 22px; font-size: 11px; flex-shrink: 0;">📱</span>
+                                    <div style="font-size: 12.5px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        <strong>${phone}</strong> <span style="font-size: 11px; color: var(--text-muted);">(${phoneTypeLabel})</span>
+                                    </div>
+                                </div>
+                                <a href="tel:${phone}" style="background: #10B981; color: white; text-decoration: none; padding: 4px 10px; border-radius: 8px; font-size: 11.5px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 3px 8px rgba(16, 185, 129, 0.35); flex-shrink: 0;">
+                                    <span>📞 โทรออก</span>
+                                </a>
+                            ` : `
+                                <div style="display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 12px;">
+                                    <span class="neu-disc-icon xs" style="width: 22px; height: 22px; font-size: 11px; opacity: 0.6;">📱</span>
+                                    <span>ไม่มีเบอร์โทรระบุในระบบ</span>
+                                </div>
+                            `}
+                        </div>
+
+                        <!-- 5. Action Buttons Row (Pinned to bottom) -->
+                        <div class="card-actions-block">
                             ${isPending ? `
-                                <button type="button" onclick="ackAlertById(${a.alert_id})" style="flex: 1.2; padding: 10px 12px; background: #DC2626; color: white; border: none; border-radius: 12px; font-weight: 800; font-size: 12.5px; cursor: pointer; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35); display: flex; align-items: center; justify-content: center; gap: 6px;">
-                                    <span class="neu-disc-icon xs" style="background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.4); box-shadow: none; width: 20px; height: 20px; font-size: 10.5px;">🔕</span>
+                                <button type="button" onclick="ackAlertById(${a.alert_id})" style="flex: 1.2; padding: 9px 12px; background: #DC2626; color: white; border: none; border-radius: 12px; font-weight: 800; font-size: 12.5px; cursor: pointer; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35); display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                    <span class="neu-disc-icon xs" style="background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.4); box-shadow: none; width: 18px; height: 18px; font-size: 10px;">🔕</span>
                                     <span>รับเรื่อง</span>
                                 </button>
                             ` : ''}
-                            <a href="${mapLink}" target="_blank" style="flex: 1; padding: 10px 12px; background: var(--bg-card); color: var(--text-primary); text-align: center; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 12.5px; border: 1px solid var(--border-color, #CBD5E1); box-shadow: var(--neumorph-flat); display: flex; align-items: center; justify-content: center; gap: 6px;">
-                                <span class="neu-disc-icon xs disc-blue" style="width: 20px; height: 20px; font-size: 10.5px;">🗺️</span>
+                            <a href="${mapLink}" target="_blank" style="flex: 1; padding: 9px 12px; background: var(--bg-card); color: var(--text-primary); text-align: center; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 12.5px; border: 1px solid var(--border-color, #CBD5E1); box-shadow: var(--neumorph-flat); display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                <span class="neu-disc-icon xs disc-blue" style="width: 18px; height: 18px; font-size: 10px;">🗺️</span>
                                 <span>แผนที่</span>
                             </a>
-                            <a href="critical_referrals.php?alert_id=${a.alert_id}" onclick="openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" style="flex: 1; padding: 10px 12px; background: #2563EB; color: white; text-align: center; text-decoration: none; border-radius: 12px; font-weight: 800; font-size: 12.5px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35); display: flex; align-items: center; justify-content: center; gap: 6px;">
-                                <span class="neu-disc-icon xs" style="background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.4); box-shadow: none; width: 20px; height: 20px; font-size: 10.5px;">🏥</span>
+                            <a href="critical_referrals.php?alert_id=${a.alert_id}" onclick="openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" style="flex: 1; padding: 9px 12px; background: #2563EB; color: white; text-align: center; text-decoration: none; border-radius: 12px; font-weight: 800; font-size: 12.5px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35); display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                <span class="neu-disc-icon xs" style="background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.4); box-shadow: none; width: 18px; height: 18px; font-size: 10px;">🏥</span>
                                 <span>ส่งต่อ</span>
                             </a>
                         </div>
