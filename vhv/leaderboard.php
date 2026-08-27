@@ -295,7 +295,12 @@ if (DemoDataProvider::isDemoMode()) {
                     SELECT COUNT(*) 
                     FROM task_assignments ta 
                     JOIN target_population p ON ta.target_cid = p.cid 
-                    WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = :budget_year2 AND ta.assignment_status = 'completed' AND ta.is_sandbox = :is_sandbox3
+                    WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = :budget_year2 
+                      AND (
+                          ta.assignment_status = 'completed' 
+                          OR EXISTS (SELECT 1 FROM screening_results sr WHERE sr.target_cid = ta.target_cid OR sr.assignment_id = ta.assignment_id)
+                      )
+                      AND ta.is_sandbox = :is_sandbox3
                       AND (
                           (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
                           OR 

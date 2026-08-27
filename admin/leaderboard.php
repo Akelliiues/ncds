@@ -79,7 +79,7 @@ $sql = "
               AND r.is_sandbox = :is_sandbox3
         ) as total_points,
         (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026 AND is_sandbox = :is_sandbox4) as total_assigned,
-        (SELECT COUNT(*) FROM task_assignments WHERE vhv_id = u.vhv_id AND budget_year = 2026 AND assignment_status = 'completed' AND is_sandbox = :is_sandbox5) as completed,
+        (SELECT COUNT(*) FROM task_assignments ta WHERE ta.vhv_id = u.vhv_id AND ta.budget_year = 2026 AND (ta.assignment_status = 'completed' OR EXISTS (SELECT 1 FROM screening_results sr WHERE sr.target_cid = ta.target_cid OR sr.assignment_id = ta.assignment_id)) AND ta.is_sandbox = :is_sandbox5) as completed,
         (SELECT COUNT(*) FROM vhv_rewards WHERE vhv_id = u.vhv_id AND approval_status = 'waiting' AND is_sandbox = :is_sandbox6) as waiting_rewards
     FROM vhv_users u
     WHERE u.approved = 1
