@@ -1048,7 +1048,8 @@ if (DemoDataProvider::isDemoMode()) {
                 } else {
                     if (completedRound > 0) {
                         const vhvLabel = t.prev_vhv_name ? ` (อสม. ${t.prev_vhv_name})` : '';
-                        assignedText = `<span style="color: var(--color-accent); font-size: 12px; font-weight: bold;">✅ คัดกรองรอบที่ ${completedRound} แล้ว${vhvLabel}</span>`;
+                        const nextRound = completedRound + 1;
+                        assignedText = `<span style="color: var(--color-accent); font-size: 12px; font-weight: bold;">✅ คัดกรองรอบที่ ${completedRound} แล้ว${vhvLabel} <span style="color: var(--text-muted); font-size: 11px; font-weight: normal;">(ยังไม่มอบหมายรอบ ${nextRound})</span></span>`;
                     } else {
                         assignedText = '<span style="color: var(--text-muted); font-size: 12px;">(ยังไม่มอบหมาย - รอบ 1)</span>';
                     }

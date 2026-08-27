@@ -80,17 +80,27 @@ try {
         $query = "
             SELECT p.cid, p.first_name, p.last_name, p.house_no, p.birth, 
                    TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) AS age,
-                   v.vhv_name as assigned_vhv, a.assignment_status, a.round_number,
+                   v.vhv_name as assigned_vhv, a.assignment_status, a.round_number, a.assignment_id,
                    GREATEST(
                        IFNULL((SELECT MAX(CASE WHEN ta.round_number IS NULL OR ta.round_number = 0 THEN 1 ELSE ta.round_number END) FROM task_assignments ta WHERE ta.target_cid = p.cid AND ta.assignment_status = 'completed' AND ta.budget_year = {$selectedBudgetYear} AND ta.is_sandbox = ?), 0),
-                       IFNULL((SELECT MAX(CASE WHEN sr.round_number IS NULL OR sr.round_number = 0 THEN 1 ELSE sr.round_number END) FROM screening_results sr LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id WHERE (sr.target_cid = p.cid OR ta2.target_cid = p.cid) AND (ta2.budget_year = {$selectedBudgetYear} OR ta2.budget_year IS NULL) AND sr.is_sandbox = ?), 0)
+                       IFNULL((SELECT MAX(CASE WHEN sr.round_number IS NULL OR sr.round_number = 0 THEN 1 ELSE sr.round_number END) FROM screening_results sr WHERE (sr.target_cid = p.cid OR sr.assignment_id IN (SELECT ta_sub.assignment_id FROM task_assignments ta_sub WHERE ta_sub.target_cid = p.cid)) AND sr.is_sandbox = ?), 0)
                    ) as max_completed_round,
-                   (
-                       SELECT v2.vhv_name 
-                       FROM task_assignments ta_prev 
-                       LEFT JOIN vhv_users v2 ON ta_prev.vhv_id = v2.vhv_id 
-                       WHERE ta_prev.target_cid = p.cid AND ta_prev.assignment_status = 'completed' AND ta_prev.budget_year = {$selectedBudgetYear} AND ta_prev.is_sandbox = ?
-                       ORDER BY ta_prev.round_number DESC, ta_prev.assignment_id DESC LIMIT 1
+                   COALESCE(
+                       (
+                           SELECT v2.vhv_name 
+                           FROM task_assignments ta_prev 
+                           LEFT JOIN vhv_users v2 ON ta_prev.vhv_id = v2.vhv_id 
+                           WHERE ta_prev.target_cid = p.cid AND ta_prev.assignment_status = 'completed' AND ta_prev.budget_year = {$selectedBudgetYear} AND ta_prev.is_sandbox = ?
+                           ORDER BY ta_prev.round_number DESC, ta_prev.assignment_id DESC LIMIT 1
+                       ),
+                       (
+                           SELECT v3.vhv_name
+                           FROM screening_results sr_prev
+                           JOIN task_assignments ta3 ON sr_prev.assignment_id = ta3.assignment_id
+                           JOIN vhv_users v3 ON ta3.vhv_id = v3.vhv_id
+                           WHERE sr_prev.target_cid = p.cid AND sr_prev.is_sandbox = ?
+                           ORDER BY sr_prev.round_number DESC, sr_prev.screening_id DESC LIMIT 1
+                       )
                    ) as prev_vhv_name,
                    p.health_status_origin, p.need_screen_dm, p.need_screen_ht
             FROM target_population p
@@ -122,7 +132,7 @@ try {
         
         $target_hoscode = $admin_hoscode ? $admin_hoscode : ($_GET['hoscode'] ?? null);
         $hoscodeParam = $target_hoscode ?: '';
-        $params = [$isSandboxVal, $isSandboxVal, $isSandboxVal, $isSandboxVal, $vhid, $moo, $hoscodeParam];
+        $params = [$isSandboxVal, $isSandboxVal, $isSandboxVal, $isSandboxVal, $isSandboxVal, $vhid, $moo, $hoscodeParam];
         if ($target_hoscode) {
             $hoscodes = get_query_hoscodes($target_hoscode);
             $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));

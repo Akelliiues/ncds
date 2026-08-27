@@ -803,34 +803,50 @@ try {
         $pdo->exec("ALTER TABLE `vhv_rewards` ADD INDEX `idx_rewards_assign_id` (`assignment_id`)");
     }
 
-    // Auto-reconciliation: Sync task_assignments status to 'completed' when screening exists for that target_cid and round_number
+    // Auto-reconciliation: Normalize round_numbers in screening_results and task_assignments
+    try {
+        $pdo->exec("UPDATE screening_results SET round_number = 1 WHERE round_number IS NULL OR round_number = 0");
+        $pdo->exec("UPDATE task_assignments SET round_number = 1 WHERE round_number IS NULL OR round_number = 0");
+    } catch (\PDOException $e) {}
+
+    // Auto-reconciliation: Break invalid links where screening_results.assignment_id points to a task_assignments with DIFFERENT round_number or DIFFERENT target_cid
+    try {
+        $pdo->exec("
+            UPDATE screening_results s
+            JOIN task_assignments a ON s.assignment_id = a.assignment_id
+            SET s.assignment_id = NULL
+            WHERE a.round_number != s.round_number OR a.target_cid != s.target_cid
+        ");
+    } catch (\PDOException $e) {}
+
+    // Auto-reconciliation: Link unlinked screening_results to task_assignments ONLY when target_cid AND round_number MATCH exactly
+    try {
+        $pdo->exec("
+            UPDATE screening_results s
+            JOIN task_assignments a ON s.target_cid = a.target_cid AND s.round_number = a.round_number AND COALESCE(s.is_sandbox, 0) = COALESCE(a.is_sandbox, 0)
+            SET s.assignment_id = a.assignment_id
+            WHERE s.assignment_id IS NULL OR s.assignment_id NOT IN (SELECT assignment_id FROM task_assignments)
+        ");
+    } catch (\PDOException $e) {}
+
+    // Auto-reconciliation: Sync task_assignments status to 'completed' ONLY when screening exists for that target_cid AND exact same round_number
     try {
         $pdo->exec("
             UPDATE task_assignments a
-            JOIN screening_results s ON (a.assignment_id = s.assignment_id OR (a.target_cid = s.target_cid AND (a.round_number = s.round_number OR (a.round_number IS NULL AND s.round_number IS NULL))))
+            JOIN screening_results s ON a.target_cid = s.target_cid AND a.round_number = s.round_number AND COALESCE(a.is_sandbox, 0) = COALESCE(s.is_sandbox, 0)
             SET a.assignment_status = 'completed'
             WHERE a.assignment_status != 'completed'
         ");
     } catch (\PDOException $e) {}
 
-    // Auto-reconciliation: Revert task_assignments with status 'completed' to 'pending' if no screening_results exist for that round and CID/assignment_id
+    // Auto-reconciliation: Revert task_assignments with status 'completed' to 'pending' if NO screening_results exist for that exact round and CID
     try {
         $pdo->exec("
             UPDATE task_assignments a
-            LEFT JOIN screening_results s ON (a.assignment_id = s.assignment_id OR (a.target_cid = s.target_cid AND (a.round_number = s.round_number OR (a.round_number IS NULL AND s.round_number IS NULL))))
+            LEFT JOIN screening_results s ON a.target_cid = s.target_cid AND a.round_number = s.round_number AND COALESCE(a.is_sandbox, 0) = COALESCE(s.is_sandbox, 0)
             SET a.assignment_status = 'pending'
             WHERE a.assignment_status = 'completed'
               AND s.screening_id IS NULL
-        ");
-    } catch (\PDOException $e) {}
-
-    // Auto-reconciliation: Link s.assignment_id to active task_assignments.assignment_id if missing/unlinked matching CID and round
-    try {
-        $pdo->exec("
-            UPDATE screening_results s
-            JOIN task_assignments a ON s.target_cid = a.target_cid AND (s.round_number = a.round_number OR (s.round_number IS NULL AND a.round_number IS NULL))
-            SET s.assignment_id = a.assignment_id
-            WHERE s.assignment_id IS NULL OR s.assignment_id NOT IN (SELECT assignment_id FROM task_assignments)
         ");
     } catch (\PDOException $e) {}
 

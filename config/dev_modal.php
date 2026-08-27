@@ -326,7 +326,7 @@ if (file_exists('assets/aboutus.png')) {
         <div class="dev-app-header">
             <img src="<?= $path_prefix ?>assets/aboutus.png" alt="App Logo" class="dev-app-logo">
             <h2 class="dev-app-title">NCDs Portal</h2>
-            <p class="dev-app-subtitle">สสอ.<?= htmlspecialchars($district_display) ?> • จ.อุบลราชธานี</p>
+            <p class="dev-app-subtitle">อำเภอ<?= htmlspecialchars($district_display) ?> • อุบลราชธานี</p>
         </div>
 
         <!-- Developer Profile Card -->
