@@ -1256,21 +1256,34 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
             const mins = alertDate.getMinutes().toString().padStart(2, '0');
             const timeFormatted = `${hours}:${mins} น.`;
 
+            // Calculate calendar day difference
+            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            const startOfAlertDay = new Date(alertDate.getFullYear(), alertDate.getMonth(), alertDate.getDate()).getTime();
+            const dayDiff = Math.max(0, Math.floor((startOfToday - startOfAlertDay) / (86400 * 1000)));
+
             let timeAgo = '';
-            if (diffSec < 45) {
-                timeAgo = 'เมื่อสักครู่';
-            } else if (diffSec < 3600) {
-                timeAgo = `${Math.floor(diffSec / 60)} นาทีที่แล้ว`;
-            } else if (diffSec < 86400) {
-                timeAgo = `${Math.floor(diffSec / 3600)} ชม. ที่แล้ว`;
+            if (dayDiff === 0) {
+                // อยู่ในวันเดียวกัน (วันนี้) -> ระบุเป็นนาทีหรือชั่วโมง
+                if (diffSec < 45) {
+                    timeAgo = 'เมื่อสักครู่';
+                } else if (diffSec < 3600) {
+                    timeAgo = `${Math.floor(diffSec / 60)} นาทีที่แล้ว`;
+                } else {
+                    timeAgo = `${Math.floor(diffSec / 3600)} ชม. ที่แล้ว`;
+                }
+            } else if (dayDiff === 1) {
+                // เมื่อวาน
+                timeAgo = '1 วันที่แล้ว';
             } else {
-                timeAgo = `${alertDate.getDate()}/${alertDate.getMonth()+1}`;
+                // เกิน 1 วัน -> ระบุกี่วันที่แล้ว
+                timeAgo = `${dayDiff} วันที่แล้ว`;
             }
 
             return {
                 fullTime: timeFormatted,
                 timeAgo: timeAgo,
-                dateText: dateStr
+                dateText: dateStr,
+                dayDiff: dayDiff
             };
         }
 
