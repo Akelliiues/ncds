@@ -107,7 +107,7 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
         .station-container {
             flex: 1;
             padding: 24px;
-            max-width: 1240px;
+            max-width: 1280px;
             margin: 0 auto;
             width: 100%;
             box-sizing: border-box;
@@ -117,10 +117,10 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
             background: var(--bg-card, #ffffff);
             border: 1.5px solid var(--border-color, rgba(0,0,0,0.06));
             border-radius: 26px;
-            padding: 28px 24px;
+            padding: 24px 24px;
             text-align: center;
             box-shadow: var(--neumorph-flat);
-            margin-bottom: 28px;
+            margin-bottom: 22px;
             position: relative;
             overflow: hidden;
             transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
@@ -140,7 +140,7 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
         .alert-card-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-            gap: 22px;
+            gap: 20px;
         }
 
         .alert-item-card {
@@ -237,17 +237,20 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
             border-radius: 10px;
             font-size: 12px;
             font-weight: 800;
+            white-space: nowrap;
         }
 
         .tag-danger { background: rgba(220, 38, 38, 0.12); color: #DC2626; border: 1px solid rgba(220, 38, 38, 0.3); }
         .tag-warning { background: rgba(245, 158, 11, 0.12); color: #D97706; border: 1px solid rgba(245, 158, 11, 0.3); }
         .tag-success { background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3); }
         .tag-blue { background: rgba(37, 99, 235, 0.12); color: #2563EB; border: 1px solid rgba(37, 99, 235, 0.3); }
+        .tag-purple { background: rgba(168, 85, 247, 0.12); color: #9333EA; border: 1px solid rgba(168, 85, 247, 0.3); }
 
         [data-theme="dark"] .tag-danger { background: rgba(220, 38, 38, 0.22); color: #F87171; border-color: rgba(220, 38, 38, 0.4); }
         [data-theme="dark"] .tag-warning { background: rgba(245, 158, 11, 0.22); color: #FBBF24; border-color: rgba(245, 158, 11, 0.4); }
         [data-theme="dark"] .tag-success { background: rgba(16, 185, 129, 0.22); color: #34D399; border-color: rgba(16, 185, 129, 0.4); }
         [data-theme="dark"] .tag-blue { background: rgba(56, 189, 248, 0.2); color: #38BDF8; border-color: rgba(56, 189, 248, 0.4); }
+        [data-theme="dark"] .tag-purple { background: rgba(168, 85, 247, 0.25); color: #C084FC; border-color: rgba(168, 85, 247, 0.4); }
 
         .btn-station-ctrl {
             background: var(--bg-card, #ffffff);
@@ -269,6 +272,333 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
         .btn-station-ctrl:hover {
             transform: translateY(-2px);
             background: var(--bg-darker, #f1f5f9);
+        }
+
+        /* Control Panel & Search Bar */
+        .station-control-panel {
+            background: var(--bg-card, #ffffff);
+            border: 1.5px solid var(--border-color, rgba(0,0,0,0.06));
+            border-radius: 22px;
+            padding: 18px 20px;
+            margin-bottom: 22px;
+            box-shadow: var(--neumorph-flat);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .kpi-mini-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+
+        .kpi-mini-card {
+            background: var(--bg-darker, #f8fafc);
+            border: 1.5px solid var(--border-color, rgba(0,0,0,0.06));
+            border-radius: 16px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--neumorph-inset);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .kpi-mini-card:hover {
+            transform: translateY(-2px);
+            border-color: #3B82F6;
+        }
+
+        .kpi-mini-card.active-kpi {
+            border-color: #2563EB;
+            background: var(--bg-card, #ffffff);
+            box-shadow: var(--neumorph-flat), 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
+
+        .search-box-wrap {
+            position: relative;
+            flex: 1;
+            min-width: 260px;
+        }
+
+        .search-box-wrap input {
+            width: 100%;
+            box-sizing: border-box;
+            background: var(--bg-darker, #f8fafc);
+            color: var(--text-primary, #0d2c54);
+            border: 1.5px solid var(--border-color, #CBD5E1);
+            padding: 11px 42px 11px 40px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-family: inherit;
+            font-weight: 600;
+            outline: none;
+            transition: all 0.2s ease;
+            box-shadow: var(--neumorph-inset);
+        }
+
+        .search-box-wrap input:focus {
+            border-color: #2563EB;
+            background: var(--bg-card, #ffffff);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+        .search-icon-left {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted, #64748B);
+            pointer-events: none;
+            font-size: 15px;
+        }
+
+        .search-clear-btn {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(148, 163, 184, 0.2);
+            border: none;
+            color: var(--text-muted);
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            font-size: 12px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .search-clear-btn:hover {
+            background: #EF4444;
+            color: #fff;
+        }
+
+        .filter-pills-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab-btn {
+            background: var(--bg-darker, #f1f5f9);
+            color: var(--text-secondary, #475569);
+            border: 1px solid var(--border-color, #CBD5E1);
+            padding: 7px 14px;
+            border-radius: 12px;
+            font-size: 12.5px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .filter-tab-btn:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            transform: translateY(-1px);
+        }
+
+        .filter-tab-btn.active {
+            background: #2563EB !important;
+            color: #ffffff !important;
+            border-color: #1D4ED8 !important;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+        }
+
+        .filter-tab-btn.active.pending-tab {
+            background: #DC2626 !important;
+            border-color: #B91C1C !important;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+        }
+
+        .filter-tab-btn.active.ack-tab {
+            background: #D97706 !important;
+            border-color: #B45309 !important;
+            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
+        }
+
+        .filter-tab-btn.active.refer-tab {
+            background: #059669 !important;
+            border-color: #047857 !important;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
+        }
+
+        .filter-tab-btn .badge-num {
+            background: rgba(0,0,0,0.08);
+            color: inherit;
+            padding: 1px 7px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .filter-tab-btn.active .badge-num {
+            background: rgba(255,255,255,0.25);
+            color: #fff;
+        }
+
+        .control-select {
+            background: var(--bg-darker);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color, #CBD5E1);
+            padding: 7px 12px;
+            border-radius: 12px;
+            font-size: 12.5px;
+            font-weight: 700;
+            outline: none;
+            box-shadow: var(--neumorph-inset);
+            cursor: pointer;
+        }
+
+        .control-select:focus {
+            border-color: #2563EB;
+        }
+
+        /* View Mode Switcher */
+        .view-mode-group {
+            display: inline-flex;
+            background: var(--bg-darker);
+            padding: 3px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color, #CBD5E1);
+            box-shadow: var(--neumorph-inset);
+        }
+
+        .view-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 5px 10px;
+            border-radius: 9px;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s ease;
+        }
+
+        .view-btn.active {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        /* Compact Table Mode */
+        .table-responsive-wrap {
+            background: var(--bg-card);
+            border: 1.5px solid var(--border-color, rgba(0,0,0,0.06));
+            border-radius: 22px;
+            box-shadow: var(--neumorph-flat);
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+
+        .station-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .station-table th {
+            background: var(--bg-darker);
+            color: var(--text-secondary);
+            font-weight: 800;
+            padding: 12px 14px;
+            border-bottom: 1.5px solid var(--border-color, rgba(0,0,0,0.08));
+            white-space: nowrap;
+            font-size: 12px;
+            letter-spacing: 0.2px;
+        }
+
+        .station-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border-color, rgba(0,0,0,0.05));
+            color: var(--text-primary);
+            vertical-align: middle;
+        }
+
+        .station-table tr:hover td {
+            background: rgba(37, 99, 235, 0.03);
+        }
+
+        .station-table tr.pending-row td {
+            background: rgba(220, 38, 38, 0.035);
+        }
+
+        .station-table tr.pending-row:hover td {
+            background: rgba(220, 38, 38, 0.07);
+        }
+
+        /* Pagination Bar */
+        .pagination-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 24px;
+            padding: 14px 18px;
+            background: var(--bg-card);
+            border: 1.5px solid var(--border-color, rgba(0,0,0,0.06));
+            border-radius: 18px;
+            box-shadow: var(--neumorph-flat);
+        }
+
+        .pagination-pages {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .page-btn {
+            min-width: 34px;
+            height: 34px;
+            padding: 0 8px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color, #CBD5E1);
+            background: var(--bg-darker);
+            color: var(--text-primary);
+            font-weight: 800;
+            font-size: 12.5px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: var(--bg-card);
+            border-color: #2563EB;
+            color: #2563EB;
+            transform: translateY(-1px);
+        }
+
+        .page-btn.active {
+            background: #2563EB !important;
+            color: #ffffff !important;
+            border-color: #1D4ED8 !important;
+            box-shadow: 0 3px 8px rgba(37, 99, 235, 0.35);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
         }
     </style>
 </head>
@@ -311,7 +641,7 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
             <!-- Test Alert Trigger -->
             <button type="button" onclick="simulateTestAlert()" style="background: linear-gradient(135deg, #DC2626, #B91C1C); border: none; color: white; padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35); display: inline-flex; align-items: center; gap: 8px;">
                 <span class="neu-disc-icon xs" style="background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.4); box-shadow: none;">⚡</span>
-                <span>จำลองยิงสัญญาณฉุกเฉิน</span>
+                <span>จำลองส่งสัญญาณฉุกเฉิน</span>
             </button>
 
             <!-- Safe ZIP Download Link -->
@@ -338,12 +668,6 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                     <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
                 </svg>
             </button>
-
-            <!-- Home Dashboard Link -->
-            <a href="index.php" class="btn-station-ctrl" title="กลับสู่หน้าแดชบอร์ดหลัก">
-                <span class="neu-disc-icon xs disc-blue">🏠</span>
-                <span>หน้าหลัก</span>
-            </a>
         </div>
     </header>
 
@@ -365,7 +689,7 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                 สถานีพร้อมรับสัญญาณฉุกเฉิน (Active Standby)
             </h2>
             <p id="status-sub" style="margin: 0 0 14px 0; font-size: 14px; color: var(--text-secondary); max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.5;">
-                เชื่อมต่อระบบ Realtime Dispatcher แล้ว • กำลังเฝ้าระวังเคสความดัน/น้ำตาลวิกฤต และภาวะฉุกเฉินตลอด 24 ชม.
+                เชื่อมต่อระบบ Realtime Dispatcher แล้ว • เฝ้าระวังเคสความดัน/น้ำตาลวิกฤต และภาวะฉุกเฉินตลอด 24 ชม.
             </p>
             <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; background: var(--bg-darker); padding: 6px 16px; border-radius: 50px; box-shadow: var(--neumorph-inset); border: 1px solid var(--border-color, transparent);">
                 <div class="pulsing-dot" style="width: 10px; height: 10px;"></div>
@@ -374,26 +698,191 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
             </div>
         </div>
 
-        <!-- Section: Active Critical Feeds Header -->
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;">
+        <!-- ================================================================= -->
+        <!-- Smart Control Panel: Fast Search, Filter Pills, View & Pagination -->
+        <!-- ================================================================= -->
+        <section class="station-control-panel">
+            
+            <!-- Row 1: KPI Quick Counter Pills (Clickable shortcuts) -->
+            <div class="kpi-mini-grid">
+                <div class="kpi-mini-card" onclick="setQuickStatus('pending')" id="kpi-card-pending" title="คลิกเพื่อดูกลุ่มรอรับเรื่องด่วน">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="neu-disc-icon xs disc-red" style="width: 32px; height: 32px; font-size: 14px;">🚨</span>
+                        <div>
+                            <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 800;">รอรับเรื่องด่วน</div>
+                            <div id="stat-pending-num" style="font-size: 18px; font-weight: 900; color: #DC2626;">0</div>
+                        </div>
+                    </div>
+                    <span class="tag-pill tag-danger" style="font-size: 11px; padding: 2px 8px;">Pending</span>
+                </div>
+
+                <div class="kpi-mini-card" onclick="setQuickStatus('acknowledged')" id="kpi-card-ack" title="คลิกเพื่อดูกลุ่มรับเรื่อง/กำลังดูแล">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="neu-disc-icon xs disc-yellow" style="width: 32px; height: 32px; font-size: 14px;">⏳</span>
+                        <div>
+                            <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 800;">รับเรื่องแล้ว</div>
+                            <div id="stat-ack-num" style="font-size: 18px; font-weight: 900; color: #D97706;">0</div>
+                        </div>
+                    </div>
+                    <span class="tag-pill tag-warning" style="font-size: 11px; padding: 2px 8px;">In Action</span>
+                </div>
+
+                <div class="kpi-mini-card" onclick="setQuickStatus('referred_hospital')" id="kpi-card-refer" title="คลิกเพื่อดูกลุ่มสั่งส่งต่อ รพ.">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="neu-disc-icon xs disc-green" style="width: 32px; height: 32px; font-size: 14px;">🏥</span>
+                        <div>
+                            <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 800;">สั่งส่งต่อ รพ.</div>
+                            <div id="stat-refer-num" style="font-size: 18px; font-weight: 900; color: #059669;">0</div>
+                        </div>
+                    </div>
+                    <span class="tag-pill tag-success" style="font-size: 11px; padding: 2px 8px;">Referred</span>
+                </div>
+
+                <div class="kpi-mini-card" onclick="setQuickStatus('all')" id="kpi-card-all" title="คลิกเพื่อดูเคสทั้งหมด">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="neu-disc-icon xs disc-blue" style="width: 32px; height: 32px; font-size: 14px;">📊</span>
+                        <div>
+                            <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 800;">เคสทั้งหมดในสถานี</div>
+                            <div id="stat-total-num" style="font-size: 18px; font-weight: 900; color: #2563EB;">0</div>
+                        </div>
+                    </div>
+                    <span class="tag-pill tag-blue" style="font-size: 11px; padding: 2px 8px;">Total</span>
+                </div>
+            </div>
+
+            <!-- Row 2: Search Box & View Mode Toggle -->
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <!-- Real-time Live Search Input -->
+                <div class="search-box-wrap">
+                    <span class="search-icon-left">🔍</span>
+                    <input 
+                        type="text" 
+                        id="station-search-input" 
+                        placeholder="พิมพ์ค้นหา: ชื่อผู้ป่วย, เลข CID, เบอร์โทร, หมู่บ้าน, อสม. หรืออาการวิกฤต..." 
+                        oninput="handleSearchInput(this.value)"
+                        autocomplete="off"
+                    >
+                    <button type="button" id="search-clear-btn" class="search-clear-btn" onclick="clearSearch()" title="ล้างข้อความค้นหา">✕</button>
+                </div>
+
+                <!-- View Switcher -->
+                <div class="view-mode-group">
+                    <button type="button" id="view-btn-card" class="view-btn active" onclick="switchViewMode('card')" title="มุมมองการ์ดละเอียด">
+                        <span>🎴 การ์ด</span>
+                    </button>
+                    <button type="button" id="view-btn-table" class="view-btn" onclick="switchViewMode('table')" title="มุมมองตารางสรุปด่วน (ดูได้เยอะ ไม่ต้อง scroll ไกล)">
+                        <span>📋 ตารางด่วน</span>
+                    </button>
+                </div>
+
+                <!-- Page Size Selector -->
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 12px; color: var(--text-muted); font-weight: 700; white-space: nowrap;">แสดง:</span>
+                    <select id="select-page-size" class="control-select" onchange="changePageSize(this.value)">
+                        <option value="6">6 เคส/หน้า</option>
+                        <option value="12" selected>12 เคส/หน้า</option>
+                        <option value="24">24 เคส/หน้า</option>
+                        <option value="50">50 เคส/หน้า</option>
+                        <option value="all">ทั้งหมด</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Row 3: Status Filter Pills + Secondary Filters -->
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+                <!-- Status Filter Pills -->
+                <div class="filter-pills-row">
+                    <button type="button" class="filter-tab-btn active" id="tab-status-all" onclick="filterByStatus('all')">
+                        <span>ทั้งหมด</span>
+                        <span class="badge-num" id="badge-all">0</span>
+                    </button>
+                    <button type="button" class="filter-tab-btn pending-tab" id="tab-status-pending" onclick="filterByStatus('pending')">
+                        <span>🚨 รอรับเรื่อง</span>
+                        <span class="badge-num" id="badge-pending">0</span>
+                    </button>
+                    <button type="button" class="filter-tab-btn ack-tab" id="tab-status-ack" onclick="filterByStatus('acknowledged')">
+                        <span>⏳ รับเรื่องแล้ว</span>
+                        <span class="badge-num" id="badge-ack">0</span>
+                    </button>
+                    <button type="button" class="filter-tab-btn refer-tab" id="tab-status-refer" onclick="filterByStatus('referred_hospital')">
+                        <span>🏥 สั่งส่งต่อแล้ว</span>
+                        <span class="badge-num" id="badge-refer">0</span>
+                    </button>
+                    <button type="button" class="filter-tab-btn" id="tab-status-test" onclick="filterByStatus('test')">
+                        <span>🧪 เคสทดสอบ</span>
+                        <span class="badge-num" id="badge-test">0</span>
+                    </button>
+                </div>
+
+                <!-- Secondary Filters: Crisis Type, Village/Moo, Sort Order -->
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <!-- Crisis Type Dropdown -->
+                    <select id="select-crisis-type" class="control-select" onchange="changeCrisisTypeFilter(this.value)">
+                        <option value="all">ทุกภาวะวิกฤต</option>
+                        <option value="ht">🩺 ความดันสูงวิกฤต (HT Crisis)</option>
+                        <option value="dtx">🩸 น้ำตาลวิกฤต (DTX Crisis)</option>
+                        <option value="red_flags">⚠️ มีอาการเตือน (Red Flags)</option>
+                    </select>
+
+                    <!-- Moo Filter Dropdown -->
+                    <select id="select-moo" class="control-select" onchange="changeMooFilter(this.value)">
+                        <option value="all">ทุกหมู่บ้าน (ทุก ม.)</option>
+                        <?php for ($m = 1; $m <= 15; $m++): ?>
+                            <option value="<?= $m ?>">หมู่ <?= $m ?></option>
+                        <?php endfor; ?>
+                    </select>
+
+                    <!-- Sort Dropdown -->
+                    <select id="select-sort-by" class="control-select" onchange="changeSortBy(this.value)">
+                        <option value="newest">🕒 ล่าสุดไปเก่าสุด</option>
+                        <option value="oldest">⏳ เก่าสุดไปล่าสุด</option>
+                        <option value="bp_desc">🩺 ความดันสูงสุด (SBP สูง)</option>
+                        <option value="dtx_desc">🩸 น้ำตาลสูงสุด (DTX สูง)</option>
+                    </select>
+
+                    <!-- Reset Filters Button -->
+                    <button type="button" onclick="resetAllFilters()" class="btn-station-ctrl" style="padding: 6px 12px; font-size: 12px;" title="ล้างการค้นหาและตัวกรองทั้งหมด">
+                        <span>🔄 รีเซ็ต</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Active Feeds Header with Results Counter -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
             <h3 style="margin: 0; font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 10px; color: var(--text-primary);">
                 <span class="neu-disc-icon xs disc-blue">📡</span> 
                 <span>รายการเคสวิกฤตที่ส่งเข้ามา (Live Emergency Feeds)</span>
             </h3>
-            <span id="active-count-badge" class="tag-pill tag-success">0 เคสรอรับเรื่อง</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span id="results-count-text" style="font-size: 13px; color: var(--text-secondary); font-weight: 700;">กำลังโหลดข้อมูล...</span>
+                <span id="active-count-badge" class="tag-pill tag-success">0 เคสรอรับเรื่อง</span>
+            </div>
         </div>
 
-        <!-- Alert Cards Grid -->
-        <div id="alert-cards-container" class="alert-card-grid">
-            <!-- Initial Empty State -->
-            <div style="grid-column: 1/-1; text-align: center; padding: 48px 20px; background: var(--bg-card); border-radius: 24px; box-shadow: var(--neumorph-flat); border: 1px dashed var(--border-color, #CBD5E1);">
-                <div style="display: flex; justify-content: center; margin-bottom: 12px;">
-                    <div class="neu-disc-icon lg disc-green" style="width: 60px; height: 60px; font-size: 28px;">
-                        🛡️
+        <!-- Main Display Container (Card Grid or Compact Table) -->
+        <div id="alert-display-root">
+            <div id="alert-cards-container" class="alert-card-grid">
+                <!-- Initial Loading / Empty State -->
+                <div style="grid-column: 1/-1; text-align: center; padding: 48px 20px; background: var(--bg-card); border-radius: 24px; box-shadow: var(--neumorph-flat); border: 1px dashed var(--border-color, #CBD5E1);">
+                    <div style="display: flex; justify-content: center; margin-bottom: 12px;">
+                        <div class="neu-disc-icon lg disc-green" style="width: 60px; height: 60px; font-size: 28px;">
+                            🛡️
+                        </div>
                     </div>
+                    <div style="font-size: 16px; font-weight: 800; color: var(--text-primary);">กำลังเชื่อมต่อศูนย์รับสัญญาณฉุกเฉิน...</div>
+                    <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">เมื่อ อสม. คัดกรองพบเคสวิกฤต สัญญาณและข้อมูลจะเด้งขึ้นมาพร้อมเสียงเตือนทันที</div>
                 </div>
-                <div style="font-size: 16px; font-weight: 800; color: var(--text-primary);">ยังไม่มีเคสวิกฤตฉุกเฉินในขณะนี้</div>
-                <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">เมื่อ อสม. คัดกรองพบเคสวิกฤต สัญญาณและข้อมูลจะเด้งขึ้นมาพร้อมเสียงเตือนทันที</div>
+            </div>
+        </div>
+
+        <!-- Pagination Controls Bar -->
+        <div id="pagination-wrapper" class="pagination-container" style="display: none;">
+            <div style="font-size: 13px; color: var(--text-secondary); font-weight: 700;">
+                <span id="pagination-info-text">แสดงเคสที่ 1 - 12 จากทั้งหมด 0 รายการ</span>
+            </div>
+            <div class="pagination-pages" id="pagination-buttons">
+                <!-- Dynamically rendered -->
             </div>
         </div>
     </main>
@@ -499,7 +988,7 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
         </div>
     </div>
 
-    <!-- Web Audio Siren Synthesizer & SSE Client -->
+    <!-- Web Audio Siren Synthesizer, State Manager & SSE / Polling Client -->
     <script>
         let currentHoscode = '<?= htmlspecialchars($selected_hoscode) ?>';
         let audioCtx = null;
@@ -508,13 +997,29 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
         let activeCrisisAlertId = null;
 
         // ----------------------------------------------------
+        // Station State Management (Search, Filters, Pagination, View)
+        // ----------------------------------------------------
+        const stationState = {
+            allAlerts: [],
+            filteredAlerts: [],
+            searchQuery: '',
+            statusFilter: 'all',
+            crisisTypeFilter: 'all',
+            mooFilter: 'all',
+            sortBy: 'newest',
+            viewMode: localStorage.getItem('red_alert_view_mode') || 'card',
+            currentPage: 1,
+            pageSize: 12,
+            knownPendingAlertIds: new Set()
+        };
+
+        // ----------------------------------------------------
         // Cross-Tab Navigator & Smart Focus Manager
         // ----------------------------------------------------
         const MY_TAB_NAME = "ncd_red_alert_station_tab";
         window.name = MY_TAB_NAME;
 
         function openOrFocusTab(url, targetTabName) {
-            // 1. Post signal via BroadcastChannel to notify existing tab to focus & load url
             try {
                 const bc = new BroadcastChannel('ncd_tab_channel');
                 bc.postMessage({
@@ -525,7 +1030,6 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                 });
             } catch(e) {}
 
-            // 2. Write to localStorage for cross-tab fallback event
             try {
                 localStorage.setItem('ncd_focus_tab_signal', JSON.stringify({
                     target: targetTabName,
@@ -534,7 +1038,6 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                 }));
             } catch(e) {}
 
-            // 3. Open or focus the named window
             const targetWin = window.open(url, targetTabName);
             if (targetWin) {
                 try {
@@ -559,7 +1062,6 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                     }
                 }
 
-                // Temporary title visual cue
                 const originalTitle = document.title.replace(/⚡ \[สลับมาแท็บนี้\] /g, '');
                 document.title = "⚡ [สลับมาแท็บนี้] " + originalTitle;
                 setTimeout(() => {
@@ -657,7 +1159,6 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                 osc.type = 'sawtooth';
                 osc.frequency.setValueAtTime(800, audioCtx.currentTime);
                 
-                // Modulate frequency for emergency siren sweep (800Hz <-> 1300Hz)
                 const now = audioCtx.currentTime;
                 for (let i = 0; i < 60; i++) {
                     osc.frequency.linearRampToValueAtTime(1300, now + (i * 0.8) + 0.4);
@@ -708,86 +1209,286 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
             window.location.href = `emergency_receiver.php?hoscode=${val}`;
         }
 
-        // Render Alerts List
-        function renderAlertCards(alerts) {
-            const container = document.getElementById('alert-cards-container');
-            const pendingCount = alerts.filter(a => a.alert_status === 'pending').length;
+        // ----------------------------------------------------
+        // Search & Filter Controllers
+        // ----------------------------------------------------
+        function handleSearchInput(val) {
+            stationState.searchQuery = (val || '').trim().toLowerCase();
+            const clearBtn = document.getElementById('search-clear-btn');
+            if (clearBtn) {
+                clearBtn.style.display = stationState.searchQuery ? 'flex' : 'none';
+            }
+            stationState.currentPage = 1;
+            applyFiltersAndRender();
+        }
+
+        function clearSearch() {
+            const input = document.getElementById('station-search-input');
+            if (input) input.value = '';
+            handleSearchInput('');
+        }
+
+        function filterByStatus(status) {
+            stationState.statusFilter = status;
+            stationState.currentPage = 1;
             
-            const badge = document.getElementById('active-count-badge');
-            badge.innerText = `${pendingCount} เคสรอรับเรื่อง`;
-            badge.className = pendingCount > 0 ? 'tag-pill tag-danger' : 'tag-pill tag-success';
+            // Update active state in UI tabs
+            document.querySelectorAll('.filter-tab-btn').forEach(btn => btn.classList.remove('active'));
+            const activeTab = document.getElementById(`tab-status-${status === 'referred_hospital' ? 'refer' : (status === 'acknowledged' ? 'ack' : status)}`);
+            if (activeTab) activeTab.classList.add('active');
 
-            // Check if there is any pending crisis
-            const pendingCrisis = alerts.find(a => a.alert_status === 'pending');
-            const statusHero = document.getElementById('status-hero');
-            const statusIconContainer = document.getElementById('status-icon-container');
+            // Update KPI mini-cards active state
+            document.querySelectorAll('.kpi-mini-card').forEach(c => c.classList.remove('active-kpi'));
+            const activeKpi = document.getElementById(`kpi-card-${status === 'referred_hospital' ? 'refer' : (status === 'acknowledged' ? 'ack' : status)}`);
+            if (activeKpi) activeKpi.classList.add('active-kpi');
 
-            if (pendingCrisis) {
-                statusHero.classList.add('alerting');
-                statusIconContainer.style.background = 'radial-gradient(circle at 35% 35%, #EF4444 0%, #DC2626 70%, #991B1B 100%)';
-                statusIconContainer.style.animation = 'emergencyBeaconPulse 1.8s infinite';
-                statusIconContainer.innerHTML = `
-                    <svg width="52" height="52" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.35));">
-                        <line x1="24" y1="3" x2="24" y2="8" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
-                        <line x1="10" y1="8" x2="14" y2="12" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
-                        <line x1="38" y1="8" x2="34" y2="12" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
-                        <line x1="3" y1="22" x2="8" y2="22" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
-                        <line x1="45" y1="22" x2="40" y2="22" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
-                        <path d="M14 26 C14 15, 34 15, 34 26 Z" fill="#FFFFFF"/>
-                        <path d="M28 18 C31 20, 32 23, 31 25" stroke="rgba(220, 38, 38, 0.65)" stroke-width="2.2" stroke-linecap="round" fill="none"/>
-                        <rect x="10" y="26" width="28" height="5" rx="2.5" fill="#1E293B"/>
-                        <text x="24" y="42" text-anchor="middle" font-family="'Outfit', 'Sarabun', sans-serif" font-weight="900" font-size="11.5" fill="#FFFFFF" letter-spacing="1.2">SOS</text>
-                    </svg>
-                `;
-                document.getElementById('status-headline').innerText = `⚠️ พบสัญญาณแจ้งเหตุวิกฤต! (${pendingCrisis.patient_name})`;
-                document.getElementById('status-sub').innerText = `ค่าความดัน SBP ${pendingCrisis.sbp || '-'} / DBP ${pendingCrisis.dbp || '-'} | น้ำตาล DTX ${pendingCrisis.dtx || '-'} mg% • ต้องการการดูแลฉุกเฉินทันที`;
-                document.getElementById('station-pulsing-dot').className = 'pulsing-dot active-crisis';
+            applyFiltersAndRender();
+        }
 
-                // Trigger Fullscreen Pop-up Modal & Siren
-                showEmergencyPopup(pendingCrisis);
-                startSirenSound();
+        function setQuickStatus(status) {
+            filterByStatus(status);
+        }
+
+        function changeCrisisTypeFilter(val) {
+            stationState.crisisTypeFilter = val;
+            stationState.currentPage = 1;
+            applyFiltersAndRender();
+        }
+
+        function changeMooFilter(val) {
+            stationState.mooFilter = val;
+            stationState.currentPage = 1;
+            applyFiltersAndRender();
+        }
+
+        function changeSortBy(val) {
+            stationState.sortBy = val;
+            stationState.currentPage = 1;
+            applyFiltersAndRender();
+        }
+
+        function changePageSize(val) {
+            stationState.pageSize = val === 'all' ? 9999 : parseInt(val, 10);
+            stationState.currentPage = 1;
+            applyFiltersAndRender();
+        }
+
+        function switchViewMode(mode) {
+            stationState.viewMode = mode;
+            localStorage.setItem('red_alert_view_mode', mode);
+            
+            document.getElementById('view-btn-card').classList.toggle('active', mode === 'card');
+            document.getElementById('view-btn-table').classList.toggle('active', mode === 'table');
+            
+            applyFiltersAndRender();
+        }
+
+        function resetAllFilters() {
+            stationState.searchQuery = '';
+            stationState.statusFilter = 'all';
+            stationState.crisisTypeFilter = 'all';
+            stationState.mooFilter = 'all';
+            stationState.sortBy = 'newest';
+            stationState.currentPage = 1;
+
+            const searchInput = document.getElementById('station-search-input');
+            if (searchInput) searchInput.value = '';
+            const clearBtn = document.getElementById('search-clear-btn');
+            if (clearBtn) clearBtn.style.display = 'none';
+
+            document.getElementById('select-crisis-type').value = 'all';
+            document.getElementById('select-moo').value = 'all';
+            document.getElementById('select-sort-by').value = 'newest';
+
+            filterByStatus('all');
+        }
+
+        function changePage(pageNum) {
+            stationState.currentPage = pageNum;
+            applyFiltersAndRender();
+            
+            // Scroll smoothly to top of alert list
+            const root = document.getElementById('alert-display-root');
+            if (root) {
+                root.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        // ----------------------------------------------------
+        // Filter, Sort & Render Engine
+        // ----------------------------------------------------
+        function applyFiltersAndRender() {
+            const raw = stationState.allAlerts || [];
+            
+            // 1. Calculate Global Summary Statistics
+            const totalCount = raw.length;
+            const pendingCount = raw.filter(a => a.alert_status === 'pending').length;
+            const ackCount = raw.filter(a => a.alert_status === 'acknowledged' || a.alert_status === 'dispatched').length;
+            const referCount = raw.filter(a => a.alert_status === 'referred_hospital' || a.is_jhcis_synced == 1).length;
+            const testCount = raw.filter(a => (a.patient_name && a.patient_name.includes('ทดสอบ')) || (a.vhv_name && a.vhv_name.includes('ทดสอบ'))).length;
+
+            // Update KPI Pills
+            document.getElementById('stat-total-num').innerText = totalCount;
+            document.getElementById('stat-pending-num').innerText = pendingCount;
+            document.getElementById('stat-ack-num').innerText = ackCount;
+            document.getElementById('stat-refer-num').innerText = referCount;
+
+            // Update Tab Badges
+            document.getElementById('badge-all').innerText = totalCount;
+            document.getElementById('badge-pending').innerText = pendingCount;
+            document.getElementById('badge-ack').innerText = ackCount;
+            document.getElementById('badge-refer').innerText = referCount;
+            document.getElementById('badge-test').innerText = testCount;
+
+            // Update Top Active Badge
+            const activeBadge = document.getElementById('active-count-badge');
+            activeBadge.innerText = `${pendingCount} เคสรอรับเรื่อง`;
+            activeBadge.className = pendingCount > 0 ? 'tag-pill tag-danger' : 'tag-pill tag-success';
+
+            // 2. Filter Alerts
+            let filtered = raw.filter(a => {
+                // Status filter
+                if (stationState.statusFilter === 'pending' && a.alert_status !== 'pending') return false;
+                if (stationState.statusFilter === 'acknowledged' && a.alert_status !== 'acknowledged' && a.alert_status !== 'dispatched') return false;
+                if (stationState.statusFilter === 'referred_hospital' && a.alert_status !== 'referred_hospital' && a.is_jhcis_synced != 1) return false;
+                if (stationState.statusFilter === 'test') {
+                    const isTest = (a.patient_name && a.patient_name.includes('ทดสอบ')) || (a.vhv_name && a.vhv_name.includes('ทดสอบ'));
+                    if (!isTest) return false;
+                }
+
+                // Crisis Type filter
+                if (stationState.crisisTypeFilter === 'ht') {
+                    if (!(parseInt(a.sbp || 0, 10) >= 180 || (a.crisis_type && a.crisis_type.toLowerCase().includes('ht')))) return false;
+                } else if (stationState.crisisTypeFilter === 'dtx') {
+                    if (!(parseInt(a.dtx || 0, 10) >= 300 || parseInt(a.dtx || 0, 10) <= 70 || (a.crisis_type && a.crisis_type.toLowerCase().includes('dtx')))) return false;
+                } else if (stationState.crisisTypeFilter === 'red_flags') {
+                    if (!a.red_flags || a.red_flags === 'NONE' || a.red_flags === '-' || a.red_flags === '') return false;
+                }
+
+                // Moo filter
+                if (stationState.mooFilter !== 'all') {
+                    if (String(a.moo) !== String(stationState.mooFilter)) return false;
+                }
+
+                // Text Search query (Name, CID, Phone, Moo, House No, VHV, Symptoms, Alert ID)
+                if (stationState.searchQuery) {
+                    const q = stationState.searchQuery;
+                    const matchName = (a.patient_name || '').toLowerCase().includes(q);
+                    const matchCid = (a.target_cid || '').includes(q);
+                    const matchPhone = (a.contact_phone || '').includes(q) || (a.vhv_phone || '').includes(q);
+                    const matchVhv = (a.vhv_name || '').toLowerCase().includes(q);
+                    const matchHouse = (a.house_no || '').toLowerCase().includes(q);
+                    const matchMoo = (`ม.${a.moo}`.includes(q) || `หมู่ ${a.moo}`.includes(q) || `หมู่ที่ ${a.moo}`.includes(q));
+                    const matchCrisis = (a.crisis_type || '').toLowerCase().includes(q) || (a.red_flags || '').toLowerCase().includes(q);
+                    const matchId = (`#${a.alert_id}`.includes(q) || String(a.alert_id).includes(q));
+
+                    if (!matchName && !matchCid && !matchPhone && !matchVhv && !matchHouse && !matchMoo && !matchCrisis && !matchId) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            // 3. Sort Alerts
+            filtered.sort((a, b) => {
+                if (stationState.sortBy === 'newest') {
+                    return (b.alert_id || 0) - (a.alert_id || 0);
+                } else if (stationState.sortBy === 'oldest') {
+                    return (a.alert_id || 0) - (b.alert_id || 0);
+                } else if (stationState.sortBy === 'bp_desc') {
+                    return (parseInt(b.sbp || 0, 10)) - (parseInt(a.sbp || 0, 10));
+                } else if (stationState.sortBy === 'dtx_desc') {
+                    return (parseInt(b.dtx || 0, 10)) - (parseInt(a.dtx || 0, 10));
+                }
+                return 0;
+            });
+
+            stationState.filteredAlerts = filtered;
+
+            // 4. Pagination Calculation
+            const filteredTotal = filtered.length;
+            const pageSize = stationState.pageSize;
+            const totalPages = Math.max(1, Math.ceil(filteredTotal / pageSize));
+
+            if (stationState.currentPage > totalPages) {
+                stationState.currentPage = totalPages;
+            }
+            const currentPage = stationState.currentPage;
+
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = Math.min(startIndex + pageSize, filteredTotal);
+            const pageAlerts = filtered.slice(startIndex, endIndex);
+
+            // Update Result Counters Text
+            const resultText = document.getElementById('results-count-text');
+            if (filteredTotal === totalCount) {
+                resultText.innerText = `พบทั้งหมด ${filteredTotal} เคส (แสดง ${filteredTotal > 0 ? startIndex + 1 : 0} - ${endIndex})`;
             } else {
-                statusHero.classList.remove('alerting');
-                statusIconContainer.style.background = 'radial-gradient(circle at 35% 35%, #34D399 0%, #10B981 70%, #047857 100%)';
-                statusIconContainer.style.animation = 'none';
-                statusIconContainer.innerHTML = `
-                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.25));">
-                        <path d="M24 4 L40 10 V22 C40 32.5 33.2 41.8 24 45 C14.8 41.8 8 32.5 8 22 V10 L24 4 Z" fill="#FFFFFF"/>
-                        <path d="M24 8 L36 12.5 V22 C36 30.5 30.8 38 24 40.8 C17.2 38 12 30.5 12 22 V12.5 L24 8 Z" fill="#E6FDF5"/>
-                        <path d="M16 23 L22 29 L32 17" stroke="#059669" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                `;
-                document.getElementById('status-headline').innerText = 'สถานีพร้อมรับสัญญาณฉุกเฉิน (Active Standby)';
-                document.getElementById('status-sub').innerText = 'เชื่อมต่อระบบ Realtime Dispatcher แล้ว • กำลังเฝ้าระวังเคสความดัน/น้ำตาลวิกฤต และภาวะฉุกเฉินตลอด 24 ชม.';
-                document.getElementById('station-pulsing-dot').className = 'pulsing-dot';
-                
-                hideEmergencyPopup();
-                stopSirenSound();
+                resultText.innerText = `พบ ${filteredTotal} จากทั้งหมด ${totalCount} เคส (แสดง ${filteredTotal > 0 ? startIndex + 1 : 0} - ${endIndex})`;
             }
 
-            if (alerts.length === 0) {
-                container.innerHTML = `
-                    <div style="grid-column: 1/-1; text-align: center; padding: 48px 20px; background: var(--bg-card); border-radius: 24px; box-shadow: var(--neumorph-flat); border: 1px dashed var(--border-color, #CBD5E1);">
-                        <div style="display: flex; justify-content: center; margin-bottom: 12px;">
-                            <div class="neu-disc-icon lg disc-green" style="width: 60px; height: 60px; font-size: 28px;">
-                                🛡️
-                            </div>
-                        </div>
-                        <div style="font-size: 16px; font-weight: 800; color: var(--text-primary);">ยังไม่มีเคสวิกฤตฉุกเฉินในขณะนี้</div>
-                        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">เมื่อ อสม. คัดกรองพบเคสวิกฤต สัญญาณและข้อมูลจะเด้งขึ้นมาพร้อมเสียงเตือนทันที</div>
-                    </div>
-                `;
+            // 5. Render Container Content (Card or Table)
+            const root = document.getElementById('alert-display-root');
+            if (filteredTotal === 0) {
+                renderEmptyState(root);
+                document.getElementById('pagination-wrapper').style.display = 'none';
                 return;
             }
 
-            let html = '';
+            if (stationState.viewMode === 'table') {
+                renderTableView(root, pageAlerts);
+            } else {
+                renderCardGridView(root, pageAlerts);
+            }
+
+            // 6. Render Pagination Controls
+            renderPagination(filteredTotal, totalPages, currentPage, startIndex + 1, endIndex);
+        }
+
+        // Render Empty State
+        function renderEmptyState(root) {
+            const hasFilter = stationState.searchQuery || stationState.statusFilter !== 'all' || stationState.crisisTypeFilter !== 'all' || stationState.mooFilter !== 'all';
+            
+            root.innerHTML = `
+                <div style="text-align: center; padding: 48px 20px; background: var(--bg-card); border-radius: 24px; box-shadow: var(--neumorph-flat); border: 1px dashed var(--border-color, #CBD5E1);">
+                    <div style="display: flex; justify-content: center; margin-bottom: 14px;">
+                        <div class="neu-disc-icon lg ${hasFilter ? 'disc-yellow' : 'disc-green'}" style="width: 64px; height: 64px; font-size: 30px;">
+                            ${hasFilter ? '🔍' : '🛡️'}
+                        </div>
+                    </div>
+                    <div style="font-size: 17px; font-weight: 800; color: var(--text-primary);">
+                        ${hasFilter ? 'ไม่พบเคสตามเงื่อนไขการค้นหา/ตัวกรอง' : 'ยังไม่มีเคสวิกฤตฉุกเฉินในขณะนี้'}
+                    </div>
+                    <div style="font-size: 13.5px; color: var(--text-secondary); margin-top: 6px; max-width: 500px; margin-left: auto; margin-right: auto;">
+                        ${hasFilter ? 'ลองเปลี่ยนคำค้นหา หรือกดปุ่มรีเซ็ตเพื่อแสดงเคสทั้งหมดในสถานี' : 'เมื่อ อสม. คัดกรองพบเคสวิกฤต สัญญาณและข้อมูลจะเด้งขึ้นมาพร้อมเสียงเตือนทันที'}
+                    </div>
+                    ${hasFilter ? `
+                        <button type="button" onclick="resetAllFilters()" class="btn-station-ctrl" style="margin-top: 16px; background: #2563EB; color: white; border: none; box-shadow: 0 4px 12px rgba(37,99,235,0.35);">
+                            <span>🔄 ล้างการค้นหาและตัวกรองทั้งหมด</span>
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        // Render Card Grid View
+        function renderCardGridView(root, alerts) {
+            let html = '<div id="alert-cards-container" class="alert-card-grid">';
+            
             alerts.forEach(a => {
                 const isPending = a.alert_status === 'pending';
+                const isReferred = a.alert_status === 'referred_hospital' || a.is_jhcis_synced == 1;
                 const timeInfo = formatAlertTimeThai(a.created_at);
 
-                const statusTag = isPending 
-                    ? `<span class="tag-pill tag-danger"><span class="neu-disc-icon xs disc-red" style="width:18px;height:18px;font-size:10px;">🚨</span> <span>รอรับเรื่องด่วน</span></span>`
-                    : `<span class="tag-pill tag-warning"><span class="neu-disc-icon xs disc-yellow" style="width:18px;height:18px;font-size:10px;">⏳</span> <span>รับเรื่องแล้ว (${a.acknowledged_by || 'จนท.'})</span></span>`;
+                let statusTag = '';
+                if (isPending) {
+                    statusTag = `<span class="tag-pill tag-danger"><span class="neu-disc-icon xs disc-red" style="width:18px;height:18px;font-size:10px;">🚨</span> <span>รอรับเรื่องด่วน</span></span>`;
+                } else if (isReferred) {
+                    statusTag = `<span class="tag-pill tag-success"><span class="neu-disc-icon xs disc-green" style="width:18px;height:18px;font-size:10px;">🏥</span> <span>ส่งต่อ รพ. แล้ว</span></span>`;
+                } else {
+                    statusTag = `<span class="tag-pill tag-warning"><span class="neu-disc-icon xs disc-yellow" style="width:18px;height:18px;font-size:10px;">⏳</span> <span>รับเรื่องแล้ว (${a.acknowledged_by || 'จนท.'})</span></span>`;
+                }
 
                 const mapLink = (a.latitude && a.longitude)
                     ? `https://www.google.com/maps?q=${a.latitude},${a.longitude}`
@@ -796,16 +1497,17 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                 html += `
                     <div class="alert-item-card ${a.alert_status}">
                         <div>
-                            <!-- Top Info & Prominent Alert Time Header -->
+                            <!-- Top Info & Alert Time Header -->
                             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1.5px dashed var(--border-color, rgba(0,0,0,0.08));">
                                 <div>
                                     <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 700;">รหัสเคส #${a.alert_id}</div>
                                     <h4 style="margin: 3px 0 0 0; font-size: 18px; font-weight: 900; color: var(--text-primary); letter-spacing: -0.2px;">
                                         ${a.patient_name} ${a.age ? `<span style="font-size: 14px; font-weight: 700; color: var(--text-secondary);">(${a.age} ปี)</span>` : ''}
                                     </h4>
+                                    ${a.target_cid ? `<div style="font-size: 11.5px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">CID: ${a.target_cid}</div>` : ''}
                                 </div>
 
-                                <!-- Highly Visible Time Capsule -->
+                                <!-- Visible Time Capsule -->
                                 <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
                                     <div style="background: ${isPending ? 'rgba(220, 38, 38, 0.12)' : 'var(--bg-darker)'}; border: 1.5px solid ${isPending ? '#DC2626' : 'var(--border-color)'}; color: ${isPending ? '#DC2626' : 'var(--text-primary)'}; padding: 4px 10px; border-radius: 12px; font-weight: 900; font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--neumorph-flat);">
                                         <span class="neu-disc-icon xs ${isPending ? 'disc-red' : 'disc-blue'}" style="width: 20px; height: 20px; font-size: 10.5px;">🕒</span>
@@ -823,7 +1525,7 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                                         <span class="neu-disc-icon xs disc-red" style="width: 20px; height: 20px; font-size: 10.5px;">🩺</span>
                                         <span>ความดันโลหิต</span>
                                     </div>
-                                    <div style="font-size: 17px; font-weight: 900; color: ${a.sbp >= 180 ? '#DC2626' : '#10B981'};">
+                                    <div style="font-size: 17px; font-weight: 900; color: ${parseInt(a.sbp || 0) >= 180 ? '#DC2626' : '#10B981'};">
                                         ${a.sbp ? `${a.sbp}/${a.dbp}` : '-'} <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">mmHg</span>
                                     </div>
                                 </div>
@@ -832,7 +1534,7 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                                         <span class="neu-disc-icon xs disc-yellow" style="width: 20px; height: 20px; font-size: 10.5px;">🩸</span>
                                         <span>น้ำตาล DTX</span>
                                     </div>
-                                    <div style="font-size: 17px; font-weight: 900; color: ${a.dtx >= 300 ? '#DC2626' : '#D97706'};">
+                                    <div style="font-size: 17px; font-weight: 900; color: ${parseInt(a.dtx || 0) >= 300 ? '#DC2626' : '#D97706'};">
                                         ${a.dtx ? `${a.dtx}` : '-'} <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">mg%</span>
                                     </div>
                                 </div>
@@ -890,9 +1592,181 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                     </div>
                 `;
             });
-            container.innerHTML = html;
+            
+            html += '</div>';
+            root.innerHTML = html;
         }
 
+        // Render Compact Table View (High-density Triage List)
+        function renderTableView(root, alerts) {
+            let html = `
+                <div class="table-responsive-wrap">
+                    <table class="station-table">
+                        <thead>
+                            <tr>
+                                <th>รหัส / เวลา</th>
+                                <th>สถานะ</th>
+                                <th>ชื่อ-สกุล / อายุ</th>
+                                <th style="text-align: center;">ความดัน (BP)</th>
+                                <th style="text-align: center;">น้ำตาล (DTX)</th>
+                                <th>ที่อยู่ / หมู่</th>
+                                <th>ภาวะวิกฤต / สัญญาณเตือน</th>
+                                <th>ผู้แจ้ง / เบอร์ติดต่อ</th>
+                                <th style="text-align: right; padding-right: 18px;">การจัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            alerts.forEach(a => {
+                const isPending = a.alert_status === 'pending';
+                const isReferred = a.alert_status === 'referred_hospital' || a.is_jhcis_synced == 1;
+                const timeInfo = formatAlertTimeThai(a.created_at);
+
+                let statusBadge = '';
+                if (isPending) {
+                    statusBadge = `<span class="tag-pill tag-danger" style="font-size:11px;">🚨 รอรับเรื่อง</span>`;
+                } else if (isReferred) {
+                    statusBadge = `<span class="tag-pill tag-success" style="font-size:11px;">🏥 ส่งต่อ รพ.</span>`;
+                } else {
+                    statusBadge = `<span class="tag-pill tag-warning" style="font-size:11px;">⏳ รับเรื่องแล้ว</span>`;
+                }
+
+                const mapLink = (a.latitude && a.longitude)
+                    ? `https://www.google.com/maps?q=${a.latitude},${a.longitude}`
+                    : `https://www.google.com/maps/search/อำเภอตาลสุม+อุบลราชธานี`;
+
+                const phone = a.contact_phone || a.vhv_phone || '';
+
+                html += `
+                    <tr class="${isPending ? 'pending-row' : ''}">
+                        <td>
+                            <div style="font-weight: 800; color: var(--text-primary);">#${a.alert_id}</div>
+                            <div style="font-size: 11.5px; color: var(--text-muted);">${timeInfo.fullTime} <span style="font-weight:700;">(${timeInfo.timeAgo})</span></div>
+                        </td>
+                        <td>${statusBadge}</td>
+                        <td>
+                            <div style="font-weight: 800; color: var(--text-primary);">${a.patient_name}</div>
+                            <div style="font-size: 11.5px; color: var(--text-muted);">
+                                ${a.age ? `อายุ ${a.age} ปี • ` : ''}${a.target_cid ? `CID: ${a.target_cid}` : ''}
+                            </div>
+                        </td>
+                        <td style="text-align: center;">
+                            <div style="font-weight: 900; font-size: 14.5px; color: ${parseInt(a.sbp || 0) >= 180 ? '#DC2626' : '#10B981'};">
+                                ${a.sbp ? `${a.sbp}/${a.dbp}` : '-'}
+                            </div>
+                        </td>
+                        <td style="text-align: center;">
+                            <div style="font-weight: 900; font-size: 14.5px; color: ${parseInt(a.dtx || 0) >= 300 ? '#DC2626' : '#D97706'};">
+                                ${a.dtx ? `${a.dtx}` : '-'}
+                            </div>
+                        </td>
+                        <td>
+                            <div style="font-weight: 700; color: var(--text-primary);">บ.${a.house_no || '-'} ม.${a.moo || '-'}</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">รพ.สต. ${a.hoscode}</div>
+                        </td>
+                        <td>
+                            <div style="color: #DC2626; font-weight: 800; max-width: 200px; white-space: normal; line-height: 1.3;">
+                                ${a.crisis_type}
+                            </div>
+                            ${a.red_flags ? `<div style="font-size: 11.5px; color: var(--text-muted); max-width: 200px; white-space: normal;">${a.red_flags}</div>` : ''}
+                        </td>
+                        <td>
+                            <div style="font-size: 12px; color: var(--text-primary); font-weight: 700;">${a.vhv_name || '-'}</div>
+                            ${phone ? `
+                                <a href="tel:${phone}" style="font-size: 11.5px; color: #059669; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                                    <span>📞 ${phone}</span>
+                                </a>
+                            ` : '<span style="font-size: 11px; color: var(--text-muted);">-</span>'}
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <div style="display: inline-flex; align-items: center; gap: 6px;">
+                                ${isPending ? `
+                                    <button type="button" onclick="ackAlertById(${a.alert_id})" style="background: #DC2626; color: white; border: none; padding: 6px 10px; border-radius: 8px; font-weight: 800; font-size: 11.5px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                                        <span>🔕 รับเรื่อง</span>
+                                    </button>
+                                ` : ''}
+                                <a href="${mapLink}" target="_blank" class="btn-station-ctrl" style="padding: 5px 8px; font-size: 11.5px;" title="แผนที่">
+                                    <span>🗺️</span>
+                                </a>
+                                <a href="critical_referrals.php?alert_id=${a.alert_id}" onclick="openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" class="btn-station-ctrl" style="padding: 5px 10px; font-size: 11.5px; background: #2563EB; color: white; border: none;" title="ส่งต่อ รพ.">
+                                    <span>🏥 ส่งต่อ</span>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            root.innerHTML = html;
+        }
+
+        // Render Pagination Numbers
+        function renderPagination(totalItems, totalPages, currentPage, startItem, endItem) {
+            const wrapper = document.getElementById('pagination-wrapper');
+            const infoText = document.getElementById('pagination-info-text');
+            const buttonsWrap = document.getElementById('pagination-buttons');
+
+            if (totalItems <= stationState.pageSize) {
+                wrapper.style.display = 'none';
+                return;
+            }
+
+            wrapper.style.display = 'flex';
+            infoText.innerText = `แสดงเคสที่ ${startItem} - ${endItem} จากทั้งหมด ${totalItems} รายการ`;
+
+            let btnsHtml = '';
+
+            // Prev Button
+            btnsHtml += `
+                <button type="button" class="page-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} title="หน้าก่อนหน้า">
+                    ◀
+                </button>
+            `;
+
+            // Smart page number buttons (Show max 5 numbered pages)
+            let startP = Math.max(1, currentPage - 2);
+            let endP = Math.min(totalPages, startP + 4);
+            if (endP - startP < 4) {
+                startP = Math.max(1, endP - 4);
+            }
+
+            if (startP > 1) {
+                btnsHtml += `<button type="button" class="page-btn" onclick="changePage(1)">1</button>`;
+                if (startP > 2) btnsHtml += `<span style="padding: 0 4px; color: var(--text-muted);">...</span>`;
+            }
+
+            for (let p = startP; p <= endP; p++) {
+                btnsHtml += `
+                    <button type="button" class="page-btn ${p === currentPage ? 'active' : ''}" onclick="changePage(${p})">
+                        ${p}
+                    </button>
+                `;
+            }
+
+            if (endP < totalPages) {
+                if (endP < totalPages - 1) btnsHtml += `<span style="padding: 0 4px; color: var(--text-muted);">...</span>`;
+                btnsHtml += `<button type="button" class="page-btn" onclick="changePage(${totalPages})">${totalPages}</button>`;
+            }
+
+            // Next Button
+            btnsHtml += `
+                <button type="button" class="page-btn" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''} title="หน้าถัดไป">
+                    ▶
+                </button>
+            `;
+
+            buttonsWrap.innerHTML = btnsHtml;
+        }
+
+        // ----------------------------------------------------
+        // Pop-up Modal & Sound Handling
+        // ----------------------------------------------------
         function showEmergencyPopup(alert) {
             activeCrisisAlertId = alert.alert_id;
             const timeInfo = formatAlertTimeThai(alert.created_at);
@@ -967,14 +1841,70 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
             .catch(err => console.error(err));
         }
 
-        // Live Fetch / Fallback Polling
+        // Live Fetch / Realtime Polling
         function fetchActiveAlerts() {
-            fetch(`../api/emergency_alert.php?action=get_active_alerts&hoscode=${currentHoscode}`)
+            fetch(`../api/emergency_alert.php?action=get_active_alerts&hoscode=${currentHoscode}&limit=200`)
                 .then(r => r.json())
                 .then(data => {
                     if (data.status === 'success') {
                         document.getElementById('last-ping-time').innerText = new Date().toLocaleTimeString('th-TH');
-                        renderAlertCards(data.alerts || []);
+                        const alerts = data.alerts || [];
+                        stationState.allAlerts = alerts;
+
+                        // Check for any pending alerts
+                        const pendingCrisis = alerts.find(a => a.alert_status === 'pending');
+                        const statusHero = document.getElementById('status-hero');
+                        const statusIconContainer = document.getElementById('status-icon-container');
+
+                        if (pendingCrisis) {
+                            statusHero.classList.add('alerting');
+                            statusIconContainer.style.background = 'radial-gradient(circle at 35% 35%, #EF4444 0%, #DC2626 70%, #991B1B 100%)';
+                            statusIconContainer.style.animation = 'emergencyBeaconPulse 1.8s infinite';
+                            statusIconContainer.innerHTML = `
+                                <svg width="52" height="52" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.35));">
+                                    <line x1="24" y1="3" x2="24" y2="8" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+                                    <line x1="10" y1="8" x2="14" y2="12" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+                                    <line x1="38" y1="8" x2="34" y2="12" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+                                    <line x1="3" y1="22" x2="8" y2="22" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+                                    <line x1="45" y1="22" x2="40" y2="22" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+                                    <path d="M14 26 C14 15, 34 15, 34 26 Z" fill="#FFFFFF"/>
+                                    <path d="M28 18 C31 20, 32 23, 31 25" stroke="rgba(220, 38, 38, 0.65)" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+                                    <rect x="10" y="26" width="28" height="5" rx="2.5" fill="#1E293B"/>
+                                    <text x="24" y="42" text-anchor="middle" font-family="'Outfit', 'Sarabun', sans-serif" font-weight="900" font-size="11.5" fill="#FFFFFF" letter-spacing="1.2">SOS</text>
+                                </svg>
+                            `;
+                            document.getElementById('status-headline').innerText = `⚠️ พบสัญญาณแจ้งเหตุวิกฤต! (${pendingCrisis.patient_name})`;
+                            document.getElementById('status-sub').innerText = `ค่าความดัน SBP ${pendingCrisis.sbp || '-'} / DBP ${pendingCrisis.dbp || '-'} | น้ำตาล DTX ${pendingCrisis.dtx || '-'} mg% • ต้องการการดูแลฉุกเฉินทันที`;
+                            document.getElementById('station-pulsing-dot').className = 'pulsing-dot active-crisis';
+
+                            // Trigger Modal + Siren if new or active
+                            if (!stationState.knownPendingAlertIds.has(pendingCrisis.alert_id)) {
+                                showEmergencyPopup(pendingCrisis);
+                                startSirenSound();
+                            }
+                        } else {
+                            statusHero.classList.remove('alerting');
+                            statusIconContainer.style.background = 'radial-gradient(circle at 35% 35%, #34D399 0%, #10B981 70%, #047857 100%)';
+                            statusIconContainer.style.animation = 'none';
+                            statusIconContainer.innerHTML = `
+                                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.25));">
+                                    <path d="M24 4 L40 10 V22 C40 32.5 33.2 41.8 24 45 C14.8 41.8 8 32.5 8 22 V10 L24 4 Z" fill="#FFFFFF"/>
+                                    <path d="M24 8 L36 12.5 V22 C36 30.5 30.8 38 24 40.8 C17.2 38 12 30.5 12 22 V12.5 L24 8 Z" fill="#E6FDF5"/>
+                                    <path d="M16 23 L22 29 L32 17" stroke="#059669" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            `;
+                            document.getElementById('status-headline').innerText = 'สถานีพร้อมรับสัญญาณฉุกเฉิน (Active Standby)';
+                            document.getElementById('status-sub').innerText = 'เชื่อมต่อระบบ Realtime Dispatcher แล้ว • เฝ้าระวังเคสความดัน/น้ำตาลวิกฤต และภาวะฉุกเฉินตลอด 24 ชม.';
+                            document.getElementById('station-pulsing-dot').className = 'pulsing-dot';
+                            
+                            hideEmergencyPopup();
+                            stopSirenSound();
+                        }
+
+                        // Update known pending set
+                        stationState.knownPendingAlertIds = new Set(alerts.filter(a => a.alert_status === 'pending').map(a => a.alert_id));
+
+                        applyFiltersAndRender();
                     }
                 })
                 .catch(err => console.error('Poll error:', err));
@@ -1015,14 +1945,18 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
             });
         }
 
-        // Initialize Live Loop
+        // Initialize Live Loop & Keyboard Shortcuts
         document.addEventListener('DOMContentLoaded', () => {
-            // Apply current theme UI icon/label
             const savedTheme = localStorage.getItem('theme') || 'light';
             updateThemeButtonUI(savedTheme);
 
+            // Set initial view mode button states
+            if (stationState.viewMode === 'table') {
+                document.getElementById('view-btn-card').classList.remove('active');
+                document.getElementById('view-btn-table').classList.add('active');
+            }
+
             fetchActiveAlerts();
-            // Regular poll every 3.5 seconds
             setInterval(fetchActiveAlerts, 3500);
 
             // User gesture unlock for audio
@@ -1034,6 +1968,29 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                     audioCtx.resume();
                 }
             }, { once: true });
+
+            // Keyboard Shortcuts
+            document.addEventListener('keydown', (e) => {
+                // '/' key to focus search box (when not already in input)
+                if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') {
+                    e.preventDefault();
+                    const searchInput = document.getElementById('station-search-input');
+                    if (searchInput) {
+                        searchInput.focus();
+                        searchInput.select();
+                    }
+                }
+                // 'Escape' key to clear search or close modal
+                if (e.key === 'Escape') {
+                    if (document.getElementById('emergency-popup-overlay').style.display === 'flex') {
+                        hideEmergencyPopup();
+                        stopSirenSound();
+                    } else if (document.activeElement.id === 'station-search-input') {
+                        clearSearch();
+                        document.activeElement.blur();
+                    }
+                }
+            });
         });
     </script>
 </body>

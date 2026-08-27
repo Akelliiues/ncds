@@ -166,15 +166,21 @@ if ($action === 'trigger_alert') {
 // -------------------------------------------------------------
 if ($action === 'get_active_alerts') {
     $hoscode = trim($_GET['hoscode'] ?? '');
-    $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
+    $statusFilter = trim($_GET['status'] ?? 'all');
+    $limit = isset($_GET['limit']) ? min(500, max(1, (int)$_GET['limit'])) : 150;
 
     try {
-        $sql = "SELECT * FROM critical_alerts WHERE alert_status IN ('pending', 'acknowledged', 'dispatched') ";
+        $sql = "SELECT * FROM critical_alerts WHERE 1=1 ";
         $params = [];
 
         if (!empty($hoscode) && $hoscode !== 'ALL' && $hoscode !== 'GLOBAL') {
             $sql .= " AND (hoscode = ? OR hoscode = 'ALL' OR hoscode = '99999') ";
             $params[] = $hoscode;
+        }
+
+        if (!empty($statusFilter) && $statusFilter !== 'all') {
+            $sql .= " AND alert_status = ? ";
+            $params[] = $statusFilter;
         }
 
         $sql .= " ORDER BY alert_id DESC LIMIT " . $limit;
@@ -183,11 +189,15 @@ if ($action === 'get_active_alerts') {
         $alerts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $pendingCount = count(array_filter($alerts, fn($a) => $a['alert_status'] === 'pending'));
+        $ackCount = count(array_filter($alerts, fn($a) => $a['alert_status'] === 'acknowledged' || $a['alert_status'] === 'dispatched'));
+        $referredCount = count(array_filter($alerts, fn($a) => $a['alert_status'] === 'referred_hospital' || !empty($a['is_jhcis_synced'])));
 
         echo json_encode([
             'status' => 'success',
             'count' => count($alerts),
             'pending_count' => $pendingCount,
+            'ack_count' => $ackCount,
+            'referred_count' => $referredCount,
             'alerts' => $alerts
         ], JSON_UNESCAPED_UNICODE);
     } catch (\Throwable $e) {
