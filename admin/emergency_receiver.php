@@ -8,6 +8,24 @@ $is_super_admin = !empty($_SESSION['is_super_admin']);
 $hc_names = function_exists('get_health_units') ? get_health_units() : [];
 
 $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
+
+// 1. Query all Sub-districts in District (ตรวจจับตำบลทั้งหมดในเขตอำเภอ)
+$sub_districts = [];
+try {
+    $sub_districts = $pdo->query("SELECT * FROM sub_districts ORDER BY sub_district_code ASC")->fetchAll(PDO::FETCH_ASSOC);
+} catch (\Exception $e) {}
+
+// 2. Query all Villages with Sub-district and Health Unit info (ดึงรายชื่อหมู่บ้านที่ตรงตามตำบล)
+$villages_data = [];
+try {
+    $villages_data = $pdo->query("
+        SELECT v.vhid_code, v.sub_district_code, s.sub_district_name, v.hoscode, h.hosname, CAST(v.moo AS UNSIGNED) as moo, v.village_name
+        FROM villages v
+        LEFT JOIN sub_districts s ON v.sub_district_code = s.sub_district_code
+        LEFT JOIN health_units h ON v.hoscode = h.hoscode
+        ORDER BY v.sub_district_code ASC, CAST(v.moo AS UNSIGNED) ASC
+    ")->fetchAll(PDO::FETCH_ASSOC);
+} catch (\Exception $e) {}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -1212,26 +1230,33 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                     </button>
                 </div>
 
-                <!-- Secondary Filters: Crisis Type, Village/Moo, Sort Order -->
+                <!-- Secondary Filters: Crisis Type, Sub-district (ตำบล), Village (หมู่บ้าน), Sort Order -->
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <!-- Crisis Type Dropdown -->
-                    <select id="select-crisis-type" class="control-select" onchange="changeCrisisTypeFilter(this.value)">
+                    <select id="select-crisis-type" class="control-select" onchange="changeCrisisTypeFilter(this.value)" title="กรองตามภาวะวิกฤต">
                         <option value="all">ทุกภาวะวิกฤต</option>
                         <option value="ht">🩺 ความดันสูงวิกฤต (HT Crisis)</option>
                         <option value="dtx">🩸 น้ำตาลวิกฤต (DTX Crisis)</option>
                         <option value="red_flags">⚠️ มีอาการเตือน (Red Flags)</option>
                     </select>
 
-                    <!-- Moo Filter Dropdown -->
-                    <select id="select-moo" class="control-select" onchange="changeMooFilter(this.value)">
+                    <!-- Sub-district (ตำบล) Filter Dropdown (ตรวจจับตำบลในเขตอำเภอ) -->
+                    <select id="select-subdistrict" class="control-select" onchange="changeSubDistrictFilter(this.value)" title="ตรวจจับและกรองตามตำบลในเขตอำเภอ">
+                        <option value="all">ทุกตำบล (ทุกเขต)</option>
+                        <?php foreach ($sub_districts as $sd): ?>
+                            <option value="<?= htmlspecialchars($sd['sub_district_code']) ?>">
+                                ต.<?= htmlspecialchars($sd['sub_district_name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+
+                    <!-- Dynamic Village (หมู่บ้าน) Filter Dropdown (ดึงรายชื่อหมู่บ้านที่ตรงตามตำบล) -->
+                    <select id="select-village" class="control-select" onchange="changeVillageFilter(this.value)" title="ดึงรายชื่อหมู่บ้านที่ตรงตามตำบล">
                         <option value="all">ทุกหมู่บ้าน (ทุก ม.)</option>
-                        <?php for ($m = 1; $m <= 15; $m++): ?>
-                            <option value="<?= $m ?>">หมู่ <?= $m ?></option>
-                        <?php endfor; ?>
                     </select>
 
                     <!-- Sort Dropdown -->
-                    <select id="select-sort-by" class="control-select" onchange="changeSortBy(this.value)">
+                    <select id="select-sort-by" class="control-select" onchange="changeSortBy(this.value)" title="จัดเรียงลำดับเคส">
                         <option value="newest">🕒 ล่าสุดไปเก่าสุด</option>
                         <option value="oldest">⏳ เก่าสุดไปล่าสุด</option>
                         <option value="bp_desc">🩺 ความดันสูงสุด (SBP สูง)</option>
@@ -1388,6 +1413,8 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
 
     <!-- Web Audio Siren Synthesizer, State Manager & SSE / Polling Client -->
     <script>
+        const ALL_SUBDISTRICTS = <?= json_encode($sub_districts, JSON_UNESCAPED_UNICODE) ?>;
+        const ALL_VILLAGES = <?= json_encode($villages_data, JSON_UNESCAPED_UNICODE) ?>;
         let currentHoscode = '<?= htmlspecialchars($selected_hoscode) ?>';
         let audioCtx = null;
         let sirenOscillator = null;
@@ -1403,7 +1430,8 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
             searchQuery: '',
             statusFilter: 'all',
             crisisTypeFilter: 'all',
-            mooFilter: 'all',
+            subDistrictFilter: 'all',
+            villageFilter: 'all',
             sortBy: 'newest',
             viewMode: localStorage.getItem('red_alert_view_mode') || 'card',
             currentPage: 1,
@@ -1666,10 +1694,95 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
             applyFiltersAndRender();
         }
 
-        function changeMooFilter(val) {
-            stationState.mooFilter = val;
+        // Populates the Village dropdown based on detected / selected Sub-district (ตำบล)
+        function populateVillageDropdown(subDistrictCode) {
+            const selectVill = document.getElementById('select-village');
+            if (!selectVill) return;
+
+            const prevVal = stationState.villageFilter;
+            selectVill.innerHTML = '';
+
+            if (!subDistrictCode || subDistrictCode === 'all') {
+                let html = '<option value="all">ทุกหมู่บ้าน (ทุกตำบล / ทุก ม.)</option>';
+                
+                // Group ALL_VILLAGES by sub_district_code
+                const groups = {};
+                ALL_VILLAGES.forEach(v => {
+                    const sCode = v.sub_district_code || 'other';
+                    if (!groups[sCode]) {
+                        groups[sCode] = {
+                            name: v.sub_district_name || 'อื่นๆ',
+                            villages: []
+                        };
+                    }
+                    groups[sCode].villages.push(v);
+                });
+
+                Object.keys(groups).forEach(sCode => {
+                    const g = groups[sCode];
+                    html += `<optgroup label="📍 ตำบล${g.name}">`;
+                    g.villages.forEach(v => {
+                        const valKey = `${v.sub_district_code || ''}_${v.moo}`;
+                        const isSelected = (valKey === prevVal || String(v.moo) === prevVal) ? 'selected' : '';
+                        html += `<option value="${valKey}" data-sub="${v.sub_district_code || ''}" data-moo="${v.moo}" ${isSelected}>ม.${v.moo} บ้าน${v.village_name}</option>`;
+                    });
+                    html += `</optgroup>`;
+                });
+                selectVill.innerHTML = html;
+            } else {
+                const subObj = ALL_SUBDISTRICTS.find(s => String(s.sub_district_code) === String(subDistrictCode));
+                const subName = subObj ? subObj.sub_district_name : '';
+                const vills = ALL_VILLAGES.filter(v => String(v.sub_district_code) === String(subDistrictCode));
+
+                let html = `<option value="all">ทุกหมู่บ้านใน ต.${subName || subDistrictCode}</option>`;
+                vills.forEach(v => {
+                    const valKey = `${v.sub_district_code || ''}_${v.moo}`;
+                    const isSelected = (valKey === prevVal || String(v.moo) === prevVal) ? 'selected' : '';
+                    html += `<option value="${valKey}" data-sub="${v.sub_district_code || ''}" data-moo="${v.moo}" ${isSelected}>ม.${v.moo} บ้าน${v.village_name}</option>`;
+                });
+                selectVill.innerHTML = html;
+            }
+        }
+
+        function changeSubDistrictFilter(val) {
+            stationState.subDistrictFilter = val;
+            stationState.villageFilter = 'all';
+            populateVillageDropdown(val);
             stationState.currentPage = 1;
             applyFiltersAndRender();
+        }
+
+        function changeVillageFilter(val) {
+            stationState.villageFilter = val;
+            stationState.currentPage = 1;
+            applyFiltersAndRender();
+        }
+
+        // Resolves village and sub-district metadata for an alert item
+        function getAlertVillageInfo(a) {
+            if (!a) return { villageName: '', subDistrictName: '', hosname: '' };
+            let v = null;
+            // 1. Match by sub_district_code + moo
+            if (a.sub_district_code && a.moo) {
+                v = ALL_VILLAGES.find(item => String(item.sub_district_code) === String(a.sub_district_code) && String(item.moo) === String(a.moo));
+            }
+            // 2. Match by hoscode + moo
+            if (!v && a.hoscode && a.moo) {
+                v = ALL_VILLAGES.find(item => String(item.hoscode) === String(a.hoscode) && String(item.moo) === String(a.moo));
+            }
+            // 3. Fallback match by moo only if unambiguous
+            if (!v && a.moo) {
+                const candidates = ALL_VILLAGES.filter(item => String(item.moo) === String(a.moo));
+                if (candidates.length === 1) {
+                    v = candidates[0];
+                }
+            }
+
+            return {
+                villageName: v ? v.village_name : '',
+                subDistrictName: v ? v.sub_district_name : '',
+                hosname: v ? v.hosname : ''
+            };
         }
 
         function changeSortBy(val) {
@@ -1698,7 +1811,8 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
             stationState.searchQuery = '';
             stationState.statusFilter = 'all';
             stationState.crisisTypeFilter = 'all';
-            stationState.mooFilter = 'all';
+            stationState.subDistrictFilter = 'all';
+            stationState.villageFilter = 'all';
             stationState.sortBy = 'newest';
             stationState.currentPage = 1;
 
@@ -1707,9 +1821,11 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
             const clearBtn = document.getElementById('search-clear-btn');
             if (clearBtn) clearBtn.style.display = 'none';
 
-            document.getElementById('select-crisis-type').value = 'all';
-            document.getElementById('select-moo').value = 'all';
-            document.getElementById('select-sort-by').value = 'newest';
+            if (document.getElementById('select-crisis-type')) document.getElementById('select-crisis-type').value = 'all';
+            if (document.getElementById('select-subdistrict')) document.getElementById('select-subdistrict').value = 'all';
+            populateVillageDropdown('all');
+            if (document.getElementById('select-village')) document.getElementById('select-village').value = 'all';
+            if (document.getElementById('select-sort-by')) document.getElementById('select-sort-by').value = 'newest';
 
             filterByStatus('all');
         }
@@ -1776,24 +1892,46 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                     if (!a.red_flags || a.red_flags === 'NONE' || a.red_flags === '-' || a.red_flags === '') return false;
                 }
 
-                // Moo filter
-                if (stationState.mooFilter !== 'all') {
-                    if (String(a.moo) !== String(stationState.mooFilter)) return false;
+                // Sub-district (ตำบล) filter
+                if (stationState.subDistrictFilter !== 'all') {
+                    const alertSub = a.sub_district_code || (ALL_VILLAGES.find(v => v.hoscode === a.hoscode && String(v.moo) === String(a.moo)) || {}).sub_district_code;
+                    if (String(alertSub) !== String(stationState.subDistrictFilter)) {
+                        return false;
+                    }
                 }
 
-                // Text Search query (Name, CID, Phone, Moo, House No, VHV, Symptoms, Alert ID)
+                // Village (หมู่บ้าน) filter
+                if (stationState.villageFilter !== 'all') {
+                    const parts = stationState.villageFilter.split('_');
+                    if (parts.length === 2) {
+                        const targetSub = parts[0];
+                        const targetMoo = parts[1];
+                        if (String(a.moo) !== String(targetMoo)) return false;
+                        if (targetSub) {
+                            const alertSub = a.sub_district_code || (ALL_VILLAGES.find(v => v.hoscode === a.hoscode && String(v.moo) === String(a.moo)) || {}).sub_district_code;
+                            if (alertSub && String(alertSub) !== String(targetSub)) return false;
+                        }
+                    } else {
+                        if (String(a.moo) !== String(stationState.villageFilter)) return false;
+                    }
+                }
+
+                // Text Search query (Name, CID, Phone, Moo, Village Name, Sub-district, House No, VHV, Symptoms, Alert ID)
                 if (stationState.searchQuery) {
                     const q = stationState.searchQuery;
+                    const vInfo = getAlertVillageInfo(a);
                     const matchName = (a.patient_name || '').toLowerCase().includes(q);
                     const matchCid = (a.target_cid || '').includes(q);
                     const matchPhone = (a.contact_phone || '').includes(q) || (a.vhv_phone || '').includes(q);
                     const matchVhv = (a.vhv_name || '').toLowerCase().includes(q);
                     const matchHouse = (a.house_no || '').toLowerCase().includes(q);
                     const matchMoo = (`ม.${a.moo}`.includes(q) || `หมู่ ${a.moo}`.includes(q) || `หมู่ที่ ${a.moo}`.includes(q));
+                    const matchVillage = (vInfo.villageName || '').toLowerCase().includes(q) || `บ้าน${vInfo.villageName}`.toLowerCase().includes(q);
+                    const matchSub = (vInfo.subDistrictName || '').toLowerCase().includes(q) || `ต.${vInfo.subDistrictName}`.toLowerCase().includes(q) || `ตำบล${vInfo.subDistrictName}`.toLowerCase().includes(q);
                     const matchCrisis = (a.crisis_type || '').toLowerCase().includes(q) || (a.red_flags || '').toLowerCase().includes(q);
                     const matchId = (`#${a.alert_id}`.includes(q) || String(a.alert_id).includes(q));
 
-                    if (!matchName && !matchCid && !matchPhone && !matchVhv && !matchHouse && !matchMoo && !matchCrisis && !matchId) {
+                    if (!matchName && !matchCid && !matchPhone && !matchVhv && !matchHouse && !matchMoo && !matchVillage && !matchSub && !matchCrisis && !matchId) {
                         return false;
                     }
                 }
@@ -1892,6 +2030,7 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                 const isReferred = a.alert_status === 'referred_hospital' || a.is_jhcis_synced == 1;
                 const cardStatusClass = isPending ? 'pending' : (isReferred ? 'referred_hospital' : 'acknowledged');
                 const timeInfo = formatAlertTimeThai(a.created_at);
+                const vInfo = getAlertVillageInfo(a);
 
                 let statusTag = '';
                 if (isPending) {
@@ -1971,7 +2110,9 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                         <div class="details-list-block">
                             <div class="detail-row-item">
                                 <span class="neu-disc-icon xs disc-blue" style="width: 20px; height: 20px; font-size: 10px; margin-top: 1px; flex-shrink: 0;">📍</span>
-                                <div><strong>ที่อยู่:</strong> บ้านเลขที่ ${a.house_no || '-'} ม.${a.moo || '-'}</div>
+                                <div title="บ.${a.house_no || '-'} ม.${a.moo || '-'}${vInfo.villageName ? ` บ้าน${vInfo.villageName}` : ''}${vInfo.subDistrictName ? ` ต.${vInfo.subDistrictName}` : ''}">
+                                    <strong>ที่อยู่:</strong> บ.${a.house_no || '-'} ม.${a.moo || '-'}${vInfo.villageName ? ` บ้าน${vInfo.villageName}` : ''}${vInfo.subDistrictName ? ` <span style="color:var(--text-muted); font-size:11.5px;">(ต.${vInfo.subDistrictName})</span>` : ''}
+                                </div>
                             </div>
                             <div class="detail-row-item">
                                 <span class="neu-disc-icon xs disc-red" style="width: 20px; height: 20px; font-size: 10px; margin-top: 1px; flex-shrink: 0;">⚠️</span>
@@ -2065,6 +2206,7 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                 const isReferred = a.alert_status === 'referred_hospital' || a.is_jhcis_synced == 1;
                 const rowStatusClass = isPending ? 'pending-row' : (isReferred ? 'referred-row' : 'ack-row');
                 const timeInfo = formatAlertTimeThai(a.created_at);
+                const vInfo = getAlertVillageInfo(a);
 
                 let statusBadge = '';
                 if (isPending) {
@@ -2105,8 +2247,8 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                             </div>
                         </td>
                         <td>
-                            <div style="font-weight: 700; color: var(--text-primary);">บ.${a.house_no || '-'} ม.${a.moo || '-'}</div>
-                            <div style="font-size: 11px; color: var(--text-muted);">รพ.สต. ${a.hoscode}</div>
+                            <div style="font-weight: 700; color: var(--text-primary);">บ.${a.house_no || '-'} ม.${a.moo || '-'}${vInfo.villageName ? ` บ้าน${vInfo.villageName}` : ''}</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">${vInfo.subDistrictName ? `ต.${vInfo.subDistrictName} • ` : ''}รพ.สต. ${a.hoscode}</div>
                         </td>
                         <td>
                             <div style="color: #DC2626; font-weight: 800; max-width: 200px; white-space: normal; line-height: 1.3;">
@@ -2397,6 +2539,25 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
             if (stationState.viewMode === 'table') {
                 document.getElementById('view-btn-card').classList.remove('active');
                 document.getElementById('view-btn-table').classList.add('active');
+            }
+
+            // Initialize Sub-district and Village cascading dropdown
+            if (currentHoscode && currentHoscode !== 'ALL' && currentHoscode !== 'GLOBAL' && currentHoscode !== '99999') {
+                const subForHos = ALL_VILLAGES.find(v => v.hoscode === currentHoscode);
+                if (subForHos && subForHos.sub_district_code) {
+                    const selectSub = document.getElementById('select-subdistrict');
+                    if (selectSub) {
+                        selectSub.value = subForHos.sub_district_code;
+                        stationState.subDistrictFilter = subForHos.sub_district_code;
+                        populateVillageDropdown(subForHos.sub_district_code);
+                    } else {
+                        populateVillageDropdown('all');
+                    }
+                } else {
+                    populateVillageDropdown('all');
+                }
+            } else {
+                populateVillageDropdown('all');
             }
 
             fetchActiveAlerts();
