@@ -165,15 +165,45 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
             box-shadow: 0 14px 32px rgba(0,0,0,0.09);
         }
 
-        .alert-item-card.pending {
-            border-color: rgba(220, 38, 38, 0.55);
-            background: linear-gradient(135deg, rgba(220, 38, 38, 0.05) 0%, var(--bg-card) 100%);
-            box-shadow: 0 10px 28px rgba(220, 38, 38, 0.18), var(--neumorph-flat);
+        /* 3 Distinct Status Card Themes */
+        .alert-item-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            z-index: 2;
         }
 
+        /* 1. Pending (ยังไม่รับเรื่อง - แดงด่วนที่สุด) */
+        .alert-item-card.pending {
+            border-color: rgba(220, 38, 38, 0.65);
+            background: linear-gradient(135deg, rgba(220, 38, 38, 0.06) 0%, var(--bg-card) 100%);
+            box-shadow: 0 10px 28px rgba(220, 38, 38, 0.22), var(--neumorph-flat);
+        }
+        .alert-item-card.pending::before {
+            background: linear-gradient(90deg, #DC2626, #EF4444, #F87171);
+        }
+
+        /* 2. Acknowledged (รับเรื่องแล้ว/กำลังดูแล - เหลือง/ส้ม) */
         .alert-item-card.acknowledged {
-            border-color: rgba(245, 158, 11, 0.45);
-            background: linear-gradient(135deg, rgba(245, 158, 11, 0.04) 0%, var(--bg-card) 100%);
+            border-color: rgba(245, 158, 11, 0.55);
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, var(--bg-card) 100%);
+            box-shadow: var(--neumorph-flat);
+        }
+        .alert-item-card.acknowledged::before {
+            background: linear-gradient(90deg, #D97706, #F59E0B, #FBBF24);
+        }
+
+        /* 3. Referred Hospital (ส่งต่อ รพ. แล้ว - เขียวสำเร็จ) */
+        .alert-item-card.referred_hospital {
+            border-color: rgba(16, 185, 129, 0.55);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, var(--bg-card) 100%);
+            box-shadow: var(--neumorph-flat);
+        }
+        .alert-item-card.referred_hospital::before {
+            background: linear-gradient(90deg, #059669, #10B981, #34D399);
         }
 
         /* Standardized Card Sub-Blocks for Exact Equal Height */
@@ -691,11 +721,33 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
         }
 
         .station-table tr.pending-row td {
-            background: rgba(220, 38, 38, 0.035);
+            background: rgba(220, 38, 38, 0.04);
+        }
+        .station-table tr.pending-row td:first-child {
+            border-left: 4px solid #DC2626;
+        }
+        .station-table tr.pending-row:hover td {
+            background: rgba(220, 38, 38, 0.08);
         }
 
-        .station-table tr.pending-row:hover td {
-            background: rgba(220, 38, 38, 0.07);
+        .station-table tr.ack-row td {
+            background: rgba(245, 158, 11, 0.03);
+        }
+        .station-table tr.ack-row td:first-child {
+            border-left: 4px solid #D97706;
+        }
+        .station-table tr.ack-row:hover td {
+            background: rgba(245, 158, 11, 0.07);
+        }
+
+        .station-table tr.referred-row td {
+            background: rgba(16, 185, 129, 0.03);
+        }
+        .station-table tr.referred-row td:first-child {
+            border-left: 4px solid #059669;
+        }
+        .station-table tr.referred-row:hover td {
+            background: rgba(16, 185, 129, 0.07);
         }
 
         /* Pagination Bar */
@@ -1646,6 +1698,7 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
             alerts.forEach(a => {
                 const isPending = a.alert_status === 'pending';
                 const isReferred = a.alert_status === 'referred_hospital' || a.is_jhcis_synced == 1;
+                const cardStatusClass = isPending ? 'pending' : (isReferred ? 'referred_hospital' : 'acknowledged');
                 const timeInfo = formatAlertTimeThai(a.created_at);
 
                 let statusTag = '';
@@ -1671,7 +1724,7 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                 const phoneTypeLabel = a.contact_phone ? (a.contact_type === 'relative' ? 'ญาติ/ผู้ป่วย' : 'ผู้ป่วย') : 'อสม.';
 
                 html += `
-                    <div class="alert-item-card ${a.alert_status}">
+                    <div class="alert-item-card ${cardStatusClass}">
                         <!-- 1. Header Section (Top Meta + Full Width Patient Name) -->
                         <div class="card-header-block">
                             <div class="card-top-meta">
@@ -1774,10 +1827,17 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                                 <span class="neu-disc-icon xs disc-blue" style="width: 18px; height: 18px; font-size: 10px;">🗺️</span>
                                 <span>แผนที่</span>
                             </a>
-                            <a href="critical_referrals.php?alert_id=${a.alert_id}" onclick="openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" style="flex: 1; padding: 9px 12px; background: #2563EB; color: white; text-align: center; text-decoration: none; border-radius: 12px; font-weight: 800; font-size: 12.5px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35); display: flex; align-items: center; justify-content: center; gap: 6px;">
-                                <span class="neu-disc-icon xs" style="background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.4); box-shadow: none; width: 18px; height: 18px; font-size: 10px;">🏥</span>
-                                <span>ส่งต่อ</span>
-                            </a>
+                            ${isReferred ? `
+                                <a href="critical_referrals.php?alert_id=${a.alert_id}" onclick="openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" style="flex: 1.4; padding: 9px 12px; background: #059669; color: white; text-align: center; text-decoration: none; border-radius: 12px; font-weight: 800; font-size: 12.5px; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35); display: flex; align-items: center; justify-content: center; gap: 6px;" title="เปิดดูข้อมูลการส่งต่อ รพ.">
+                                    <span class="neu-disc-icon xs" style="background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.4); box-shadow: none; width: 18px; height: 18px; font-size: 10px;">✅</span>
+                                    <span>ส่งต่อแล้ว (JHCIS)</span>
+                                </a>
+                            ` : `
+                                <a href="critical_referrals.php?alert_id=${a.alert_id}" onclick="openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" style="flex: 1.2; padding: 9px 12px; background: #2563EB; color: white; text-align: center; text-decoration: none; border-radius: 12px; font-weight: 800; font-size: 12.5px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35); display: flex; align-items: center; justify-content: center; gap: 6px;" title="ส่งต่อไปยัง รพ.">
+                                    <span class="neu-disc-icon xs" style="background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.4); box-shadow: none; width: 18px; height: 18px; font-size: 10px;">🏥</span>
+                                    <span>ส่งต่อ รพ.</span>
+                                </a>
+                            `}
                         </div>
                     </div>
                 `;
@@ -1811,6 +1871,7 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
             alerts.forEach(a => {
                 const isPending = a.alert_status === 'pending';
                 const isReferred = a.alert_status === 'referred_hospital' || a.is_jhcis_synced == 1;
+                const rowStatusClass = isPending ? 'pending-row' : (isReferred ? 'referred-row' : 'ack-row');
                 const timeInfo = formatAlertTimeThai(a.created_at);
 
                 let statusBadge = '';
@@ -1829,7 +1890,7 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                 const phone = a.contact_phone || a.vhv_phone || '';
 
                 html += `
-                    <tr class="${isPending ? 'pending-row' : ''}">
+                    <tr class="${rowStatusClass}">
                         <td>
                             <div style="font-weight: 800; color: var(--text-primary);">#${a.alert_id}</div>
                             <div style="font-size: 11.5px; color: var(--text-muted);">${timeInfo.fullTime} <span style="font-weight:700;">(${timeInfo.timeAgo})</span></div>
@@ -1879,15 +1940,21 @@ $selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
                                 <a href="${mapLink}" target="_blank" class="btn-station-ctrl" style="padding: 5px 8px; font-size: 11.5px;" title="แผนที่">
                                     <span>🗺️</span>
                                 </a>
-                                <a href="critical_referrals.php?alert_id=${a.alert_id}" onclick="openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" class="btn-station-ctrl" style="padding: 5px 10px; font-size: 11.5px; background: #2563EB; color: white; border: none;" title="ส่งต่อ รพ.">
-                                    <span>🏥 ส่งต่อ</span>
-                                </a>
+                                ${isReferred ? `
+                                    <a href="critical_referrals.php?alert_id=${a.alert_id}" onclick="openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" class="btn-station-ctrl" style="padding: 5px 10px; font-size: 11.5px; background: #059669; color: white; border: none;" title="เปิดดูประวัติการส่งต่อ">
+                                        <span>✅ ส่งต่อแล้ว</span>
+                                    </a>
+                                ` : `
+                                    <a href="critical_referrals.php?alert_id=${a.alert_id}" onclick="openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" class="btn-station-ctrl" style="padding: 5px 10px; font-size: 11.5px; background: #2563EB; color: white; border: none;" title="ส่งต่อ รพ.">
+                                        <span>🏥 ส่งต่อ</span>
+                                    </a>
+                                `}
                             </div>
                         </td>
                     </tr>
                 `;
             });
-
+            
             html += `
                         </tbody>
                     </table>
