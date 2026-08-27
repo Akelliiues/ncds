@@ -1083,9 +1083,9 @@ try {
                 </button>
 
                 <!-- Safe ZIP Download Link -->
-                <a href="download_station.php?format=zip" class="btn-station-ctrl btn-download-app" title="ดาวน์โหลดโปรแกรม NCDs Red Alert Station (ไฟล์ .ZIP ปลอดภัย ไม่โดนบล็อก)">
+                <a href="download_station.php?format=zip" class="btn-station-ctrl btn-download-app" title="ดาวน์โหลดโปรแกรม NCDs Red Alert Station ">
                     <span class="neu-disc-icon xs disc-green-subtle">📥</span>
-                    <span>ดาวน์โหลดแอป (.zip)</span>
+                    <span>ดาวน์โหลดโปรแกรม</span>
                 </a>
 
                 <!-- Referral Board -->

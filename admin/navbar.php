@@ -613,7 +613,7 @@ try {
             <select onchange="window.location.href='?set_budget_year=' + this.value" style="padding: 3px 6px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--color-accent); font-weight: 800; font-size: 12.5px; cursor: pointer; outline: none;">
                 <?php foreach ($availableBudgetYearsNav as $by): ?>
                     <option value="<?= (int)$by ?>" <?= (int)$by === $activeBudgetYear ? 'selected' : '' ?>>
-                        <?= (int)$by + 543 ?> (<?= (int)$by ?>)
+                        <?= (int)$by + 543 ?>
                     </option>
                 <?php endforeach; ?>
             </select>
