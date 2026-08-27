@@ -858,35 +858,23 @@ try {
         $pdo->exec("ALTER TABLE `dpac_followups` ADD COLUMN `skipped_reason` VARCHAR(255) DEFAULT NULL AFTER `skip_count`");
     }
 
-    // Correct points for Round 1 screenings (must be 1.00 pt, not 2.00 pts)
+    // Sync points for screening rewards to match round_number (Round 1 = 1.00 pt, Round 2 = 2.00 pts, Round 3 = 3.00 pts, Round N = N pts)
     try {
         $pdo->exec("
             UPDATE vhv_rewards r
             JOIN screening_results s ON r.screening_id = s.screening_id
-            SET r.points_earned = 1.00
-            WHERE (s.round_number = 1 OR s.round_number IS NULL)
-              AND r.points_earned > 1.00
+            SET r.points_earned = GREATEST(1.00, CAST(IFNULL(s.round_number, 1) AS DECIMAL(4,2)))
         ");
     } catch (\PDOException $e) {}
 
-    // Retroactively update 2x points (2.00) only for true Round 2+ screenings
-    try {
-        $pdo->exec("
-            UPDATE vhv_rewards r
-            JOIN screening_results s ON r.screening_id = s.screening_id
-            SET r.points_earned = 2.00
-            WHERE s.round_number >= 2 AND r.points_earned < 2.00
-        ");
-    } catch (\PDOException $e) {}
-
-    // Retroactively backfill missing rewards for completed screenings (Round 1 = 1.00 pt, Round 2+ = 2.00 pts)
+    // Retroactively backfill missing rewards for completed screenings (Points = round_number)
     try {
         $pdo->exec("
             INSERT INTO vhv_rewards (vhv_id, screening_id, assignment_id, points_earned, approval_status, approved_at, created_at)
             SELECT COALESCE(a.vhv_id, (SELECT ta.vhv_id FROM task_assignments ta WHERE ta.target_cid = s.target_cid AND (ta.round_number = s.round_number OR (ta.round_number IS NULL AND s.round_number IS NULL)) LIMIT 1)),
                    s.screening_id, 
                    s.assignment_id, 
-                   CASE WHEN s.round_number >= 2 THEN 2.00 ELSE 1.00 END, 
+                   GREATEST(1.00, CAST(IFNULL(s.round_number, 1) AS DECIMAL(4,2))), 
                    'approved', s.created_at, s.created_at
             FROM screening_results s
             LEFT JOIN task_assignments a ON s.assignment_id = a.assignment_id

@@ -202,8 +202,8 @@ try {
             $approvalStatus = 'approved';
         }
 
-        // Award points (2x for Round 2)
-        $pointsEarned = ($roundNumber >= 2) ? 2 : 1;
+        // Award points (Round 1 = 1 pt, Round 2 = 2 pts, Round 3 = 3 pts, Round N = N pts)
+        $pointsEarned = max(1, (int)$roundNumber);
 
         // Check if reward already exists for this assignment to prevent duplicate points
         $chkStmt = $pdo->prepare("SELECT reward_id FROM vhv_rewards WHERE assignment_id = ?");
