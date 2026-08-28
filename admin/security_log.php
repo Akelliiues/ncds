@@ -336,6 +336,33 @@ $incident_labels = [
             text-decoration: underline;
         }
 
+        .btn-gps-anchor {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--neumorph-flat);
+            font-size: 16px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+        }
+
+        .btn-gps-anchor:hover {
+            transform: translateY(-2px) scale(1.08);
+            border-color: var(--color-primary);
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.25);
+        }
+
+        .btn-gps-anchor:active {
+            transform: translateY(1px);
+            box-shadow: var(--neumorph-inset);
+        }
+
         .filter-bar {
             display: flex;
             gap: 12px;
@@ -558,7 +585,7 @@ $incident_labels = [
                                 <th>สังกัด</th>
                                 <th style="width:130px;max-width:130px;">HID/CID</th>
                                 <th>ประเภทเหตุการณ์</th>
-                                <th>พิกัด GPS</th>
+                                <th style="text-align:center;width:75px;white-space:nowrap;">พิกัด GPS</th>
                                 <th>IP Address</th>
                             </tr>
                         </thead>
@@ -602,18 +629,15 @@ $incident_labels = [
                                             <?= $inc['label'] ?>
                                         </span>
                                     </td>
-                                    <td>
+                                    <td style="text-align:center;white-space:nowrap;">
                                         <?php if ($log['scan_lat'] && $log['scan_lng']): ?>
                                             <a href="https://maps.google.com/?q=<?= $log['scan_lat'] ?>,<?= $log['scan_lng'] ?>"
-                                                target="_blank" class="map-link">
-                                                📍 ดูแผนที่
+                                                target="_blank" class="btn-gps-anchor"
+                                                title="พิกัด: <?= number_format((float)$log['scan_lat'], 5) ?>, <?= number_format((float)$log['scan_lng'], 5) ?> (คลิกเพื่อเปิดแผนที่)">
+                                                ⚓️
                                             </a>
-                                            <br>
-                                            <span style="font-size:11px;color:var(--text-muted);">
-                                                <?= number_format((float)$log['scan_lat'], 5) ?>, <?= number_format((float)$log['scan_lng'], 5) ?>
-                                            </span>
                                         <?php else: ?>
-                                            <span style="color:var(--text-muted);font-size:12px;">—</span>
+                                            <span style="color:var(--text-muted);font-size:13px;">—</span>
                                         <?php endif; ?>
                                     </td>
                                     <td style="font-size:12px;color:var(--text-muted);">
