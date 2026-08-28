@@ -286,9 +286,9 @@ $incident_labels = [
 
         .log-table th,
         .log-table td {
-            padding: 10px 12px;
+            padding: 8px 10px;
             text-align: left;
-            font-size: 13.5px;
+            font-size: 12.5px;
             vertical-align: middle;
         }
 
@@ -296,9 +296,9 @@ $incident_labels = [
             background: var(--bg-darker);
             color: var(--text-secondary);
             font-weight: 700;
-            font-size: 12px;
+            font-size: 11.5px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
             white-space: nowrap;
         }
 
@@ -578,7 +578,7 @@ $incident_labels = [
                         <thead>
                             <tr>
                                 <th style="padding-left:20px;">#</th>
-                                <th>วันที่ / เวลา</th>
+                                <th style="white-space:nowrap;width:100px;">วันที่ / เวลา</th>
                                 <th>อสม. (ID)</th>
                                 <th>ชื่อ</th>
                                 <th>หมู่บ้านที่สังกัด</th>
@@ -595,27 +595,27 @@ $incident_labels = [
                                 $rowNum = $offset + $i + 1;
                             ?>
                                 <tr style="border-bottom:1px solid var(--border-color);">
-                                    <td style="padding-left:20px;color:var(--text-muted);font-size:12px;"><?= $rowNum ?></td>
-                                    <td style="white-space:nowrap;">
-                                        <strong style="font-size:13px;"><?= date('d/m/Y', strtotime($log['logged_at'])) ?></strong><br>
-                                        <span style="color:var(--text-muted);font-size:12px;"><?= date('H:i:s', strtotime($log['logged_at'])) ?></span>
+                                    <td style="padding-left:20px;color:var(--text-muted);font-size:11.5px;"><?= $rowNum ?></td>
+                                    <td style="white-space:nowrap;line-height:1.3;">
+                                        <strong style="font-size:12px;color:var(--text-primary);"><?= date('d/m/Y', strtotime($log['logged_at'])) ?></strong><br>
+                                        <span style="color:var(--text-muted);font-size:11px;"><?= date('H:i:s', strtotime($log['logged_at'])) ?></span>
                                     </td>
-                                    <td>
-                                        <code style="background:var(--bg-darker);padding:2px 8px;border-radius:6px;font-size:13px;white-space:nowrap;">
+                                    <td style="white-space:nowrap;">
+                                        <code style="background:var(--bg-darker);padding:2px 6px;border-radius:6px;font-size:12px;white-space:nowrap;">
                                             <?= htmlspecialchars($log['vhv_id']) ?>
                                         </code>
                                     </td>
-                                    <td style="font-weight:600;color:var(--text-primary);white-space:nowrap;">
+                                    <td style="font-weight:600;color:var(--text-primary);font-size:12.5px;white-space:nowrap;">
                                         <?= htmlspecialchars($log['vhv_name'] ?: '—') ?>
                                     </td>
-                                    <td style="font-size:13.5px;color:var(--text-primary);white-space:nowrap;">
+                                    <td style="font-size:12.5px;color:var(--text-primary);white-space:nowrap;">
                                         <?php if (!empty($log['village_name'])): ?>
                                             <?= 'ม.' . intval($log['vhv_moo']) . ' ' . htmlspecialchars($log['village_name']) ?>
                                         <?php else: ?>
                                             <span style="color:var(--text-muted);">—</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td style="font-size:13px;color:var(--text-secondary);white-space:nowrap;">
+                                    <td style="font-size:12px;color:var(--text-secondary);white-space:nowrap;">
                                         <?= htmlspecialchars($hc_names[$log['hoscode']] ?? ($log['hoscode'] ?: '—')) ?>
                                     </td>
                                     <td style="max-width:135px;">
