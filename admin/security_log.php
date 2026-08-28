@@ -301,6 +301,22 @@ $incident_labels = [
             background: rgba(59, 130, 246, 0.04);
         }
 
+        .log-code-truncate {
+            display: inline-block;
+            max-width: 130px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            vertical-align: middle;
+            background: rgba(239, 68, 68, 0.08);
+            color: var(--color-red);
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: monospace;
+            box-sizing: border-box;
+        }
+
         .map-link {
             display: inline-flex;
             align-items: center;
@@ -535,7 +551,7 @@ $incident_labels = [
                                 <th>ชื่อ</th>
                                 <th>หมู่บ้านที่สังกัด</th>
                                 <th>สังกัด</th>
-                                <th>HID/CID</th>
+                                <th style="width:130px;max-width:130px;">HID/CID</th>
                                 <th>ประเภทเหตุการณ์</th>
                                 <th>พิกัด GPS</th>
                                 <th>IP Address</th>
@@ -553,7 +569,7 @@ $incident_labels = [
                                         <span style="color:var(--text-muted);font-size:12px;"><?= date('H:i:s', strtotime($log['logged_at'])) ?></span>
                                     </td>
                                     <td>
-                                        <code style="background:var(--bg-darker);padding:2px 8px;border-radius:6px;font-size:13px;">
+                                        <code style="background:var(--bg-darker);padding:2px 8px;border-radius:6px;font-size:13px;white-space:nowrap;">
                                             <?= htmlspecialchars($log['vhv_id']) ?>
                                         </code>
                                     </td>
@@ -570,9 +586,8 @@ $incident_labels = [
                                     <td style="font-size:13px;color:var(--text-secondary);white-space:nowrap;">
                                         <?= htmlspecialchars($hc_names[$log['hoscode']] ?? ($log['hoscode'] ?: '—')) ?>
                                     </td>
-                                    <td>
-                                        <code style="background:rgba(239,68,68,0.08);color:var(--color-red);
-                                         padding:2px 8px;border-radius:6px;font-size:13px;">
+                                    <td style="max-width:135px;">
+                                        <code class="log-code-truncate" title="<?= htmlspecialchars($log['scanned_code']) ?>">
                                             <?= htmlspecialchars($log['scanned_code']) ?>
                                         </code>
                                     </td>
