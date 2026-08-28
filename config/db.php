@@ -803,19 +803,29 @@ try {
         $pdo->exec("ALTER TABLE `vhv_rewards` ADD INDEX `idx_rewards_assign_id` (`assignment_id`)");
     }
 
+    // Auto-reconciliation: Sync round_number from task_assignments into screening_results for linked screenings
+    try {
+        $pdo->exec("
+            UPDATE screening_results s
+            JOIN task_assignments a ON s.assignment_id = a.assignment_id
+            SET s.round_number = a.round_number
+            WHERE a.round_number IS NOT NULL AND a.round_number > 0 AND s.round_number != a.round_number
+        ");
+    } catch (\PDOException $e) {}
+
     // Auto-reconciliation: Normalize round_numbers in screening_results and task_assignments
     try {
         $pdo->exec("UPDATE screening_results SET round_number = 1 WHERE round_number IS NULL OR round_number = 0");
         $pdo->exec("UPDATE task_assignments SET round_number = 1 WHERE round_number IS NULL OR round_number = 0");
     } catch (\PDOException $e) {}
 
-    // Auto-reconciliation: Break invalid links where screening_results.assignment_id points to a task_assignments with DIFFERENT round_number or DIFFERENT target_cid
+    // Auto-reconciliation: Break invalid links where screening_results.assignment_id points to a task_assignments with DIFFERENT target_cid
     try {
         $pdo->exec("
             UPDATE screening_results s
             JOIN task_assignments a ON s.assignment_id = a.assignment_id
             SET s.assignment_id = NULL
-            WHERE a.round_number != s.round_number OR a.target_cid != s.target_cid
+            WHERE a.target_cid != s.target_cid
         ");
     } catch (\PDOException $e) {}
 
