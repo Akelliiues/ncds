@@ -529,6 +529,30 @@ $current_page = 'update.php';
             </form>
         </div>
 
+        <?php
+        if (!function_exists('get_changelog_badge_meta')) {
+            function get_changelog_badge_meta($type) {
+                $t = strtolower(trim($type ?? 'info'));
+                switch ($t) {
+                    case 'release':
+                        return ['bg' => 'rgba(139, 92, 246, 0.15)', 'fg' => '#8b5cf6', 'border' => '#8b5cf6', 'label' => 'RELEASE'];
+                    case 'feature':
+                        return ['bg' => 'rgba(16, 185, 129, 0.15)', 'fg' => '#10b981', 'border' => '#10b981', 'label' => 'FEATURE'];
+                    case 'ui':
+                        return ['bg' => 'rgba(6, 182, 212, 0.15)', 'fg' => '#06b6d4', 'border' => '#06b6d4', 'label' => 'UI'];
+                    case 'perf':
+                        return ['bg' => 'rgba(245, 158, 11, 0.15)', 'fg' => '#f59e0b', 'border' => '#f59e0b', 'label' => 'PERF'];
+                    case 'fix':
+                        return ['bg' => 'rgba(239, 68, 68, 0.15)', 'fg' => '#ef4444', 'border' => '#ef4444', 'label' => 'FIX'];
+                    case 'security':
+                        return ['bg' => 'rgba(236, 72, 153, 0.15)', 'fg' => '#ec4899', 'border' => '#ec4899', 'label' => 'SECURITY'];
+                    default:
+                        return ['bg' => 'rgba(100, 116, 139, 0.15)', 'fg' => '#64748b', 'border' => '#64748b', 'label' => strtoupper($t)];
+                }
+            }
+        }
+        ?>
+
         <?php if ($update_available && !empty($new_updates_list)): ?>
             <div class="changelog-box" style="border: 2px dashed var(--color-primary); background-color: rgba(99, 102, 241, 0.03);">
                 <h3 style="margin-top: 0; margin-bottom: 20px; color: var(--color-primary); border-bottom: 1.5px solid var(--border-color); padding-bottom: 10px;">
@@ -537,22 +561,14 @@ $current_page = 'update.php';
                 <div>
                     <?php
                     foreach ($new_updates_list as $log):
-                        $bg = 'rgba(156, 163, 175, 0.15)';
-                        $fg = '#9ca3af';
-                        if (($log['type'] ?? '') === 'fix') {
-                            $bg = 'rgba(239, 68, 68, 0.15)';
-                            $fg = '#ef4444';
-                        } elseif (($log['type'] ?? '') === 'feature') {
-                            $bg = 'rgba(16, 185, 129, 0.15)';
-                            $fg = '#10b981';
-                        }
+                        $bMeta = get_changelog_badge_meta($log['type'] ?? 'feature');
                     ?>
-                        <div class="log-item">
-                            <div class="log-header">
-                                <span class="log-type" style="background-color: <?= $bg ?>; color: <?= $fg ?>;"><?= htmlspecialchars(strtoupper($log['type'] ?? 'info')) ?></span>
+                        <div class="log-item" style="border-left: 3.5px solid <?= $bMeta['border'] ?>; padding-left: 14px; margin-bottom: 16px;">
+                            <div class="log-header" style="margin-bottom: 4px;">
+                                <span class="log-type" style="background-color: <?= $bMeta['bg'] ?>; color: <?= $bMeta['fg'] ?>; border: 1px solid <?= $bMeta['fg'] ?>40; font-weight: 800;"><?= htmlspecialchars($bMeta['label']) ?></span>
                                 <span class="log-date"><?= htmlspecialchars($log['date']) ?></span>
                             </div>
-                            <div class="log-title" style="font-weight: bold;"><?= htmlspecialchars($log['title']) ?></div>
+                            <div class="log-title" style="font-weight: normal; font-size: 14px; line-height: 1.6; color: var(--text-primary);"><?= htmlspecialchars($log['title']) ?></div>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -564,25 +580,17 @@ $current_page = 'update.php';
                 </h3>
                 <div>
                     <?php
-                    $show_limit = min(5, count($remote_changelog));
+                    $show_limit = min(8, count($remote_changelog));
                     for ($j = 0; $j < $show_limit; $j++):
                         $log = $remote_changelog[$j];
-                        $bg = 'rgba(156, 163, 175, 0.15)';
-                        $fg = '#9ca3af';
-                        if (($log['type'] ?? '') === 'fix') {
-                            $bg = 'rgba(239, 68, 68, 0.15)';
-                            $fg = '#ef4444';
-                        } elseif (($log['type'] ?? '') === 'feature') {
-                            $bg = 'rgba(16, 185, 129, 0.15)';
-                            $fg = '#10b981';
-                        }
+                        $bMeta = get_changelog_badge_meta($log['type'] ?? 'info');
                     ?>
-                        <div class="log-item">
-                            <div class="log-header">
-                                <span class="log-type" style="background-color: <?= $bg ?>; color: <?= $fg ?>;"><?= htmlspecialchars(strtoupper($log['type'] ?? 'info')) ?></span>
+                        <div class="log-item" style="border-left: 3.5px solid <?= $bMeta['border'] ?>; padding-left: 14px; margin-bottom: 16px;">
+                            <div class="log-header" style="margin-bottom: 4px;">
+                                <span class="log-type" style="background-color: <?= $bMeta['bg'] ?>; color: <?= $bMeta['fg'] ?>; border: 1px solid <?= $bMeta['fg'] ?>40; font-weight: 800;"><?= htmlspecialchars($bMeta['label']) ?></span>
                                 <span class="log-date"><?= htmlspecialchars($log['date']) ?></span>
                             </div>
-                            <div class="log-title"><?= htmlspecialchars($log['title']) ?></div>
+                            <div class="log-title" style="font-weight: normal; font-size: 14px; line-height: 1.6; color: var(--text-primary);"><?= htmlspecialchars($log['title']) ?></div>
                         </div>
                     <?php endfor; ?>
                 </div>
