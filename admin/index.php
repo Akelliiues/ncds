@@ -22,6 +22,7 @@ if (isset($_GET['budget_year']) && ctype_digit((string)$_GET['budget_year'])) {
 }
 
 $hc_names = get_health_units();
+$isSandboxVal = (function_exists('isSandboxMode') && isSandboxMode($admin_hoscode)) ? 1 : 0;
 require_once __DIR__ . '/../config/demo_data.php';
 
 if (DemoDataProvider::isDemoMode()) {
