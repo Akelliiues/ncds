@@ -1889,9 +1889,14 @@ if (DemoDataProvider::isDemoMode()) {
                 const isUrgent = msg.priority === 'urgent' || msg.priority === 'emergency';
                 const isExpanded = isUnread || (window._expandedMessageId === msg.message_id);
 
-                // Relative time string & sender
+                // Relative time string & sender badge
                 const timeAgo = formatThaiRelativeTime(msg.created_at);
-                const senderName = escapeHtml(msg.sender_name || 'ผู้ดูแลระบบ');
+                let senderBadge = '';
+                if (msg.sender_role === 'super_admin' || !msg.sender_hcode) {
+                    senderBadge = '<span style="background: rgba(124, 58, 237, 0.12); color: #7C3AED; border: 1px solid rgba(124, 58, 237, 0.25); font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 6px; display: inline-flex; align-items: center;">สสอ.ตาลสุม</span>';
+                } else {
+                    senderBadge = `<span style="background: rgba(13, 148, 136, 0.12); color: #0D9488; border: 1px solid rgba(13, 148, 136, 0.25); font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 6px; display: inline-flex; align-items: center;">${escapeHtml(msg.sender_name || 'รพ.สต. ในพื้นที่')}</span>`;
+                }
 
                 // Card Styling: Unread vs Read
                 let cardBg = isUnread 
@@ -1946,10 +1951,14 @@ if (DemoDataProvider::isDemoMode()) {
                         <!-- Message Body -->
                         ${bodyHtml}
 
-                        <!-- Footer Row: Relative Time & Sender -->
-                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); border-top: 1px dashed rgba(13,44,84,0.08); padding-top: 5px; margin-top: 2px;">
-                            <span>🕒 ส่งเมื่อ ${timeAgo}</span>
-                            <span style="font-weight: 600; color: var(--text-secondary);">โดย ${senderName}</span>
+                        <!-- Footer Row: Bottom-Left Sender Badge & Relative Time -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); border-top: 1px dashed rgba(13,44,84,0.08); padding-top: 6px; margin-top: 4px; flex-wrap: wrap; gap: 6px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                ${senderBadge}
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <span>🕒 ส่งเมื่อ ${timeAgo}</span>
+                            </div>
                         </div>
                     </div>
                 `;

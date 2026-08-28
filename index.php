@@ -119,6 +119,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['admin_role'] = 'admin';
             }
 
+            if (function_exists('logUserActivity')) {
+                logUserActivity('AUTH', 'เข้าสู่ระบบ (เจ้าหน้าที่ รพ.สต.)', 'เข้าใช้งานแดชบอร์ดจัดการระบบ');
+            }
+
             header("Location: admin/index.php");
             exit();
         } else {
@@ -150,6 +154,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $_SESSION['hoscode'] = $user['hoscode'];
                             $_SESSION['is_leader'] = intval($user['is_leader']);
                             $_SESSION['is_hl_coach'] = (bool) $user['is_hl_coach'];
+
+                            if (function_exists('logUserActivity')) {
+                                logUserActivity('AUTH', 'เข้าสู่ระบบ (อสม.)', 'เข้าใช้งานระบบคัดกรองภาคสนาม');
+                            }
 
                             header("Location: vhv/index.php");
                             exit();

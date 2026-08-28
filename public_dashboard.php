@@ -2121,6 +2121,7 @@ if (!function_exists('renderKpiGenderSplit')) {
             }
         });
     </script>
+    <script src="assets/js/proxy-manager.js"></script>
 </body>
 
 </html>

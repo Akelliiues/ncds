@@ -525,6 +525,18 @@ try {
         NcdCache::forget("public_macro_{$budgetYear}_uall_tball");
         NcdCache::forget("public_matrix_units_{$budgetYear}");
 
+        if (function_exists('logUserActivity')) {
+            logUserActivity('SCREENING', "บันทึกผลคัดกรอง NCDs ({$residentName})", [
+                'cid' => $targetCid,
+                'round' => $roundNumber,
+                'sbp' => $sys1,
+                'dbp' => $dia1,
+                'dtx' => $dtx,
+                'bmi' => round($bmi, 1),
+                'risk' => $hl_risk_level
+            ]);
+        }
+
         echo json_encode([
             'status' => 'success',
             'message' => 'บันทึกข้อมูลเรียบร้อย',

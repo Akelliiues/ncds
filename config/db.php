@@ -2,6 +2,7 @@
 // config/db.php
 require_once __DIR__ . '/line_config.php';
 require_once __DIR__ . '/icons.php';
+require_once __DIR__ . '/activity_logger.php';
 
 // ==========================================
 // Executive / Visitor Mode: Enhanced PDPA Masking & Security Interceptor
@@ -2314,6 +2315,7 @@ try {
                 `sender_username` VARCHAR(50) NOT NULL,
                 `sender_name` VARCHAR(100) NOT NULL,
                 `sender_role` VARCHAR(20) NOT NULL DEFAULT 'admin',
+                `sender_hcode` VARCHAR(10) NULL,
                 `target_type` VARCHAR(20) NOT NULL DEFAULT 'all',
                 `target_hcode` VARCHAR(10) NULL,
                 `target_sub_district` VARCHAR(6) NULL,
@@ -2322,6 +2324,14 @@ try {
                 `priority` ENUM('normal', 'urgent', 'emergency') DEFAULT 'normal',
                 `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+            // Ensure sender_hcode column exists
+            try {
+                $chkCol = $pdo->query("SHOW COLUMNS FROM `system_messages` LIKE 'sender_hcode'")->fetchAll();
+                if (empty($chkCol)) {
+                    $pdo->exec("ALTER TABLE `system_messages` ADD COLUMN `sender_hcode` VARCHAR(10) NULL AFTER `sender_role`");
+                }
+            } catch (\Throwable $e) {}
 
             $pdo->exec("CREATE TABLE IF NOT EXISTS `system_message_reads` (
                 `read_id` INT AUTO_INCREMENT PRIMARY KEY,

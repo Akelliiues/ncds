@@ -396,6 +396,54 @@ try {
             <?php endif; ?>
         </div>
 
+        <!-- Presentation & Proxy Mode Card (Plan E) -->
+        <div class="db-card" style="margin-bottom: 20px; border-left: 4px solid #8b5cf6; display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                <div>
+                    <h3 style="color: #8b5cf6; margin: 0; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+                        ⚡ โหมดการเชื่อมต่อและการนำเสนอ (Presentation & Proxy Engine)
+                    </h3>
+                    <p style="color: var(--text-secondary); margin: 5px 0 0 0; font-size: 13px; max-width: 780px; line-height: 1.5;">
+                        เปิดโหมดจำลองพร็อกซีออฟไลน์สำหรับนำเสนอผลงานระดับผู้บริหาร/กรรมการด้วยความเร็ว 0ms โดยไม่ต้องพึ่งพาอินเทอร์เน็ต <strong style="color: #8b5cf6;">(ระบบมีระบบตรวจจับข้ามวัน และจะสลับกลับสู่โหมด Live ดึงข้อมูลสดใหม่อัตโนมัติเมื่อขึ้นวันใหม่)</strong>
+                    </p>
+                </div>
+                
+                <!-- Proxy Toggle Switch -->
+                <div style="display: flex; align-items: center; gap: 10px; background: var(--bg-darker); padding: 8px 16px; border-radius: 50px; box-shadow: var(--neumorph-inset);">
+                    <span id="proxy-status-label" style="font-size: 14px; font-weight: bold; color: var(--color-green);">
+                        🚀 โหมดเซิร์ฟเวอร์สด (Live)
+                    </span>
+                    <label class="switch">
+                        <input type="checkbox" id="proxy-mode-toggle" onchange="toggleProxyMode(this)">
+                        <span class="slider" style="background-color: var(--bg-main);"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Proxy Action Bar & Pre-warm Readiness -->
+            <div style="background: rgba(139, 92, 246, 0.05); border: 1px dashed rgba(139, 92, 246, 0.3); border-radius: 12px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span id="proxy-readiness-icon" style="font-size: 20px;">📦</span>
+                    <div>
+                        <div id="proxy-readiness-text" style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);">
+                            ตรวจสอบสถานะความพร้อมออฟไลน์...
+                        </div>
+                        <div id="proxy-readiness-sub" style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">
+                            กดปุ่มเตรียมข้อมูลเพื่อสำรองสถิติทุกรอบ, แผนที่ GIS และ Assets สำหรับนำเสนอ
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <button type="button" class="btn-clean-purple" onclick="runProxyPrewarm()">
+                        ⚡ บันทึกและเตรียมข้อมูลนำเสนอ (Pre-warm)
+                    </button>
+                    <button type="button" class="btn-clean-orange" onclick="clearProxyCache()" style="padding: 10px 14px;" title="ล้างแคชพร็อกซี">
+                        🗑️ ล้างแคช
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Fiscal Year Management Card -->
         <div id="fiscal-year" class="db-card" style="margin-bottom: 20px; border-left: 4px solid var(--color-accent); background: var(--bg-card);">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
@@ -861,7 +909,81 @@ try {
             })
             .catch(err => alert('เกิดข้อผิดพลาดในการเชื่อมต่อ'));
         }
+
+        // ================= PROXY MODE HANDLERS (PLAN E) =================
+        function syncProxyUI() {
+            if (window.ProxyManager && window.ProxyManager.checkDailyExpiry) {
+                window.ProxyManager.checkDailyExpiry();
+            }
+
+            const isProxy = localStorage.getItem('ncd_proxy_active') === 'true';
+            const isReady = localStorage.getItem('ncd_proxy_ready') === 'true';
+            const proxyTime = localStorage.getItem('ncd_proxy_time') || '';
+            const wasReverted = localStorage.getItem('ncd_proxy_reverted') === 'true';
+
+            const toggle = document.getElementById('proxy-mode-toggle');
+            const label = document.getElementById('proxy-status-label');
+            const icon = document.getElementById('proxy-readiness-icon');
+            const text = document.getElementById('proxy-readiness-text');
+            const sub = document.getElementById('proxy-readiness-sub');
+
+            if (toggle) toggle.checked = isProxy;
+            if (label) {
+                label.innerText = isProxy ? '⚡ โหมดพร็อกซีออฟไลน์ (0ms)' : '🚀 โหมดเซิร์ฟเวอร์สด (Live)';
+                label.style.color = isProxy ? '#8b5cf6' : 'var(--color-green)';
+            }
+
+            if (icon && text && sub) {
+                if (wasReverted) {
+                    icon.innerText = '🔄';
+                    text.innerText = 'ระบบสลับกลับสู่โหมด Live อัตโนมัติเมื่อขึ้นวันใหม่ เพื่อความสดของข้อมูล';
+                    text.style.color = 'var(--color-green)';
+                    sub.innerText = 'หากต้องการใช้โหมดพรีเซนต์ออฟไลน์ในวันนี้ สามารถกดบันทึกและเปิดสวิตช์ได้ตามต้องการ';
+                    localStorage.removeItem('ncd_proxy_reverted');
+                } else if (isReady) {
+                    icon.innerText = '🟢';
+                    text.innerText = 'ข้อมูลพร้อมนำเสนอออฟไลน์ 100% (ข้อมูลสถิติ 8 รพ.สต., แผนที่ GIS)';
+                    text.style.color = 'var(--color-green)';
+                    sub.innerText = 'บันทึก Snapshot ล่าสุดเมื่อ: ' + proxyTime + ' (จะรีเซ็ตกลับเป็น Live อัตโนมัติในวันถัดไป)';
+                } else {
+                    icon.innerText = '📦';
+                    text.innerText = 'ยังไม่มีบันทึกข้อมูล Snapshot สำหรับนำเสนอ';
+                    text.style.color = 'var(--text-primary)';
+                    sub.innerText = 'กดปุ่มเตรียมข้อมูลเพื่อสำรองสถิติทุกรอบ, แผนที่ GIS และ Assets สำหรับนำเสนอ';
+                }
+            }
+        }
+
+        async function toggleProxyMode(el) {
+            const isChecked = el.checked;
+            if (window.ProxyManager) {
+                await window.ProxyManager.setMode(isChecked);
+                syncProxyUI();
+            }
+        }
+
+        function runProxyPrewarm() {
+            if (window.ProxyManager) {
+                window.ProxyManager.startPrewarm(() => {
+                    syncProxyUI();
+                });
+            }
+        }
+
+        async function clearProxyCache() {
+            if (!confirm('ต้องการล้างแคชข้อมูลพร็อกซีทั้งหมดใช่หรือไม่?')) return;
+            if (window.ProxyManager) {
+                await window.ProxyManager.clearCache();
+                syncProxyUI();
+                alert('ล้างแคชข้อมูลพร็อกซีเรียบร้อยแล้ว');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            syncProxyUI();
+        });
     </script>
+    <script src="../assets/js/proxy-manager.js"></script>
 
     <!-- Neumorphic Glassmorphic Maintenance Modal -->
     <div id="maintenance-modal" class="modal-overlay">

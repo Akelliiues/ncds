@@ -25,7 +25,7 @@ $is_super_admin = (!isset($admin_hoscode) || empty($admin_hoscode)) && (isset($_
 $is_core_active = in_array($current_page, ['index.php', 'profile.php', 'leaderboard.php']);
 $is_targets_active = in_array($current_page, ['target_manager.php', 'dpac_manager.php']);
 $is_work_active = in_array($current_page, ['assignment.php', 'vhv_approval.php', 'print_qr.php', 'vhv_tasks.php', 'critical_referrals.php', 'rewards_management.php']);
-$is_reports_active = in_array($current_page, ['analytics.php', 'citizen_health_dashboard.php', 'reports.php', 'security_log.php', 'surveillance_reports.php']);
+$is_reports_active = in_array($current_page, ['analytics.php', 'citizen_health_dashboard.php', 'reports.php', 'security_log.php', 'surveillance_reports.php', 'activity_logs.php']);
 $is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php', 'db_manager.php', 'user_manager.php', 'unit_house_manager.php', 'update.php', 'messages.php', 'jhcis_sync.php', 'emergency_receiver.php']);
 
 $pendingAlertsCount = 0;
@@ -45,6 +45,19 @@ try {
 </script>
 <script src="../assets/js/app.js"></script>
 <style>
+    /* Enforce Sticky Navbar universally across all pages */
+    .admin-navbar {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 1100 !important;
+        background-color: var(--bg-card) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        box-shadow: 0 6px 18px rgba(13, 44, 84, 0.08) !important;
+        border-radius: 0 0 24px 24px !important;
+        margin-bottom: 24px !important;
+    }
+
     .btn-theme-toggle:hover {
         background-color: var(--bg-darker) !important;
     }
@@ -505,13 +518,21 @@ try {
                     </svg>
                     รายงานและการพิมพ์
                 </a>
-                <a href="security_log.php" onclick="showPageLoading('บันทึกความปลอดภัย<br><span style=\'font-size: 13.5px; font-weight: 700; color: var(--color-accent); opacity: 0.95;\'> (Secure Log)</span>', 'กำลังโหลดบันทึกความปลอดภัยระบบ...', '🔒');" class="<?= $current_page == 'security_log.php' ? 'active' : '' ?>" style="white-space: nowrap !important;">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                        <path d="M7 11V7a5 5 0 0110 0v4" />
-                    </svg>
-                    บันทึกความปลอดภัย (Secure Log)
-                </a>
+                <?php if ($is_super_admin): ?>
+                    <a href="security_log.php" onclick="showPageLoading('บันทึกความปลอดภัย<br><span style=\'font-size: 13.5px; font-weight: 700; color: var(--color-accent); opacity: 0.95;\'> (Secure Log)</span>', 'กำลังโหลดบันทึกความปลอดภัยระบบ...', '🔒');" class="<?= $current_page == 'security_log.php' ? 'active' : '' ?>" style="white-space: nowrap !important;">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0110 0v4" />
+                        </svg>
+                        บันทึกความปลอดภัย (Secure Log)
+                    </a>
+                    <a href="activity_logs.php" onclick="showPageLoading('ประวัติกิจกรรมการใช้งาน', 'กำลังโหลดบันทึกการปฏิบัติงาน...', '📜');" class="<?= $current_page == 'activity_logs.php' ? 'active' : '' ?>" style="white-space: nowrap !important;">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        ประวัติกิจกรรมผู้ใช้ (Activity Log)
+                    </a>
+                <?php endif; ?>
             </div>
         </div>
 

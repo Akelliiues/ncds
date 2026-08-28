@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ncd-tansum-v11_20260827_1640'; // Auto-Sync Default Ready
+const CACHE_NAME = 'ncd-tansum-v12_20260828_2100'; // Fullscreen & Physiological Bounds Active
 const ASSETS_TO_CACHE = [
     'login.php',
     'index.php',

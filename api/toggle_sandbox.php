@@ -166,6 +166,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        if (function_exists('logUserActivity')) {
+            $modeTitle = ($mode === '1') ? 'เปิดโหมดทดสอบ (Sandbox)' : 'ปิดโหมดทดสอบ (Production Live)';
+            logUserActivity('SETTINGS', $modeTitle, [
+                'target_hoscode' => $target_hoscode ?: 'ALL',
+                'sandbox_mode' => (int)$mode
+            ]);
+        }
+
         $pdo->commit();
         
         $modeText = ($mode === '1') ? 'เปิดโหมดทดสอบ (Sandbox Mode)' : 'ปิดโหมดทดสอบ (Production Mode) และรีเซ็ตข้อมูลจำลองการทดสอบเรียบร้อยแล้ว';

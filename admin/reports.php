@@ -746,11 +746,47 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
         .table-responsive {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
+            border-radius: 12px;
         }
 
-        .admin-table th, 
-        .admin-table td {
-            white-space: nowrap;
+        table.admin-table {
+            width: 100%;
+            font-size: 11px !important;
+            border-collapse: collapse;
+            font-family: 'Sarabun', var(--font-base, sans-serif);
+        }
+
+        table.admin-table th {
+            font-size: 11px !important;
+            font-weight: 800 !important;
+            padding: 8px 6px !important;
+            white-space: nowrap !important;
+            letter-spacing: -0.2px;
+            line-height: 1.2;
+            background-color: var(--bg-darker) !important;
+            color: var(--text-primary) !important;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        table.admin-table td {
+            font-size: 11px !important;
+            padding: 6px 6px !important;
+            white-space: nowrap !important;
+            letter-spacing: -0.2px;
+            line-height: 1.2;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        table.admin-table td strong {
+            font-size: 11px !important;
+            font-weight: 700 !important;
+            color: var(--text-primary);
+        }
+
+        table.admin-table td span {
+            font-size: 10.5px !important;
         }
 
         /* Print Stylesheet */
@@ -925,7 +961,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
         <span>พิมพ์จากระบบ NCDs Portal - Tansum เมื่อวันที่ <?= date('d/m/Y H:i') ?> น.</span>
     </div>
 
-    <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
+    <div style="max-width: 1400px; margin: 30px auto; padding: 0 16px;">
         <h2 style="margin-bottom: 4px; display: flex; align-items: center; gap: 10px;" class="no-print">
             <?= render_neu_icon('clipboard-record', 'md', 'text-blue') ?>
             <span>รายงานและการพิมพ์รายชื่อ (Flexible Reports Manager)</span>

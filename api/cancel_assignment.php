@@ -173,6 +173,14 @@ try {
         throw new \RuntimeException('ไม่สามารถยกเลิกใบงานที่ระบุได้ เนื่องจากสถานะใบงานมีการเปลี่ยนแปลง');
     }
 
+    if (function_exists('logUserActivity')) {
+        logUserActivity('ASSIGNMENT', 'ยกเลิกการมอบหมายงาน', [
+            'assignment_id' => $assignment['assignment_id'] ?? null,
+            'target_name' => ($target['first_name'] ?? '') . ' ' . ($target['last_name'] ?? ''),
+            'cid' => $targetCid
+        ]);
+    }
+
     $pdo->commit();
 
     echo json_encode(['status' => 'success', 'message' => 'ยกเลิกการมอบหมายงานเรียบร้อยแล้ว']);

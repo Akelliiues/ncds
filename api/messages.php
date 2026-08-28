@@ -67,6 +67,11 @@ if (DemoDataProvider::isDemoMode()) {
     } elseif ($action === 'send_message') {
         echo json_encode(['status' => 'success', 'message' => 'ส่งข้อความสำเร็จ (โหมดจำลอง)', 'message_id' => 999], JSON_UNESCAPED_UNICODE);
         exit();
+
+    } elseif ($action === 'delete_message') {
+        $messageId = intval($_POST['message_id'] ?? 0);
+        echo json_encode(['status' => 'success', 'message' => 'ลบข้อความประกาศแล้ว'], JSON_UNESCAPED_UNICODE);
+        exit();
     }
 }
 
@@ -82,8 +87,8 @@ $userSubDistrict = null;
 
 if (!empty($_SESSION['admin_username'])) {
     $currentUserId = $_SESSION['admin_username'];
-    $currentUserRole = !empty($_SESSION['is_super_admin']) ? 'super_admin' : 'staff';
     $userHoscode = $_SESSION['admin_hoscode'] ?? null;
+    $currentUserRole = (empty($userHoscode) || !empty($_SESSION['is_super_admin'])) ? 'super_admin' : 'staff';
 } elseif (!empty($_SESSION['vhv_id']) || !empty($_SESSION['vhv_cid'])) {
     $currentUserId = $_SESSION['vhv_cid'] ?? $_SESSION['vhv_id'];
     $currentUserRole = 'vhv';
@@ -92,41 +97,97 @@ if (!empty($_SESSION['admin_username'])) {
 }
 
 if (!$currentUserId) {
-    // If not logged in, return zero messages gracefully
     echo json_encode(['status' => 'success', 'unread_count' => 0, 'messages' => []], JSON_UNESCAPED_UNICODE);
     exit();
 }
 
 try {
     if ($action === 'get_messages') {
-        // Query applicable messages for this user
-        // Note: If user is sender (sender_username = currentUserId), it is considered read automatically
-        $sql = "
-            SELECT m.*, 
-                   IF(r.read_id IS NOT NULL OR m.sender_username = :sender_username, 1, 0) AS is_read,
-                   r.read_at
-            FROM system_messages m
-            LEFT JOIN system_message_reads r ON m.message_id = r.message_id AND r.reader_id = :reader_id
-            WHERE (
-                m.target_type = 'all'
-                OR (m.target_type = 'all_vhv' AND :role_vhv = 'vhv')
-                OR (m.target_type = 'all_staff' AND :role_staff IN ('super_admin', 'staff'))
-                OR (m.target_hcode IS NOT NULL AND m.target_hcode = :user_hcode)
-                OR (m.target_sub_district IS NOT NULL AND m.target_sub_district = :user_sub_dist)
-            )
-            ORDER BY m.created_at DESC, m.message_id DESC
-            LIMIT 50
-        ";
+        // Query applicable messages based on user role and privacy scoping
+        if ($currentUserRole === 'super_admin' || (empty($userHoscode) && !empty($_SESSION['admin_logged_in']))) {
+            // Super Admin / District Admin: Sees ALL messages
+            $sql = "
+                SELECT m.*, 
+                       IF(r.read_id IS NOT NULL OR m.sender_username = :sender_username, 1, 0) AS is_read,
+                       r.read_at
+                FROM system_messages m
+                LEFT JOIN system_message_reads r ON m.message_id = r.message_id AND r.reader_id = :reader_id
+                ORDER BY m.created_at DESC, m.message_id DESC
+                LIMIT 50
+            ";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                ':sender_username' => $currentUserId,
+                ':reader_id' => $currentUserId
+            ]);
+        } elseif ($currentUserRole === 'staff') {
+            // Staff / Sub-Admin รพ.สต.: Sees own hospital messages + District/Super Admin announcements (never other hospitals)
+            $sql = "
+                SELECT m.*, 
+                       IF(r.read_id IS NOT NULL OR m.sender_username = :sender_username, 1, 0) AS is_read,
+                       r.read_at
+                FROM system_messages m
+                LEFT JOIN system_message_reads r ON m.message_id = r.message_id AND r.reader_id = :reader_id
+                WHERE (
+                    (m.sender_hcode = :user_hcode)
+                    OR (m.sender_username = :sender_username_check)
+                    OR (
+                        (m.sender_hcode IS NULL OR m.sender_role = 'super_admin')
+                        AND (
+                            m.target_type IN ('all', 'all_staff', 'all_vhv')
+                            OR m.target_hcode = :user_hcode_target
+                            OR (m.target_sub_district IS NOT NULL AND m.target_sub_district = :user_sub_dist)
+                        )
+                    )
+                )
+                ORDER BY m.created_at DESC, m.message_id DESC
+                LIMIT 50
+            ";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                ':sender_username' => $currentUserId,
+                ':reader_id' => $currentUserId,
+                ':user_hcode' => $userHoscode,
+                ':sender_username_check' => $currentUserId,
+                ':user_hcode_target' => $userHoscode,
+                ':user_sub_dist' => $userSubDistrict
+            ]);
+        } else {
+            // VHV / อสม.: Sees District/Super Admin broadcasts + own hospital messages (never other hospitals)
+            $sql = "
+                SELECT m.*, 
+                       IF(r.read_id IS NOT NULL OR m.sender_username = :sender_username, 1, 0) AS is_read,
+                       r.read_at
+                FROM system_messages m
+                LEFT JOIN system_message_reads r ON m.message_id = r.message_id AND r.reader_id = :reader_id
+                WHERE (
+                    (
+                        (m.sender_hcode IS NULL OR m.sender_role = 'super_admin')
+                        AND (
+                            m.target_type IN ('all', 'all_vhv')
+                            OR m.target_hcode = :user_hcode
+                            OR (m.target_sub_district IS NOT NULL AND m.target_sub_district = :user_sub_dist)
+                        )
+                    )
+                    OR (
+                        m.sender_hcode = :user_hcode_sender
+                        AND (m.target_hcode = :user_hcode_target OR m.target_type IN ('all', 'all_vhv', 'hcode'))
+                    )
+                )
+                ORDER BY m.created_at DESC, m.message_id DESC
+                LIMIT 50
+            ";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                ':sender_username' => $currentUserId,
+                ':reader_id' => $currentUserId,
+                ':user_hcode' => $userHoscode,
+                ':user_sub_dist' => $userSubDistrict,
+                ':user_hcode_sender' => $userHoscode,
+                ':user_hcode_target' => $userHoscode
+            ]);
+        }
 
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            ':sender_username' => $currentUserId,
-            ':reader_id' => $currentUserId,
-            ':role_vhv' => $currentUserRole,
-            ':role_staff' => $currentUserRole,
-            ':user_hcode' => $userHoscode,
-            ':user_sub_dist' => $userSubDistrict
-        ]);
         $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $unreadCount = 0;
@@ -162,16 +223,33 @@ try {
 
     } elseif ($action === 'mark_all_read') {
         // Mark all visible messages for this user as read
-        $stmtGet = $pdo->prepare("
-            SELECT message_id FROM system_messages
-            WHERE target_type = 'all' 
-               OR (target_type = 'all_vhv' AND ? = 'vhv')
-               OR (target_type = 'all_staff' AND ? IN ('super_admin', 'staff'))
-               OR (target_hcode IS NOT NULL AND target_hcode = ?)
-               OR (target_sub_district IS NOT NULL AND target_sub_district = ?)
-        ");
-        $stmtGet->execute([$currentUserRole, $currentUserRole, $userHoscode, $userSubDistrict]);
-        $allIds = $stmtGet->fetchAll(PDO::FETCH_COLUMN);
+        if ($currentUserRole === 'super_admin' || (empty($userHoscode) && !empty($_SESSION['admin_logged_in']))) {
+            $stmtGet = $pdo->query("SELECT message_id FROM system_messages");
+            $allIds = $stmtGet->fetchAll(PDO::FETCH_COLUMN);
+        } elseif ($currentUserRole === 'staff') {
+            $stmtGet = $pdo->prepare("
+                SELECT message_id FROM system_messages
+                WHERE (sender_hcode = ?)
+                   OR (sender_username = ?)
+                   OR (
+                       (sender_hcode IS NULL OR sender_role = 'super_admin')
+                       AND (target_type IN ('all', 'all_staff', 'all_vhv') OR target_hcode = ? OR target_sub_district = ?)
+                   )
+            ");
+            $stmtGet->execute([$userHoscode, $currentUserId, $userHoscode, $userSubDistrict]);
+            $allIds = $stmtGet->fetchAll(PDO::FETCH_COLUMN);
+        } else {
+            $stmtGet = $pdo->prepare("
+                SELECT message_id FROM system_messages
+                WHERE (
+                    (sender_hcode IS NULL OR sender_role = 'super_admin')
+                    AND (target_type IN ('all', 'all_vhv') OR target_hcode = ? OR target_sub_district = ?)
+                )
+                OR (sender_hcode = ? AND (target_hcode = ? OR target_type IN ('all', 'all_vhv', 'hcode')))
+            ");
+            $stmtGet->execute([$userHoscode, $userSubDistrict, $userHoscode, $userHoscode]);
+            $allIds = $stmtGet->fetchAll(PDO::FETCH_COLUMN);
+        }
 
         if (!empty($allIds)) {
             $stmtInsert = $pdo->prepare("
@@ -196,9 +274,6 @@ try {
 
         $title = trim($_POST['title'] ?? '');
         $body = trim($_POST['message_body'] ?? '');
-        $targetType = trim($_POST['target_type'] ?? 'all');
-        $targetHcode = trim($_POST['target_hcode'] ?? '') ?: null;
-        $targetSubDistrict = trim($_POST['target_sub_district'] ?? '') ?: null;
         $priority = in_array($_POST['priority'] ?? '', ['normal', 'urgent', 'emergency']) ? $_POST['priority'] : 'normal';
 
         if (empty($title) || empty($body)) {
@@ -206,16 +281,35 @@ try {
             exit();
         }
 
+        $senderHoscode = $_SESSION['admin_hoscode'] ?? null;
+        $isSuperAdmin = (!isset($senderHoscode) || empty($senderHoscode));
+
+        if ($isSuperAdmin) {
+            // ผู้ดูแลระดับอำเภอ / Admin หลัก: สามารถเลือกส่งหาทุกคน หรือเลือกกลุ่มเป้าหมายใดก็ได้
+            $targetType = trim($_POST['target_type'] ?? 'all');
+            $targetHcode = trim($_POST['target_hcode'] ?? '') ?: null;
+            $targetSubDistrict = trim($_POST['target_sub_district'] ?? '') ?: null;
+            $senderRole = 'super_admin';
+            $senderHoscode = null;
+        } else {
+            // แอดมิน รพ.สต.: บังคับล็อกส่งหาเฉพาะ อสม. ในเขตรับผิดชอบตนเองเท่านั้น
+            $targetType = 'hcode';
+            $targetHcode = $senderHoscode;
+            $targetSubDistrict = null;
+            $senderRole = 'staff';
+        }
+
         $senderName = function_exists('get_admin_title') ? get_admin_title() : 'ผู้ดูแลระบบ';
 
         $stmt = $pdo->prepare("
-            INSERT INTO system_messages (sender_username, sender_name, sender_role, target_type, target_hcode, target_sub_district, title, message_body, priority, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+            INSERT INTO system_messages (sender_username, sender_name, sender_role, sender_hcode, target_type, target_hcode, target_sub_district, title, message_body, priority, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
         ");
         $stmt->execute([
             $_SESSION['admin_username'],
             $senderName,
-            $currentUserRole,
+            $senderRole,
+            $senderHoscode,
             $targetType,
             $targetHcode,
             $targetSubDistrict,
@@ -232,6 +326,14 @@ try {
             $stmtRead->execute([$newMessageId, $currentUserId]);
         }
 
+        if (function_exists('logUserActivity')) {
+            logUserActivity('BROADCAST', 'ส่งข้อความประกาศ (' . htmlspecialchars($title) . ')', [
+                'target_type' => $targetType,
+                'priority' => $priority,
+                'message_id' => $newMessageId
+            ]);
+        }
+
         echo json_encode([
             'status' => 'success',
             'message' => 'ส่งข้อความประกาศเรียบร้อยแล้ว',
@@ -240,8 +342,14 @@ try {
         exit();
 
     } elseif ($action === 'delete_message') {
-        if (empty($_SESSION['admin_username'])) {
-            echo json_encode(['status' => 'error', 'message' => 'ไม่มีสิทธิ์ลบข้อความ'], JSON_UNESCAPED_UNICODE);
+        $adminHoscode = $_SESSION['admin_hoscode'] ?? null;
+        $isSuperAdmin = (!empty($_SESSION['admin_logged_in']) && empty($adminHoscode));
+
+        if (!$isSuperAdmin) {
+            echo json_encode([
+                'status' => 'error', 
+                'message' => 'สงวนสิทธิ์การลบประกาศข่าวสารสำหรับผู้ดูแลระบบหลัก (Super Admin สสอ. ตาลสุม) เท่านั้น'
+            ], JSON_UNESCAPED_UNICODE);
             exit();
         }
 
@@ -251,6 +359,10 @@ try {
 
         $stmt2 = $pdo->prepare("DELETE FROM system_message_reads WHERE message_id = ?");
         $stmt2->execute([$messageId]);
+
+        if (function_exists('logUserActivity')) {
+            logUserActivity('BROADCAST', 'ลบข้อความประกาศ', ['message_id' => $messageId]);
+        }
 
         echo json_encode(['status' => 'success', 'message' => 'ลบข้อความประกาศแล้ว'], JSON_UNESCAPED_UNICODE);
         exit();

@@ -148,6 +148,14 @@ try {
         }
     }
 
+    if (function_exists('logUserActivity')) {
+        logUserActivity('ASSIGNMENT', 'มอบหมายงานคัดกรอง อสม.', [
+            'vhv_id' => $vhvId,
+            'assigned_count' => count($cids),
+            'budget_year' => $currentYear
+        ]);
+    }
+
     $pdo->commit();
     echo json_encode(['status' => 'success']);
 } catch (\Throwable $e) {

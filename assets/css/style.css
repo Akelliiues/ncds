@@ -68,8 +68,7 @@ body.vhv-accessibility {
 }
 
 html, body {
-    overflow-x: hidden;
-    overflow-y: scroll;
+    overflow-x: clip;
     max-width: 100%;
     
     /* ซ่อน scrollbar แนวตั้ง แต่ยังคงเลื่อน scroll ได้ตามปกติ */
@@ -107,6 +106,8 @@ body {
 
 body.admin-body {
     color: var(--text-primary);
+    overflow-x: clip !important;
+    overflow-y: visible !important;
 }
 
 * {
@@ -191,7 +192,14 @@ h1, h2, h3, h4, h5, h6 {
 
 .input-large:focus {
     outline: none;
-    box-shadow: var(--neumorph-inset), 0 0 0 2px var(--text-primary);
+    box-shadow: var(--neumorph-inset), 0 0 0 2px var(--color-primary);
+}
+
+.input-large[readonly] {
+    cursor: pointer;
+    caret-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 /* Zero-Typing Custom Numeric Pad Overlay */
@@ -567,17 +575,21 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Admin Dashboard layout components */
 .admin-navbar {
+    position: sticky;
+    top: 0;
+    z-index: 1100;
     background-color: var(--bg-card);
-    border-bottom: none;
-    padding: 18px 24px;
+    border-bottom: 1px solid var(--border-color);
+    padding: 14px 24px;
     display: flex;
     flex-wrap: wrap;
     gap: 16px;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 6px 15px rgba(166, 180, 200, 0.2);
+    box-shadow: 0 6px 18px rgba(13, 44, 84, 0.08);
     border-radius: 0 0 24px 24px;
-    margin-bottom: 30px;
+    margin-bottom: 24px;
+    transition: all var(--transition-speed);
 }
 
 .admin-logo {

@@ -6,6 +6,16 @@ if (!empty($_SESSION['is_admin_impersonating']) || !empty($_SESSION['impersonato
     exit();
 }
 
+require_once __DIR__ . '/config/session.php';
+require_once __DIR__ . '/config/db.php';
+
+// Log user logout
+if (function_exists('logUserActivity')) {
+    if (!empty($_SESSION['admin_logged_in']) || !empty($_SESSION['vhv_id'])) {
+        logUserActivity('AUTH', 'ออกจากระบบ (Logout)', 'ผู้ใช้ออกจากระบบเรียบร้อย');
+    }
+}
+
 // ล้างค่าตัวแปร Session ทั้งหมด
 $_SESSION = array();
 

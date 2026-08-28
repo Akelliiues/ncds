@@ -1414,7 +1414,22 @@ if (DemoDataProvider::isDemoMode()) {
                 <div id="chart-screened-risk-pie"></div>
             </div>
 
-            <!-- 5. Skipped Reasons (Span 4) -->
+            <!-- 5. DPAC Enrollments (Span 4) -->
+            <div class="bento-card bento-span-4">
+                <div class="bento-header">
+                    <h3 class="bento-title">
+                        <span class="bento-icon-badge" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                        </span>
+                        <span>กลุ่มเสี่ยงเข้าร่วมโครงการปรับเปลี่ยนพฤติกรรม</span>
+                    </h3>
+                </div>
+                <div id="chart-dpac"></div>
+            </div>
+
+            <!-- 6. Skipped Reasons (Span 4) -->
             <div class="bento-card bento-span-4">
                 <div class="bento-header" style="display: flex; justify-content: space-between; align-items: center;">
                     <h3 class="bento-title">
@@ -1434,20 +1449,7 @@ if (DemoDataProvider::isDemoMode()) {
                 <div id="chart-skipped"></div>
             </div>
 
-            <!-- 6. DPAC Enrollments (Span 4) -->
-            <div class="bento-card bento-span-4">
-                <div class="bento-header">
-                    <h3 class="bento-title">
-                        <span class="bento-icon-badge" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4;">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                            </svg>
-                        </span>
-                        <span>กลุ่มเสี่ยงเข้าร่วมโครงการปรับเปลี่ยนพฤติกรรม</span>
-                    </h3>
-                </div>
-                <div id="chart-dpac"></div>
-            </div>
+
         </div>
 
         <!-- Row 3: Coverage by Area | Risk by Area (Span 6 + 6) -->
@@ -3915,6 +3917,7 @@ if (DemoDataProvider::isDemoMode()) {
                 document.getElementById('details-modal').style.display = 'none';
             }
         </script>
+        <script src="../assets/js/proxy-manager.js"></script>
         <?php include_once __DIR__ . '/../config/dev_modal.php'; ?>
 </body>
 

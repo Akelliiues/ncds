@@ -1,7 +1,7 @@
 // assets/js/app.js
 // PWA Service Worker Registration & Installation Prompt Handler (Forced Auto-Update Engine)
 
-const CURRENT_APP_BUILD_ID = '20260827_1640';
+const CURRENT_APP_BUILD_ID = '20260828_2100';
 
 document.addEventListener('DOMContentLoaded', () => {
     // 0. Proactive Cache & Build Version Validation
@@ -809,10 +809,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Zero-Typing Numeric Pad Helper
 class VhvNumPad {
-    constructor(inputId, padContainerId, displayBoxId = null) {
+    constructor(inputId, padContainerId, displayBoxId = null, options = {}) {
         this.input = document.getElementById(inputId);
         this.container = document.getElementById(padContainerId);
         this.displayBox = displayBoxId ? document.getElementById(displayBoxId) : null;
+        this.options = Object.assign({
+            min: 0,
+            max: 999,
+            maxDigits: 3,
+            allowDecimal: false,
+            unit: ''
+        }, options);
         this.currentValue = '';
         if (this.input && this.container) {
             this.init();
@@ -820,6 +827,7 @@ class VhvNumPad {
     }
 
     init() {
+        const dotDisabled = !this.options.allowDecimal ? 'opacity: 0.2; pointer-events: none;' : '';
         this.container.innerHTML = `
             <div class="numpad-grid">
                 <button type="button" class="numpad-btn" data-val="1">1</button>
@@ -831,7 +839,7 @@ class VhvNumPad {
                 <button type="button" class="numpad-btn" data-val="7">7</button>
                 <button type="button" class="numpad-btn" data-val="8">8</button>
                 <button type="button" class="numpad-btn" data-val="9">9</button>
-                <button type="button" class="numpad-btn btn-action" data-val=".">.</button>
+                <button type="button" class="numpad-btn btn-action" data-val="." style="${dotDisabled}">.</button>
                 <button type="button" class="numpad-btn" data-val="0">0</button>
                 <button type="button" class="numpad-btn btn-action" data-val="del">⌫</button>
             </div>
@@ -849,31 +857,50 @@ class VhvNumPad {
         if (val === 'del') {
             this.currentValue = this.currentValue.slice(0, -1);
         } else if (val === '.') {
-            if (!this.currentValue.includes('.')) {
+            if (this.options.allowDecimal && !this.currentValue.includes('.')) {
                 this.currentValue += '.';
             }
         } else {
-            // limit to length
-            if (this.currentValue.length < 6) {
-                this.currentValue += val;
+            // Strict digit length limit: Do not allow pressing if reached maxDigits!
+            if (this.currentValue.length >= this.options.maxDigits) {
+                return;
+            }
+            const nextValStr = (this.currentValue === '0') ? val : (this.currentValue + val);
+            const nextValNum = parseFloat(nextValStr);
+            if (!isNaN(nextValNum)) {
+                if (nextValNum > this.options.max) {
+                    this.currentValue = this.options.max.toString();
+                } else {
+                    this.currentValue = nextValStr;
+                }
             }
         }
         this.updateDisplay();
     }
 
     setValue(val) {
-        this.currentValue = val.toString();
+        this.currentValue = (val !== null && val !== undefined && val !== '') ? val.toString() : '';
+        if (this.currentValue !== '') {
+            const num = parseFloat(this.currentValue);
+            if (!isNaN(num) && num > this.options.max) {
+                this.currentValue = this.options.max.toString();
+            }
+            if (this.currentValue.length > this.options.maxDigits) {
+                this.currentValue = this.currentValue.slice(0, this.options.maxDigits);
+            }
+        }
         this.updateDisplay();
     }
     
     updateDisplay() {
-        this.input.value = this.currentValue;
+        if (this.input) {
+            this.input.value = this.currentValue;
+            const event = new Event('input', { bubbles: true });
+            this.input.dispatchEvent(event);
+        }
         if (this.displayBox) {
             this.displayBox.innerText = this.currentValue || '0';
         }
-        // Trigger input event programmatically
-        const event = new Event('input', { bubbles: true });
-        this.input.dispatchEvent(event);
     }
 }
 

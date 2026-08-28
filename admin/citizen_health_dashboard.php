@@ -366,12 +366,14 @@ $poorVeggiePct = round((($habits['veggie']['poor'] ?? 0) / $tot) * 100, 1);
 
         .bento-span-3 { grid-column: span 3; }
         .bento-span-4 { grid-column: span 4; }
+        .bento-span-5 { grid-column: span 5; }
         .bento-span-6 { grid-column: span 6; }
+        .bento-span-7 { grid-column: span 7; }
         .bento-span-8 { grid-column: span 8; }
         .bento-span-12 { grid-column: span 12; }
 
         @media (max-width: 1100px) {
-            .bento-span-3, .bento-span-4, .bento-span-8, .bento-span-6 { grid-column: span 12; }
+            .bento-span-3, .bento-span-4, .bento-span-5, .bento-span-6, .bento-span-7, .bento-span-8 { grid-column: span 12; }
         }
 
         .bento-header {
@@ -786,8 +788,8 @@ $poorVeggiePct = round((($habits['veggie']['poor'] ?? 0) / $tot) * 100, 1);
                 </div>
             </div>
 
-            <!-- 5. Bento Card: 3อ. 2ส. 1น. Risk Radar / Bar Matrix (Span 8) -->
-            <div class="bento-card bento-span-8">
+            <!-- 5. Bento Card: 3อ. 2ส. 1น. Risk Radar / Bar Matrix (Span 7) -->
+            <div class="bento-card bento-span-7">
                 <div class="bento-header">
                     <h3 class="bento-title">
                         <?= render_neu_icon('nutrition', 'sm', 'text-green') ?>
@@ -800,14 +802,14 @@ $poorVeggiePct = round((($habits['veggie']['poor'] ?? 0) / $tot) * 100, 1);
                 </div>
             </div>
 
-            <!-- 6. Bento Card: Age Group Risk Distribution (Span 4) -->
-            <div class="bento-card bento-span-4">
+            <!-- 6. Bento Card: Age Group Risk Distribution (Span 5) -->
+            <div class="bento-card bento-span-5">
                 <div class="bento-header">
-                    <h3 class="bento-title">
+                    <h3 class="bento-title" style="white-space: nowrap;">
                         <?= render_neu_icon('users-group', 'sm', 'text-purple') ?>
                         <span>การกระจายความเสี่ยงจำแนกตามช่วงวัย</span>
                     </h3>
-                    <span class="bento-badge">3 ช่วงวัย</span>
+                    <span class="bento-badge" style="white-space: nowrap; flex-shrink: 0;">3 ช่วงวัย</span>
                 </div>
                 <div style="position: relative; height: 290px;">
                     <canvas id="ageRiskChart"></canvas>
@@ -1149,7 +1151,12 @@ $poorVeggiePct = round((($habits['veggie']['poor'] ?? 0) / $tot) * 100, 1);
                 plugins: {
                     legend: {
                         position: 'top',
-                        labels: { color: textColor, font: { size: 12, weight: 'bold' } }
+                        labels: { 
+                            color: textColor, 
+                            font: { size: 11.5, weight: 'bold' },
+                            boxWidth: 12,
+                            padding: 10
+                        }
                     }
                 }
             }
