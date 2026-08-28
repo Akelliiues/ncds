@@ -385,17 +385,17 @@ if (DemoDataProvider::isDemoMode()) {
             COALESCE(v.hoscode, p.hoscode) as hoscode, 
             p.moo,
             COUNT(DISTINCT p.cid) as total_targets,
-            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL OR a.assignment_id IS NOT NULL THEN p.cid END) as screened
+            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL OR a.assignment_status = 'completed' THEN p.cid END) as screened
         FROM target_population p
         LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
-        LEFT JOIN screening_results s ON (s.target_cid = p.cid)
-        LEFT JOIN task_assignments a ON (s.assignment_id = a.assignment_id OR (a.target_cid = p.cid AND a.assignment_status = 'completed'))
+        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND COALESCE(a.is_sandbox, 0) = ?
+        LEFT JOIN screening_results s ON (s.target_cid = p.cid OR s.assignment_id = a.assignment_id) AND COALESCE(s.is_sandbox, 0) = ?
         WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
           AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholders)
         GROUP BY COALESCE(v.hoscode, p.hoscode), p.moo
         ORDER BY COALESCE(v.hoscode, p.hoscode), p.moo
     ");
-    $chartCoverageStmt->execute($hoscodes);
+    $chartCoverageStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $hoscodes));
     $chartCoverageData = $chartCoverageStmt->fetchAll(PDO::FETCH_ASSOC);
     foreach ($chartCoverageData as &$row) {
         $row['village_name'] = get_village_display_name_by_hoscode($row['hoscode'], $row['moo']);
@@ -403,23 +403,29 @@ if (DemoDataProvider::isDemoMode()) {
     unset($row);
 
     $chartRiskStmt = $pdo->prepare("
-        SELECT p.hoscode, MAX(p.sub_district_code) as sub_district_code, p.moo,
-               COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN p.cid END) as high_risk,
-               COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as moderate_risk,
-               COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as normal,
-               COUNT(DISTINCT CASE WHEN s.screening_id IS NULL THEN p.cid END) as unscreened
+        SELECT 
+            COALESCE(v.hoscode, p.hoscode) as hoscode, 
+            MAX(p.sub_district_code) as sub_district_code, 
+            p.moo,
+            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN p.cid END) as high_risk,
+            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as moderate_risk,
+            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as normal,
+            COUNT(DISTINCT CASE WHEN s.screening_id IS NULL THEN p.cid END) as unscreened
         FROM target_population p
+        LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
+        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND COALESCE(a.is_sandbox, 0) = ?
         LEFT JOIN screening_results s ON s.screening_id = (
             SELECT sr.screening_id FROM screening_results sr 
             LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id
-            WHERE sr.target_cid = p.cid OR ta2.target_cid = p.cid
+            WHERE (sr.target_cid = p.cid OR ta2.target_cid = p.cid) AND COALESCE(sr.is_sandbox, 0) = ?
             ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1
         )
-        WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-        GROUP BY p.hoscode, p.moo
-        ORDER BY p.hoscode, p.moo
+        WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1) 
+          AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholders)
+        GROUP BY COALESCE(v.hoscode, p.hoscode), p.moo
+        ORDER BY COALESCE(v.hoscode, p.hoscode), p.moo
     ");
-    $chartRiskStmt->execute($hoscodes);
+    $chartRiskStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $hoscodes));
     $chartRiskData = $chartRiskStmt->fetchAll(PDO::FETCH_ASSOC);
     foreach ($chartRiskData as &$row) {
         $row['village_name'] = get_village_display_name_by_hoscode($row['hoscode'], $row['moo']);
@@ -431,18 +437,19 @@ if (DemoDataProvider::isDemoMode()) {
         SELECT 
             COALESCE(v.hoscode, p.hoscode) as hoscode, 
             p.moo,
-            IFNULL(s.round_number, 1) as round_number,
+            COALESCE(s.round_number, 1) as round_number,
             COUNT(DISTINCT CASE WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN p.cid END) as high_risk,
             COUNT(DISTINCT CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as moderate_risk,
             COUNT(DISTINCT CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as normal
         FROM target_population p
         LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
-        JOIN screening_results s ON (s.target_cid = p.cid)
+        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND COALESCE(a.is_sandbox, 0) = ?
+        JOIN screening_results s ON (s.target_cid = p.cid OR s.assignment_id = a.assignment_id) AND COALESCE(s.is_sandbox, 0) = ?
         WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
           AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholders)
-        GROUP BY COALESCE(v.hoscode, p.hoscode), p.moo, IFNULL(s.round_number, 1)
+        GROUP BY COALESCE(v.hoscode, p.hoscode), p.moo, COALESCE(s.round_number, 1)
     ");
-    $chartRiskByRoundStmt->execute($hoscodes);
+    $chartRiskByRoundStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $hoscodes));
     $chartRiskByRoundData = $chartRiskByRoundStmt->fetchAll(PDO::FETCH_ASSOC);
 
     $chartDiseaseStmt = $pdo->prepare("
@@ -472,8 +479,8 @@ if (DemoDataProvider::isDemoMode()) {
             FROM screening_results s
             LEFT JOIN task_assignments a ON s.assignment_id = a.assignment_id
             JOIN target_population p ON (s.target_cid = p.cid OR a.target_cid = p.cid)
-            WHERE p.hoscode IN ($inPlaceholders)
-              AND s.created_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+            WHERE s.created_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+              AND p.hoscode IN ($inPlaceholders)
               AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
             UNION ALL
             SELECT f.completed_at as created_at
@@ -520,15 +527,15 @@ if (DemoDataProvider::isDemoMode()) {
             COALESCE(v.hoscode, p.hoscode) as hoscode, 
             p.moo,
             COUNT(DISTINCT p.cid) as total_targets,
-            COUNT(DISTINCT CASE WHEN (s.round_number = 1 OR s.round_number IS NULL) AND s.screening_id IS NOT NULL THEN p.cid END) as r1_completed,
-            COUNT(DISTINCT CASE WHEN s.round_number = 2 THEN p.cid END) as r2_completed,
-            COUNT(DISTINCT CASE WHEN s.round_number >= 3 THEN p.cid END) as r3_completed,
+            COUNT(DISTINCT CASE WHEN (s.screening_id IS NOT NULL AND (s.round_number = 1 OR s.round_number IS NULL)) OR (a.round_number = 1 AND a.assignment_status = 'completed') THEN p.cid END) as r1_completed,
+            COUNT(DISTINCT CASE WHEN (s.screening_id IS NOT NULL AND s.round_number = 2) OR (a.round_number = 2 AND a.assignment_status = 'completed') THEN p.cid END) as r2_completed,
+            COUNT(DISTINCT CASE WHEN (s.screening_id IS NOT NULL AND s.round_number >= 3) OR (a.round_number >= 3 AND a.assignment_status = 'completed') THEN p.cid END) as r3_completed,
             COUNT(DISTINCT CASE WHEN a.round_number = 2 AND a.assignment_status = 'pending' THEN p.cid END) as r2_assigned,
             COUNT(DISTINCT CASE WHEN a.round_number >= 3 AND a.assignment_status = 'pending' THEN p.cid END) as r3_assigned
         FROM target_population p
         LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
-        LEFT JOIN screening_results s ON s.target_cid = p.cid AND COALESCE(s.is_sandbox, 0) = ?
         LEFT JOIN task_assignments a ON a.target_cid = p.cid AND COALESCE(a.is_sandbox, 0) = ?
+        LEFT JOIN screening_results s ON (s.target_cid = p.cid OR s.assignment_id = a.assignment_id) AND COALESCE(s.is_sandbox, 0) = ?
         WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
           AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholders)
         GROUP BY COALESCE(v.hoscode, p.hoscode), p.moo
@@ -742,55 +749,60 @@ if (DemoDataProvider::isDemoMode()) {
         SELECT 
             COALESCE(v.hoscode, p.hoscode) as hoscode, 
             COUNT(DISTINCT p.cid) as total_targets,
-            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL OR a.assignment_id IS NOT NULL THEN p.cid END) as screened
+            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL OR a.assignment_status = 'completed' THEN p.cid END) as screened
         FROM target_population p
         LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
-        LEFT JOIN screening_results s ON (s.target_cid = p.cid)
-        LEFT JOIN task_assignments a ON (s.assignment_id = a.assignment_id OR (a.target_cid = p.cid AND a.assignment_status = 'completed'))
+        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND COALESCE(a.is_sandbox, 0) = ?
+        LEFT JOIN screening_results s ON (s.target_cid = p.cid OR s.assignment_id = a.assignment_id) AND COALESCE(s.is_sandbox, 0) = ?
         WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
           AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholdersSa)
         GROUP BY COALESCE(v.hoscode, p.hoscode)
         ORDER BY COALESCE(v.hoscode, p.hoscode)
     ");
-    $chartCoverageStmt->execute($valid_hoscodes);
+    $chartCoverageStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $valid_hoscodes));
     $chartCoverageData = $chartCoverageStmt->fetchAll(PDO::FETCH_ASSOC);
 
     $chartRiskStmt = $pdo->prepare("
-        SELECT p.hoscode,
-               COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN p.cid END) as high_risk,
-               COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as moderate_risk,
-               COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as normal,
-               COUNT(DISTINCT CASE WHEN s.screening_id IS NULL THEN p.cid END) as unscreened
+        SELECT 
+            COALESCE(v.hoscode, p.hoscode) as hoscode,
+            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN p.cid END) as high_risk,
+            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as moderate_risk,
+            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as normal,
+            COUNT(DISTINCT CASE WHEN s.screening_id IS NULL THEN p.cid END) as unscreened
         FROM target_population p
+        LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
+        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND COALESCE(a.is_sandbox, 0) = ?
         LEFT JOIN screening_results s ON s.screening_id = (
             SELECT sr.screening_id FROM screening_results sr 
             LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id
-            WHERE sr.target_cid = p.cid OR ta2.target_cid = p.cid
+            WHERE (sr.target_cid = p.cid OR ta2.target_cid = p.cid) AND COALESCE(sr.is_sandbox, 0) = ?
             ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1
         )
-        WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-        GROUP BY p.hoscode
-        ORDER BY p.hoscode
+        WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+          AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholdersSa)
+        GROUP BY COALESCE(v.hoscode, p.hoscode)
+        ORDER BY COALESCE(v.hoscode, p.hoscode)
     ");
-    $chartRiskStmt->execute($valid_hoscodes);
+    $chartRiskStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $valid_hoscodes));
     $chartRiskData = $chartRiskStmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Risk by round data (Super Admin)
     $chartRiskByRoundStmt = $pdo->prepare("
         SELECT 
             COALESCE(v.hoscode, p.hoscode) as hoscode,
-            IFNULL(s.round_number, 1) as round_number,
+            COALESCE(s.round_number, 1) as round_number,
             COUNT(DISTINCT CASE WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN p.cid END) as high_risk,
             COUNT(DISTINCT CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as moderate_risk,
             COUNT(DISTINCT CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as normal
         FROM target_population p
         LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
-        JOIN screening_results s ON (s.target_cid = p.cid)
+        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND COALESCE(a.is_sandbox, 0) = ?
+        JOIN screening_results s ON (s.target_cid = p.cid OR s.assignment_id = a.assignment_id) AND COALESCE(s.is_sandbox, 0) = ?
         WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
           AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholdersSa)
-        GROUP BY COALESCE(v.hoscode, p.hoscode), IFNULL(s.round_number, 1)
+        GROUP BY COALESCE(v.hoscode, p.hoscode), COALESCE(s.round_number, 1)
     ");
-    $chartRiskByRoundStmt->execute($valid_hoscodes);
+    $chartRiskByRoundStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $valid_hoscodes));
     $chartRiskByRoundData = $chartRiskByRoundStmt->fetchAll(PDO::FETCH_ASSOC);
 
     $chartDiseaseStmt = $pdo->prepare("
@@ -867,15 +879,15 @@ if (DemoDataProvider::isDemoMode()) {
         SELECT 
             COALESCE(v.hoscode, p.hoscode) as hoscode,
             COUNT(DISTINCT p.cid) as total_targets,
-            COUNT(DISTINCT CASE WHEN (s.round_number = 1 OR s.round_number IS NULL) AND s.screening_id IS NOT NULL THEN p.cid END) as r1_completed,
-            COUNT(DISTINCT CASE WHEN s.round_number = 2 THEN p.cid END) as r2_completed,
-            COUNT(DISTINCT CASE WHEN s.round_number >= 3 THEN p.cid END) as r3_completed,
+            COUNT(DISTINCT CASE WHEN (s.screening_id IS NOT NULL AND (s.round_number = 1 OR s.round_number IS NULL)) OR (a.round_number = 1 AND a.assignment_status = 'completed') THEN p.cid END) as r1_completed,
+            COUNT(DISTINCT CASE WHEN (s.screening_id IS NOT NULL AND s.round_number = 2) OR (a.round_number = 2 AND a.assignment_status = 'completed') THEN p.cid END) as r2_completed,
+            COUNT(DISTINCT CASE WHEN (s.screening_id IS NOT NULL AND s.round_number >= 3) OR (a.round_number >= 3 AND a.assignment_status = 'completed') THEN p.cid END) as r3_completed,
             COUNT(DISTINCT CASE WHEN a.round_number = 2 AND a.assignment_status = 'pending' THEN p.cid END) as r2_assigned,
             COUNT(DISTINCT CASE WHEN a.round_number >= 3 AND a.assignment_status = 'pending' THEN p.cid END) as r3_assigned
         FROM target_population p
         LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
-        LEFT JOIN screening_results s ON s.target_cid = p.cid AND COALESCE(s.is_sandbox, 0) = ?
         LEFT JOIN task_assignments a ON a.target_cid = p.cid AND COALESCE(a.is_sandbox, 0) = ?
+        LEFT JOIN screening_results s ON (s.target_cid = p.cid OR s.assignment_id = a.assignment_id) AND COALESCE(s.is_sandbox, 0) = ?
         WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
           AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholdersSa)
         GROUP BY COALESCE(v.hoscode, p.hoscode)
@@ -2034,7 +2046,17 @@ if (DemoDataProvider::isDemoMode()) {
                             const modVal = parseInt(match.moderate_risk) || 0;
                             const highVal = parseInt(match.high_risk) || 0;
                             const screenedInRound = normVal + modVal + highVal;
-                            const unscVal = Math.max(0, totalTarget - screenedInRound);
+
+                            const rescreenItem = (rescreenRaw || []).find(r => r.moo == covRow.moo);
+                            let unscVal = 0;
+                            if (roundKey === 'r1') {
+                                const r1Comp = rescreenItem ? (parseInt(rescreenItem.r1_completed) || 0) : screenedInRound;
+                                unscVal = Math.max(0, totalTarget - Math.max(screenedInRound, r1Comp));
+                            } else if (roundKey === 'r2') {
+                                unscVal = rescreenItem ? (parseInt(rescreenItem.r2_assigned) || 0) : 0;
+                            } else {
+                                unscVal = rescreenItem ? (parseInt(rescreenItem.r3_assigned) || 0) : 0;
+                            }
 
                             normal.push(normVal);
                             moderate.push(modVal);
@@ -2053,7 +2075,17 @@ if (DemoDataProvider::isDemoMode()) {
                             const modVal = parseInt(match.moderate_risk) || 0;
                             const highVal = parseInt(match.high_risk) || 0;
                             const screenedInRound = normVal + modVal + highVal;
-                            const unscVal = Math.max(0, totalTarget - screenedInRound);
+
+                            const rescreenItem = (rescreenRaw || []).find(r => r.hoscode === hc);
+                            let unscVal = 0;
+                            if (roundKey === 'r1') {
+                                const r1Comp = rescreenItem ? (parseInt(rescreenItem.r1_completed) || 0) : screenedInRound;
+                                unscVal = Math.max(0, totalTarget - Math.max(screenedInRound, r1Comp));
+                            } else if (roundKey === 'r2') {
+                                unscVal = rescreenItem ? (parseInt(rescreenItem.r2_assigned) || 0) : 0;
+                            } else {
+                                unscVal = rescreenItem ? (parseInt(rescreenItem.r3_assigned) || 0) : 0;
+                            }
 
                             normal.push(normVal);
                             moderate.push(modVal);
@@ -2436,34 +2468,42 @@ if (DemoDataProvider::isDemoMode()) {
                 const dataSource = (rescreenRaw && rescreenRaw.length > 0) ? rescreenRaw : coverageRaw;
 
                 dataSource.forEach(d => {
-                    const targets = parseInt(d.total_targets) || 0;
+                    let targets = parseInt(d.total_targets) || 0;
                     let screened = 0;
-                    let barColor = '#22c55e';
+                    let barColor = '#0ea5e9';
 
                     if (roundKey === 'r1') {
                         screened = parseInt(d.r1_completed) || 0;
+                        targets = parseInt(d.total_targets) || 0;
                         barColor = '#22c55e';
                     } else if (roundKey === 'r2') {
                         screened = parseInt(d.r2_completed) || 0;
+                        const r2Assigned = parseInt(d.r2_assigned) || 0;
+                        const r1Completed = parseInt(d.r1_completed) || 0;
+                        targets = (screened + r2Assigned > 0) ? (screened + r2Assigned) : (r1Completed > 0 ? r1Completed : (parseInt(d.total_targets) || 0));
                         barColor = '#3b82f6';
                     } else if (roundKey === 'r3') {
                         screened = parseInt(d.r3_completed) || 0;
+                        const r3Assigned = parseInt(d.r3_assigned) || 0;
+                        const r2Completed = parseInt(d.r2_completed) || 0;
+                        targets = (screened + r3Assigned > 0) ? (screened + r3Assigned) : (r2Completed > 0 ? r2Completed : (parseInt(d.total_targets) || 0));
                         barColor = '#8b5cf6';
                     } else {
-                        // All rounds combined
+                        // All rounds combined (ทุกรอบ)
                         const covMatch = (coverageRaw || []).find(c => isRegularAdmin ? (c.moo === d.moo) : (c.hoscode === d.hoscode));
-                        if (covMatch) {
+                        if (covMatch && covMatch.screened !== undefined) {
                             screened = parseInt(covMatch.screened) || 0;
                         } else {
                             screened = (parseInt(d.r1_completed) || 0) + (parseInt(d.r2_completed) || 0) + (parseInt(d.r3_completed) || 0);
                         }
-                        barColor = '#22c55e';
+                        targets = parseInt(d.total_targets) || 0;
+                        barColor = '#0ea5e9';
                     }
 
                     totalTargetsSum += targets;
                     totalScreenedSum += screened;
 
-                    const pct = targets > 0 ? Math.round((screened / targets) * 100) : 0;
+                    const pct = targets > 0 ? Math.min(100, Math.round((screened / targets) * 100)) : 0;
                     const label = isRegularAdmin ? (d.village_name || "หมู่ " + d.moo) : (hcNamesChart[d.hoscode] || d.hoscode);
 
                     progressData.push({
@@ -2475,12 +2515,12 @@ if (DemoDataProvider::isDemoMode()) {
                     });
                 });
 
-                // Sort by percentage descending
-                progressData.sort((a, b) => b.y - a.y);
+                // Sort by percentage descending, then by screened count descending
+                progressData.sort((a, b) => (b.y - a.y) || (b.screened - a.screened));
 
                 // Overall total percentage for this round
-                const overallPct = totalTargetsSum > 0 ? Math.round((totalScreenedSum / totalTargetsSum) * 100) : 0;
-                const overallColor = roundKey === 'r1' ? '#16a34a' : (roundKey === 'r2' ? '#2563eb' : (roundKey === 'r3' ? '#7c3aed' : '#0ea5e9'));
+                const overallPct = totalTargetsSum > 0 ? Math.min(100, Math.round((totalScreenedSum / totalTargetsSum) * 100)) : 0;
+                const overallColor = roundKey === 'r1' ? '#16a34a' : (roundKey === 'r2' ? '#2563eb' : (roundKey === 'r3' ? '#7c3aed' : '#0284c7'));
 
                 // Push overall first (always at the top)
                 progressData.unshift({
@@ -2519,21 +2559,28 @@ if (DemoDataProvider::isDemoMode()) {
 
                 const newData = getProgressDataset(roundKey);
                 if (chartOverallProgressInstance) {
-                    chartOverallProgressInstance.updateSeries([{
-                        name: 'ความคืบหน้า (%)',
-                        data: newData
-                    }]);
+                    chartOverallProgressInstance.updateOptions({
+                        xaxis: {
+                            categories: newData.map(d => d.x)
+                        },
+                        series: [{
+                            name: 'ความคืบหน้า (%)',
+                            data: newData
+                        }]
+                    }, true, true);
                 }
             };
+
+            const initialProgressData = getProgressDataset('all');
 
             if ((coverageRaw && coverageRaw.length > 0) || (rescreenRaw && rescreenRaw.length > 0)) {
                 var optionsProgress = {
                     series: [{
                         name: 'ความคืบหน้า (%)',
-                        data: getProgressDataset('all')
+                        data: initialProgressData
                     }],
                     chart: {
-                        height: 215,
+                        height: 230,
                         type: 'bar',
                         background: 'transparent',
                         toolbar: {
@@ -2565,6 +2612,7 @@ if (DemoDataProvider::isDemoMode()) {
                         }
                     },
                     xaxis: {
+                        categories: initialProgressData.map(d => d.x),
                         max: 100,
                         labels: {
                             style: {
