@@ -596,9 +596,9 @@ $incident_labels = [
                             ?>
                                 <tr style="border-bottom:1px solid var(--border-color);">
                                     <td style="padding-left:20px;color:var(--text-muted);font-size:11.5px;"><?= $rowNum ?></td>
-                                    <td style="white-space:nowrap;line-height:1.3;">
-                                        <strong style="font-size:12px;color:var(--text-primary);"><?= date('d/m/Y', strtotime($log['logged_at'])) ?></strong><br>
-                                        <span style="color:var(--text-muted);font-size:11px;"><?= date('H:i:s', strtotime($log['logged_at'])) ?></span>
+                                    <td style="white-space:nowrap;">
+                                        <span style="font-size:12px;font-weight:700;color:var(--text-primary);"><?= date('d/m/Y', strtotime($log['logged_at'])) ?></span>
+                                        <span style="font-size:11.5px;color:var(--text-muted);margin-left:4px;"><?= date('H:i:s', strtotime($log['logged_at'])) ?></span>
                                     </td>
                                     <td style="white-space:nowrap;">
                                         <code style="background:var(--bg-darker);padding:2px 6px;border-radius:6px;font-size:12px;white-space:nowrap;">
