@@ -272,11 +272,16 @@ $incident_labels = [
         }
 
         .badge-incident {
-            display: inline-block;
-            padding: 4px 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3px 8px;
             border-radius: 20px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
+            white-space: nowrap;
+            letter-spacing: -0.2px;
+            line-height: 1.2;
         }
 
         .log-table th,
@@ -591,7 +596,7 @@ $incident_labels = [
                                             <?= htmlspecialchars($log['scanned_code']) ?>
                                         </code>
                                     </td>
-                                    <td>
+                                    <td style="white-space:nowrap;">
                                         <span class="badge-incident"
                                             style="background:<?= $inc['bg'] ?>;color:<?= $inc['color'] ?>;">
                                             <?= $inc['label'] ?>
