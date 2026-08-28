@@ -187,32 +187,38 @@ $categoryBadges = [
         .log-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13.5px;
+            font-size: 13px;
         }
         .log-table th {
             background: var(--bg-darker);
             color: var(--text-secondary);
             font-weight: 800;
             text-align: left;
-            padding: 14px 16px;
+            padding: 10px 14px;
             border-bottom: 1px solid var(--border-color);
-            font-size: 13px;
+            font-size: 12px;
+            white-space: nowrap;
         }
         .log-table td {
-            padding: 14px 16px;
+            padding: 8px 14px;
             border-bottom: 1px solid var(--border-color);
             color: var(--text-primary);
-            vertical-align: top;
+            vertical-align: middle;
+            font-size: 12.5px;
         }
         .log-table tr:hover td {
             background: rgba(13, 44, 84, 0.02);
         }
         .user-type-badge {
-            font-size: 11px;
+            font-size: 10.5px;
             font-weight: 800;
-            padding: 2px 8px;
-            border-radius: 8px;
-            display: inline-block;
+            padding: 2px 7px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+            letter-spacing: -0.2px;
+            flex-shrink: 0;
         }
         .badge-staff { background: rgba(59, 130, 246, 0.15); color: #2563EB; }
         .badge-vhv { background: rgba(16, 185, 129, 0.15); color: #059669; }
@@ -335,11 +341,11 @@ $categoryBadges = [
             <table class="log-table">
                 <thead>
                     <tr>
-                        <th style="width: 160px;">🕒 วันที่ / เวลา</th>
-                        <th style="width: 170px;">📂 หมวดหมู่</th>
-                        <th>📝 กิจกรรมที่ดำเนินการ</th>
-                        <th style="width: 220px;">👤 ผู้ดำเนินการ</th>
-                        <th style="width: 150px;">🌐 ข้อมูลเครื่อง/IP</th>
+                        <th style="white-space: nowrap; width: 160px;">🕒 วันที่ / เวลา</th>
+                        <th style="white-space: nowrap; width: 150px;">📂 หมวดหมู่</th>
+                        <th style="white-space: nowrap;">📝 กิจกรรมที่ดำเนินการ</th>
+                        <th style="white-space: nowrap; width: 230px;">👤 ผู้ดำเนินการ</th>
+                        <th style="white-space: nowrap; width: 110px; text-align: center;">🌐 IP Address</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -363,50 +369,60 @@ $categoryBadges = [
                                     $userTypeClass = 'badge-exec';
                                     $userTypeLabel = 'ผู้เข้าชม';
                                 }
+
+                                $actorName = trim($row['user_fullname'] ?: $row['username'] ?: '-');
+                                $hosName = trim($row['hosname'] ?: ($row['hoscode'] ? 'รพ.สต. ' . $row['hoscode'] : ''));
+
+                                // Remove duplicate if hosname is identical to actorName
+                                $showHos = '';
+                                if (!empty($hosName) && $hosName !== '-' && mb_strtolower($hosName) !== mb_strtolower($actorName)) {
+                                    $showHos = $hosName;
+                                }
+
+                                $fullActionText = $row['action_title'] . (!empty($row['action_detail']) ? ' - ' . $row['action_detail'] : '');
                             ?>
                             <tr>
-                                <td>
-                                    <div style="font-weight: 800; font-size: 13px; color: var(--text-primary);">
+                                <td style="white-space: nowrap;">
+                                    <span style="font-weight: 700; font-size: 12px; color: var(--text-primary);">
                                         <?= htmlspecialchars(date('d/m/Y', strtotime($row['created_at']))) ?>
-                                    </div>
-                                    <div style="font-size: 12px; color: var(--text-secondary); font-family: monospace;">
+                                    </span>
+                                    <span style="font-size: 11px; color: var(--text-muted); font-family: monospace; margin-left: 4px;">
                                         <?= htmlspecialchars(date('H:i:s น.', strtotime($row['created_at']))) ?>
-                                    </div>
+                                    </span>
                                 </td>
-                                <td>
-                                    <span style="font-size: 11.5px; font-weight: 800; padding: 4px 10px; border-radius: 10px; background: <?= $catInfo['bg'] ?>; color: <?= $catInfo['color'] ?>; display: inline-flex; align-items: center; gap: 4px;">
+                                <td style="white-space: nowrap;">
+                                    <span style="font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; background: <?= $catInfo['bg'] ?>; color: <?= $catInfo['color'] ?>; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;">
                                         <span><?= $catInfo['icon'] ?></span>
                                         <span><?= $catInfo['label'] ?></span>
                                     </span>
                                 </td>
-                                <td>
-                                    <div style="font-weight: 800; font-size: 14px; color: var(--text-primary); margin-bottom: 2px;">
+                                <td style="max-width: 420px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="<?= htmlspecialchars($fullActionText) ?>">
+                                    <span style="font-weight: 700; font-size: 12.5px; color: var(--text-primary);">
                                         <?= htmlspecialchars($row['action_title']) ?>
-                                    </div>
+                                    </span>
                                     <?php if (!empty($row['action_detail'])): ?>
-                                        <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; background: var(--bg-main); padding: 4px 8px; border-radius: 8px; margin-top: 4px; border: 1px solid var(--border-color); display: inline-block; max-width: 500px; word-break: break-word;">
-                                            <?= htmlspecialchars($row['action_detail']) ?>
-                                        </div>
+                                        <span style="font-size: 12px; color: var(--text-muted); margin-left: 6px;">
+                                            - <?= htmlspecialchars($row['action_detail']) ?>
+                                        </span>
                                     <?php endif; ?>
                                 </td>
-                                <td>
-                                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                                <td style="white-space: nowrap;">
+                                    <div style="display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;">
                                         <span class="user-type-badge <?= $userTypeClass ?>"><?= $userTypeLabel ?></span>
-                                        <span style="font-weight: 800; font-size: 13px; color: var(--text-primary);">
-                                            <?= htmlspecialchars($row['user_fullname'] ?: $row['username']) ?>
+                                        <span style="font-weight: 700; font-size: 12.5px; color: var(--text-primary);">
+                                            <?= htmlspecialchars($actorName) ?>
                                         </span>
-                                    </div>
-                                    <div style="font-size: 11.5px; color: var(--text-muted);">
-                                        <?= htmlspecialchars($row['hosname'] ?: ($row['hoscode'] ? 'รพ.สต. ' . $row['hoscode'] : '-')) ?>
+                                        <?php if (!empty($showHos)): ?>
+                                            <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">
+                                                (<?= htmlspecialchars($showHos) ?>)
+                                            </span>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
-                                <td>
-                                    <div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); font-family: monospace;">
+                                <td style="white-space: nowrap; text-align: center;">
+                                    <code style="font-size: 11.5px; font-weight: 700; color: var(--text-secondary); background: var(--bg-darker); padding: 2px 6px; border-radius: 6px; font-family: monospace;" title="<?= htmlspecialchars($row['user_agent'] ?: '') ?>">
                                         <?= htmlspecialchars($row['ip_address'] ?: '127.0.0.1') ?>
-                                    </div>
-                                    <div style="font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;" title="<?= htmlspecialchars($row['user_agent']) ?>">
-                                        <?= htmlspecialchars($row['user_agent'] ?: '-') ?>
-                                    </div>
+                                    </code>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
