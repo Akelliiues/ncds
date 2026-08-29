@@ -148,6 +148,275 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
             box-shadow: var(--neumorph-flat);
         }
 
+        .referral-header-action {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            text-decoration: none;
+            padding: 9px 16px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 13px;
+            box-shadow: var(--neumorph-flat);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        .referral-header-action:hover {
+            background: var(--bg-darker);
+            transform: translateY(-2px);
+        }
+
+        .referral-header-action .action-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 30px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--neumorph-flat);
+        }
+
+        .referral-header-action.download .action-icon { color: #059669; }
+        .referral-header-action.station .action-icon { color: #DC2626; }
+
+        .referral-case-table th {
+            font-weight: 700;
+        }
+
+        .referral-case-table {
+            border-collapse: separate !important;
+            border-spacing: 0 5px;
+        }
+
+        .referral-case-table td {
+            font-weight: 400;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.18s ease, border-color 0.18s ease;
+        }
+
+        .referral-case-table tbody tr td:first-child {
+            border-left: 1px solid var(--border-color);
+            border-radius: 12px 0 0 12px;
+        }
+
+        .referral-case-table tbody tr td:last-child {
+            border-right: 1px solid var(--border-color);
+            border-radius: 0 12px 12px 0;
+        }
+
+        .referral-case-table tbody tr.is-pending td {
+            background: rgba(220, 38, 38, 0.045);
+        }
+
+        .referral-case-table tbody tr:hover td {
+            background: rgba(37, 99, 235, 0.09);
+            border-color: rgba(37, 99, 235, 0.28);
+        }
+
+        [data-theme="dark"] .referral-case-table tbody tr:hover td {
+            background: rgba(56, 189, 248, 0.12);
+            border-color: rgba(56, 189, 248, 0.3);
+        }
+
+        .referral-case-table tbody tr.case-row {
+            cursor: pointer;
+        }
+
+        .referral-case-table tbody tr.case-row:focus-visible td {
+            background: rgba(37, 99, 235, 0.09);
+            border-color: #2563EB;
+            outline: none;
+        }
+
+        .case-detail-modal-box {
+            max-width: 760px;
+            width: min(760px, calc(100vw - 40px));
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            padding: 22px 26px;
+            box-sizing: border-box;
+            border: none;
+            border-radius: 26px;
+            box-shadow: none;
+            background: rgba(248, 250, 252, 0.94);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            text-align: center;
+        }
+
+        [data-theme="dark"] .case-detail-modal-box {
+            background: rgba(15, 23, 42, 0.94);
+        }
+
+        .case-detail-heading {
+            margin: 0 0 14px;
+            font-size: clamp(23px, 3vw, 28px);
+            line-height: 1.25;
+            font-weight: 900;
+            color: #DC2626;
+        }
+
+        .case-detail-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .case-detail-summary-item {
+            padding: 10px 12px;
+            border-radius: 14px;
+            background: var(--bg-darker);
+            box-shadow: var(--neumorph-inset);
+            text-align: left;
+        }
+
+        .case-detail-panel {
+            padding: 14px 16px;
+            border-radius: 18px;
+            background: var(--bg-darker);
+            box-shadow: var(--neumorph-inset);
+            text-align: left;
+        }
+
+        .case-detail-time-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        .case-detail-time-value {
+            padding: 5px 12px;
+            border-radius: 9px;
+            color: #DC2626;
+            background: rgba(220, 38, 38, 0.12);
+            font-size: 14px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .case-detail-vitals {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .case-detail-card {
+            min-width: 0;
+            padding: 10px 12px;
+            border-radius: 14px;
+            background: var(--bg-card);
+            box-shadow: var(--neumorph-flat);
+        }
+
+        .case-detail-label {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .case-detail-value {
+            color: var(--text-primary);
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 1.45;
+            overflow-wrap: anywhere;
+        }
+
+        .case-detail-value.critical {
+            color: #DC2626;
+            font-size: clamp(22px, 3vw, 28px);
+            font-weight: 900;
+        }
+
+        .case-detail-line {
+            display: flex;
+            align-items: flex-start;
+            gap: 9px;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .case-detail-line-icon {
+            width: 22px;
+            flex: 0 0 22px;
+            text-align: center;
+        }
+
+        .case-detail-referral-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .case-detail-phone-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 10px 14px;
+            border: 1.5px solid #10B981;
+            border-radius: 14px;
+            background: rgba(16, 185, 129, 0.12);
+        }
+
+        .case-detail-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .case-detail-action {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 46px;
+            padding: 0 18px;
+            border: none;
+            border-radius: 14px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 13.5px;
+            font-weight: 800;
+        }
+
+        .case-detail-action.map { background: #2563EB; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+        .case-detail-action.call { background: #10B981; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+
+        @media (max-width: 700px) {
+            .case-detail-modal-box { padding: 18px; }
+            .case-detail-summary-grid,
+            .case-detail-referral-grid { grid-template-columns: 1fr; }
+            .case-detail-time-row,
+            .case-detail-phone-box { align-items: flex-start; flex-direction: column; }
+        }
+
+        @media (max-width: 480px) {
+            .case-detail-vitals,
+            .case-detail-actions { grid-template-columns: 1fr; flex-direction: column; }
+        }
+
         .status-pill {
             display: inline-flex;
             align-items: center;
@@ -155,7 +424,7 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
             padding: 4px 10px;
             border-radius: 8px;
             font-size: 12px;
-            font-weight: 800;
+            font-weight: 700;
         }
 
         .status-pending { background: rgba(220, 38, 38, 0.15); color: #DC2626; border: 1px solid #DC2626; }
@@ -187,6 +456,22 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4);
             color: var(--text-primary);
         }
+
+        /* Keep the case viewer identical in width to the Red Alert Station modal.
+           This rule must remain after the shared .modal-box rule. */
+        .modal-box.case-detail-modal-box {
+            width: 100%;
+            max-width: 760px;
+            padding: 22px 26px;
+            border: none;
+            border-radius: 26px;
+            box-shadow: none;
+            background: rgba(248, 250, 252, 0.94);
+        }
+
+        [data-theme="dark"] .modal-box.case-detail-modal-box {
+            background: rgba(15, 23, 42, 0.94);
+        }
     </style>
 </head>
 <body>
@@ -198,7 +483,7 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
             <!-- Header Section -->
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
                 <div>
-                    <h1 style="margin: 0; font-size: 22px; font-weight: 900; color: var(--color-accent, #0d2c54); display: flex; align-items: center; gap: 10px;">
+                    <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: var(--color-accent, #0d2c54); display: flex; align-items: center; gap: 10px;">
                         <span>🚨 ศูนย์จัดการเคสวิกฤต & ส่งต่อการรักษา (Emergency Triage)</span>
                     </h1>
                     <p style="margin: 4px 0 0 0; font-size: 13.5px; color: var(--text-secondary);">
@@ -207,11 +492,13 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                    <a href="download_station.php?format=zip" class="btn-action" style="background: linear-gradient(135deg, #10B981, #059669); color: white; text-decoration: none; padding: 10px 18px; border-radius: 12px; font-weight: 800; font-size: 13px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); display: inline-flex; align-items: center; gap: 6px;" title="ดาวน์โหลดโปรแกรม NCDs Red Alert Station (ไฟล์ .ZIP ปลอดภัย ไม่โดนบล็อก)">
-                        <span>📥 ดาวน์โหลดแอป (.zip)</span>
+                    <a href="download_station.php?format=zip" class="referral-header-action download" title="ดาวน์โหลดตัวรับสัญญาณระบบ NCDs Red Alert Station">
+                        <span class="action-icon">📥</span>
+                        <span>ดาวน์โหลดตัวรับสัญญาณ</span>
                     </a>
-                    <a href="emergency_receiver.php" onclick="openOrFocusTab('emergency_receiver.php', 'ncd_red_alert_station_tab'); return false;" class="btn-action" style="background: linear-gradient(135deg, #DC2626, #991B1B); color: white; text-decoration: none; padding: 10px 18px; border-radius: 12px; font-weight: 800; font-size: 13px; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35); display: inline-flex; align-items: center; gap: 6px;">
-                        <span>🖥️ เปิดหน้าจอ Red Alert Station</span>
+                    <a href="emergency_receiver.php" onclick="openOrFocusTab('emergency_receiver.php', 'ncd_red_alert_station_tab'); return false;" class="referral-header-action station">
+                        <span class="action-icon">🖥️</span>
+                        <span>เปิดหน้าจอ Red Alert Station</span>
                     </a>
                 </div>
             </div>
@@ -219,27 +506,27 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
             <!-- KPI Metric Cards -->
             <div class="kpi-grid-referral">
                 <div class="referral-card" style="border-left: 4px solid #DC2626;">
-                    <div style="font-size: 12px; font-weight: 800; color: var(--text-secondary);">เคสรอรับเรื่องด่วน (Pending)</div>
+                    <div style="font-size: 12px; font-weight: 500; color: var(--text-secondary);">เคสรอรับเรื่องด่วน (Pending)</div>
                     <div style="font-size: 32px; font-weight: 900; color: #DC2626; margin-top: 4px;">
-                        <?= number_format($stats['pending_count']) ?> <span style="font-size: 14px; font-weight: 700; color: var(--text-secondary);">เคส</span>
+                        <?= number_format($stats['pending_count']) ?> <span style="font-size: 14px; font-weight: 500; color: var(--text-secondary);">เคส</span>
                     </div>
                 </div>
                 <div class="referral-card" style="border-left: 4px solid #F59E0B;">
-                    <div style="font-size: 12px; font-weight: 800; color: var(--text-secondary);">รับทราบแล้ว/กำลังดูแล</div>
+                    <div style="font-size: 12px; font-weight: 500; color: var(--text-secondary);">รับทราบแล้ว/กำลังดูแล</div>
                     <div style="font-size: 32px; font-weight: 900; color: #F59E0B; margin-top: 4px;">
-                        <?= number_format($stats['ack_count']) ?> <span style="font-size: 14px; font-weight: 700; color: var(--text-secondary);">เคส</span>
+                        <?= number_format($stats['ack_count']) ?> <span style="font-size: 14px; font-weight: 500; color: var(--text-secondary);">เคส</span>
                     </div>
                 </div>
                 <div class="referral-card" style="border-left: 4px solid #3B82F6;">
-                    <div style="font-size: 12px; font-weight: 800; color: var(--text-secondary);">ส่งต่อ รพ.ตาลสุม แล้ว</div>
+                    <div style="font-size: 12px; font-weight: 500; color: var(--text-secondary);">ส่งต่อ รพ.ตาลสุม แล้ว</div>
                     <div style="font-size: 32px; font-weight: 900; color: #3B82F6; margin-top: 4px;">
-                        <?= number_format($stats['referred_count']) ?> <span style="font-size: 14px; font-weight: 700; color: var(--text-secondary);">เคส</span>
+                        <?= number_format($stats['referred_count']) ?> <span style="font-size: 14px; font-weight: 500; color: var(--text-secondary);">เคส</span>
                     </div>
                 </div>
                 <div class="referral-card" style="border-left: 4px solid #10B981;">
-                    <div style="font-size: 12px; font-weight: 800; color: var(--text-secondary);">ซิงค์สร้างใน JHCIS แล้ว</div>
+                    <div style="font-size: 12px; font-weight: 500; color: var(--text-secondary);">ซิงค์สร้างใน JHCIS แล้ว</div>
                     <div style="font-size: 32px; font-weight: 900; color: #10B981; margin-top: 4px;">
-                        <?= number_format($stats['jhcis_synced_count']) ?> <span style="font-size: 14px; font-weight: 700; color: var(--text-secondary);">เคส</span>
+                        <?= number_format($stats['jhcis_synced_count']) ?> <span style="font-size: 14px; font-weight: 500; color: var(--text-secondary);">เคส</span>
                     </div>
                 </div>
             </div>
@@ -248,9 +535,9 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
             <div class="referral-card" style="margin-bottom: 20px; padding: 14px 20px;">
                 <form method="GET" action="critical_referrals.php" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
                     <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                        <span style="font-size: 13px; font-weight: 800; color: var(--text-primary);">กรองข้อมูล:</span>
+                        <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">กรองข้อมูล:</span>
                         
-                        <select name="hoscode" onchange="this.form.submit()" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 10px; font-size: 13px; font-weight: 700; outline: none;">
+                        <select name="hoscode" onchange="this.form.submit()" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 10px; font-size: 13px; font-weight: 500; outline: none;">
                             <option value="">ทุก รพ.สต. (ภาพรวมอำเภอ)</option>
                             <?php foreach ($hc_names as $code => $name): ?>
                                 <option value="<?= $code ?>" <?= $selected_hoscode == $code ? 'selected' : '' ?>>
@@ -259,7 +546,7 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
                             <?php endforeach; ?>
                         </select>
 
-                        <select name="status" onchange="this.form.submit()" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 10px; font-size: 13px; font-weight: 700; outline: none;">
+                        <select name="status" onchange="this.form.submit()" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 10px; font-size: 13px; font-weight: 500; outline: none;">
                             <option value="all" <?= $status_filter === 'all' ? 'selected' : '' ?>>ทุกสถานะ</option>
                             <option value="pending" <?= $status_filter === 'pending' ? 'selected' : '' ?>>🚨 รอรับเรื่อง (Pending)</option>
                             <option value="acknowledged" <?= $status_filter === 'acknowledged' ? 'selected' : '' ?>>⏳ รับทราบแล้ว (Acknowledged)</option>
@@ -277,7 +564,7 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
             <!-- Table of Emergency Cases -->
             <div class="referral-card">
                 <div class="table-responsive">
-                    <table class="custom-table" style="width: 100%; border-collapse: collapse;">
+                    <table class="custom-table referral-case-table" style="width: 100%; border-collapse: collapse;">
                         <thead>
                             <tr>
                                 <th style="text-align: center; width: 60px;">#</th>
@@ -307,12 +594,17 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
                                         ? "https://www.google.com/maps?q={$row['latitude']},{$row['longitude']}"
                                         : "https://www.google.com/maps/search/อำเภอตาลสุม";
                                     ?>
-                                    <tr style="<?= $isPending ? 'background: rgba(220, 38, 38, 0.05);' : '' ?>">
-                                        <td style="text-align: center; font-weight: 800; color: var(--text-secondary);">
+                                    <tr class="case-row<?= $isPending ? ' is-pending' : '' ?>"
+                                        tabindex="0"
+                                        role="button"
+                                        aria-label="เปิดรายละเอียดเคส #<?= $row['alert_id'] ?>"
+                                        onclick="openCaseDetail(event, <?= htmlspecialchars(json_encode($row), ENT_QUOTES, 'UTF-8') ?>)"
+                                        onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openCaseDetail(event, <?= htmlspecialchars(json_encode($row), ENT_QUOTES, 'UTF-8') ?>); }">
+                                        <td style="text-align: center; font-weight: 700; color: var(--text-secondary);">
                                             #<?= $row['alert_id'] ?>
                                         </td>
                                         <td>
-                                            <div style="font-weight: 800; font-size: 14.5px; color: var(--text-primary);">
+                                            <div style="font-weight: 600; font-size: 14.5px; color: var(--text-primary);">
                                                 <?= htmlspecialchars($row['patient_name']) ?>
                                             </div>
                                             <div style="font-size: 11.5px; color: var(--text-secondary); font-family: monospace;">
@@ -320,7 +612,7 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
                                             </div>
                                         </td>
                                         <td>
-                                            <div style="font-size: 12.5px; font-weight: 600;">
+                                            <div style="font-size: 12.5px; font-weight: 400;">
                                                 บ้านเลขที่ <?= htmlspecialchars($row['house_no'] ?: '-') ?> ม.<?= htmlspecialchars($row['moo'] ?: '-') ?>
                                             </div>
                                             <div style="font-size: 11.5px; color: var(--text-secondary);">
@@ -328,15 +620,15 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
                                             </div>
                                         </td>
                                         <td>
-                                            <div style="font-size: 14px; font-weight: 900; color: <?= $row['sbp'] >= 180 ? '#DC2626' : '#10B981' ?>;">
+                                            <div style="font-size: 14px; font-weight: 800; color: <?= $row['sbp'] >= 180 ? '#DC2626' : '#10B981' ?>;">
                                                 BP: <?= $row['sbp'] ? "{$row['sbp']}/{$row['dbp']}" : '-' ?> mmHg
                                             </div>
-                                            <div style="font-size: 12px; font-weight: 800; color: <?= $row['dtx'] >= 300 ? '#DC2626' : '#F59E0B' ?>;">
+                                            <div style="font-size: 12px; font-weight: 700; color: <?= $row['dtx'] >= 300 ? '#DC2626' : '#F59E0B' ?>;">
                                                 DTX: <?= $row['dtx'] ? "{$row['dtx']} mg%" : '-' ?>
                                             </div>
                                         </td>
                                         <td>
-                                            <div style="font-size: 12.5px; font-weight: 800; color: #DC2626;">
+                                            <div style="font-size: 12.5px; font-weight: 600; color: #DC2626;">
                                                 <?= htmlspecialchars($row['crisis_type']) ?>
                                             </div>
                                             <?php if (!empty($row['red_flags'])): ?>
@@ -346,7 +638,7 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
                                             <?php endif; ?>
                                         </td>
                                         <td>
-                                            <div style="font-size: 12.5px; font-weight: 700;">
+                                            <div style="font-size: 12.5px; font-weight: 500;">
                                                 <?= htmlspecialchars($row['vhv_name'] ?: 'อสม. ในพื้นที่') ?>
                                             </div>
                                             <?php 
@@ -354,7 +646,7 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
                                             $cbType = ($row['contact_type'] ?? 'vhv') === 'relative' ? 'ญาติ' : 'อสม.';
                                             if (!empty($cbPhone)): 
                                             ?>
-                                                <a href="tel:<?= htmlspecialchars($cbPhone) ?>" style="display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; color: #10B981; text-decoration: none; font-weight: 800; background: rgba(16,185,129,0.1); padding: 2px 6px; border-radius: 6px; margin-top: 3px;">
+                                                <a href="tel:<?= htmlspecialchars($cbPhone) ?>" style="display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; color: #10B981; text-decoration: none; font-weight: 700; background: rgba(16,185,129,0.1); padding: 2px 6px; border-radius: 6px; margin-top: 3px;">
                                                     📞 <?= htmlspecialchars($cbPhone) ?> <span style="font-size: 10px; font-weight: normal; color: var(--text-muted);">(<?= $cbType ?>)</span>
                                                 </a>
                                             <?php endif; ?>
@@ -367,7 +659,7 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
                                             <?php elseif ($row['alert_status'] === 'referred_hospital'): ?>
                                                 <span class="status-pill status-referred_hospital">🏥 ส่งต่อ รพ.</span>
                                                 <?php if ($row['is_jhcis_synced']): ?>
-                                                    <div style="font-size: 10.5px; color: #10B981; font-weight: 800; margin-top: 3px;">✓ JHCIS Synced</div>
+                                                    <div style="font-size: 10.5px; color: #10B981; font-weight: 600; margin-top: 3px;">✓ JHCIS Synced</div>
                                                 <?php endif; ?>
                                             <?php else: ?>
                                                 <span class="status-pill status-resolved">✅ ปิดเคสแล้ว</span>
@@ -376,21 +668,21 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
                                         <td style="text-align: center;">
                                             <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
                                                 <?php if ($isPending): ?>
-                                                    <button type="button" onclick="ackAlert(<?= $row['alert_id'] ?>)" class="btn-action" style="padding: 5px 10px; font-size: 11.5px; background: #DC2626; color: white; border: none; border-radius: 8px; font-weight: 800; cursor: pointer;">
+                                                    <button type="button" onclick="ackAlert(<?= $row['alert_id'] ?>)" class="btn-action" style="padding: 5px 10px; font-size: 11.5px; background: #DC2626; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
                                                         🔕 รับเรื่อง
                                                     </button>
                                                 <?php endif; ?>
                                                 
-                                                <button type="button" onclick="openReferModal(<?= htmlspecialchars(json_encode($row), ENT_QUOTES, 'UTF-8') ?>)" class="btn-action" style="padding: 5px 10px; font-size: 11.5px; background: #3B82F6; color: white; border: none; border-radius: 8px; font-weight: 800; cursor: pointer;">
+                                                <button type="button" onclick="openReferModal(<?= htmlspecialchars(json_encode($row), ENT_QUOTES, 'UTF-8') ?>)" class="btn-action" style="padding: 5px 10px; font-size: 11.5px; background: #3B82F6; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
                                                     🏥 สั่งส่งต่อ
                                                 </button>
 
-                                                <button type="button" onclick="openSlipModal(<?= htmlspecialchars(json_encode($row), ENT_QUOTES, 'UTF-8') ?>)" class="btn-action" style="padding: 5px 10px; font-size: 11.5px; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; font-weight: 700; cursor: pointer;" title="ออกใบส่งต่ออิเล็กทรอนิกส์">
+                                                <button type="button" onclick="openSlipModal(<?= htmlspecialchars(json_encode($row), ENT_QUOTES, 'UTF-8') ?>)" class="btn-action" style="padding: 5px 10px; font-size: 11.5px; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; font-weight: 600; cursor: pointer;" title="ออกใบส่งต่ออิเล็กทรอนิกส์">
                                                     📋 e-Slip
                                                 </button>
 
-                                                <a href="<?= $mapUrl ?>" target="_blank" class="btn-action" style="padding: 5px 10px; font-size: 11.5px; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; text-decoration: none; font-weight: 700;" title="เปิดแผนที่นำทาง">
-                                                    🗺️
+                                                <a href="<?= $mapUrl ?>" target="_blank" class="btn-action" style="padding: 5px 10px; font-size: 11.5px; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; text-decoration: none; font-weight: 600;" title="เปิดแผนที่นำทาง">
+                                                    ⚓️
                                                 </a>
                                             </div>
                                         </td>
@@ -402,6 +694,83 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Read-only case detail modal -->
+    <div id="case-detail-modal" class="modal-backdrop" onclick="closeCaseDetailFromBackdrop(event)">
+        <div class="modal-box case-detail-modal-box" role="dialog" aria-modal="true" aria-labelledby="case-detail-title" tabindex="-1">
+            <h2 id="case-detail-title" class="case-detail-heading">-</h2>
+
+            <div class="case-detail-summary-grid">
+                <div class="case-detail-summary-item">
+                    <span class="case-detail-label">รหัสเคส</span>
+                    <div id="detail-case-id" class="case-detail-value">-</div>
+                </div>
+                <div class="case-detail-summary-item">
+                    <span class="case-detail-label">เลขประจำตัวเป้าหมาย (CID)</span>
+                    <div id="detail-cid" class="case-detail-value">-</div>
+                </div>
+                <div class="case-detail-summary-item">
+                    <span class="case-detail-label">สถานะเคส</span>
+                    <div id="detail-case-status" class="case-detail-value">-</div>
+                </div>
+            </div>
+
+            <div class="case-detail-panel">
+                <div class="case-detail-time-row">
+                    <span class="case-detail-label" style="margin: 0; font-size: 13.5px;">วันและเวลาที่แจ้ง:</span>
+                    <span id="detail-created-at" class="case-detail-time-value">-</span>
+                </div>
+
+                <div class="case-detail-vitals">
+                    <div class="case-detail-card">
+                        <span class="case-detail-label">🩺 ความดันโลหิต</span>
+                        <div id="detail-bp" class="case-detail-value critical">-</div>
+                    </div>
+                    <div class="case-detail-card">
+                        <span class="case-detail-label">🩸 น้ำตาล DTX</span>
+                        <div id="detail-dtx" class="case-detail-value critical" style="color: #D97706;">-</div>
+                    </div>
+                </div>
+
+                <div class="case-detail-line">
+                    <span class="case-detail-line-icon">📍</span>
+                    <div><strong>ที่อยู่:</strong> <span id="detail-address">-</span> <span id="detail-hoscode" style="color: var(--text-secondary);">-</span></div>
+                </div>
+                <div class="case-detail-line">
+                    <span class="case-detail-line-icon">⚠️</span>
+                    <div><strong>ภาวะวิกฤต:</strong> <span id="detail-crisis" style="color: #DC2626; font-weight: 700;">-</span></div>
+                </div>
+                <div class="case-detail-line">
+                    <span class="case-detail-line-icon">👩‍⚕️</span>
+                    <div><strong>อสม. ผู้แจ้ง:</strong> <span id="detail-contact">-</span></div>
+                </div>
+
+                <div id="detail-phone-box" class="case-detail-phone-box">
+                    <div>
+                        <span class="case-detail-label" style="color: #059669;">เบอร์โทรติดต่อกลับด่วน:</span>
+                        <div id="detail-contact-phone" class="case-detail-value" style="font-size: 19px; font-weight: 900;">-</div>
+                    </div>
+                    <a id="detail-call-link-inline" class="case-detail-action call" href="#" style="flex: 0 0 auto; min-height: 40px;">📞 โทรทันที</a>
+                </div>
+
+                <div class="case-detail-referral-grid">
+                    <div class="case-detail-card">
+                        <span class="case-detail-label">ข้อมูลการส่งต่อ</span>
+                        <div id="detail-referral" class="case-detail-value">-</div>
+                    </div>
+                    <div class="case-detail-card">
+                        <span class="case-detail-label">สถานะ JHCIS</span>
+                        <div id="detail-jhcis" class="case-detail-value">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="case-detail-actions">
+                <a id="detail-map-link" class="case-detail-action map" href="#" target="_blank" rel="noopener">⚓️ เปิดแผนที่ GPS</a>
+                <a id="detail-call-link" class="case-detail-action call" href="#">📞 โทรติดต่อ</a>
+            </div>
+        </div>
     </div>
 
     <!-- Refer & JHCIS Action Modal -->
@@ -500,6 +869,115 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
 
     <!-- Scripts -->
     <script>
+        let lastCaseDetailTrigger = null;
+
+        function setCaseDetailText(id, value) {
+            document.getElementById(id).textContent = value || '-';
+        }
+
+        function formatCaseDateTime(value) {
+            if (!value) return '-';
+            const date = new Date(String(value).replace(/-/g, '/'));
+            if (Number.isNaN(date.getTime())) return value;
+
+            const now = new Date();
+            const diffSeconds = Math.max(0, Math.floor((now - date) / 1000));
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const buddhistYear = date.getFullYear() + 543;
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+
+            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            const startOfCaseDay = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+            const dayDifference = Math.max(0, Math.floor((startOfToday - startOfCaseDay) / 86400000));
+
+            let elapsedText;
+            if (dayDifference === 0) {
+                if (diffSeconds < 45) {
+                    elapsedText = 'เมื่อสักครู่';
+                } else if (diffSeconds < 3600) {
+                    elapsedText = `${Math.floor(diffSeconds / 60)} นาทีที่แล้ว`;
+                } else {
+                    elapsedText = `${Math.floor(diffSeconds / 3600)} ชม. ที่แล้ว`;
+                }
+            } else {
+                elapsedText = `${dayDifference} วันที่แล้ว`;
+            }
+
+            return `🕒 ${day}/${month}/${buddhistYear} • ${hours}:${minutes} น. (${elapsedText})`;
+        }
+
+        function getCaseStatusText(status) {
+            const labels = {
+                pending: '🚨 รอรับเรื่อง',
+                acknowledged: '⏳ รับทราบแล้ว / กำลังดูแล',
+                referred_hospital: '🏥 ส่งต่อโรงพยาบาลแล้ว',
+                resolved: '✅ ปิดเคสแล้ว'
+            };
+            return labels[status] || status || '-';
+        }
+
+        function openCaseDetail(event, alert) {
+            if (event.target.closest('a, button, input, select, textarea, label')) return;
+
+            lastCaseDetailTrigger = event.currentTarget;
+            const phone = alert.contact_phone || alert.vhv_phone || '';
+            const redFlags = alert.red_flags ? ` • ${alert.red_flags}` : '';
+            const referralNotes = alert.referral_notes ? ` • ${alert.referral_notes}` : '';
+
+            setCaseDetailText('case-detail-title', `${alert.patient_name || 'ไม่ระบุชื่อ'}${alert.age ? ` (อายุ ${alert.age} ปี)` : ''}`);
+            setCaseDetailText('detail-case-id', `#${alert.alert_id}`);
+            setCaseDetailText('detail-case-status', getCaseStatusText(alert.alert_status));
+            setCaseDetailText('detail-cid', alert.target_cid);
+            setCaseDetailText('detail-created-at', formatCaseDateTime(alert.created_at));
+            setCaseDetailText('detail-bp', `${alert.sbp || '-'}/${alert.dbp || '-'} mmHg`);
+            setCaseDetailText('detail-dtx', `${alert.dtx || '-'} mg%`);
+            setCaseDetailText('detail-hoscode', alert.hoscode ? `(รพ.สต. ${alert.hoscode})` : '');
+            setCaseDetailText('detail-address', `บ้านเลขที่ ${alert.house_no || '-'} หมู่ ${alert.moo || '-'}`);
+            setCaseDetailText('detail-contact', alert.vhv_name || 'อสม. ในพื้นที่');
+            setCaseDetailText('detail-contact-phone', phone);
+            setCaseDetailText('detail-crisis', `${alert.crisis_type || '-'}${redFlags}`);
+            setCaseDetailText('detail-referral', `${alert.referral_destination || 'ยังไม่ระบุปลายทาง'}${referralNotes}`);
+            setCaseDetailText('detail-jhcis', alert.is_jhcis_synced == 1
+                ? `ซิงค์แล้ว${alert.jhcis_visitno ? ` • Visit No. ${alert.jhcis_visitno}` : ''}`
+                : 'ยังไม่ซิงค์');
+
+            const callLink = document.getElementById('detail-call-link');
+            callLink.href = phone ? `tel:${phone}` : '#';
+            callLink.style.display = phone ? 'inline-flex' : 'none';
+            const inlineCallLink = document.getElementById('detail-call-link-inline');
+            inlineCallLink.href = phone ? `tel:${phone}` : '#';
+            document.getElementById('detail-phone-box').style.display = phone ? 'flex' : 'none';
+
+            const mapLink = document.getElementById('detail-map-link');
+            const hasCoordinates = alert.latitude && alert.longitude;
+            mapLink.href = hasCoordinates
+                ? `https://www.google.com/maps?q=${alert.latitude},${alert.longitude}`
+                : 'https://www.google.com/maps/search/อำเภอตาลสุม';
+
+            const modal = document.getElementById('case-detail-modal');
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            modal.querySelector('.case-detail-modal-box').focus?.();
+        }
+
+        function closeCaseDetail() {
+            const modal = document.getElementById('case-detail-modal');
+            if (modal.style.display !== 'flex') return;
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+            lastCaseDetailTrigger?.focus();
+        }
+
+        function closeCaseDetailFromBackdrop(event) {
+            if (event.target === event.currentTarget) closeCaseDetail();
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') closeCaseDetail();
+        });
+
         function ackAlert(alertId) {
             const formData = new FormData();
             formData.append('action', 'acknowledge_alert');

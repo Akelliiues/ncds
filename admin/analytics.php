@@ -1930,7 +1930,7 @@ if (is_array($analyticsData)) {
         <!-- AI-Powered Executive Summary Diagnostic Card -->
         <div class="card-dark" style="margin-bottom: 30px; border-left: 4px solid var(--color-primary); padding: 24px;">
             <h3 style="color: var(--color-primary); margin-top: 0; margin-bottom: 16px; font-size: 17px; display: flex; align-items: center; gap: 8px;">
-                <span>🔮 บทวิเคราะห์เชิงรุกและชี้เป้าทางระบาดวิทยา (Spatial & Predictive Insights)</span>
+                <span>🔮 การวิเคราะห์เชิงพื้นที่และจัดลำดับความเร่งด่วนในการติดตาม (Spatial & Priority Insights)</span>
             </h3>
 
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 20px;">
@@ -2359,7 +2359,7 @@ if (is_array($analyticsData)) {
                             <th style="text-align: right;">คัดกรอง (ราย)</th>
                             <th style="text-align: right;">พบเสี่ยงจริง (ราย)</th>
                             <th style="text-align: right;">อัตรา Yield (%)</th>
-                            <th style="text-align: right;">ลูกบ้านสุขภาพดีขึ้น (ราย)</th>
+                            <th style="text-align: right;">มีค่าตัวชี้วัดดีขึ้นตามเกณฑ์ (ราย)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -2493,7 +2493,7 @@ if (is_array($analyticsData)) {
                             <th>หมู่</th>
                             <th style="text-align: right;">จำนวนในโครงการ (ราย)</th>
                             <th style="text-align: right;">ติดตามประเมิน 2 รอบขึ้นไป</th>
-                            <th style="text-align: right;">จำนวนที่ค่าสุขภาพดีขึ้น (ราย)</th>
+                            <th style="text-align: right;">จำนวนที่มีค่าตัวชี้วัดดีขึ้นตามเกณฑ์ (ราย)</th>
                             <th style="text-align: right;">อัตราสำเร็จ (%)</th>
                         </tr>
                     </thead>

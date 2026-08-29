@@ -67,7 +67,7 @@ if (!empty($_SESSION['is_admin_impersonating'])):
 <?php
 // 2. แถบแจ้งเตือนโหมด Demo Sandbox
 elseif (isset($_SESSION['is_demo_mode']) && $_SESSION['is_demo_mode'] === true):
-    $roleName = 'อสม. (หมอคนที่ 1)';
+    $roleName = 'อสม.';
     if (($_SESSION['demo_role'] ?? '') === 'staff') {
         $roleName = 'เจ้าหน้าที่ รพ.สต.';
     } elseif (($_SESSION['demo_role'] ?? '') === 'admin') {

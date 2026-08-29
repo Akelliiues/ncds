@@ -620,6 +620,16 @@ try {
 }
 $hcNames = get_health_units();
 
+// Virtual Mode uses a presentation-only eight-unit league. It is not backed
+// by target_population, assignments or screening_results and therefore cannot
+// alter or leak into operational statistics.
+if (DemoDataProvider::isDemoMode()) {
+    $hospitalStats = DemoDataProvider::getDemoHospitalLeague();
+    foreach ($hospitalStats as $demoHospital) {
+        $hcNames[$demoHospital['hoscode']] = $demoHospital['hosname'];
+    }
+}
+
 // Filter leaderboard for VHVs under current VHV's hospital (hoscode) for Zone Leaderboard ("สมรภูมิเขตรับผิดชอบ")
 $currentHoscode = $_SESSION['hoscode'] ?? '';
 if (empty($currentHoscode)) {

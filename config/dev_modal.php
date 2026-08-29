@@ -352,7 +352,7 @@ if (file_exists('assets/aboutus.png')) {
             <div class="dev-feature-item">
                 <div class="dev-feature-icon">📡</div>
                 <div class="dev-feature-label">Realtime</div>
-                <div class="dev-feature-sub">เฝ้าระวัง 24 ชม.</div>
+                <div class="dev-feature-sub">เฝ้าระวังความเสี่ยง</div>
             </div>
             <div class="dev-feature-item">
                 <div class="dev-feature-icon">🛡️</div>
@@ -361,8 +361,8 @@ if (file_exists('assets/aboutus.png')) {
             </div>
             <div class="dev-feature-item">
                 <div class="dev-feature-icon">🏥</div>
-                <div class="dev-feature-label">HIS Sync</div>
-                <div class="dev-feature-sub">เชื่อม รพ.สต.</div>
+                <div class="dev-feature-label">JHCIS Sync</div>
+                <div class="dev-feature-sub">เชื่อมระบบงานปฐมภูมิ</div>
             </div>
         </div>
 

@@ -8,7 +8,16 @@ require_once __DIR__ . '/../config/demo_data.php';
 $isShell = isset($_GET['shell']) && $_GET['shell'] === 'true';
 $hid = $_GET['hid'] ?? '';
 $cid = $_GET['cid'] ?? '';
-$code = !empty($hid) ? $hid : $cid;
+$code = $_GET['code'] ?? (!empty($hid) ? $hid : $cid);
+
+if (empty($hid) && empty($cid) && !empty($code)) {
+    $trimmedCode = trim($code);
+    if (strlen($trimmedCode) === 13 && ctype_digit($trimmedCode)) {
+        $cid = $trimmedCode;
+    } else {
+        $hid = $trimmedCode;
+    }
+}
 
 if (!isset($_SESSION['vhv_id'])) {
     $redirectUrl = '../qr.php' . (!empty($code) ? '?code=' . urlencode($code) : '');
@@ -626,7 +635,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                         <?php endif; ?>
                     </div>
 
-                    <?php if ($isDemo): ?>
+                    <?php if ($isDemo || isSandboxMode($hoscode) || (isset($_GET['debug']) && $_GET['debug'] === 'true') || (isset($_GET['demo']) && $_GET['demo'] === 'true')): ?>
                     <!-- Demo Quick Preset Testing Toolbar -->
                     <div class="card-dark" style="padding: 14px; margin-bottom: 20px; border: 1.5px dashed #3B82F6; background: rgba(59, 130, 246, 0.04); border-radius: var(--border-radius);">
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
@@ -639,29 +648,19 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                             เลือกชุดค่าตรวจเพื่อทดสอบการประเมินความเสี่ยงและเปรียบเทียบผล:
                         </p>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                            <button type="button" onclick="applyDemoPreset('normal')" style="padding: 8px 6px; border-radius: 10px; border: 1px solid rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08); color: #10B981; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                            <button type="button" data-demo-preset="normal" style="padding: 10px 6px; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08); color: #10B981; font-size: 12.5px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
                                 🟢 สุขภาพปกติ (118/76)
                             </button>
-                            <button type="button" onclick="applyDemoPreset('risk')" style="padding: 8px 6px; border-radius: 10px; border: 1px solid rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08); color: #D97706; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                            <button type="button" data-demo-preset="risk" style="padding: 10px 6px; border-radius: 12px; border: 1px solid rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08); color: #D97706; font-size: 12.5px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
                                 🟡 กลุ่มเสี่ยง (134/86)
                             </button>
-                            <button type="button" onclick="applyDemoPreset('high_risk')" style="padding: 8px 6px; border-radius: 10px; border: 1px solid rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.08); color: #EF4444; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                            <button type="button" data-demo-preset="high_risk" style="padding: 10px 6px; border-radius: 12px; border: 1px solid rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.08); color: #EF4444; font-size: 12.5px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
                                 🟠 สงสัยป่วย (158/96)
                             </button>
-                            <button type="button" onclick="applyDemoPreset('critical')" style="padding: 8px 6px; border-radius: 10px; border: 1px solid rgba(220, 38, 38, 0.4); background: rgba(220, 38, 38, 0.12); color: #B91C1C; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                            <button type="button" data-demo-preset="critical" style="padding: 10px 6px; border-radius: 12px; border: 1px solid rgba(220, 38, 38, 0.4); background: rgba(220, 38, 38, 0.12); color: #B91C1C; font-size: 12.5px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
                                 🔴 วิกฤตด่วน (185/112)
                             </button>
                         </div>
-                        <?php if (intval($activeResident['round_number'] ?? 1) >= 2 || (isset($activeResident['health_case']) && $activeResident['health_case'] === 'round2_comparison')): ?>
-                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(59, 130, 246, 0.25); display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                            <button type="button" onclick="applyDemoPreset('round2_improved')" style="padding: 8px 6px; border-radius: 10px; border: 1.5px solid #10B981; background: #10B981; color: white; font-size: 11.5px; font-weight: 800; cursor: pointer;">
-                                📈 รอบ 2: ผลดีขึ้นชัดเจน
-                            </button>
-                            <button type="button" onclick="applyDemoPreset('round2_worsened')" style="padding: 8px 6px; border-radius: 10px; border: 1.5px solid #F59E0B; background: #F59E0B; color: white; font-size: 11.5px; font-weight: 800; cursor: pointer;">
-                                ⚠️ รอบ 2: ผลแย่ลง/เสี่ยงขึ้น
-                            </button>
-                        </div>
-                        <?php endif; ?>
                     </div>
                     <?php endif; ?>
 
@@ -746,7 +745,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                     </div>
 
                     <!-- Blood Sugar DTX section -->
-                    <div id="section-dtx" style="display: <?= $isDemo ? 'block' : 'none' ?>; margin-bottom: 24px;">
+                    <div id="section-dtx" style="display: block; margin-bottom: 24px;">
                         <span style="color: var(--text-primary); font-size: 18px; font-weight: 800; display: block; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">🩸 วัดระดับน้ำตาลในเลือด (DTX)</span>
                         <div id="last-dtx-info" class="card-dark neumorph-inset" style="padding: 10px 14px; font-size: 13.5px; color: var(--color-accent); font-weight: 700; margin-bottom: 14px; display: none; border-radius: var(--border-radius);"></div>
                         <div style="margin-bottom: 12px;">
@@ -1320,6 +1319,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                             r.birth, 
                             r.need_screen_dm == 1, 
                             r.need_screen_ht == 1, 
+                            r.health_status_origin || 'NORMAL',
                             parseFloat(r.latitude || 0), 
                             parseFloat(r.longitude || 0), 
                             r.last_sbp !== undefined ? r.last_sbp : null,
@@ -1588,9 +1588,8 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             const bpSection = document.getElementById('section-bp');
             const dtxSection = document.getElementById('section-dtx');
 
-            bpSection.style.display = needHt ? 'block' : 'none';
-            const showDtx = needDm || (origin === 'DM_ONLY' || origin === 'BOTH');
-            dtxSection.style.display = showDtx ? 'block' : 'none';
+            if (bpSection) bpSection.style.display = 'block';
+            if (dtxSection) dtxSection.style.display = 'block';
 
             // Display historical BP and DTX values in UI
             const lastBpInfo = document.getElementById('last-bp-info');
@@ -1639,7 +1638,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
         }
 
         // Inline VhvNumPad Class to guarantee zero external dependency failure
-        class VhvNumPad {
+        class ScreeningVhvNumPad {
             constructor(inputId, padContainerId, displayBoxId = null, options = {}) {
                 this.input = document.getElementById(inputId);
                 this.container = document.getElementById(padContainerId);
@@ -1652,6 +1651,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                     unit: ''
                 }, options);
                 this.currentValue = '';
+                this.isFirstInput = true;
                 if (this.input && this.container) {
                     this.init();
                 }
@@ -1687,22 +1687,28 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             handlePress(val) {
                 if (val === 'del') {
                     this.currentValue = this.currentValue.slice(0, -1);
+                    this.isFirstInput = false;
                 } else if (val === '.') {
                     if (this.options.allowDecimal && !this.currentValue.includes('.')) {
-                        this.currentValue += '.';
+                        this.currentValue = (this.currentValue === '' ? '0' : this.currentValue) + '.';
                     }
+                    this.isFirstInput = false;
                 } else {
-                    // Strict digit limit: If already at max digits (e.g. 3 digits), block any further press!
-                    if (this.currentValue.length >= this.options.maxDigits) {
-                        return;
-                    }
-                    const nextValStr = (this.currentValue === '0') ? val : (this.currentValue + val);
-                    const nextValNum = parseFloat(nextValStr);
-                    if (!isNaN(nextValNum)) {
-                        if (nextValNum > this.options.max) {
-                            this.currentValue = this.options.max.toString();
-                        } else {
-                            this.currentValue = nextValStr;
+                    if (this.isFirstInput && this.currentValue !== '') {
+                        this.currentValue = val;
+                        this.isFirstInput = false;
+                    } else {
+                        if (this.currentValue.length >= this.options.maxDigits) {
+                            return;
+                        }
+                        const nextValStr = (this.currentValue === '0') ? val : (this.currentValue + val);
+                        const nextValNum = parseFloat(nextValStr);
+                        if (!isNaN(nextValNum)) {
+                            if (nextValNum > this.options.max) {
+                                this.currentValue = this.options.max.toString();
+                            } else {
+                                this.currentValue = nextValStr;
+                            }
                         }
                     }
                 }
@@ -1711,6 +1717,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
 
             setValue(val) {
                 this.currentValue = (val !== null && val !== undefined && val !== '') ? val.toString() : '';
+                this.isFirstInput = true;
                 if (this.currentValue !== '') {
                     const num = parseFloat(this.currentValue);
                     if (!isNaN(num) && num > this.options.max) {
@@ -1727,15 +1734,16 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 if (this.input) {
                     this.input.value = this.currentValue;
                     this.input.dispatchEvent(new Event('input', { bubbles: true }));
+                    this.input.dispatchEvent(new Event('change', { bubbles: true }));
                 }
                 if (this.displayBox) {
                     this.displayBox.innerText = this.currentValue || '0';
                 }
-                calculateBmi();
-                calculateCvRisk();
+                if (typeof calculateBmi === 'function') calculateBmi();
+                if (typeof calculateCvRisk === 'function') calculateCvRisk();
             }
         }
-        window.VhvNumPad = VhvNumPad;
+        window.ScreeningVhvNumPad = ScreeningVhvNumPad;
 
         // Zero-Typing Num Pad functions
         function openNumPad(inputId, title, customOptions = {}) {
@@ -1762,7 +1770,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             document.getElementById('numpad-overlay').style.display = 'block';
             document.getElementById('numpad-drawer').classList.add('open');
 
-            activeNumPad = new VhvNumPad(inputId, 'numpad-container', 'numpad-display-box', options);
+            activeNumPad = new ScreeningVhvNumPad(inputId, 'numpad-container', 'numpad-display-box', options);
             const currentVal = document.getElementById(inputId).value;
             activeNumPad.setValue(currentVal || '');
         }
@@ -1779,33 +1787,56 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 document.activeElement.blur();
             }
             currentPickerInputId = inputId;
-            document.getElementById('picker-title').innerText = title;
+            const titleEl = document.getElementById('picker-title');
+            if (titleEl) titleEl.innerText = title;
             
             // Show overlay & drawer
-            document.getElementById('picker-overlay').style.display = 'block';
-            document.getElementById('picker-drawer').classList.add('open');
+            const overlay = document.getElementById('picker-overlay');
+            const drawer = document.getElementById('picker-drawer');
+            if (overlay) overlay.style.display = 'block';
+            if (drawer) drawer.classList.add('open');
             
             // Populate integer wheel
             const intWheel = document.getElementById('picker-integer-wheel');
-            let intHtml = '<div class="scroll-picker-item" data-val=""></div>'; // Empty top
+            let intHtml = '<div class="scroll-picker-item" data-val=""></div>'; // Empty top padding
             for (let i = minVal; i <= maxVal; i++) {
                 intHtml += `<div class="scroll-picker-item" data-val="${i}">${i}</div>`;
             }
-            intHtml += '<div class="scroll-picker-item" data-val=""></div>'; // Empty bottom
+            intHtml += '<div class="scroll-picker-item" data-val=""></div>'; // Empty bottom padding
             intWheel.innerHTML = intHtml;
             
             // Populate decimal wheel
             const decWheel = document.getElementById('picker-decimal-wheel');
-            let decHtml = '<div class="scroll-picker-item" data-val=""></div>'; // Empty top
+            let decHtml = '<div class="scroll-picker-item" data-val=""></div>'; // Empty top padding
             for (let i = 0; i <= 9; i++) {
                 decHtml += `<div class="scroll-picker-item" data-val="${i}">${i}</div>`;
             }
-            decHtml += '<div class="scroll-picker-item" data-val=""></div>'; // Empty bottom
+            decHtml += '<div class="scroll-picker-item" data-val=""></div>'; // Empty bottom padding
             decWheel.innerHTML = decHtml;
+
+            // Allow direct clicking on items to select them immediately
+            intWheel.querySelectorAll('.scroll-picker-item').forEach((item, idx) => {
+                if (item.dataset.val !== '') {
+                    item.style.cursor = 'pointer';
+                    item.addEventListener('click', () => {
+                        intWheel.scrollTop = (idx - 1) * 40;
+                        handleWheelScroll('integer');
+                    });
+                }
+            });
+            decWheel.querySelectorAll('.scroll-picker-item').forEach((item, idx) => {
+                if (item.dataset.val !== '') {
+                    item.style.cursor = 'pointer';
+                    item.addEventListener('click', () => {
+                        decWheel.scrollTop = (idx - 1) * 40;
+                        handleWheelScroll('decimal');
+                    });
+                }
+            });
             
             // Get current value or use default
             const input = document.getElementById(inputId);
-            let currentVal = parseFloat(input.value);
+            let currentVal = parseFloat(input ? input.value : 0);
             if (isNaN(currentVal) || currentVal <= 0) {
                 currentVal = defaultVal;
             }
@@ -1813,18 +1844,16 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             const intPart = Math.floor(currentVal);
             const decPart = Math.round((currentVal - intPart) * 10);
             
-            // Scroll to current/default values with a short timeout to allow DOM to render
             setTimeout(() => {
                 scrollWheelToValue(intWheel, intPart);
                 scrollWheelToValue(decWheel, decPart);
-                
-                // Set initial active state highlights
                 handleWheelScroll('integer');
                 handleWheelScroll('decimal');
-            }, 50);
+            }, 60);
         }
 
         function scrollWheelToValue(wheelEl, value) {
+            if (!wheelEl) return;
             const items = wheelEl.querySelectorAll('.scroll-picker-item');
             for (let i = 1; i < items.length - 1; i++) {
                 if (parseInt(items[i].dataset.val, 10) === parseInt(value, 10)) {
@@ -1852,7 +1881,6 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                     }
                 });
                 
-                // Real-time value update to inputs
                 updatePickerInputValueFromWheels();
             }
         }
@@ -1862,6 +1890,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             
             const intWheel = document.getElementById('picker-integer-wheel');
             const decWheel = document.getElementById('picker-decimal-wheel');
+            if (!intWheel || !decWheel) return;
             
             const intIdx = Math.round(intWheel.scrollTop / 40) + 1;
             const decIdx = Math.round(decWheel.scrollTop / 40) + 1;
@@ -1873,21 +1902,23 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 const intVal = intItems[intIdx].dataset.val;
                 const decVal = decItems[decIdx].dataset.val;
                 
-                if (intVal !== "" && decVal !== "") {
+                if (intVal !== "" && intVal !== undefined && decVal !== "" && decVal !== undefined) {
                     const finalVal = `${intVal}.${decVal}`;
                     const input = document.getElementById(currentPickerInputId);
-                    input.value = finalVal;
-                    
-                    // Dispatch input event to trigger BMI and other risk calculations
-                    const event = new Event('input', { bubbles: true });
-                    input.dispatchEvent(event);
+                    if (input) {
+                        input.value = finalVal;
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
                 }
             }
         }
 
         function closeScrollPicker() {
-            document.getElementById('picker-overlay').style.display = 'none';
-            document.getElementById('picker-drawer').classList.remove('open');
+            const overlay = document.getElementById('picker-overlay');
+            const drawer = document.getElementById('picker-drawer');
+            if (overlay) overlay.style.display = 'none';
+            if (drawer) drawer.classList.remove('open');
             currentPickerInputId = null;
         }
 
@@ -2066,6 +2097,35 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 if (el) { el.checked = true; }
             }
 
+            // Ensure selectedResident is populated if empty
+            if (!selectedResident) {
+                const assignId = document.getElementById('assignment_id')?.value || 'DEMO_ASSIGN_1';
+                const resName = document.getElementById('selected-resident-name')?.innerText || 'ผู้รับการคัดกรอง (จำลอง)';
+                selectedResident = {
+                    assignmentId: assignId,
+                    name: resName,
+                    sex: '1',
+                    age: 55,
+                    needDm: true,
+                    needHt: true,
+                    origin: 'BOTH',
+                    homeLat: 15.4300,
+                    homeLng: 104.9800,
+                    lastSbp: 135,
+                    lastDbp: 85,
+                    lastDtx: 118,
+                    lastDtxType: 'fpg'
+                };
+            }
+
+            // Ensure sections are visible
+            const bpSec = document.getElementById('section-bp');
+            if (bpSec) bpSec.style.display = 'block';
+            const dtxSec = document.getElementById('section-dtx');
+            if (dtxSec) dtxSec.style.display = 'block';
+
+            let adviceToSelect = [];
+
             if (type === 'normal') {
                 const w = document.getElementById('weight'); if (w) w.value = '58.0';
                 const h = document.getElementById('height'); if (h) h.value = '165.0';
@@ -2075,11 +2135,14 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 const s2 = document.getElementById('sys_bp2'); if (s2) s2.value = '116';
                 const d2 = document.getElementById('dia_bp2'); if (d2) d2.value = '74';
                 const dtx = document.getElementById('dtx_value'); if (dtx) dtx.value = '92';
+                setRadio('dtx_type', 'fpg');
                 setRadio('diet_risk', 'green');
                 setRadio('exercise_risk', 'green');
                 setRadio('stress_risk', 'green');
                 setRadio('smoking_risk', 'green');
                 setRadio('alcohol_risk', 'green');
+                setRadio('sleep_quality', 'good');
+                adviceToSelect = ['ออกกำลังกาย 30 นาที/วัน', 'ดื่มน้ำเปล่า 6-8 แก้ว/วัน', 'ผ่อนคลาย พักผ่อนให้พอ'];
             } else if (type === 'risk') {
                 const w = document.getElementById('weight'); if (w) w.value = '72.0';
                 const h = document.getElementById('height'); if (h) h.value = '160.0';
@@ -2089,11 +2152,14 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 const s2 = document.getElementById('sys_bp2'); if (s2) s2.value = '132';
                 const d2 = document.getElementById('dia_bp2'); if (d2) d2.value = '84';
                 const dtx = document.getElementById('dtx_value'); if (dtx) dtx.value = '115';
+                setRadio('dtx_type', 'fpg');
                 setRadio('diet_risk', 'yellow');
                 setRadio('exercise_risk', 'red');
                 setRadio('stress_risk', 'yellow');
                 setRadio('smoking_risk', 'green');
                 setRadio('alcohol_risk', 'yellow');
+                setRadio('sleep_quality', 'restless');
+                adviceToSelect = ['ลดเค็ม งดซอส/ปลาร้า', 'เลี่ยงของมัน ของทอด', 'ออกกำลังกาย 30 นาที/วัน'];
             } else if (type === 'high_risk') {
                 const w = document.getElementById('weight'); if (w) w.value = '80.0';
                 const h = document.getElementById('height'); if (h) h.value = '158.0';
@@ -2103,11 +2169,14 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 const s2 = document.getElementById('sys_bp2'); if (s2) s2.value = '155';
                 const d2 = document.getElementById('dia_bp2'); if (d2) d2.value = '94';
                 const dtx = document.getElementById('dtx_value'); if (dtx) dtx.value = '175';
+                setRadio('dtx_type', 'fpg');
                 setRadio('diet_risk', 'orange');
                 setRadio('exercise_risk', 'red');
                 setRadio('stress_risk', 'red');
                 setRadio('smoking_risk', 'yellow');
                 setRadio('alcohol_risk', 'yellow');
+                setRadio('sleep_quality', 'poor');
+                adviceToSelect = ['พบแพทย์ตามนัดสม่ำเสมอ', 'ลดเค็ม งดซอส/ปลาร้า', 'ทานยาต่อเนื่องตามแพทย์สั่ง'];
             } else if (type === 'critical') {
                 const w = document.getElementById('weight'); if (w) w.value = '85.0';
                 const h = document.getElementById('height'); if (h) h.value = '155.0';
@@ -2117,43 +2186,55 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 const s2 = document.getElementById('sys_bp2'); if (s2) s2.value = '182';
                 const d2 = document.getElementById('dia_bp2'); if (d2) d2.value = '110';
                 const dtx = document.getElementById('dtx_value'); if (dtx) dtx.value = '310';
+                setRadio('dtx_type', 'fpg');
                 setRadio('diet_risk', 'red');
                 setRadio('exercise_risk', 'red');
                 setRadio('stress_risk', 'red');
                 setRadio('smoking_risk', 'red');
                 setRadio('alcohol_risk', 'red');
-            } else if (type === 'round2_improved') {
-                const w = document.getElementById('weight'); if (w) w.value = '65.0';
-                const h = document.getElementById('height'); if (h) h.value = '165.0';
-                const wst = document.getElementById('waist'); if (wst) wst.value = '31.0';
-                const s1 = document.getElementById('sys_bp1'); if (s1) s1.value = '122';
-                const d1 = document.getElementById('dia_bp1'); if (d1) d1.value = '78';
-                const s2 = document.getElementById('sys_bp2'); if (s2) s2.value = '120';
-                const d2 = document.getElementById('dia_bp2'); if (d2) d2.value = '76';
-                const dtx = document.getElementById('dtx_value'); if (dtx) dtx.value = '102';
-                setRadio('diet_risk', 'green');
-                setRadio('exercise_risk', 'green');
-                setRadio('stress_risk', 'green');
-                setRadio('smoking_risk', 'green');
-                setRadio('alcohol_risk', 'green');
-            } else if (type === 'round2_worsened') {
-                const w = document.getElementById('weight'); if (w) w.value = '82.0';
-                const h = document.getElementById('height'); if (h) h.value = '165.0';
-                const wst = document.getElementById('waist'); if (wst) wst.value = '38.0';
-                const s1 = document.getElementById('sys_bp1'); if (s1) s1.value = '168';
-                const d1 = document.getElementById('dia_bp1'); if (d1) d1.value = '102';
-                const s2 = document.getElementById('sys_bp2'); if (s2) s2.value = '165';
-                const d2 = document.getElementById('dia_bp2'); if (d2) d2.value = '100';
-                const dtx = document.getElementById('dtx_value'); if (dtx) dtx.value = '215';
-                setRadio('diet_risk', 'red');
-                setRadio('exercise_risk', 'red');
-                setRadio('stress_risk', 'red');
-                setRadio('smoking_risk', 'red');
-                setRadio('alcohol_risk', 'red');
+                setRadio('sleep_quality', 'poor');
+                adviceToSelect = ['พบแพทย์ตามนัดสม่ำเสมอ', 'ทานยาต่อเนื่องตามแพทย์สั่ง', 'ลดเค็ม งดซอส/ปลาร้า'];
             }
+
+            // Auto-select advice cards
+            const selectedTexts = [];
+            document.querySelectorAll('.advice-image-card').forEach(card => {
+                const text = card.getAttribute('data-text');
+                if (adviceToSelect.includes(text)) {
+                    card.classList.add('selected');
+                    selectedTexts.push(text);
+                } else {
+                    card.classList.remove('selected');
+                }
+            });
+            const advInput = document.getElementById('advice_given');
+            if (advInput) advInput.value = selectedTexts.join(', ');
+
+            // Trigger events and recalculate
+            ['weight', 'height', 'waist', 'sys_bp1', 'dia_bp1', 'sys_bp2', 'dia_bp2', 'dtx_value']
+                .forEach(function (id) {
+                    const field = document.getElementById(id);
+                    if (!field) return;
+                    field.dispatchEvent(new Event('input', { bubbles: true }));
+                    field.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+
             if (typeof calculateBmi === 'function') calculateBmi();
             if (typeof calculateCvRisk === 'function') calculateCvRisk();
+
+            if (typeof showToast === 'function') {
+                showToast('✨ กรอกชุดข้อมูลสำเร็จ (' + type + ') เรียบร้อยแล้ว', 'success');
+            }
         }
+
+        // Avoid relying only on inline onclick handlers in presentation/sandbox
+        // shells, where stricter browser policies may block inline scripts.
+        document.addEventListener('click', function (event) {
+            const presetButton = event.target.closest('[data-demo-preset]');
+            if (!presetButton) return;
+            event.preventDefault();
+            applyDemoPreset(presetButton.dataset.demoPreset);
+        });
 
         function submitScreening() {
             if (!selectedResident) {

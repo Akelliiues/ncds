@@ -60,7 +60,10 @@ $province = defined('PROVINCE_NAME') ? PROVINCE_NAME : 'อุบลราชธ
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 16px;
+            width: 100%;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
         }
         .btn-back-pill {
             color: var(--color-accent);
@@ -84,16 +87,6 @@ $province = defined('PROVINCE_NAME') ? PROVINCE_NAME : 'อุบลราชธ
 </head>
 <body class="vhv-accessibility">
     <div class="mobile-wrapper">
-
-        <!-- Top Navigation -->
-        <div class="manual-top-bar">
-            <a href="<?= htmlspecialchars($back_url) ?>" class="btn-back-pill">
-                ← ย้อนกลับ
-            </a>
-            <span style="font-weight: 800; color: var(--color-accent); font-size: 13.5px;">
-                NCDs Portal
-            </span>
-        </div>
 
         <?php include __DIR__ . '/manual_partial.php'; ?>
 

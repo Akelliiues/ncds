@@ -108,7 +108,7 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
             margin: 0 auto;
 
-            padding: 30px 20px 80px 20px;
+            padding: 14px 20px 80px 20px;
 
         }
 
@@ -118,9 +118,9 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
             text-align: center;
 
-            margin-bottom: 40px;
+            margin-bottom: 22px;
 
-            padding: 32px 24px;
+            padding: 14px 24px 16px;
 
             border-radius: var(--border-radius);
 
@@ -128,7 +128,11 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
             box-shadow: var(--neumorph-flat);
 
-            position: relative;
+            position: sticky;
+
+            top: 8px;
+
+            z-index: 1100;
 
             overflow: hidden;
 
@@ -158,11 +162,11 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
         .manual-header img {
 
-            width: 90px;
+            width: 56px;
 
             height: auto;
 
-            margin-bottom: 16px;
+            margin-bottom: 4px;
 
             filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.15));
 
@@ -172,9 +176,9 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
         .manual-header h1 {
 
-            font-size: 34px;
+            font-size: 24px;
 
-            margin: 10px 0;
+            margin: 2px 0;
 
             color: var(--text-primary);
 
@@ -188,9 +192,9 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
             color: var(--text-secondary);
 
-            font-size: 16px;
+            font-size: 14px;
 
-            margin: 4px 0 20px 0;
+            margin: 2px 0 8px 0;
 
             font-weight: 600;
 
@@ -208,11 +212,11 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
             background-color: var(--bg-darker);
 
-            padding: 8px 20px;
+            padding: 6px 16px;
 
             border-radius: 50px;
 
-            font-size: 14.5px;
+            font-size: 13px;
 
             font-weight: 800;
 
@@ -504,9 +508,9 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
             .manual-header {
 
-                padding: 24px 16px;
+                padding: 12px 16px 14px;
 
-                margin-bottom: 24px;
+                margin-bottom: 18px;
 
             }
 
@@ -514,7 +518,7 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
             .manual-header h1 {
 
-                font-size: 25px;
+                font-size: 20px;
 
             }
 
@@ -522,9 +526,9 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
             .manual-header p {
 
-                font-size: 14.5px;
+                font-size: 13px;
 
-                margin-bottom: 16px;
+                margin-bottom: 8px;
 
             }
 
@@ -1376,9 +1380,9 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
             gap: 8px;
 
-            padding: 12px 24px;
+            padding: 8px 16px;
 
-            font-size: 15px;
+            font-size: 13.5px;
 
             font-weight: 800;
 
@@ -1394,10 +1398,26 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
             transition: all var(--transition-speed);
 
-            margin-bottom: 24px;
+            margin-bottom: 0;
 
             border: 1.5px solid transparent;
 
+        }
+
+        .manual-header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .manual-header-brand {
+            color: var(--color-primary);
+            font-size: 13.5px;
+            font-weight: 800;
         }
 
 
@@ -1647,25 +1667,27 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
 
 
-        <!-- Back Button -->
-
-        <a href="<?= htmlspecialchars($back_url) ?>" class="btn-manual-back">
-
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-
-                <path d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-
-            </svg>
-
-            <span>กลับไปหน้าควบคุมระบบ</span>
-
-        </a>
-
-
-
         <!-- Manual Header -->
 
         <div class="manual-header">
+
+            <div class="manual-header-top">
+
+                <a href="<?= htmlspecialchars($back_url) ?>" class="btn-manual-back">
+
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+
+                        <path d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+
+                    </svg>
+
+                    <span>กลับไปหน้าควบคุมระบบ</span>
+
+                </a>
+
+                <span class="manual-header-brand">NCDs Portal</span>
+
+            </div>
 
             <img src="assets/icon.png" alt="NCDs Portal Logo">
 
@@ -2647,19 +2669,15 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
                             <div>
 
-                                <div class="alert-title">การทำงานของโหมดออฟไลน์ (Offline Auto-Sync)</div>
+                                <div class="alert-title">การคัดกรองงานที่ดาวน์โหลดไว้ในพื้นที่สัญญาณไม่ต่อเนื่อง</div>
 
                                 <p class="alert-desc">
 
-                                    • เมื่อลงพื้นที่แล้วไม่มีเน็ต อสม.
+                                    • ก่อนลงพื้นที่ อสม. ต้องเชื่อมต่ออินเทอร์เน็ตเพื่อเข้าสู่ระบบและรับงานที่ได้รับมอบหมาย<br>
 
-                                    ยังสามารถเปิดหน้าบันทึกและสแกนคัดกรองได้ตามปกติ<br>
+                                    • งานที่ดาวน์โหลดไว้สามารถเปิดและบันทึกผลระหว่างออฟไลน์ได้ โดยข้อมูลจะอยู่ในคิวบนอุปกรณ์ชั่วคราว<br>
 
-                                    • ข้อมูลคัดกรองที่บันทึกจะถูกเก็บลงความจำในอุปกรณ์ของท่านชั่วคราว<br>
-
-                                    • เมื่อมือถือจับสัญญาณอินเทอร์เน็ตได้หรือท่านกลับเข้าบ้านที่มี Wi-Fi
-
-                                    ระบบจะตรวจจับและทำการอัปโหลดข้อมูลที่บันทึกค้างไว้ส่งไปยังคลาวด์ของแอดมินโดยอัตโนมัติทันที!
+                                    • เมื่อกลับมาเชื่อมต่ออินเทอร์เน็ต ระบบจะพยายามส่งข้อมูลที่รออยู่ไปยังเซิร์ฟเวอร์ ผู้ใช้ต้องตรวจสอบสถานะว่า “ซิงค์สำเร็จ” ก่อนลบข้อมูลแอป ออกจากระบบ หรือเปลี่ยนอุปกรณ์
 
                                 </p>
 
@@ -2961,7 +2979,7 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
                                                 Mode</strong></td>
 
-                                        <td>บัญชีผู้มาเยือน (ล็อกอินด้วย <span class="hl-text">visitor / 123456</span>)
+                                        <td>บัญชีผู้มาเยือน (ขอรับข้อมูลเข้าสู่ระบบจากผู้ดูแลระบบ)
 
                                             สำหรับนักวิจัยหรือผู้ประเมินภายนอก สามารถดูสถิติ กราฟ แผนที่
 
@@ -2993,7 +3011,7 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
 
                                 <p class="alert-desc">
 
-                                    ระบบหลังบ้านได้รับการติดตั้งตัวดักจับความปลอดภัย (Security Interceptor) เพื่อป้องกันบัญชีผู้มาเยือนไม่ให้ทำการเปลี่ยนแปลงข้อมูลใดๆ ในทุกมิติ โดยจะบล็อกปุ่มส่งข้อมูล/บันทึกผลงานบนหน้าจอ (Disabled) และดักตรวจคำร้องขอระดับเซิร์ฟเวอร์แบบ POST หรือการส่งค่าคำสั่งลบ/เคลียร์/สลับโหมดผ่านลิงก์อย่างเคร่งครัด หากตรวจพบการพยายามส่งข้อมูลดังกล่าว ระบบจะแสดงข้อความแจ้งเตือนความปลอดภัยและบล็อกคำสั่งทันที
+                                    Visitor Mode ถูกออกแบบสำหรับการดูข้อมูลตามระดับสิทธิ์แบบอ่านอย่างเดียว ระบบปิดปุ่มที่เปลี่ยนแปลงข้อมูลบนหน้าจอและตรวจสอบคำร้องขอที่เซิร์ฟเวอร์ก่อนประมวลผล ควรมีการทดสอบสิทธิ์เป็นระยะเพื่อยืนยันว่าคำสั่งบันทึก ลบ เคลียร์ หรือสลับโหมดถูกปฏิเสธตามที่กำหนด
 
                                 </p>
 
@@ -3381,7 +3399,7 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
                             <li class="step-item">
                                 <span class="step-number">1</span>
                                 <div class="step-content">
-                                    <h4>ระบบทำนายความเสี่ยงการเกิดโรครายใหม่ (Predictive Conversion Risk Model)</h4>
+                                    <h4>ระบบจัดลำดับความเร่งด่วนในการติดตามจากปัจจัยเสี่ยงที่กำหนด (Risk-based Follow-up Priority)</h4>
                                     <p>ที่หน้า <a href="admin/analytics.php" class="hl-text">วิเคราะห์ข้อมูลเชิงลึก</a> ระบบประมวลผลคำนวณโอกาสป่วย % Conversion Risk สำหรับกลุ่มเสี่ยงปานกลาง (Pre-HT / Pre-DM) โดยคำนวณปัจจัยผสม (ค่า BP/DTX โซนบน, BMI ≥ 25, ประวัติครอบครัว และอายุ 45+) พร้อมตาราง Top 10 รายชื่อเฝ้าระวังสูงสุด เพื่อส่ง อสม. ลงพื้นที่ป้องกันก่อนป่วยจริง 6-12 เดือน</p>
                                 </div>
                             </li>
@@ -3500,7 +3518,7 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
                             </svg>
                             <div>
                                 <div class="alert-title">ขอบเขตความปลอดภัยและสิทธิ์การเข้าถึง</div>
-                                <p class="alert-desc">เมนูนี้และไฟล์หลังบ้านทั้งหมดได้รับการคุ้มครองด้วยการตรวจสอบสิทธิ์ความปลอดภัยสูงสุด โดยเปิดให้ใช้งานเฉพาะสิทธิ์ <strong>Super Admin</strong> เท่านั้น หากเป็นบัญชี Area Admin หรือบัญชีผู้มาเยือน (Visitor) จะไม่สามารถแก้ไขค่า คัดลอก หรือลบข้อมูลใดๆ ได้</p>
+                                <p class="alert-desc">เมนูนี้จำกัดสิทธิ์สำหรับ <strong>Super Admin</strong> โดยระบบตรวจสอบบทบาทผู้ใช้ก่อนแสดงและประมวลผลคำสั่ง บัญชี Area Admin และ Visitor ถูกจำกัดตามขอบเขตสิทธิ์ที่กำหนด และควรมีการทดสอบสิทธิ์เป็นระยะ</p>
                             </div>
                         </div>
 
@@ -3722,7 +3740,7 @@ if (isset($_SESSION['is_visitor']) && $_SESSION['is_visitor'] === true) {
                             <span class="number">ADM-15</span>
                         </h2>
 
-                        <p>ศูนย์บัญชาการรับเหตุวิกฤตและส่งต่อผู้ป่วย Fast-Track แบบ Real-time เชื่อมโยงระหว่าง อสม. ในชุมชน โต๊ะพยาบาล รพ.สต. และห้องฉุกเฉิน โรงพยาบาลตาลสุม:</p>
+                        <p>ศูนย์สนับสนุนการแจ้งเหตุวิกฤตและติดตามการส่งต่อ เชื่อมข้อมูลระหว่าง อสม. ในชุมชน โต๊ะพยาบาล รพ.สต. และห้องฉุกเฉิน โรงพยาบาลตาลสุม ระบบนี้ไม่ทดแทนการโทร 1669 ในกรณีฉุกเฉิน:</p>
 
                         <div class="alert-box alert-box-danger">
                             <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">

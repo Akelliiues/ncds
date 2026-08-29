@@ -1,6 +1,6 @@
 <?php
 // public_dashboard.php - ศูนย์ข้อมูลสถิติสุขภาพดิจิทัล NCDs อำเภอตาลสุม (Open Health Data & Executive Cockpit)
-// 100% Zero PII / Zero Leaks / Public Aggregate Data Only
+// Public Aggregate Data Only
 require_once __DIR__ . '/config/session.php';
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/config/demo_data.php';
@@ -749,7 +749,7 @@ if (!function_exists('renderKpiGenderSplit')) {
     <!-- Open Graph for sharing -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="ศูนย์ข้อมูลสถิติสุขภาพ NCDs อำเภอ<?= DISTRICT_NAME ?> จังหวัดอุบลราชธานี">
-    <meta property="og:description" content="สถิติผลการคัดกรองเชิงรุก การปรับเปลี่ยนพฤติกรรม DPAC และดัชนีสุขภาพระดับอำเภอแบบ Open Data ปลอดภัย 100%">
+    <meta property="og:description" content="สถิติผลการคัดกรองเชิงรุก การปรับเปลี่ยนพฤติกรรม DPAC และดัชนีสุขภาพระดับอำเภอในรูปแบบข้อมูลสรุป">
     <meta property="og:image" content="<?= (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'ncd.ssotansum.com') ?>/assets/icon.png">
 
     <link rel="stylesheet" href="assets/css/style.css">
@@ -1331,7 +1331,7 @@ if (!function_exists('renderKpiGenderSplit')) {
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                     <span class="badge-pdpa">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                        PDPA Zero-PII Certified • สถิติเปิดเผยแพร่สาธารณะ
+                        ข้อมูลสถิติแบบสรุป • ไม่แสดงตัวระบุรายบุคคลโดยตรง
                     </span>
                     <span class="badge-pill-inset" style="color: var(--text-muted); font-size: 11.5px;">v<?= APP_VERSION ?></span>
                 </div>
@@ -1472,7 +1472,7 @@ if (!function_exists('renderKpiGenderSplit')) {
                     <div class="kpi-value" style="color: #8b5cf6;">
                         <?= $dpacImprovementPct ?>%
                     </div>
-                    <div class="kpi-sub">สุขภาพดีขึ้น <?= number_format($dpacImprovedCount) ?> จาก <?= number_format($dpacCompletedFollowups) ?> คนที่ติดตามครบ</div>
+                    <div class="kpi-sub">มีค่าตัวชี้วัดดีขึ้นตามเกณฑ์ระบบ <?= number_format($dpacImprovedCount) ?> จาก <?= number_format($dpacCompletedFollowups) ?> คนที่ติดตามครบ</div>
                 </div>
                 <?php renderKpiGenderSplit($dpacMale, $dpacMalePct, $dpacFemale, $dpacFemalePct, 'kpi_dpac'); ?>
             </div>
@@ -1615,7 +1615,7 @@ if (!function_exists('renderKpiGenderSplit')) {
                     </div>
 
                     <div class="badge-pill-inset" style="padding: 10px 14px; font-size: 12px; color: var(--text-secondary); width: 100%; box-sizing: border-box; justify-content: flex-start; line-height: 1.5;">
-                        💡 ข้อมูลทางระบาดวิทยาชี้ว่า กลุ่มอายุตั้งแต่ 60+ ปีขึ้นไป มีโอกาสพบความดันโลหิตและน้ำตาลสูงกว่ากลุ่มคนวัยทำงานถึง 1.8 เท่า
+                        💡 ข้อมูลคัดกรองชุดนี้แสดงสัดส่วนค่าความดันหรือน้ำตาลผิดปกติแตกต่างกันระหว่างกลุ่มอายุ ควรพิจารณาร่วมกับจำนวนตัวอย่างและเกณฑ์คัดเลือกกลุ่มเป้าหมาย
                     </div>
                 </div>
             </div>
@@ -1989,7 +1989,7 @@ if (!function_exists('renderKpiGenderSplit')) {
             สำนักงานสาธารณสุขอำเภอ<?= DISTRICT_NAME ?> • โรงพยาบาล<?= DISTRICT_NAME ?> • รพ.สต. ในสังกัด จังหวัดอุบลราชธานี
         </div>
         <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
-            ข้อมูลสถิติดิจิทัลเพื่อการพัฒนาสุขภาพชุมชน • ปฏิบัติตามมาตรฐาน พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA)
+            ข้อมูลสถิติดิจิทัลเพื่อการพัฒนาสุขภาพชุมชน • เผยแพร่โดยลดปริมาณข้อมูลและไม่แสดงตัวระบุรายบุคคลโดยตรง
         </div>
         <div style="display: flex; justify-content: center; gap: 16px; font-size: 12.5px; font-weight: 700;">
             <a href="about.php" style="color: var(--color-accent); text-decoration: none;">ℹ️ เกี่ยวกับระบบ & ทีมพัฒนา</a>

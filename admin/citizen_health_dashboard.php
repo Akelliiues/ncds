@@ -569,7 +569,7 @@ $poorVeggiePct = round((($habits['veggie']['poor'] ?? 0) / $tot) * 100, 1);
                     </h1>
                     <div style="display: flex; align-items: center; gap: 8px; margin-top: 3px; flex-wrap: wrap;">
                         <span class="privacy-pill-badge">
-                            <?= render_neu_icon('shield-check', 'xs', 'text-green') ?> ปลอดภัย ไม่เก็บข้อมูลส่วนบุคคล
+                            <?= render_neu_icon('shield-check', 'xs', 'text-green') ?> ไม่ขอชื่อ CID เบอร์โทรศัพท์ หรือที่อยู่
                         </span>
                         <p style="font-size: 12px;">
                             ศูนย์ข้อมูลสุขภาพและพฤติกรรมเสี่ยง 3อ. 2ส. 1น. อำเภอ<?= DISTRICT_NAME ?> จังหวัดอุบลราชธานี
@@ -616,7 +616,7 @@ $poorVeggiePct = round((($habits['veggie']['poor'] ?? 0) / $tot) * 100, 1);
                         </h3>
                         <span class="bento-badge" style="display: inline-flex; align-items: center; gap: 6px;">
                             <span class="pulsing-dot" style="width: 8px; height: 8px; display: inline-block;"></span>
-                            <span>Real-time</span>
+                            <span>ข้อมูลล่าสุด</span>
                         </span>
                     </div>
 
@@ -628,7 +628,7 @@ $poorVeggiePct = round((($habits['veggie']['poor'] ?? 0) / $tot) * 100, 1);
                         </div>
                         <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px; display: flex; align-items: center; gap: 6px;">
                             <span class="neu-disc-icon xs disc-green" style="width: 18px; height: 18px; font-size: 10px;">🛡️</span>
-                            <span>ประเมินตนเองผ่าน NCDs Portal (100% Anonymous)</span>
+                            <span>ประเมินตนเองผ่าน NCDs Portal (ไม่ขอตัวระบุโดยตรง)</span>
                         </div>
                     </div>
 
@@ -944,7 +944,7 @@ $poorVeggiePct = round((($habits['veggie']['poor'] ?? 0) / $tot) * 100, 1);
                             <span>บันทึกสถิติการประเมินสุขภาพตนเอง (Citizen Self-Screening Logs)</span>
                         </h3>
                         <p style="margin: 3px 0 0 0; font-size: 12.5px; color: var(--text-secondary);">
-                            สถิติข้อมูลจากการประเมินตนเองของประชาชน (ไม่เก็บข้อมูลส่วนบุคคล ปลอดภัย 100%)
+                            สถิติจากแบบประเมินตนเองที่ไม่ขอชื่อ CID เบอร์โทรศัพท์ หรือที่อยู่
                         </p>
                     </div>
                     <div class="no-print" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">

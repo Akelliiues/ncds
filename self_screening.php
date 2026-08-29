@@ -853,7 +853,7 @@ $exitUrl = isset($_SESSION['vhv_id']) ? 'vhv/index.php' : 'index.php';
             <div id="q-intro" class="question-slide active">
                 <div class="intro-hero-card">
                     <div class="privacy-guarantee-badge">
-                        <?= render_neu_icon('shield-check', 'xs', 'text-green') ?> ปลอดภัย ไม่เก็บข้อมูลส่วนบุคคล
+                        <?= render_neu_icon('shield-check', 'xs', 'text-green') ?> ไม่ขอชื่อ CID เบอร์โทรศัพท์ หรือที่อยู่
                     </div>
 
                     <div style="margin: 6px auto 14px auto; display: flex; justify-content: center;">
@@ -876,7 +876,7 @@ $exitUrl = isset($_SESSION['vhv_id']) ? 'vhv/index.php' : 'index.php';
                         <div class="privacy-feature-item" style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px;">
                             <?= render_neu_icon('shield-check', 'sm', 'text-green') ?>
                             <div style="flex: 1; text-align: left;">
-                                <strong>ไม่มีการขอข้อมูลส่วนตัวใดๆ:</strong> ไม่ต้องกรอกชื่อ-นามสกุล, ไม่ต้องระบุเลขบัตรประชาชน, ไม่ต้องกรอกเบอร์โทรหรือที่อยู่
+                                <strong>ไม่ขอตัวระบุโดยตรง:</strong> ไม่ต้องกรอกชื่อ-นามสกุล เลขบัตรประชาชน เบอร์โทรศัพท์ หรือที่อยู่ ผลที่ได้เป็นการประเมินความเสี่ยงเบื้องต้น ไม่ใช่การวินิจฉัยโรค
                             </div>
                         </div>
                         <div class="privacy-feature-item" style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px;">
@@ -1480,7 +1480,7 @@ $exitUrl = isset($_SESSION['vhv_id']) ? 'vhv/index.php' : 'index.php';
                         </div>
                         <div class="trophy-invite-text">
                             <h4>📲 ชวนคุณมาเช็คสุขภาพด้วยกัน!</h4>
-                            <p>สแกนตรวจความดัน-เบาหวานฟรี 1 นาที ไม่เก็บข้อมูลส่วนตัว</p>
+                            <p>ประเมินปัจจัยเสี่ยงเบื้องต้นโดยไม่ขอชื่อ CID เบอร์โทรศัพท์ หรือที่อยู่</p>
                             <div class="trophy-date-stamp" id="trophy-date-label">
                                 ตรวจเมื่อ: <?= date('d/m/Y') ?>
                             </div>
@@ -1643,7 +1643,7 @@ $exitUrl = isset($_SESSION['vhv_id']) ? 'vhv/index.php' : 'index.php';
                 const introQ = document.getElementById('q-intro');
                 if (introQ) introQ.classList.add('active');
 
-                document.getElementById('step-badge').innerText = '🛡️ ปลอดภัย ไม่เก็บข้อมูลส่วนตัว';
+                document.getElementById('step-badge').innerText = '🛡️ ไม่ขอตัวระบุรายบุคคลโดยตรง';
                 document.getElementById('self-progress').style.width = '0%';
                 topNav.style.display = 'block';
 
@@ -1971,7 +1971,7 @@ $exitUrl = isset($_SESSION['vhv_id']) ? 'vhv/index.php' : 'index.php';
             const rank = rankEl ? rankEl.innerText.replace(/^[^\w\s\u0E00-\u0E7F]+/, '').trim() : 'ยอดมนุษย์สายคลีน สุขภาพดีเด่น';
             const shareUrl = window.location.origin + window.location.pathname;
             
-            const textMsg = `🌟 ฉันตรวจเช็คสุขภาพตนเองแล้วได้คะแนน ${score}/100 คะแนน!\n🏆 ฉายาสุขภาพ: "${rank}"\n\n🥗 มาตรวจเช็คความเสี่ยงความดัน-เบาหวานด้วยตัวเองกันเถอะ (ฟรี 1 นาที ไม่เก็บข้อมูลส่วนตัว 100%):\n👉 ${shareUrl}`;
+            const textMsg = `🌟 ฉันตรวจเช็คสุขภาพตนเองแล้วได้คะแนน ${score}/100 คะแนน!\n🏆 ฉายาสุขภาพ: "${rank}"\n\n🥗 มาประเมินปัจจัยเสี่ยงความดันและเบาหวานเบื้องต้นโดยไม่ต้องกรอกชื่อ CID เบอร์โทรศัพท์ หรือที่อยู่:\n👉 ${shareUrl}`;
 
             const card = document.getElementById('health-trophy-card');
 
@@ -2076,7 +2076,7 @@ $exitUrl = isset($_SESSION['vhv_id']) ? 'vhv/index.php' : 'index.php';
             const scoreEl = document.getElementById('trophy-score-display');
             const score = scoreEl ? scoreEl.innerText : '85';
             const shareUrl = window.location.origin + window.location.pathname;
-            const text = `🌟 ฉันตรวจเช็คสุขภาพตนเองแล้วได้คะแนน ${score}/100! ชวนทุกคนมาตรวจเช็คความเสี่ยงความดัน-เบาหวานฟรี 1 นาที ไม่เก็บข้อมูลส่วนตัวที่ 👉 ${shareUrl}`;
+            const text = `🌟 ฉันตรวจเช็คสุขภาพตนเองแล้วได้คะแนน ${score}/100! ชวนทุกคนมาประเมินปัจจัยเสี่ยงความดันและเบาหวานเบื้องต้นโดยไม่ต้องกรอกชื่อ CID เบอร์โทรศัพท์ หรือที่อยู่ 👉 ${shareUrl}`;
             
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(text).then(() => {

@@ -827,10 +827,10 @@ function get_time_diff_display($timestamp) {
                 <div class="fasttrack-hero-header">
                     <span style="font-size: 20px;">🚨</span>
                     <h3 class="fasttrack-hero-title">ระบบแจ้งเหตุวิกฤต Fast-Track & ส่งต่อโรงพยาบาล 2 ทาง</h3>
-                    <span class="fasttrack-hero-tag">Real-time</span>
+                    <span class="fasttrack-hero-tag">Connected Alert</span>
                 </div>
                 <p class="fasttrack-hero-desc">
-                    เชื่อมโยงการทำงานแบบไร้รอยต่อระหว่าง <strong>อสม. ในชุมชน</strong>, <strong>โต๊ะพยาบาล รพ.สต.</strong> และ <strong>ห้องฉุกเฉิน รพ.ตาลสุม</strong> เพื่อความปลอดภัยสูงสุดของผู้ป่วยวิกฤต
+                    เชื่อมข้อมูลการแจ้งเหตุระหว่าง <strong>อสม. ในชุมชน</strong>, <strong>โต๊ะพยาบาล รพ.สต.</strong> และ <strong>ห้องฉุกเฉิน รพ.ตาลสุม</strong> เพื่อสนับสนุนการประสานงานผู้ป่วยที่เข้าเกณฑ์ฉุกเฉิน
                 </p>
                 <div class="fasttrack-pipeline">
                     <div class="pipeline-step">
@@ -839,7 +839,7 @@ function get_time_diff_display($timestamp) {
                     </div>
                     <div class="pipeline-step">
                         <span class="pipeline-step-badge">2. รพ.สต. (ไซเรน)</span>
-                        <p class="pipeline-step-text">โปรแกรมไซเรนเตือนโต๊ะพยาบาล รับเรื่องทันที 24 ชม.</p>
+                        <p class="pipeline-step-text">โปรแกรมแจ้งเตือนแสดงเหตุบนเครื่องรับสัญญาณที่เปิดใช้งานและเชื่อมต่ออินเทอร์เน็ต</p>
                     </div>
                     <div class="pipeline-step">
                         <span class="pipeline-step-badge">3. รพ.ตาลสุม (Refer)</span>
@@ -850,7 +850,7 @@ function get_time_diff_display($timestamp) {
 
             <!-- 8 Key Innovations Suite Grid -->
             <div class="section-label">
-                <span>✨ 8 นวัตกรรมดิจิทัลสาธารณสุขครบวงจร</span>
+                <span>✨ 8 โมดูลสนับสนุนการคัดกรองและติดตาม NCDs</span>
                 <span style="font-size: 11px; color: var(--color-accent); font-weight: 800;">Smart NCDs Suite</span>
             </div>
 
@@ -878,7 +878,7 @@ function get_time_diff_display($timestamp) {
                     <div class="feature-icon-box" style="color: #8B5CF6;">📊</div>
                     <div class="feature-tile-content">
                         <h4>6-Dimension Analytics & R2R</h4>
-                        <p>แดชบอร์ดสุขภาพ 6 มิติ วิเคราะห์ความชุกรายพื้นที่ โมเดลพยากรณ์ และชุดข้อมูลวิจัย</p>
+                        <p>แดชบอร์ดสุขภาพ 6 มิติ สรุปการกระจายความเสี่ยงตามพื้นที่ จัดลำดับกลุ่มที่ควรติดตาม และเตรียมชุดข้อมูลสนับสนุนงาน R2R</p>
                     </div>
                 </div>
 
@@ -886,8 +886,8 @@ function get_time_diff_display($timestamp) {
                 <div class="feature-tile">
                     <div class="feature-icon-box" style="color: #F59E0B;">📲</div>
                     <div class="feature-tile-content">
-                        <h4>PWA & Offline-First Ready</h4>
-                        <p>ติดตั้งลงมือถือ คัดกรองและบันทึกงานได้ 100% แม้ไม่มีเน็ต พร้อม Auto-Sync</p>
+                        <h4>PWA สำหรับพื้นที่สัญญาณไม่ต่อเนื่อง</h4>
+                        <p>ดาวน์โหลดงานที่ได้รับมอบหมายไว้ล่วงหน้า บันทึกผลระหว่างออฟไลน์ และส่งข้อมูลที่รออยู่เมื่อเชื่อมต่ออินเทอร์เน็ตอีกครั้ง</p>
                     </div>
                 </div>
 
@@ -896,7 +896,7 @@ function get_time_diff_display($timestamp) {
                     <div class="feature-icon-box" style="color: #0D2C54;">📷</div>
                     <div class="feature-tile-content">
                         <h4>QR Code Wallet Card & Scanner</h4>
-                        <p>สแกนกล้องดึงข้อมูลกลุ่มเป้าหมายใน 0.5 วินาที พร้อมระบบพิมพ์การ์ด 12 ใบ/A4</p>
+                        <p>สแกน QR Code เพื่อเปิดงานที่ได้รับมอบหมาย โดยระบบตรวจสิทธิ์ผู้ใช้และสถานะงานก่อนแสดงแบบคัดกรอง พร้อมระบบพิมพ์การ์ด 12 ใบ/A4</p>
                     </div>
                 </div>
 

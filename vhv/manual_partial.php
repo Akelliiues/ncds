@@ -13,12 +13,14 @@ $province = defined('PROVINCE_NAME') ? PROVINCE_NAME : 'อุบลราชธ
         /* Hero Banner */
         .manual-hero {
             text-align: center;
-            padding: 22px 18px;
+            padding: 14px 18px 16px;
             border-radius: 24px;
             background: var(--bg-card);
             box-shadow: var(--neumorph-flat);
-            margin-bottom: 20px;
-            position: relative;
+            margin-bottom: 16px;
+            position: sticky;
+            top: 8px;
+            z-index: 20;
             overflow: hidden;
             border: 1px solid rgba(255,255,255,0.6);
         }
@@ -35,23 +37,23 @@ $province = defined('PROVINCE_NAME') ? PROVINCE_NAME : 'อุบลราชธ
             background: linear-gradient(90deg, #3b82f6, #10b981, #f59e0b);
         }
         .manual-hero-logo {
-            width: 72px;
-            height: 72px;
-            border-radius: 18px;
+            width: 54px;
+            height: 54px;
+            border-radius: 15px;
             box-shadow: 0 6px 16px rgba(0,0,0,0.12);
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
         .manual-hero h1 {
-            font-size: 21px;
+            font-size: 19px;
             font-weight: 900;
-            margin: 0 0 4px 0;
+            margin: 0 0 2px 0;
             color: var(--text-primary);
         }
         .manual-hero p {
             color: var(--text-secondary);
             font-size: 13px;
             margin: 0;
-            line-height: 1.45;
+            line-height: 1.35;
         }
 
         /* Search Box */
@@ -346,6 +348,14 @@ $province = defined('PROVINCE_NAME') ? PROVINCE_NAME : 'อุบลราชธ
 <div class="manual-tab-container" style="margin-top: 10px;">
 <!-- Hero Section -->
         <div class="manual-hero">
+            <div class="manual-top-bar">
+                <a href="<?= htmlspecialchars($back_url) ?>" class="btn-back-pill">
+                    ← ย้อนกลับ
+                </a>
+                <span style="font-weight: 800; color: var(--color-accent); font-size: 13.5px;">
+                    NCDs Portal
+                </span>
+            </div>
             <img src="<?= $path_prefix ?>assets/icon.png" alt="NCDs Portal Logo" class="manual-hero-logo">
             <h1>📖 คู่มือการใช้งานระบบ NCDs</h1>
             <p>ระบบบันทึกคัดกรอง ดูแลสุขภาพ และประเมินความเสี่ยงโรคเรื้อรัง<br>อำเภอ<?= htmlspecialchars($district) ?> จังหวัด<?= htmlspecialchars($province) ?></p>
@@ -676,7 +686,7 @@ $province = defined('PROVINCE_NAME') ? PROVINCE_NAME : 'อุบลราชธ
                         <div class="accordion-icon-badge">📡</div>
                         <div>
                             <h3 class="accordion-title">7. การทำงานแบบออฟไลน์ (ไม่มีเน็ต)</h3>
-                            <span class="accordion-tag">เซฟงานลงเครื่องอัตโนมัติ ซิงค์ทันทีเมื่อมีเน็ต</span>
+                            <span class="accordion-tag">เก็บงานที่ได้รับมอบหมายไว้ในอุปกรณ์ และส่งเมื่อกลับมาออนไลน์</span>
                         </div>
                     </div>
                     <span class="accordion-arrow">▼</span>
@@ -688,7 +698,7 @@ $province = defined('PROVINCE_NAME') ? PROVINCE_NAME : 'อุบลราชธ
                         <div class="alert-box alert-box-success">
                             <div>
                                 <div class="alert-title">⚡ ซิงค์ข้อมูลอัตโนมัติ (Auto-Sync)</div>
-                                <p class="alert-desc">เมื่อไม่มีเน็ต อสม. ยังสามารถคัดกรองได้ปกติ ระบบจะบันทึกงานไว้ในมือถือ และเมื่อกลับมาจับสัญญาณเน็ตได้ ข้อมูลจะถูกอัปโหลดขึ้นเซิร์ฟเวอร์ให้อัตโนมัติโดยไม่สูญหาย</p>
+                                <p class="alert-desc">ก่อนลงพื้นที่ อสม. ต้องเชื่อมต่ออินเทอร์เน็ตเพื่อรับงานที่ได้รับมอบหมาย งานที่ดาวน์โหลดไว้สามารถเปิดและบันทึกผลระหว่างออฟไลน์ได้ ข้อมูลจะอยู่ในคิวบนอุปกรณ์และระบบจะพยายามส่งไปยังเซิร์ฟเวอร์เมื่อกลับมาเชื่อมต่ออินเทอร์เน็ต ผู้ใช้ต้องตรวจสอบสถานะว่า “ซิงค์สำเร็จ” ก่อนลบข้อมูลแอป ออกจากระบบ หรือเปลี่ยนอุปกรณ์</p>
                             </div>
                         </div>
                     </div>
@@ -820,6 +830,9 @@ $province = defined('PROVINCE_NAME') ? PROVINCE_NAME : 'อุบลราชธ
         </div>
 </div>
 
+<!-- Legacy duplicated standalone markup kept inert so it cannot render a
+     second header/content tree when this file is embedded by manual.php. -->
+<template id="legacy-duplicate-manual-markup">
 <script>
 (function() {
             const theme = localStorage.getItem('theme') || 'light';
@@ -1568,7 +1581,7 @@ $province = defined('PROVINCE_NAME') ? PROVINCE_NAME : 'อุบลราชธ
                         <div class="accordion-icon-badge">📡</div>
                         <div>
                             <h3 class="accordion-title">7. การทำงานแบบออฟไลน์ (ไม่มีเน็ต)</h3>
-                            <span class="accordion-tag">เซฟงานลงเครื่องอัตโนมัติ ซิงค์ทันทีเมื่อมีเน็ต</span>
+                            <span class="accordion-tag">เก็บงานที่ได้รับมอบหมายไว้ในอุปกรณ์ และส่งเมื่อกลับมาออนไลน์</span>
                         </div>
                     </div>
                     <span class="accordion-arrow">▼</span>
@@ -1580,7 +1593,7 @@ $province = defined('PROVINCE_NAME') ? PROVINCE_NAME : 'อุบลราชธ
                         <div class="alert-box alert-box-success">
                             <div>
                                 <div class="alert-title">⚡ ซิงค์ข้อมูลอัตโนมัติ (Auto-Sync)</div>
-                                <p class="alert-desc">เมื่อไม่มีเน็ต อสม. ยังสามารถคัดกรองได้ปกติ ระบบจะบันทึกงานไว้ในมือถือ และเมื่อกลับมาจับสัญญาณเน็ตได้ ข้อมูลจะถูกอัปโหลดขึ้นเซิร์ฟเวอร์ให้อัตโนมัติโดยไม่สูญหาย</p>
+                                <p class="alert-desc">ก่อนลงพื้นที่ อสม. ต้องเชื่อมต่ออินเทอร์เน็ตเพื่อรับงานที่ได้รับมอบหมาย งานที่ดาวน์โหลดไว้สามารถเปิดและบันทึกผลระหว่างออฟไลน์ได้ ข้อมูลจะอยู่ในคิวบนอุปกรณ์และระบบจะพยายามส่งไปยังเซิร์ฟเวอร์เมื่อกลับมาเชื่อมต่ออินเทอร์เน็ต ผู้ใช้ต้องตรวจสอบสถานะว่า “ซิงค์สำเร็จ” ก่อนลบข้อมูลแอป ออกจากระบบ หรือเปลี่ยนอุปกรณ์</p>
                             </div>
                         </div>
                     </div>
@@ -1762,4 +1775,46 @@ $province = defined('PROVINCE_NAME') ? PROVINCE_NAME : 'อุบลราชธ
                 }
             });
         }
+</script>
+</template>
+
+<!-- Interactive behavior for the single visible manual component above. -->
+<script>
+    function toggleAccordion(header) {
+        const item = header.parentElement;
+        const content = item.querySelector('.accordion-content');
+        const isOpen = item.classList.contains('open');
+
+        document.querySelectorAll('.accordion-item').forEach(function (entry) {
+            entry.classList.remove('open');
+            const entryContent = entry.querySelector('.accordion-content');
+            if (entryContent) entryContent.style.maxHeight = null;
+        });
+
+        if (!isOpen && content) {
+            item.classList.add('open');
+            content.style.maxHeight = content.scrollHeight + 'px';
+        }
+    }
+
+    function setCategory(category, button) {
+        document.querySelectorAll('.filter-pill').forEach(function (pill) {
+            pill.classList.remove('active');
+        });
+        if (button) button.classList.add('active');
+
+        document.querySelectorAll('.accordion-item').forEach(function (item) {
+            item.style.display = category === 'all' || item.getAttribute('data-category') === category
+                ? 'block'
+                : 'none';
+        });
+    }
+
+    function filterManual() {
+        const search = document.getElementById('manual-search');
+        const query = search ? search.value.toLowerCase().trim() : '';
+        document.querySelectorAll('.accordion-item').forEach(function (item) {
+            item.style.display = item.innerText.toLowerCase().includes(query) ? 'block' : 'none';
+        });
+    }
 </script>

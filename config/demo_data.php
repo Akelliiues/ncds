@@ -840,6 +840,70 @@ class DemoDataProvider {
         return $list;
     }
 
+    // Mockup league for the district-level health-unit leaderboard only.
+    // This dataset is intentionally detached from people, assignments and
+    // screening records so a presentation cannot mutate operational data.
+    public static function getDemoHospitalLeague() {
+        return [
+            [
+                'hoscode' => '03752',
+                'hosname' => 'รพ.สต.บ้านสำโรง',
+                'total_targets' => 312, 'r1_total' => 312, 'r1_done' => 295,
+                'r2_total' => 214, 'r2_done' => 214, 'r3_done' => 86,
+                'completed_targets' => 595, 'fair_score' => 96.40
+            ],
+            [
+                'hoscode' => '03755',
+                'hosname' => 'รพ.สต.นาคาย',
+                'total_targets' => 286, 'r1_total' => 286, 'r1_done' => 266,
+                'r2_total' => 198, 'r2_done' => 198, 'r3_done' => 79,
+                'completed_targets' => 543, 'fair_score' => 92.75
+            ],
+            [
+                'hoscode' => '03751',
+                'hosname' => 'รพ.สต.ดอนพันชาด',
+                'total_targets' => 274, 'r1_total' => 274, 'r1_done' => 250,
+                'r2_total' => 181, 'r2_done' => 181, 'r3_done' => 72,
+                'completed_targets' => 503, 'fair_score' => 88.90
+            ],
+            [
+                'hoscode' => '99999',
+                'hosname' => 'รพ.สต.ตาลสุม (จำลอง)',
+                'total_targets' => 283, 'r1_total' => 283, 'r1_done' => 247,
+                'r2_total' => 176, 'r2_done' => 176, 'r3_done' => 68,
+                'completed_targets' => 491, 'fair_score' => 85.60
+            ],
+            [
+                'hoscode' => '03753',
+                'hosname' => 'รพ.สต.บ้านจิกเทิง',
+                'total_targets' => 268, 'r1_total' => 268, 'r1_done' => 226,
+                'r2_total' => 160, 'r2_done' => 160, 'r3_done' => 61,
+                'completed_targets' => 447, 'fair_score' => 80.35
+            ],
+            [
+                'hoscode' => '03757',
+                'hosname' => 'รพ.สต.คำหว้า',
+                'total_targets' => 251, 'r1_total' => 251, 'r1_done' => 205,
+                'r2_total' => 148, 'r2_done' => 148, 'r3_done' => 55,
+                'completed_targets' => 408, 'fair_score' => 75.20
+            ],
+            [
+                'hoscode' => '03756',
+                'hosname' => 'รพ.สต.คำหนามแท่ง',
+                'total_targets' => 239, 'r1_total' => 239, 'r1_done' => 188,
+                'r2_total' => 132, 'r2_done' => 132, 'r3_done' => 47,
+                'completed_targets' => 367, 'fair_score' => 69.85
+            ],
+            [
+                'hoscode' => '03754',
+                'hosname' => 'รพ.สต.บ้านหนองกุงใหญ่',
+                'total_targets' => 227, 'r1_total' => 227, 'r1_done' => 169,
+                'r2_total' => 116, 'r2_done' => 116, 'r3_done' => 39,
+                'completed_targets' => 324, 'fair_score' => 63.40
+            ]
+        ];
+    }
+
     // 6. รายชื่อ อสม. จำลองทั้งหมด 5 หมู่บ้าน สำหรับงานบริหาร (Admin/Staff)
     public static function getMockVhvs() {
         $baseVhvs = [
@@ -1233,4 +1297,3 @@ class DemoDataProvider {
         ];
     }
 }
-

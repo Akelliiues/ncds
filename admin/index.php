@@ -20,10 +20,44 @@ if (isset($_GET['budget_year']) && ctype_digit((string)$_GET['budget_year'])) {
     $selectedBudgetYear = (int)$_GET['budget_year'];
     $_SESSION['active_budget_year'] = $selectedBudgetYear;
 }
+$budgetYearStart = sprintf('%04d-10-01 00:00:00', $selectedBudgetYear - 1);
+$budgetYearEndExclusive = sprintf('%04d-10-01 00:00:00', $selectedBudgetYear);
 
 $hc_names = get_health_units();
-$isSandboxVal = (function_exists('isSandboxMode') && isSandboxMode($admin_hoscode)) ? 1 : 0;
+$isSandboxVal = 0; // Executive dashboard is based on real records only.
 require_once __DIR__ . '/../config/demo_data.php';
+
+// Baseline outcome used only by the dashboard action-path card.
+$classifyBaselineOutcomes = static function (array $rows): array {
+    $outcomes = ['routine' => 0, 'behavior' => 0, 'confirm' => 0, 'urgent' => 0];
+    foreach ($rows as $row) {
+        $sys = (float)($row['sys_bp1'] ?? 0);
+        $dia = (float)($row['dia_bp1'] ?? 0);
+        $dtx = (float)($row['dtx_value'] ?? 0);
+        $dtxType = strtolower((string)($row['dtx_type'] ?? 'fpg'));
+        $cv = (float)($row['cv_risk_score'] ?? 0);
+        $bmi = (float)($row['bmi'] ?? 0);
+
+        if ($sys >= 180 || $dia >= 110 || $dtx >= 300) {
+            $outcomes['urgent']++;
+        } elseif ($sys >= 150 || $dia >= 95
+            || ($dtxType === 'fpg' && $dtx >= 126)
+            || (in_array($dtxType, ['rpg', 'random'], true) && $dtx >= 200)
+            || $cv >= 30) {
+            $outcomes['confirm']++;
+        } elseif ($sys >= 130 || $dia >= 85
+            || ($dtxType === 'fpg' && $dtx >= 100)
+            || (in_array($dtxType, ['rpg', 'random'], true) && $dtx >= 140)
+            || $cv >= 20 || $bmi >= 23) {
+            $outcomes['behavior']++;
+        } else {
+            $outcomes['routine']++;
+        }
+    }
+    return $outcomes;
+};
+$highOutcomeSql = "(COALESCE(s.sys_bp1,0) >= 150 OR COALESCE(s.dia_bp1,0) >= 95 OR COALESCE(s.dtx_value,0) >= 300 OR (s.dtx_type = 'fpg' AND COALESCE(s.dtx_value,0) >= 126) OR (s.dtx_type IN ('rpg','random') AND COALESCE(s.dtx_value,0) >= 200) OR COALESCE(s.cv_risk_score,0) >= 30)";
+$behaviorOutcomeSql = "(COALESCE(s.sys_bp1,0) >= 130 OR COALESCE(s.dia_bp1,0) >= 85 OR (s.dtx_type = 'fpg' AND COALESCE(s.dtx_value,0) >= 100) OR (s.dtx_type IN ('rpg','random') AND COALESCE(s.dtx_value,0) >= 140) OR COALESCE(s.cv_risk_score,0) >= 20 OR COALESCE(s.bmi,0) >= 23)";
 
 if (DemoDataProvider::isDemoMode()) {
     $mockExec = DemoDataProvider::getMockExecutiveMetrics();
@@ -37,6 +71,12 @@ if (DemoDataProvider::isDemoMode()) {
     $risk_val = $mockExec['risk'];
     $high_risk_val = $mockExec['high_risk'];
     $critical_val = $mockExec['critical'];
+    $baselineOutcomes = [
+        'routine' => (int)$mockExec['normal'],
+        'behavior' => (int)$mockExec['risk'],
+        'confirm' => max(0, (int)$mockExec['high_risk'] - (int)$mockExec['critical']),
+        'urgent' => (int)$mockExec['critical']
+    ];
     $groupCounts = [
         'group_dm' => 45,
         'group_ht' => 80,
@@ -197,11 +237,11 @@ if (DemoDataProvider::isDemoMode()) {
     $screened->execute(array_merge([$isSandboxVal, $isSandboxVal], $hoscodes));
     $screened_val = $screened->fetchColumn();
 
-    $pending = $pdo->prepare("SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'pending' AND p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)");
+    $pending = $pdo->prepare("SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'pending' AND a.budget_year = {$selectedBudgetYear} AND COALESCE(a.is_sandbox, 0) = 0 AND p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)");
     $pending->execute($hoscodes);
     $pending_val = $pending->fetchColumn();
 
-    $skipped = $pdo->prepare("SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)");
+    $skipped = $pdo->prepare("SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'skipped' AND a.budget_year = {$selectedBudgetYear} AND COALESCE(a.is_sandbox, 0) = 0 AND p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)");
     $skipped->execute($hoscodes);
     $skipped_val = $skipped->fetchColumn();
 
@@ -272,25 +312,29 @@ if (DemoDataProvider::isDemoMode()) {
     }
     unset($row);
 
-    // Card 2 Detail: Screened cases risk distribution
-    $screenedDetailQuery = $pdo->prepare("
-        SELECT 
-            SUM(CASE WHEN s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126 THEN 1 ELSE 0 END) as high_risk,
-            SUM(CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) 
-                      AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as risk,
-            SUM(CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) 
-                      AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as normal
+    // Baseline round-one outcomes for the action-path card only.
+    $baselineOutcomeQuery = $pdo->prepare("
+        SELECT s.sys_bp1, s.dia_bp1, s.dtx_value, s.dtx_type, s.cv_risk_score, s.bmi
         FROM target_population p
         JOIN screening_results s ON s.screening_id = (
-            SELECT sr.screening_id FROM screening_results sr 
-            LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id
-            WHERE sr.target_cid = p.cid OR ta2.target_cid = p.cid
-            ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1
+            SELECT sr.screening_id
+            FROM screening_results sr
+            LEFT JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id
+            WHERE (sr.target_cid = p.cid OR ta.target_cid = p.cid)
+              AND COALESCE(sr.is_sandbox, 0) = 0
+              AND sr.created_at >= ? AND sr.created_at < ?
+            ORDER BY
+                CASE WHEN COALESCE(sr.round_number, ta.round_number, 1) = 1 THEN 0 ELSE 1 END,
+                sr.created_at ASC,
+                sr.screening_id ASC
+            LIMIT 1
         )
-        WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+        WHERE p.hoscode IN ($inPlaceholders)
+          AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ");
-    $screenedDetailQuery->execute($hoscodes);
-    $screenedDetail = $screenedDetailQuery->fetch(PDO::FETCH_ASSOC);
+    $baselineOutcomeQuery->execute(array_merge([$budgetYearStart, $budgetYearEndExclusive], $hoscodes));
+    $baselineOutcomes = $classifyBaselineOutcomes($baselineOutcomeQuery->fetchAll(PDO::FETCH_ASSOC));
+
 
     // Card 3 Detail: Skipped reasons
     $skippedDetailQuery = $pdo->prepare("
@@ -298,7 +342,7 @@ if (DemoDataProvider::isDemoMode()) {
         FROM screening_results s 
         JOIN task_assignments a ON s.assignment_id = a.assignment_id
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+        WHERE a.assignment_status = 'skipped' AND a.budget_year = {$selectedBudgetYear} AND COALESCE(a.is_sandbox, 0) = 0 AND COALESCE(s.is_sandbox, 0) = 0 AND p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY s.skipped_reason
     ");
     $skippedDetailQuery->execute($hoscodes);
@@ -312,7 +356,7 @@ if (DemoDataProvider::isDemoMode()) {
             COUNT(*) as count 
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE p.hoscode IN ($inPlaceholders) AND a.assignment_status = 'pending' AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+        WHERE p.hoscode IN ($inPlaceholders) AND a.assignment_status = 'pending' AND a.budget_year = {$selectedBudgetYear} AND COALESCE(a.is_sandbox, 0) = 0 AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY p.hoscode, p.moo
         ORDER BY p.moo
     ");
@@ -347,8 +391,8 @@ if (DemoDataProvider::isDemoMode()) {
                p.first_name, p.last_name, p.health_status_origin,
                s.sys_bp1, s.dia_bp1, s.dtx_value, s.cv_risk_score, s.bmi
         FROM target_population p
-        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND a.assignment_status = 'completed'
-        LEFT JOIN screening_results s ON s.assignment_id = a.assignment_id
+        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND a.assignment_status = 'completed' AND a.budget_year = {$selectedBudgetYear} AND COALESCE(a.is_sandbox, 0) = 0
+        LEFT JOIN screening_results s ON s.assignment_id = a.assignment_id AND COALESCE(s.is_sandbox, 0) = 0
         WHERE p.latitude IS NOT NULL 
           AND p.longitude IS NOT NULL
           AND p.hoscode IN ($inPlaceholders)
@@ -388,14 +432,14 @@ if (DemoDataProvider::isDemoMode()) {
             COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL OR a.assignment_status = 'completed' THEN p.cid END) as screened
         FROM target_population p
         LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
-        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND COALESCE(a.is_sandbox, 0) = ?
-        LEFT JOIN screening_results s ON (s.target_cid = p.cid OR s.assignment_id = a.assignment_id) AND COALESCE(s.is_sandbox, 0) = ?
+        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND a.budget_year = ? AND COALESCE(a.is_sandbox, 0) = ?
+        LEFT JOIN screening_results s ON (s.target_cid = p.cid OR s.assignment_id = a.assignment_id) AND COALESCE(s.is_sandbox, 0) = ? AND s.created_at >= ? AND s.created_at < ?
         WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
           AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholders)
         GROUP BY COALESCE(v.hoscode, p.hoscode), p.moo
         ORDER BY COALESCE(v.hoscode, p.hoscode), p.moo
     ");
-    $chartCoverageStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $hoscodes));
+    $chartCoverageStmt->execute(array_merge([$selectedBudgetYear, 0, 0, $budgetYearStart, $budgetYearEndExclusive], $hoscodes));
     $chartCoverageData = $chartCoverageStmt->fetchAll(PDO::FETCH_ASSOC);
     foreach ($chartCoverageData as &$row) {
         $row['village_name'] = get_village_display_name_by_hoscode($row['hoscode'], $row['moo']);
@@ -407,17 +451,18 @@ if (DemoDataProvider::isDemoMode()) {
             COALESCE(v.hoscode, p.hoscode) as hoscode, 
             MAX(p.sub_district_code) as sub_district_code, 
             p.moo,
-            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN p.cid END) as high_risk,
-            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as moderate_risk,
-            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as normal,
+            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND $highOutcomeSql THEN p.cid END) as high_risk,
+            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND NOT $highOutcomeSql AND $behaviorOutcomeSql THEN p.cid END) as moderate_risk,
+            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND NOT $highOutcomeSql AND NOT $behaviorOutcomeSql THEN p.cid END) as normal,
             COUNT(DISTINCT CASE WHEN s.screening_id IS NULL THEN p.cid END) as unscreened
         FROM target_population p
         LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
-        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND COALESCE(a.is_sandbox, 0) = ?
+        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND a.budget_year = ? AND COALESCE(a.is_sandbox, 0) = ?
         LEFT JOIN screening_results s ON s.screening_id = (
             SELECT sr.screening_id FROM screening_results sr 
             LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id
             WHERE (sr.target_cid = p.cid OR ta2.target_cid = p.cid) AND COALESCE(sr.is_sandbox, 0) = ?
+              AND sr.created_at >= ? AND sr.created_at < ?
             ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1
         )
         WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1) 
@@ -425,7 +470,7 @@ if (DemoDataProvider::isDemoMode()) {
         GROUP BY COALESCE(v.hoscode, p.hoscode), p.moo
         ORDER BY COALESCE(v.hoscode, p.hoscode), p.moo
     ");
-    $chartRiskStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $hoscodes));
+    $chartRiskStmt->execute(array_merge([$selectedBudgetYear, 0, 0, $budgetYearStart, $budgetYearEndExclusive], $hoscodes));
     $chartRiskData = $chartRiskStmt->fetchAll(PDO::FETCH_ASSOC);
     foreach ($chartRiskData as &$row) {
         $row['village_name'] = get_village_display_name_by_hoscode($row['hoscode'], $row['moo']);
@@ -438,18 +483,18 @@ if (DemoDataProvider::isDemoMode()) {
             COALESCE(v.hoscode, p.hoscode) as hoscode, 
             p.moo,
             COALESCE(s.round_number, 1) as round_number,
-            COUNT(DISTINCT CASE WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN p.cid END) as high_risk,
-            COUNT(DISTINCT CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as moderate_risk,
-            COUNT(DISTINCT CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as normal
+            COUNT(DISTINCT CASE WHEN $highOutcomeSql THEN p.cid END) as high_risk,
+            COUNT(DISTINCT CASE WHEN NOT $highOutcomeSql AND $behaviorOutcomeSql THEN p.cid END) as moderate_risk,
+            COUNT(DISTINCT CASE WHEN NOT $highOutcomeSql AND NOT $behaviorOutcomeSql THEN p.cid END) as normal
         FROM target_population p
         LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
-        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND COALESCE(a.is_sandbox, 0) = ?
-        JOIN screening_results s ON (s.target_cid = p.cid OR s.assignment_id = a.assignment_id) AND COALESCE(s.is_sandbox, 0) = ?
+        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND a.budget_year = ? AND COALESCE(a.is_sandbox, 0) = ?
+        JOIN screening_results s ON (s.target_cid = p.cid OR s.assignment_id = a.assignment_id) AND COALESCE(s.is_sandbox, 0) = ? AND s.created_at >= ? AND s.created_at < ?
         WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
           AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholders)
         GROUP BY COALESCE(v.hoscode, p.hoscode), p.moo, COALESCE(s.round_number, 1)
     ");
-    $chartRiskByRoundStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $hoscodes));
+    $chartRiskByRoundStmt->execute(array_merge([$selectedBudgetYear, 0, 0, $budgetYearStart, $budgetYearEndExclusive], $hoscodes));
     $chartRiskByRoundData = $chartRiskByRoundStmt->fetchAll(PDO::FETCH_ASSOC);
 
     $chartDiseaseStmt = $pdo->prepare("
@@ -464,7 +509,9 @@ if (DemoDataProvider::isDemoMode()) {
         JOIN screening_results s ON s.screening_id = (
             SELECT sr.screening_id FROM screening_results sr 
             LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id
-            WHERE sr.target_cid = p.cid OR ta2.target_cid = p.cid
+            WHERE (sr.target_cid = p.cid OR ta2.target_cid = p.cid)
+              AND COALESCE(sr.is_sandbox, 0) = 0
+              AND sr.created_at >= '{$budgetYearStart}' AND sr.created_at < '{$budgetYearEndExclusive}'
             ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1
         )
         WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
@@ -480,6 +527,7 @@ if (DemoDataProvider::isDemoMode()) {
             LEFT JOIN task_assignments a ON s.assignment_id = a.assignment_id
             JOIN target_population p ON (s.target_cid = p.cid OR a.target_cid = p.cid)
             WHERE s.created_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+              AND COALESCE(s.is_sandbox, 0) = 0
               AND p.hoscode IN ($inPlaceholders)
               AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
             UNION ALL
@@ -487,7 +535,7 @@ if (DemoDataProvider::isDemoMode()) {
             FROM dpac_followups f
             JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
             JOIN target_population p ON e.cid = p.cid
-            WHERE f.status = 'completed'
+            WHERE f.status = 'completed' AND COALESCE(f.is_sandbox, 0) = 0 AND COALESCE(e.is_sandbox, 0) = 0
               AND p.hoscode IN ($inPlaceholders)
               AND f.completed_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
               AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
@@ -504,7 +552,7 @@ if (DemoDataProvider::isDemoMode()) {
         FROM screening_results s 
         JOIN task_assignments a ON s.assignment_id = a.assignment_id
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+        WHERE a.assignment_status = 'skipped' AND a.budget_year = {$selectedBudgetYear} AND COALESCE(a.is_sandbox, 0) = 0 AND COALESCE(s.is_sandbox, 0) = 0 AND p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY s.skipped_reason
     ");
     $chartSkippedStmt->execute($hoscodes);
@@ -515,7 +563,7 @@ if (DemoDataProvider::isDemoMode()) {
         SELECT e.risk_type, COUNT(*) as count 
         FROM dpac_enrollments e
         JOIN target_population p ON e.cid = p.cid
-        WHERE p.hoscode IN ($inPlaceholders) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+        WHERE p.hoscode IN ($inPlaceholders) AND e.budget_year = {$selectedBudgetYear} AND COALESCE(e.is_sandbox, 0) = 0 AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY e.risk_type
     ");
     $chartDpacStmt->execute($hoscodes);
@@ -534,14 +582,14 @@ if (DemoDataProvider::isDemoMode()) {
             COUNT(DISTINCT CASE WHEN a.round_number >= 3 AND a.assignment_status = 'pending' THEN p.cid END) as r3_assigned
         FROM target_population p
         LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
-        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND COALESCE(a.is_sandbox, 0) = ?
-        LEFT JOIN screening_results s ON (s.target_cid = p.cid OR s.assignment_id = a.assignment_id) AND COALESCE(s.is_sandbox, 0) = ?
+        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND a.budget_year = ? AND COALESCE(a.is_sandbox, 0) = ?
+        LEFT JOIN screening_results s ON (s.target_cid = p.cid OR s.assignment_id = a.assignment_id) AND COALESCE(s.is_sandbox, 0) = ? AND s.created_at >= ? AND s.created_at < ?
         WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
           AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholders)
         GROUP BY COALESCE(v.hoscode, p.hoscode), p.moo
         ORDER BY COALESCE(v.hoscode, p.hoscode), p.moo
     ");
-    $chartRescreenStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $hoscodes));
+    $chartRescreenStmt->execute(array_merge([$selectedBudgetYear, 0, 0, $budgetYearStart, $budgetYearEndExclusive], $hoscodes));
     $chartRescreenData = $chartRescreenStmt->fetchAll(PDO::FETCH_ASSOC);
     foreach ($chartRescreenData as &$row) {
         $row['village_name'] = get_village_display_name_by_hoscode($row['hoscode'], $row['moo']);
@@ -558,8 +606,8 @@ if (DemoDataProvider::isDemoMode()) {
         SELECT 
             (SELECT COUNT(*) FROM target_population WHERE hoscode IN ($inPlaceholdersSa) AND (need_screen_dm = 1 OR need_screen_ht = 1)) as total_targets,
             (SELECT COUNT(DISTINCT p.cid) FROM target_population p LEFT JOIN task_assignments a ON p.cid = a.target_cid AND a.assignment_status = 'completed' AND COALESCE(a.is_sandbox, 0) = ? LEFT JOIN screening_results s ON (p.cid = s.target_cid OR a.assignment_id = s.assignment_id) AND COALESCE(s.is_sandbox, 0) = ? WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND (a.assignment_id IS NOT NULL OR s.screening_id IS NOT NULL)) as screened_count,
-            (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'pending' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as pending_count,
-            (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as skipped_count,
+            (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'pending' AND a.budget_year = {$selectedBudgetYear} AND COALESCE(a.is_sandbox, 0) = 0 AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as pending_count,
+            (SELECT COUNT(*) FROM task_assignments a JOIN target_population p ON a.target_cid = p.cid WHERE a.assignment_status = 'skipped' AND a.budget_year = {$selectedBudgetYear} AND COALESCE(a.is_sandbox, 0) = 0 AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)) as skipped_count,
             (SELECT SUM(r.points_earned) FROM vhv_rewards r JOIN vhv_users v ON r.vhv_id = v.vhv_id LEFT JOIN task_assignments ta ON r.assignment_id = ta.assignment_id LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id WHERE v.hoscode IN ($inPlaceholdersSa) AND v.approved = 1 AND r.approval_status IN ('approved', 'waiting') AND ((r.followup_id IS NULL AND r.assignment_id IS NULL) OR (r.followup_id IS NULL AND ta.assignment_id IS NOT NULL) OR (r.followup_id IS NOT NULL AND f.followup_id IS NOT NULL))) as total_points,
             (SELECT COUNT(*) FROM vhv_users WHERE hoscode IN ($inPlaceholdersSa)) as total_vhvs
     ");
@@ -644,25 +692,29 @@ if (DemoDataProvider::isDemoMode()) {
     $targetsDetailStmt->execute($valid_hoscodes);
     $targetsDetail = $targetsDetailStmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Card 2 Detail: Screened cases risk distribution
-    $screenedDetailStmt = $pdo->prepare("
-        SELECT 
-            SUM(CASE WHEN s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126 THEN 1 ELSE 0 END) as high_risk,
-            SUM(CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) 
-                      AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as risk,
-            SUM(CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) 
-                      AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN 1 ELSE 0 END) as normal
+    // Baseline round-one outcomes for the action-path card only.
+    $baselineOutcomeStmt = $pdo->prepare("
+        SELECT s.sys_bp1, s.dia_bp1, s.dtx_value, s.dtx_type, s.cv_risk_score, s.bmi
         FROM target_population p
         JOIN screening_results s ON s.screening_id = (
-            SELECT sr.screening_id FROM screening_results sr 
-            LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id
-            WHERE sr.target_cid = p.cid OR ta2.target_cid = p.cid
-            ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1
+            SELECT sr.screening_id
+            FROM screening_results sr
+            LEFT JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id
+            WHERE (sr.target_cid = p.cid OR ta.target_cid = p.cid)
+              AND COALESCE(sr.is_sandbox, 0) = 0
+              AND sr.created_at >= ? AND sr.created_at < ?
+            ORDER BY
+                CASE WHEN COALESCE(sr.round_number, ta.round_number, 1) = 1 THEN 0 ELSE 1 END,
+                sr.created_at ASC,
+                sr.screening_id ASC
+            LIMIT 1
         )
-        WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+        WHERE p.hoscode IN ($inPlaceholdersSa)
+          AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
     ");
-    $screenedDetailStmt->execute($valid_hoscodes);
-    $screenedDetail = $screenedDetailStmt->fetch(PDO::FETCH_ASSOC);
+    $baselineOutcomeStmt->execute(array_merge([$budgetYearStart, $budgetYearEndExclusive], $valid_hoscodes));
+    $baselineOutcomes = $classifyBaselineOutcomes($baselineOutcomeStmt->fetchAll(PDO::FETCH_ASSOC));
+
 
     // Card 3 Detail: Skipped reasons
     $skippedDetailStmt = $pdo->prepare("
@@ -670,7 +722,7 @@ if (DemoDataProvider::isDemoMode()) {
         FROM screening_results s 
         JOIN task_assignments a ON s.assignment_id = a.assignment_id
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE a.assignment_status = 'skipped' AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+        WHERE a.assignment_status = 'skipped' AND a.budget_year = {$selectedBudgetYear} AND COALESCE(a.is_sandbox, 0) = 0 AND COALESCE(s.is_sandbox, 0) = 0 AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY s.skipped_reason
     ");
     $skippedDetailStmt->execute($valid_hoscodes);
@@ -683,7 +735,7 @@ if (DemoDataProvider::isDemoMode()) {
             COUNT(*) as count 
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
-        WHERE p.hoscode IN ($inPlaceholdersSa) AND a.assignment_status = 'pending' AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+        WHERE p.hoscode IN ($inPlaceholdersSa) AND a.assignment_status = 'pending' AND a.budget_year = {$selectedBudgetYear} AND COALESCE(a.is_sandbox, 0) = 0 AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY p.hoscode
         ORDER BY hoscode
     ");
@@ -713,8 +765,8 @@ if (DemoDataProvider::isDemoMode()) {
                p.first_name, p.last_name, p.health_status_origin,
                s.sys_bp1, s.dia_bp1, s.dtx_value, s.cv_risk_score, s.bmi
         FROM target_population p
-        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND a.assignment_status = 'completed'
-        LEFT JOIN screening_results s ON s.assignment_id = a.assignment_id
+        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND a.assignment_status = 'completed' AND a.budget_year = {$selectedBudgetYear} AND COALESCE(a.is_sandbox, 0) = 0
+        LEFT JOIN screening_results s ON s.assignment_id = a.assignment_id AND COALESCE(s.is_sandbox, 0) = 0
         WHERE p.latitude IS NOT NULL 
           AND p.longitude IS NOT NULL
           AND p.hoscode IN ($inPlaceholdersSa)
@@ -752,30 +804,31 @@ if (DemoDataProvider::isDemoMode()) {
             COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL OR a.assignment_status = 'completed' THEN p.cid END) as screened
         FROM target_population p
         LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
-        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND COALESCE(a.is_sandbox, 0) = ?
-        LEFT JOIN screening_results s ON (s.target_cid = p.cid OR s.assignment_id = a.assignment_id) AND COALESCE(s.is_sandbox, 0) = ?
+        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND a.budget_year = ? AND COALESCE(a.is_sandbox, 0) = ?
+        LEFT JOIN screening_results s ON (s.target_cid = p.cid OR s.assignment_id = a.assignment_id) AND COALESCE(s.is_sandbox, 0) = ? AND s.created_at >= ? AND s.created_at < ?
         WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
           AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholdersSa)
         GROUP BY COALESCE(v.hoscode, p.hoscode)
         ORDER BY COALESCE(v.hoscode, p.hoscode)
     ");
-    $chartCoverageStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $valid_hoscodes));
+    $chartCoverageStmt->execute(array_merge([$selectedBudgetYear, 0, 0, $budgetYearStart, $budgetYearEndExclusive], $valid_hoscodes));
     $chartCoverageData = $chartCoverageStmt->fetchAll(PDO::FETCH_ASSOC);
 
     $chartRiskStmt = $pdo->prepare("
         SELECT 
             COALESCE(v.hoscode, p.hoscode) as hoscode,
-            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN p.cid END) as high_risk,
-            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as moderate_risk,
-            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as normal,
+            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND $highOutcomeSql THEN p.cid END) as high_risk,
+            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND NOT $highOutcomeSql AND $behaviorOutcomeSql THEN p.cid END) as moderate_risk,
+            COUNT(DISTINCT CASE WHEN s.screening_id IS NOT NULL AND NOT $highOutcomeSql AND NOT $behaviorOutcomeSql THEN p.cid END) as normal,
             COUNT(DISTINCT CASE WHEN s.screening_id IS NULL THEN p.cid END) as unscreened
         FROM target_population p
         LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
-        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND COALESCE(a.is_sandbox, 0) = ?
+        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND a.budget_year = ? AND COALESCE(a.is_sandbox, 0) = ?
         LEFT JOIN screening_results s ON s.screening_id = (
             SELECT sr.screening_id FROM screening_results sr 
             LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id
             WHERE (sr.target_cid = p.cid OR ta2.target_cid = p.cid) AND COALESCE(sr.is_sandbox, 0) = ?
+              AND sr.created_at >= ? AND sr.created_at < ?
             ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1
         )
         WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
@@ -783,7 +836,7 @@ if (DemoDataProvider::isDemoMode()) {
         GROUP BY COALESCE(v.hoscode, p.hoscode)
         ORDER BY COALESCE(v.hoscode, p.hoscode)
     ");
-    $chartRiskStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $valid_hoscodes));
+    $chartRiskStmt->execute(array_merge([$selectedBudgetYear, 0, 0, $budgetYearStart, $budgetYearEndExclusive], $valid_hoscodes));
     $chartRiskData = $chartRiskStmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Risk by round data (Super Admin)
@@ -791,18 +844,18 @@ if (DemoDataProvider::isDemoMode()) {
         SELECT 
             COALESCE(v.hoscode, p.hoscode) as hoscode,
             COALESCE(s.round_number, 1) as round_number,
-            COUNT(DISTINCT CASE WHEN (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) THEN p.cid END) as high_risk,
-            COUNT(DISTINCT CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as moderate_risk,
-            COUNT(DISTINCT CASE WHEN NOT (s.cv_risk_score >= 10 OR s.sys_bp1 >= 140 OR s.dia_bp1 >= 90 OR s.dtx_value >= 126) AND NOT ((s.sys_bp1 BETWEEN 120 AND 139) OR (s.dia_bp1 BETWEEN 80 AND 89) OR (s.dtx_value BETWEEN 100 AND 125)) THEN p.cid END) as normal
+            COUNT(DISTINCT CASE WHEN $highOutcomeSql THEN p.cid END) as high_risk,
+            COUNT(DISTINCT CASE WHEN NOT $highOutcomeSql AND $behaviorOutcomeSql THEN p.cid END) as moderate_risk,
+            COUNT(DISTINCT CASE WHEN NOT $highOutcomeSql AND NOT $behaviorOutcomeSql THEN p.cid END) as normal
         FROM target_population p
         LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
-        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND COALESCE(a.is_sandbox, 0) = ?
-        JOIN screening_results s ON (s.target_cid = p.cid OR s.assignment_id = a.assignment_id) AND COALESCE(s.is_sandbox, 0) = ?
+        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND a.budget_year = ? AND COALESCE(a.is_sandbox, 0) = ?
+        JOIN screening_results s ON (s.target_cid = p.cid OR s.assignment_id = a.assignment_id) AND COALESCE(s.is_sandbox, 0) = ? AND s.created_at >= ? AND s.created_at < ?
         WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
           AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholdersSa)
         GROUP BY COALESCE(v.hoscode, p.hoscode), COALESCE(s.round_number, 1)
     ");
-    $chartRiskByRoundStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $valid_hoscodes));
+    $chartRiskByRoundStmt->execute(array_merge([$selectedBudgetYear, 0, 0, $budgetYearStart, $budgetYearEndExclusive], $valid_hoscodes));
     $chartRiskByRoundData = $chartRiskByRoundStmt->fetchAll(PDO::FETCH_ASSOC);
 
     $chartDiseaseStmt = $pdo->prepare("
@@ -817,7 +870,9 @@ if (DemoDataProvider::isDemoMode()) {
         JOIN screening_results s ON s.screening_id = (
             SELECT sr.screening_id FROM screening_results sr 
             LEFT JOIN task_assignments ta2 ON sr.assignment_id = ta2.assignment_id
-            WHERE sr.target_cid = p.cid OR ta2.target_cid = p.cid
+            WHERE (sr.target_cid = p.cid OR ta2.target_cid = p.cid)
+              AND COALESCE(sr.is_sandbox, 0) = 0
+              AND sr.created_at >= '{$budgetYearStart}' AND sr.created_at < '{$budgetYearEndExclusive}'
             ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1
         )
         WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
@@ -833,6 +888,7 @@ if (DemoDataProvider::isDemoMode()) {
             LEFT JOIN task_assignments a ON s.assignment_id = a.assignment_id
             JOIN target_population p ON (s.target_cid = p.cid OR a.target_cid = p.cid)
             WHERE s.created_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+              AND COALESCE(s.is_sandbox, 0) = 0
               AND p.hoscode IN ($inPlaceholdersSa)
               AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
             UNION ALL
@@ -840,7 +896,7 @@ if (DemoDataProvider::isDemoMode()) {
             FROM dpac_followups f
             JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
             JOIN target_population p ON e.cid = p.cid
-            WHERE f.status = 'completed'
+            WHERE f.status = 'completed' AND COALESCE(f.is_sandbox, 0) = 0 AND COALESCE(e.is_sandbox, 0) = 0
               AND f.completed_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
               AND p.hoscode IN ($inPlaceholdersSa)
               AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
@@ -857,7 +913,7 @@ if (DemoDataProvider::isDemoMode()) {
         FROM screening_results s 
         LEFT JOIN task_assignments a ON s.assignment_id = a.assignment_id
         JOIN target_population p ON (s.target_cid = p.cid OR a.target_cid = p.cid)
-        WHERE (a.assignment_status = 'skipped' OR s.skipped_reason IS NOT NULL) AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+        WHERE (a.assignment_status = 'skipped' OR s.skipped_reason IS NOT NULL) AND COALESCE(a.budget_year, {$selectedBudgetYear}) = {$selectedBudgetYear} AND COALESCE(a.is_sandbox, 0) = 0 AND COALESCE(s.is_sandbox, 0) = 0 AND p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY s.skipped_reason
     ");
     $chartSkippedStmt->execute($valid_hoscodes);
@@ -868,7 +924,7 @@ if (DemoDataProvider::isDemoMode()) {
         SELECT e.risk_type, COUNT(*) as count 
         FROM dpac_enrollments e
         JOIN target_population p ON e.cid = p.cid
-        WHERE p.hoscode IN ($inPlaceholdersSa) AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
+        WHERE p.hoscode IN ($inPlaceholdersSa) AND e.budget_year = {$selectedBudgetYear} AND COALESCE(e.is_sandbox, 0) = 0 AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
         GROUP BY e.risk_type
     ");
     $chartDpacStmt->execute($valid_hoscodes);
@@ -886,18 +942,24 @@ if (DemoDataProvider::isDemoMode()) {
             COUNT(DISTINCT CASE WHEN a.round_number >= 3 AND a.assignment_status = 'pending' THEN p.cid END) as r3_assigned
         FROM target_population p
         LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
-        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND COALESCE(a.is_sandbox, 0) = ?
-        LEFT JOIN screening_results s ON (s.target_cid = p.cid OR s.assignment_id = a.assignment_id) AND COALESCE(s.is_sandbox, 0) = ?
+        LEFT JOIN task_assignments a ON a.target_cid = p.cid AND a.budget_year = ? AND COALESCE(a.is_sandbox, 0) = ?
+        LEFT JOIN screening_results s ON (s.target_cid = p.cid OR s.assignment_id = a.assignment_id) AND COALESCE(s.is_sandbox, 0) = ? AND s.created_at >= ? AND s.created_at < ?
         WHERE (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
           AND COALESCE(v.hoscode, p.hoscode) IN ($inPlaceholdersSa)
         GROUP BY COALESCE(v.hoscode, p.hoscode)
         ORDER BY COALESCE(v.hoscode, p.hoscode)
     ");
-    $chartRescreenStmt->execute(array_merge([$isSandboxVal, $isSandboxVal], $valid_hoscodes));
+    $chartRescreenStmt->execute(array_merge([$selectedBudgetYear, 0, 0, $budgetYearStart, $budgetYearEndExclusive], $valid_hoscodes));
     $chartRescreenData = $chartRescreenStmt->fetchAll(PDO::FETCH_ASSOC);
     $metrics['r1_completed'] = array_sum(array_column($chartRescreenData, 'r1_completed'));
     $metrics['r2_completed'] = array_sum(array_column($chartRescreenData, 'r2_completed'));
     $metrics['r3_completed'] = array_sum(array_column($chartRescreenData, 'r3_completed'));
+}
+
+$baselineOutcomeTotal = array_sum($baselineOutcomes);
+if (!DemoDataProvider::isDemoMode()) {
+    $metrics['screened_count'] = $baselineOutcomeTotal;
+    $metrics['r1_completed'] = $baselineOutcomeTotal;
 }
 ?>
 <!DOCTYPE html>
@@ -1123,11 +1185,11 @@ if (DemoDataProvider::isDemoMode()) {
                     </div>
                 </div>
                 <div class="stat-val" style="color: var(--color-green); font-size: 36px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; margin: 4px 0; display: flex; justify-content: flex-end; align-items: baseline;">
-                    <?= number_format($metrics['r1_completed'] ?? $metrics['screened_count']) ?> <span
+                    <?= number_format($baselineOutcomeTotal) ?> <span
                         style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-left: 4px;">  ราย</span>
                 </div>
                 <div style="margin-top: 3px; font-size: 11.5px; color: var(--text-muted); line-height: 1.35;">
-                    คิดเป็น <strong style="color: var(--color-green);"><?= $metrics['total_targets'] > 0 ? round((($metrics['r1_completed'] ?? $metrics['screened_count']) / $metrics['total_targets']) * 100, 1) : 0 ?>%</strong> ของเป้าหมาย <?= number_format($metrics['total_targets']) ?> ราย
+                    คิดเป็น <strong style="color: var(--color-green);"><?= $metrics['total_targets'] > 0 ? round(($baselineOutcomeTotal / $metrics['total_targets']) * 100, 1) : 0 ?>%</strong> ของเป้าหมาย <?= number_format($metrics['total_targets']) ?> ราย
                 </div>
                 <div style="margin-top: 2px; font-size: 11px; color: var(--text-muted);">
                     (คลิกดูสถิติแยกตามระดับความเสี่ยง)
@@ -1408,10 +1470,20 @@ if (DemoDataProvider::isDemoMode()) {
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
                         </span>
-                        <span>สัดส่วนผลการคัดกรองแยกตามระดับความเสี่ยง</span>
+                        <span>ผลคัดกรอง Baseline และแนวทางดำเนินการ</span>
                     </h3>
                 </div>
-                <div id="chart-screened-risk-pie"></div>
+                <div style="display:flex; justify-content:space-between; align-items:baseline; margin:1px 2px 0;">
+                    <span style="font-size:10.5px; color:var(--text-muted);">คัดกรองรอบแรกครบ</span>
+                    <strong style="font-size:20px; color:var(--text-primary);"><?= number_format($baselineOutcomeTotal) ?> คน</strong>
+                </div>
+                <div id="chart-baseline-action-path"></div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-top:-5px;">
+                    <div style="padding:5px 7px; border-radius:8px; background:rgba(16,185,129,.09); color:#059669; font-size:10px;">🟢 ดูแลตามปกติ <strong style="float:right;"><?= number_format($baselineOutcomes['routine']) ?></strong></div>
+                    <div style="padding:5px 7px; border-radius:8px; background:rgba(245,158,11,.10); color:#d97706; font-size:10px;">🟡 ปรับพฤติกรรม <strong style="float:right;"><?= number_format($baselineOutcomes['behavior']) ?></strong></div>
+                    <div style="padding:5px 7px; border-radius:8px; background:rgba(249,115,22,.10); color:#ea580c; font-size:10px;">🟠 นัดตรวจยืนยัน <strong style="float:right;"><?= number_format($baselineOutcomes['confirm']) ?></strong></div>
+                    <div style="padding:5px 7px; border-radius:8px; background:rgba(239,68,68,.10); color:#dc2626; font-size:10px;">🔴 ส่งต่อเร่งด่วน <strong style="float:right;"><?= number_format($baselineOutcomes['urgent']) ?></strong></div>
+                </div>
             </div>
 
             <!-- 5. DPAC Enrollments (Span 4) -->
@@ -2657,105 +2729,36 @@ if (DemoDataProvider::isDemoMode()) {
                 document.querySelector("#chart-overall-progress").innerHTML = '<div style="text-align: center; color: #6b7280; margin-top: 60px; font-size: 13px;">ยังไม่มีข้อมูลความคืบหน้า</div>';
             }
 
-            // Screened Risk Distribution Data (Semi-Circle Donut Health Gauge)
-            const screenedDetailRaw = <?= json_encode($screenedDetail) ?>;
-            const screenedRiskSeries = [
-                parseInt(screenedDetailRaw?.normal || 0),
-                parseInt(screenedDetailRaw?.risk || 0),
-                parseInt(screenedDetailRaw?.high_risk || 0)
-            ];
-            const totalScreenedRisk = screenedRiskSeries.reduce((a, b) => a + b, 0);
+            // Baseline action path: every round-one result belongs to one action only.
+            const baselineOutcomes = <?= json_encode($baselineOutcomes, JSON_UNESCAPED_UNICODE) ?>;
+            const baselineOutcomeTotal = <?= (int)$baselineOutcomeTotal ?>;
+            const actionPathElement = document.querySelector('#chart-baseline-action-path');
 
-            if (totalScreenedRisk > 0) {
-                var optionsScreenedRisk = {
-                    series: screenedRiskSeries,
-                    labels: ['🟢 ปกติ (เสี่ยงต่ำ)', '🟡 เสี่ยงปานกลาง', '🔴 เสี่ยงสูง (สงสัยป่วย)'],
-                    chart: {
-                        type: 'donut',
-                        height: 185,
-                        background: 'transparent'
-                    },
-                    plotOptions: {
-                        pie: {
-                            startAngle: -90,
-                            endAngle: 90,
-                            offsetY: 0,
-                            donut: {
-                                size: '72%',
-                                labels: {
-                                    show: true,
-                                    name: {
-                                        show: true,
-                                        fontSize: '11px',
-                                        fontFamily: 'Prompt',
-                                        color: '#9ca3af',
-                                        offsetY: -18
-                                    },
-                                    value: {
-                                        show: true,
-                                        fontSize: '19px',
-                                        fontFamily: 'Prompt',
-                                        fontWeight: '900',
-                                        color: isDark ? '#f8fafc' : '#0f172a',
-                                        offsetY: -6,
-                                        formatter: function(val) { return Number(val).toLocaleString() + ' คน'; }
-                                    },
-                                    total: {
-                                        show: true,
-                                        label: 'คัดกรองทั้งหมด',
-                                        color: '#64748b',
-                                        fontSize: '10.5px',
-                                        fontFamily: 'Prompt',
-                                        fontWeight: '700',
-                                        formatter: function(w) {
-                                             return w.globals.seriesTotals.reduce((a, b) => a + b, 0).toLocaleString() + ' คน';
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    colors: ['#10b981', '#f59e0b', '#ef4444'],
-                    stroke: {
-                        width: 2.5,
-                        colors: [isDark ? '#1e293b' : '#ffffff']
-                    },
-                    legend: {
-                        position: 'bottom',
-                        offsetY: -14,
-                        fontSize: '10.5px',
-                        fontFamily: 'Prompt',
-                        labels: { colors: '#9ca3af' },
-                        markers: { width: 8, height: 8, radius: 3 }
-                    },
-                    dataLabels: {
-                        enabled: false
-                    },
+            if (baselineOutcomeTotal > 0) {
+                const actionPathOptions = {
+                    series: [
+                        { name: 'ดูแลตามปกติ', data: [Number(baselineOutcomes.routine || 0)] },
+                        { name: 'ปรับพฤติกรรม', data: [Number(baselineOutcomes.behavior || 0)] },
+                        { name: 'นัดตรวจยืนยัน', data: [Number(baselineOutcomes.confirm || 0)] },
+                        { name: 'ส่งต่อเร่งด่วน', data: [Number(baselineOutcomes.urgent || 0)] }
+                    ],
+                    chart: { type: 'bar', height: 92, stacked: true, stackType: '100%', toolbar: { show: false }, background: 'transparent' },
+                    colors: ['#10b981', '#f59e0b', '#f97316', '#ef4444'],
+                    plotOptions: { bar: { horizontal: true, barHeight: '48%', borderRadius: 7 } },
+                    dataLabels: { enabled: false },
+                    xaxis: { categories: ['Baseline'], labels: { show: false }, axisBorder: { show: false }, axisTicks: { show: false } },
+                    yaxis: { labels: { show: false } },
+                    grid: { show: false, padding: { top: -18, right: 0, bottom: -24, left: 0 } },
+                    legend: { show: false },
+                    stroke: { width: 2, colors: [isDark ? '#1e293b' : '#ffffff'] },
                     tooltip: {
                         theme: localStorage.getItem('theme') || 'light',
-                        y: {
-                            formatter: function(val) {
-                                return Number(val).toLocaleString() + " ราย (" + ((val / totalScreenedRisk) * 100).toFixed(1) + "%)";
-                            }
-                        }
-                    },
-                    grid: {
-                        padding: { bottom: -60, top: -10 }
+                        y: { formatter: val => Number(val).toLocaleString() + ' คน (' + ((val / baselineOutcomeTotal) * 100).toFixed(1) + '%)' }
                     }
                 };
-                new ApexCharts(document.querySelector("#chart-screened-risk-pie"), optionsScreenedRisk).render();
+                new ApexCharts(actionPathElement, actionPathOptions).render();
             } else {
-                document.querySelector("#chart-screened-risk-pie").innerHTML = `
-                    <div style="height: 185px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 12px 14px; background: rgba(100, 116, 139, 0.04); border: 1.5px dashed rgba(100, 116, 139, 0.2); border-radius: 12px; box-sizing: border-box;">
-                        <div style="width: 38px; height: 38px; border-radius: 50%; background: rgba(100, 116, 139, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
-                                <path d="M22 12A10 10 0 0 0 12 2v10z"/>
-                            </svg>
-                        </div>
-                        <div style="font-size: 13.5px; font-weight: 800; color: var(--text-primary); margin-bottom: 2px;">ยังไม่มีข้อมูลผลการคัดกรอง</div>
-                        <div style="font-size: 11px; color: var(--text-secondary); max-width: 220px; line-height: 1.35;">ไม่พบข้อมูลระดับความเสี่ยงในเงื่อนไขและพื้นที่ที่เลือก</div>
-                    </div>`;
+                actionPathElement.innerHTML = '<div style="height:92px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:12px;">ยังไม่มีผลคัดกรอง Baseline ในปีงบประมาณที่เลือก</div>';
             }
 
             // Skipped Reasons Chart
@@ -2800,10 +2803,10 @@ if (DemoDataProvider::isDemoMode()) {
                             </svg>
                         </div>
                         <div style="font-size: 14px; font-weight: 800; color: #10b981; margin-bottom: 2px; letter-spacing: -0.2px;">
-                            คัดกรองสมบูรณ์ 100%
+                            คัดกรองสมบูรณ์ตามรายการที่บันทึก 100%
                         </div>
                         <div style="font-size: 11px; color: var(--text-secondary); max-width: 230px; line-height: 1.35; margin-bottom: 6px;">
-                            ไม่พบประวัติการข้ามเคส อสม. ติดตามตรวจคัดกรองกลุ่มเป้าหมายได้ครบถ้วนโดยไม่มีการตกหล่น
+                            ไม่พบรายการที่บันทึกสถานะ “ข้ามเคส” ในปีงบประมาณและตัวกรองที่เลือก
                         </div>
                         <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(16, 185, 129, 0.12); color: #059669; font-size: 10.5px; font-weight: 800; padding: 2px 10px; border-radius: 9999px; border: 1px solid rgba(16, 185, 129, 0.2);">
                             <span style="width: 5px; height: 5px; border-radius: 50%; background: #10b981;"></span>
@@ -3072,8 +3075,8 @@ if (DemoDataProvider::isDemoMode()) {
             };
 
             // ============== MAP INIT ==============
-            var streetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+            var streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
                 maxZoom: 20
             });
             var satelliteLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
@@ -3669,7 +3672,7 @@ if (DemoDataProvider::isDemoMode()) {
         <script>
             var targetsDetail = <?= json_encode($targetsDetail) ?>;
             var groupDetail = <?= json_encode($groupDetail) ?>;
-            var screenedDetail = <?= json_encode($screenedDetail) ?>;
+            var baselineOutcomeDetail = <?= json_encode($baselineOutcomes, JSON_UNESCAPED_UNICODE) ?>;
             var skippedDetail = <?= json_encode($skippedDetail) ?>;
             var pendingDetail = <?= json_encode($pendingDetail) ?>;
             var rewardsDetail = <?= json_encode($rewardsDetail) ?>;
@@ -3816,18 +3819,20 @@ if (DemoDataProvider::isDemoMode()) {
                     }
                     html += '</tbody></table></div>';
                 } else if (type === 'screened') {
-                    title = '🟢 ผลการคัดกรองเสร็จสิ้นแยกกลุ่มเสี่ยง';
-                    var high = Number(screenedDetail.high_risk || 0);
-                    var risk = Number(screenedDetail.risk || 0);
-                    var normal = Number(screenedDetail.normal || 0);
-                    var total = high + risk + normal;
+                    title = 'ผลคัดกรอง Baseline และแนวทางดำเนินการ';
+                    var routine = Number(baselineOutcomeDetail.routine || 0);
+                    var behavior = Number(baselineOutcomeDetail.behavior || 0);
+                    var confirm = Number(baselineOutcomeDetail.confirm || 0);
+                    var urgent = Number(baselineOutcomeDetail.urgent || 0);
+                    var total = routine + behavior + confirm + urgent;
 
                     html = '<div style="border-radius: 12px; overflow: hidden; border: 1px solid rgba(0,0,0,0.05);">';
                     html += '<table class="admin-table"><tbody>' +
-                        '<tr><td>🔴 กลุ่มเสี่ยงสูง (High Risk)</td><td style="text-align: right; font-weight: bold; color: var(--color-red);">' + high.toLocaleString() + ' ราย (' + (total > 0 ? Math.round(high / total * 100) : 0) + '%)</td></tr>' +
-                        '<tr><td>🟡 กลุ่มเสี่ยง (Moderate Risk)</td><td style="text-align: right; font-weight: bold; color: var(--color-yellow);">' + risk.toLocaleString() + ' ราย (' + (total > 0 ? Math.round(risk / total * 100) : 0) + '%)</td></tr>' +
-                        '<tr><td>🟢 กลุ่มปกติ (Normal)</td><td style="text-align: right; font-weight: bold; color: var(--color-green);">' + normal.toLocaleString() + ' ราย (' + (total > 0 ? Math.round(normal / total * 100) : 0) + '%)</td></tr>' +
-                        '<tr style="font-weight: bold; background-color: var(--bg-darker);"><td>รวมคัดกรองเสร็จสิ้น</td><td style="text-align: right;">' + total.toLocaleString() + ' ราย</td></tr>' +
+                        '<tr><td>🔴 ส่งต่อเร่งด่วน</td><td style="text-align: right; font-weight: bold; color: var(--color-red);">' + urgent.toLocaleString() + ' ราย (' + (total > 0 ? Math.round(urgent / total * 100) : 0) + '%)</td></tr>' +
+                        '<tr><td>🟠 นัดตรวจยืนยัน</td><td style="text-align: right; font-weight: bold; color: #ea580c;">' + confirm.toLocaleString() + ' ราย (' + (total > 0 ? Math.round(confirm / total * 100) : 0) + '%)</td></tr>' +
+                        '<tr><td>🟡 ปรับพฤติกรรม</td><td style="text-align: right; font-weight: bold; color: var(--color-yellow);">' + behavior.toLocaleString() + ' ราย (' + (total > 0 ? Math.round(behavior / total * 100) : 0) + '%)</td></tr>' +
+                        '<tr><td>🟢 ดูแลตามปกติ</td><td style="text-align: right; font-weight: bold; color: var(--color-green);">' + routine.toLocaleString() + ' ราย (' + (total > 0 ? Math.round(routine / total * 100) : 0) + '%)</td></tr>' +
+                        '<tr style="font-weight: bold; background-color: var(--bg-darker);"><td>รวมผลคัดกรอง Baseline</td><td style="text-align: right;">' + total.toLocaleString() + ' ราย</td></tr>' +
                         '</tbody></table></div>';
                 } else if (type === 'skipped') {
                     title = '⚠️ สาเหตุที่กดข้าม / เลื่อนตรวจสะสม';

@@ -72,9 +72,19 @@ try {
             flex-wrap: wrap;
             gap: 14px;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-            position: sticky;
+            position: fixed;
             top: 0;
-            z-index: 100;
+            left: 0;
+            right: 0;
+            width: 100%;
+            box-sizing: border-box;
+            z-index: 10000;
+        }
+
+        .station-header-spacer {
+            flex: 0 0 var(--station-header-height, 86px);
+            height: var(--station-header-height, 86px);
+            pointer-events: none;
         }
 
         .header-left-brand {
@@ -120,37 +130,20 @@ try {
             border-color: #2563EB;
         }
 
-        .btn-simulate-sos {
-            background: linear-gradient(135deg, #DC2626, #B91C1C) !important;
-            color: #ffffff !important;
-            border: none !important;
-            box-shadow: 0 3px 10px rgba(220, 38, 38, 0.35) !important;
-        }
-        .btn-simulate-sos:hover {
-            box-shadow: 0 5px 14px rgba(220, 38, 38, 0.5) !important;
-            transform: translateY(-1px);
-        }
-
-        .btn-download-app {
-            background: linear-gradient(135deg, #10B981, #059669) !important;
-            color: #ffffff !important;
-            border: none !important;
-            box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3) !important;
-        }
-        .btn-download-app:hover {
-            box-shadow: 0 5px 14px rgba(16, 185, 129, 0.45) !important;
-            transform: translateY(-1px);
-        }
-
+        .btn-simulate-sos,
+        .btn-download-app,
         .btn-referral-board {
-            background: #2563EB !important;
-            color: #ffffff !important;
-            border: none !important;
-            box-shadow: 0 3px 10px rgba(37, 99, 235, 0.3) !important;
+            background: var(--bg-card, #ffffff) !important;
+            color: var(--text-primary, #0d2c54) !important;
+            border: 1px solid var(--border-color, #CBD5E1) !important;
+            box-shadow: var(--neumorph-flat) !important;
         }
+
+        .btn-simulate-sos:hover,
+        .btn-download-app:hover,
         .btn-referral-board:hover {
-            box-shadow: 0 5px 14px rgba(37, 99, 235, 0.45) !important;
-            transform: translateY(-1px);
+            background: var(--bg-darker, #f1f5f9) !important;
+            transform: translateY(-2px);
         }
 
         .header-divider {
@@ -206,22 +199,22 @@ try {
         }
 
         .disc-red-subtle {
-            background: rgba(255,255,255,0.2) !important;
-            color: #fff !important;
-            border-color: rgba(255,255,255,0.4) !important;
-            box-shadow: none !important;
+            background: var(--bg-card, #ffffff) !important;
+            color: #DC2626 !important;
+            border-color: var(--border-color, #CBD5E1) !important;
+            box-shadow: var(--neumorph-flat) !important;
         }
         .disc-green-subtle {
-            background: rgba(255,255,255,0.2) !important;
-            color: #fff !important;
-            border-color: rgba(255,255,255,0.4) !important;
-            box-shadow: none !important;
+            background: var(--bg-card, #ffffff) !important;
+            color: #059669 !important;
+            border-color: var(--border-color, #CBD5E1) !important;
+            box-shadow: var(--neumorph-flat) !important;
         }
         .disc-blue-subtle {
-            background: rgba(255,255,255,0.2) !important;
-            color: #fff !important;
-            border-color: rgba(255,255,255,0.4) !important;
-            box-shadow: none !important;
+            background: var(--bg-card, #ffffff) !important;
+            color: #2563EB !important;
+            border-color: var(--border-color, #CBD5E1) !important;
+            box-shadow: var(--neumorph-flat) !important;
         }
 
         .station-title {
@@ -273,8 +266,8 @@ try {
 
         .station-container {
             flex: 1;
-            padding: 18px 24px;
-            max-width: 1280px;
+            padding: 18px clamp(12px, 1.5vw, 28px);
+            max-width: none;
             margin: 0 auto;
             width: 100%;
             box-sizing: border-box;
@@ -296,6 +289,13 @@ try {
             flex-wrap: wrap;
             gap: 10px;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .station-header > .status-hero-bar {
+            flex: 0 0 100%;
+            width: 100%;
+            margin: 0;
+            box-sizing: border-box;
         }
 
         .status-bar-left {
@@ -333,12 +333,18 @@ try {
             align-items: center;
             gap: 6px;
             font-size: 11.5px;
-            background: var(--bg-darker);
+            background: #DC2626;
+            color: #FFFFFF;
             padding: 3px 12px;
             border-radius: 50px;
-            box-shadow: var(--neumorph-inset);
-            border: 1px solid var(--border-color, transparent);
+            box-shadow: 0 3px 9px rgba(220, 38, 38, 0.24);
+            border: 1px solid #DC2626;
             white-space: nowrap;
+        }
+
+        .status-ping-capsule span,
+        .status-ping-capsule #last-ping-time {
+            color: #FFFFFF !important;
         }
 
         .status-hero-bar.alerting {
@@ -358,13 +364,13 @@ try {
         }
 
         .status-hero-bar.alerting .status-ping-capsule {
-            background: rgba(0, 0, 0, 0.25) !important;
+            background: #DC2626 !important;
             border-color: rgba(255, 255, 255, 0.2) !important;
             color: #FFFFFF !important;
         }
 
         .status-hero-bar.alerting #last-ping-time {
-            color: #FEF08A !important;
+            color: #FFFFFF !important;
         }
 
         .alert-card-grid {
@@ -388,6 +394,7 @@ try {
             justify-content: space-between;
             height: 100%;
             box-sizing: border-box;
+            cursor: pointer;
         }
 
         .alert-item-card:hover {
@@ -592,9 +599,9 @@ try {
             position: fixed;
             inset: 0;
             z-index: 9999999;
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: rgba(15, 23, 42, 0.58);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             display: none;
             align-items: center;
             justify-content: center;
@@ -603,21 +610,72 @@ try {
         }
 
         .emergency-modal-card {
-            background: var(--bg-card, #ffffff);
-            border: 3px solid #DC2626;
-            border-radius: 28px;
-            max-width: 580px;
+            background: rgba(248, 250, 252, 0.94);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: none;
+            border-radius: 26px;
+            max-width: 760px;
             width: 100%;
-            padding: 30px 26px;
-            box-shadow: 0 25px 70px rgba(220, 38, 38, 0.5);
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            padding: 26px;
+            box-shadow: none;
             color: var(--text-primary, #0d2c54);
             text-align: center;
-            animation: pop-bounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: pop-bounce 0.22s ease-out;
+            position: relative;
+        }
+
+        .emergency-modal-card > div:first-of-type .neu-disc-icon {
+            animation: none !important;
+            border: none !important;
+            box-shadow: var(--neumorph-flat) !important;
+        }
+
+        [data-theme="dark"] .emergency-modal-card {
+            background: rgba(15, 23, 42, 0.94);
         }
 
         @keyframes pop-bounce {
-            0% { transform: scale(0.85); opacity: 0; }
+            0% { transform: translateY(12px) scale(0.98); opacity: 0; }
             100% { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin: 0 0 14px;
+        }
+
+        .modal-summary-item {
+            background: var(--bg-darker);
+            border-radius: 14px;
+            padding: 10px 12px;
+            box-shadow: var(--neumorph-inset);
+            text-align: left;
+        }
+
+        .modal-summary-label {
+            display: block;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+
+        .modal-summary-value {
+            display: block;
+            color: var(--text-primary);
+            font-size: 15.5px;
+            font-weight: 850;
+            overflow-wrap: anywhere;
+        }
+
+        @media (max-width: 640px) {
+            .emergency-modal-card { padding: 18px; }
+            .modal-summary-grid { grid-template-columns: 1fr; }
         }
 
         .btn-action-glow {
@@ -704,9 +762,15 @@ try {
 
         .kpi-mini-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            grid-template-columns: repeat(5, minmax(170px, 1fr));
             gap: 12px;
             margin-bottom: 4px;
+        }
+
+        @media (max-width: 1180px) {
+            .kpi-mini-grid {
+                grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            }
         }
 
         .kpi-mini-card {
@@ -922,16 +986,95 @@ try {
 
         .station-table {
             width: 100%;
+            table-layout: fixed;
             border-collapse: separate;
             border-spacing: 0;
             font-size: 13px;
             text-align: left;
         }
 
+        .station-table th:nth-child(1),
+        .station-table td:nth-child(1) { width: 8%; }
+        .station-table th:nth-child(2),
+        .station-table td:nth-child(2) { width: 9%; }
+        .station-table th:nth-child(3),
+        .station-table td:nth-child(3) { width: 16%; }
+        .station-table th:nth-child(4),
+        .station-table td:nth-child(4) { width: 7.5%; }
+        .station-table th:nth-child(5),
+        .station-table td:nth-child(5) { width: 7%; }
+        .station-table th:nth-child(6),
+        .station-table td:nth-child(6) { width: 11%; }
+        .station-table th:nth-child(7),
+        .station-table td:nth-child(7) { width: 18%; }
+        .station-table th:nth-child(8),
+        .station-table td:nth-child(8) { width: 14%; }
+        .station-table th:nth-child(9),
+        .station-table td:nth-child(9) { width: 9.5%; }
+
+        .station-table td:nth-child(3) > div:first-child,
+        .station-table td:nth-child(8) > div:first-child {
+            white-space: nowrap;
+        }
+
+        .station-table-actions {
+            display: grid;
+            grid-template-columns: 38px 104px;
+            align-items: center;
+            justify-content: end;
+            gap: 7px;
+            width: 100%;
+        }
+
+        .station-table-actions .station-map-action {
+            width: 38px;
+            height: 34px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            font-size: 15px;
+            line-height: 1;
+        }
+
+        .station-table-actions .station-refer-action {
+            width: 104px;
+            min-height: 34px;
+            padding: 5px 8px !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            white-space: nowrap;
+        }
+
+        .station-row-operations {
+            width: 104px;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 5px;
+        }
+
+        .station-row-operations > button {
+            width: 104px;
+            min-height: 34px;
+            justify-content: center;
+            box-sizing: border-box;
+        }
+
+        @media (max-width: 1400px) {
+            .station-table {
+                min-width: 1320px;
+            }
+        }
+
         .station-table th {
+            box-sizing: border-box;
             background: var(--bg-darker);
             color: var(--text-secondary);
-            font-weight: 800;
+            font-weight: 700;
             padding: 12px 14px;
             border-bottom: 1.5px solid var(--border-color, rgba(0,0,0,0.08));
             white-space: nowrap;
@@ -940,6 +1083,7 @@ try {
         }
 
         .station-table td {
+            box-sizing: border-box;
             padding: 12px 14px;
             border-bottom: 1px solid var(--border-color, rgba(0,0,0,0.05));
             color: var(--text-primary);
@@ -1052,7 +1196,7 @@ try {
                     <span style="font-size: 10.5px; background: #DC2626; color: white; padding: 2px 8px; border-radius: 6px; font-weight: 800; letter-spacing: 0.5px;">LIVE DISPATCH</span>
                 </div>
                 <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 1px;">
-                    ศูนย์รับสัญญาณเคสวิกฤตฉุกเฉินประจำ รพ.สต. • เฝ้าระวังสด Realtime 24 ชม.
+                    ศูนย์รับสัญญาณเคสวิกฤตฉุกเฉินประจำ รพ.สต. • แสดงเหตุใหม่เมื่อเครื่องรับสัญญาณเปิดใช้งานและเชื่อมต่ออินเทอร์เน็ต
                 </div>
             </div>
         </div>
@@ -1060,16 +1204,6 @@ try {
         <div class="header-right-tools">
             <!-- 1. Grouped Menu Toolbar (ชุดเมนูเครื่องมือปฏิบัติการ รวมไว้ด้วยกัน) -->
             <div class="station-action-group">
-                <!-- Health Center Selector -->
-                <select id="select-hoscode" onchange="changeHoscode(this.value)" class="station-select-ctrl" title="เลือกรหัส รพ.สต. หรือดูภาพรวม">
-                    <option value="ALL">ทุก รพ.สต. (ภาพรวมอำเภอ)</option>
-                    <?php foreach ($hc_names as $code => $name): ?>
-                        <option value="<?= $code ?>" <?= $selected_hoscode == $code ? 'selected' : '' ?>>
-                            [<?= $code ?>] <?= $name ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-
                 <!-- Audio Siren Test Button -->
                 <button type="button" onclick="testAudio()" id="btn-audio-toggle" class="btn-station-ctrl" title="ทดสอบเสียงไซเรนเตือนภัย">
                     <span class="neu-disc-icon xs disc-blue">🔊</span>
@@ -1083,9 +1217,9 @@ try {
                 </button>
 
                 <!-- Safe ZIP Download Link -->
-                <a href="download_station.php?format=zip" class="btn-station-ctrl btn-download-app" title="ดาวน์โหลดโปรแกรม NCDs Red Alert Station ">
+                <a href="download_station.php?format=zip" class="btn-station-ctrl btn-download-app" title="ดาวน์โหลดตัวรับสัญญาณระบบ NCDs Red Alert Station ">
                     <span class="neu-disc-icon xs disc-green-subtle">📥</span>
-                    <span>ดาวน์โหลดโปรแกรม</span>
+                    <span>ดาวน์โหลดตัวรับสัญญาณ</span>
                 </a>
 
                 <!-- Referral Board -->
@@ -1119,12 +1253,8 @@ try {
                 </svg>
             </button>
         </div>
-    </header>
 
-    <!-- Main Live Container -->
-    <main class="station-container">
-        
-        <!-- Compact Streamlined Live Status Bar (Low-profile & Non-intrusive) -->
+        <!-- Compact Streamlined Live Status Bar (fixed with station header) -->
         <div id="status-hero" class="status-hero-bar">
             <div class="status-bar-left">
                 <div id="status-icon-container" class="neu-disc-icon xs" style="width: 30px; height: 30px; min-width: 30px; background: radial-gradient(circle at 35% 35%, #34D399 0%, #10B981 70%, #047857 100%); color: #fff; border: 1.5px solid rgba(255, 255, 255, 0.85); box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center;">
@@ -1136,10 +1266,9 @@ try {
                 </div>
                 <div class="status-bar-text-group">
                     <span id="status-headline" class="status-bar-title">สถานีพร้อมรับสัญญาณฉุกเฉิน (Active Standby)</span>
-                    <span id="status-sub" class="status-bar-subtitle">• เชื่อมต่อ Realtime Dispatcher แล้ว • เฝ้าระวังเคสวิกฤต 24 ชม.</span>
+                    <span id="status-sub" class="status-bar-subtitle">• เชื่อมต่อระบบรับเหตุแล้ว • การตอบสนองขึ้นอยู่กับความพร้อมของเจ้าหน้าที่และหน่วยบริการ</span>
                 </div>
             </div>
-            
             <div class="status-bar-right">
                 <div class="status-ping-capsule">
                     <div class="pulsing-dot" style="width: 8px; height: 8px;"></div>
@@ -1148,6 +1277,12 @@ try {
                 </div>
             </div>
         </div>
+    </header>
+
+    <div class="station-header-spacer" aria-hidden="true"></div>
+
+    <!-- Main Live Container -->
+    <main class="station-container">
 
         <!-- ================================================================= -->
         <!-- Smart Control Panel: Fast Search, Filter Pills, View & Pagination -->
@@ -1199,6 +1334,17 @@ try {
                     </div>
                     <span class="tag-pill tag-blue" style="font-size: 11px; padding: 2px 8px;">Total</span>
                 </div>
+
+                <div class="kpi-mini-card" onclick="setQuickStatus('test')" id="kpi-card-test" title="คลิกเพื่อดูเคสทดสอบ">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="neu-disc-icon xs" style="width: 32px; height: 32px; font-size: 14px; color: #7C3AED;">🧪</span>
+                        <div>
+                            <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 800;">เคสทดสอบระบบ</div>
+                            <div id="stat-test-num" style="font-size: 18px; font-weight: 900; color: #7C3AED;">0</div>
+                        </div>
+                    </div>
+                    <span class="tag-pill tag-purple" style="font-size: 11px; padding: 2px 8px;">Test</span>
+                </div>
             </div>
 
             <!-- Row 2: Search Box & View Mode Toggle -->
@@ -1241,32 +1387,18 @@ try {
 
             <!-- Row 3: Status Filter Pills + Secondary Filters -->
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
-                <!-- Status Filter Pills -->
-                <div class="filter-pills-row">
-                    <button type="button" class="filter-tab-btn active" id="tab-status-all" onclick="filterByStatus('all')">
-                        <span>ทั้งหมด</span>
-                        <span class="badge-num" id="badge-all">0</span>
-                    </button>
-                    <button type="button" class="filter-tab-btn pending-tab" id="tab-status-pending" onclick="filterByStatus('pending')">
-                        <span>🚨 รอรับเรื่อง</span>
-                        <span class="badge-num" id="badge-pending">0</span>
-                    </button>
-                    <button type="button" class="filter-tab-btn ack-tab" id="tab-status-ack" onclick="filterByStatus('acknowledged')">
-                        <span>⏳ รับเรื่องแล้ว</span>
-                        <span class="badge-num" id="badge-ack">0</span>
-                    </button>
-                    <button type="button" class="filter-tab-btn refer-tab" id="tab-status-refer" onclick="filterByStatus('referred_hospital')">
-                        <span>🏥 สั่งส่งต่อแล้ว</span>
-                        <span class="badge-num" id="badge-refer">0</span>
-                    </button>
-                    <button type="button" class="filter-tab-btn" id="tab-status-test" onclick="filterByStatus('test')">
-                        <span>🧪 เคสทดสอบ</span>
-                        <span class="badge-num" id="badge-test">0</span>
-                    </button>
-                </div>
-
                 <!-- Secondary Filters: Crisis Type, Sub-district (ตำบล), Village (หมู่บ้าน), Sort Order -->
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <!-- Health Center Selector -->
+                    <select id="select-hoscode" onchange="changeHoscode(this.value)" class="control-select" title="เลือกรหัส รพ.สต. หรือดูภาพรวม">
+                        <option value="ALL">ทุก รพ.สต. (ภาพรวมอำเภอ)</option>
+                        <?php foreach ($hc_names as $code => $name): ?>
+                            <option value="<?= $code ?>" <?= $selected_hoscode == $code ? 'selected' : '' ?>>
+                                [<?= $code ?>] <?= $name ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+
                     <!-- Crisis Type Dropdown -->
                     <select id="select-crisis-type" class="control-select" onchange="changeCrisisTypeFilter(this.value)" title="กรองตามภาวะวิกฤต">
                         <option value="all">ทุกภาวะวิกฤต</option>
@@ -1347,7 +1479,7 @@ try {
 
     <!-- Discreet Bottom Station Footer (คลิกดูเวอร์ชันและผู้พัฒนา) -->
     <footer style="margin-top: auto; padding: 18px 24px 24px 24px; text-align: center; font-size: 11.5px; color: var(--text-muted); opacity: 0.75; display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;">
-        <span>NCDs Red Alert Station • ศูนย์รับสัญญาณวิกฤตฉุกเฉิน 24 ชม.</span>
+        <span>NCDs Red Alert Station • ระบบสนับสนุนการแจ้งและติดตามเหตุ ไม่ทดแทนการโทร 1669</span>
         <span>•</span>
         <button type="button" onclick="openDevModal(event)" style="background: none; border: none; padding: 0; color: var(--text-muted); font-size: 11.5px; cursor: pointer; text-decoration: underline; opacity: 0.85; transition: color 0.2s ease;" onmouseover="this.style.color='#2563EB'" onmouseout="this.style.color='var(--text-muted)'" title="คลิกดูรายละเอียดระบบและทีมพัฒนา">
             v3.0 (Build Info & Developer)
@@ -1355,8 +1487,8 @@ try {
     </footer>
 
     <!-- Fullscreen Emergency Pop-up Modal (Modern Clean Glassmorphism) -->
-    <div id="emergency-popup-overlay">
-        <div class="emergency-modal-card">
+    <div id="emergency-popup-overlay" onclick="hideEmergencyPopup()">
+        <div class="emergency-modal-card" onclick="event.stopPropagation()">
             <div style="display: flex; justify-content: center; margin-bottom: 12px;">
                 <div class="neu-disc-icon" style="width: 76px; height: 76px; min-width: 76px; background: radial-gradient(circle at 35% 35%, #EF4444 0%, #DC2626 70%, #991B1B 100%); color: #fff; border: 3px solid rgba(255, 255, 255, 0.9); box-shadow: inset 2px 2px 4px rgba(255,255,255,0.7), 0 8px 24px rgba(220,38,38,0.45); display: flex; align-items: center; justify-content: center; animation: emergencyBeaconPulse 1.8s infinite;">
                     <svg width="54" height="54" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.35));">
@@ -1373,47 +1505,57 @@ try {
                 </div>
             </div>
 
-            <div class="tag-pill tag-danger" style="margin-bottom: 8px; font-size: 13.5px; padding: 6px 16px;">
-                <span class="neu-disc-icon xs disc-red" style="width: 20px; height: 20px; font-size: 11px;">⚠️</span>
-                <span>สัญญาณเตือนวิกฤตฉุกเฉิน (CRITICAL RED ALERT)</span>
-            </div>
-            
-            <h2 id="modal-patient-name" style="margin: 8px 0 12px 0; font-size: 24px; font-weight: 900; color: #DC2626;">
+            <h2 id="modal-patient-name" style="margin: 10px 0 16px 0; font-size: 28px; line-height: 1.25; font-weight: 900; color: #DC2626;">
                 คุณ... (อายุ ... ปี)
             </h2>
+
+            <div class="modal-summary-grid">
+                <div class="modal-summary-item">
+                    <span class="modal-summary-label">รหัสเคส</span>
+                    <span id="modal-case-id" class="modal-summary-value">-</span>
+                </div>
+                <div class="modal-summary-item">
+                    <span class="modal-summary-label">เลขประจำตัวเป้าหมาย (CID)</span>
+                    <span id="modal-cid" class="modal-summary-value">-</span>
+                </div>
+                <div class="modal-summary-item">
+                    <span class="modal-summary-label">สถานะเคส</span>
+                    <span id="modal-status" class="modal-summary-value">-</span>
+                </div>
+            </div>
             
-            <div style="background: var(--bg-darker); border-radius: 18px; padding: 16px; margin-bottom: 18px; border: 1.5px solid rgba(220, 38, 38, 0.35); text-align: left; box-shadow: var(--neumorph-inset);">
+            <div style="background: var(--bg-darker); border-radius: 18px; padding: 16px; margin-bottom: 18px; border: none; text-align: left; box-shadow: var(--neumorph-inset);">
                 <!-- Time of Alert Header in Modal -->
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px dashed var(--border-color, rgba(0,0,0,0.1));">
-                    <span style="font-size: 12px; color: var(--text-muted); font-weight: 700;">เวลาที่แจ้งเข้ามา:</span>
-                    <span id="modal-alert-time" style="font-size: 13px; font-weight: 900; color: #DC2626; background: rgba(220, 38, 38, 0.12); padding: 3px 10px; border-radius: 8px;">-</span>
+                    <span style="font-size: 13.5px; color: var(--text-muted); font-weight: 700;">วันและเวลาที่แจ้ง:</span>
+                    <span id="modal-alert-time" style="font-size: 14.5px; font-weight: 900; color: #DC2626; background: rgba(220, 38, 38, 0.12); padding: 5px 12px; border-radius: 9px;">-</span>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
                     <div style="background: var(--bg-card); padding: 10px 12px; border-radius: 14px; box-shadow: var(--neumorph-flat);">
-                        <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                        <div style="font-size: 13px; color: var(--text-muted); font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
                             <span class="neu-disc-icon xs disc-red" style="width: 22px; height: 22px; font-size: 11px;">🩺</span>
                             <span>ความดันโลหิต</span>
                         </div>
-                        <div id="modal-bp-val" style="font-size: 22px; font-weight: 900; color: #DC2626;">-</div>
+                        <div id="modal-bp-val" style="font-size: 28px; font-weight: 900; color: #DC2626;">-</div>
                     </div>
                     <div style="background: var(--bg-card); padding: 10px 12px; border-radius: 14px; box-shadow: var(--neumorph-flat);">
-                        <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                        <div style="font-size: 13px; color: var(--text-muted); font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
                             <span class="neu-disc-icon xs disc-yellow" style="width: 22px; height: 22px; font-size: 11px;">🩸</span>
                             <span>น้ำตาล DTX</span>
                         </div>
-                        <div id="modal-dtx-val" style="font-size: 22px; font-weight: 900; color: #D97706;">-</div>
+                        <div id="modal-dtx-val" style="font-size: 28px; font-weight: 900; color: #D97706;">-</div>
                     </div>
                 </div>
-                <div style="font-size: 13px; margin-bottom: 6px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                <div style="font-size: 15.5px; line-height: 1.5; margin-bottom: 8px; color: var(--text-primary); display: flex; align-items: flex-start; gap: 9px;">
                     <span class="neu-disc-icon xs disc-blue" style="width: 22px; height: 22px; font-size: 11px;">📍</span>
                     <div><strong>ที่อยู่:</strong> <span id="modal-address">-</span></div>
                 </div>
-                <div style="font-size: 13px; margin-bottom: 6px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                <div style="font-size: 15.5px; line-height: 1.5; margin-bottom: 8px; color: var(--text-primary); display: flex; align-items: flex-start; gap: 9px;">
                     <span class="neu-disc-icon xs disc-red" style="width: 22px; height: 22px; font-size: 11px;">⚠️</span>
                     <div><strong>ภาวะวิกฤต:</strong> <span id="modal-crisis-type" style="color: #DC2626; font-weight: 800;">-</span></div>
                 </div>
-                <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                <div style="font-size: 15.5px; line-height: 1.5; color: var(--text-secondary); margin-bottom: 10px; display: flex; align-items: flex-start; gap: 9px;">
                     <span class="neu-disc-icon xs disc-green" style="width: 22px; height: 22px; font-size: 11px;">👩‍⚕️</span>
                     <div><strong>อสม. ผู้แจ้ง:</strong> <span id="modal-vhv-info">-</span></div>
                 </div>
@@ -1423,8 +1565,8 @@ try {
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <span class="neu-disc-icon sm disc-green" style="font-size: 15px;">📱</span>
                         <div>
-                            <div style="font-size: 11px; color: #059669; font-weight: 800;">เบอร์โทรติดต่อกลับด่วน:</div>
-                            <div style="font-size: 16px; font-weight: 900; color: var(--text-primary); letter-spacing: 0.5px;">
+                            <div style="font-size: 12.5px; color: #059669; font-weight: 800;">เบอร์โทรติดต่อกลับด่วน:</div>
+                            <div style="font-size: 19px; font-weight: 900; color: var(--text-primary); letter-spacing: 0.5px;">
                                 <span id="modal-contact-phone">-</span> <span id="modal-contact-type" style="font-size: 11.5px; font-weight: normal; color: var(--text-secondary);"></span>
                             </div>
                         </div>
@@ -1443,7 +1585,7 @@ try {
                 </button>
                 <div style="display: flex; gap: 10px;">
                     <a id="modal-btn-map" href="#" target="_blank" style="flex: 1; padding: 12px; background: #2563EB; color: white; text-decoration: none; border-radius: 14px; font-weight: 800; font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
-                        <span class="neu-disc-icon xs disc-blue">🗺️</span>
+                        <span class="neu-disc-icon xs disc-blue">⚓️</span>
                         <span>เปิดแผนที่ GPS</span>
                     </a>
                     <a id="modal-btn-refer" href="critical_referrals.php" onclick="openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" style="flex: 1; padding: 12px; background: #10B981; color: white; text-decoration: none; border-radius: 14px; font-weight: 800; font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
@@ -1464,6 +1606,7 @@ try {
         let sirenOscillator = null;
         let isSirenPlaying = false;
         let activeCrisisAlertId = null;
+        let modalOpenedManually = false;
 
         // ----------------------------------------------------
         // Station State Management (Search, Filters, Pagination, View)
@@ -1571,6 +1714,10 @@ try {
             const hours = alertDate.getHours().toString().padStart(2, '0');
             const mins = alertDate.getMinutes().toString().padStart(2, '0');
             const timeFormatted = `${hours}:${mins} น.`;
+            const day = alertDate.getDate().toString().padStart(2, '0');
+            const month = (alertDate.getMonth() + 1).toString().padStart(2, '0');
+            const buddhistYear = alertDate.getFullYear() + 543;
+            const dateFormatted = `${day}/${month}/${buddhistYear}`;
 
             // Calculate calendar day difference
             const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
@@ -1598,7 +1745,7 @@ try {
             return {
                 fullTime: timeFormatted,
                 timeAgo: timeAgo,
-                dateText: dateStr,
+                dateText: dateFormatted,
                 dayDiff: dayDiff
             };
         }
@@ -1903,13 +2050,7 @@ try {
             document.getElementById('stat-pending-num').innerText = pendingCount;
             document.getElementById('stat-ack-num').innerText = ackCount;
             document.getElementById('stat-refer-num').innerText = referCount;
-
-            // Update Tab Badges
-            document.getElementById('badge-all').innerText = totalCount;
-            document.getElementById('badge-pending').innerText = pendingCount;
-            document.getElementById('badge-ack').innerText = ackCount;
-            document.getElementById('badge-refer').innerText = referCount;
-            document.getElementById('badge-test').innerText = testCount;
+            document.getElementById('stat-test-num').innerText = testCount;
 
             // Update Top Active Badge
             const activeBadge = document.getElementById('active-count-badge');
@@ -2099,7 +2240,7 @@ try {
                 const phoneTypeLabel = a.contact_phone ? (a.contact_type === 'relative' ? 'ญาติ/ผู้ป่วย' : 'ผู้ป่วย') : 'อสม.';
 
                 html += `
-                    <div class="alert-item-card ${cardStatusClass}">
+                    <div class="alert-item-card ${cardStatusClass}" role="button" tabindex="0" onclick="openAlertDetails(event, ${a.alert_id})" onkeydown="if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); openAlertDetails(event, ${a.alert_id}); }" title="คลิกเพื่อดูรายละเอียดเคสทั้งหมด">
                         <!-- 1. Header Section (Top Meta + Full Width Patient Name) -->
                         <div class="card-header-block">
                             <div class="card-top-meta">
@@ -2201,7 +2342,7 @@ try {
                                 </button>
                             ` : ''}
                             <a href="${mapLink}" target="_blank" style="flex: 1; padding: 9px 12px; background: var(--bg-card); color: var(--text-primary); text-align: center; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 12.5px; border: 1px solid var(--border-color, #CBD5E1); box-shadow: var(--neumorph-flat); display: flex; align-items: center; justify-content: center; gap: 6px;">
-                                <span class="neu-disc-icon xs disc-blue" style="width: 18px; height: 18px; font-size: 10px;">🗺️</span>
+                                <span class="neu-disc-icon xs disc-blue" style="width: 18px; height: 18px; font-size: 10px;">⚓️</span>
                                 <span>แผนที่</span>
                             </a>
                             ${isReferred ? `
@@ -2268,15 +2409,15 @@ try {
                 const phone = a.contact_phone || a.vhv_phone || '';
 
                 html += `
-                    <tr class="${rowStatusClass}">
+                    <tr class="${rowStatusClass}" role="button" tabindex="0" onclick="openAlertDetails(event, ${a.alert_id})" onkeydown="if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); openAlertDetails(event, ${a.alert_id}); }" style="cursor: pointer;" title="คลิกเพื่อดูรายละเอียดเคสทั้งหมด">
                         <td>
-                            <div style="font-weight: 800; color: var(--text-primary);">#${a.alert_id}</div>
-                            <div style="font-size: 11.5px; color: var(--text-muted);">${timeInfo.fullTime} <span style="font-weight:700;">(${timeInfo.timeAgo})</span></div>
+                            <div style="font-weight: 800; color: var(--text-primary); white-space: nowrap;">#${a.alert_id} <span style="font-size: 10.5px; color: var(--text-secondary); font-weight: 500;">• ${timeInfo.dateText}</span></div>
+                            <div style="font-size: 10.5px; font-weight: 400; color: var(--text-muted); line-height: 1.3; margin-top: 3px; white-space: nowrap;">${timeInfo.fullTime} <span style="font-weight:400;">(${timeInfo.timeAgo})</span></div>
                         </td>
                         <td>${statusBadge}</td>
                         <td>
-                            <div style="font-weight: 800; color: var(--text-primary);">${a.patient_name}</div>
-                            <div style="font-size: 11.5px; color: var(--text-muted);">
+                            <div style="font-weight: 600; color: var(--text-primary);">${a.patient_name}</div>
+                            <div style="font-size: 11.5px; font-weight: 400; color: var(--text-muted);">
                                 ${a.age ? `อายุ ${a.age} ปี • ` : ''}${a.target_cid ? `CID: ${a.target_cid}` : ''}
                             </div>
                         </td>
@@ -2291,42 +2432,44 @@ try {
                             </div>
                         </td>
                         <td>
-                            <div style="font-weight: 700; color: var(--text-primary);">บ.${a.house_no || '-'} ม.${a.moo || '-'}${vInfo.villageName ? ` บ้าน${vInfo.villageName}` : ''}</div>
-                            <div style="font-size: 11px; color: var(--text-muted);">${vInfo.subDistrictName ? `ต.${vInfo.subDistrictName} • ` : ''}รพ.สต. ${a.hoscode}</div>
+                            <div style="font-weight: 500; color: var(--text-primary);">บ.${a.house_no || '-'} ม.${a.moo || '-'}${vInfo.villageName ? ` บ้าน${vInfo.villageName}` : ''}</div>
+                            <div style="font-size: 11px; font-weight: 400; color: var(--text-muted);">${vInfo.subDistrictName ? `ต.${vInfo.subDistrictName} • ` : ''}รพ.สต. ${a.hoscode}</div>
                         </td>
                         <td>
-                            <div style="color: #DC2626; font-weight: 800; max-width: 200px; white-space: normal; line-height: 1.3;">
+                            <div style="color: #DC2626; font-weight: 650; max-width: none; white-space: normal; line-height: 1.3;">
                                 ${a.crisis_type}
                             </div>
-                            ${a.red_flags ? `<div style="font-size: 11.5px; color: var(--text-muted); max-width: 200px; white-space: normal;">${a.red_flags}</div>` : ''}
+                            ${a.red_flags ? `<div style="font-size: 11.5px; color: var(--text-muted); max-width: none; white-space: normal; line-height: 1.35;">${a.red_flags}</div>` : ''}
                         </td>
                         <td>
-                            <div style="font-size: 12px; color: var(--text-primary); font-weight: 700;">${a.vhv_name || '-'}</div>
+                            <div style="font-size: 12px; color: var(--text-primary); font-weight: 500;">${a.vhv_name || '-'}</div>
                             ${phone ? `
-                                <a href="tel:${phone}" style="font-size: 11.5px; color: #059669; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                                <a href="tel:${phone}" style="font-size: 11.5px; color: #059669; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
                                     <span>📞 ${phone}</span>
                                 </a>
                             ` : '<span style="font-size: 11px; color: var(--text-muted);">-</span>'}
                         </td>
                         <td style="text-align: right; white-space: nowrap;">
-                            <div style="display: inline-flex; align-items: center; gap: 6px;">
-                                ${isPending ? `
-                                    <button type="button" onclick="ackAlertById(${a.alert_id})" style="background: #DC2626; color: white; border: none; padding: 6px 10px; border-radius: 8px; font-weight: 800; font-size: 11.5px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
-                                        <span>🔕 รับเรื่อง</span>
-                                    </button>
-                                ` : ''}
-                                <a href="${mapLink}" target="_blank" class="btn-station-ctrl" style="padding: 5px 8px; font-size: 11.5px;" title="แผนที่">
-                                    <span>🗺️</span>
+                            <div class="station-table-actions">
+                                <a href="${mapLink}" target="_blank" class="btn-station-ctrl station-map-action" title="เปิดตำแหน่งบนแผนที่">
+                                    <span>⚓️</span>
                                 </a>
-                                ${isReferred ? `
-                                    <a href="critical_referrals.php?alert_id=${a.alert_id}" onclick="openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" class="btn-station-ctrl" style="padding: 5px 10px; font-size: 11.5px; background: #059669; color: white; border: none;" title="เปิดดูประวัติการส่งต่อ">
-                                        <span>✅ ส่งต่อแล้ว</span>
-                                    </a>
-                                ` : `
-                                    <a href="critical_referrals.php?alert_id=${a.alert_id}" onclick="openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" class="btn-station-ctrl" style="padding: 5px 10px; font-size: 11.5px; background: #2563EB; color: white; border: none;" title="ส่งต่อ รพ.">
-                                        <span>🏥 ส่งต่อ</span>
-                                    </a>
-                                `}
+                                <div class="station-row-operations">
+                                    ${isPending ? `
+                                        <button type="button" onclick="ackAlertById(${a.alert_id})" style="background: #DC2626; color: white; border: none; padding: 6px 10px; border-radius: 8px; font-weight: 800; font-size: 11.5px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                                            <span>🔕 รับเรื่อง</span>
+                                        </button>
+                                    ` : ''}
+                                    ${isReferred ? `
+                                        <a href="critical_referrals.php?alert_id=${a.alert_id}" onclick="openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" class="btn-station-ctrl station-refer-action" style="font-size: 11.5px; background: #059669; color: white; border: none;" title="เปิดดูประวัติการส่งต่อ">
+                                            <span>✅ ส่งต่อแล้ว</span>
+                                        </a>
+                                    ` : `
+                                        <a href="critical_referrals.php?alert_id=${a.alert_id}" onclick="openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" class="btn-station-ctrl station-refer-action" style="font-size: 11.5px; background: #2563EB; color: white; border: none;" title="ส่งต่อ รพ.">
+                                            <span>🏥 ส่งต่อ</span>
+                                        </a>
+                                    `}
+                                </div>
                             </div>
                         </td>
                     </tr>
@@ -2402,17 +2545,34 @@ try {
         // ----------------------------------------------------
         // Pop-up Modal & Sound Handling
         // ----------------------------------------------------
-        function showEmergencyPopup(alert) {
+        function openAlertDetails(event, alertId) {
+            if (event && event.target && event.target.closest('a, button, input, select, textarea')) return;
+            const alert = stationState.allAlerts.find(item => String(item.alert_id) === String(alertId));
+            if (alert) showEmergencyPopup(alert, 'manual');
+        }
+
+        function showEmergencyPopup(alert, source = 'auto') {
             activeCrisisAlertId = alert.alert_id;
+            modalOpenedManually = source === 'manual';
             const timeInfo = formatAlertTimeThai(alert.created_at);
+            const villageInfo = getAlertVillageInfo(alert);
+            const isPending = alert.alert_status === 'pending';
+            const isReferred = alert.alert_status === 'referred_hospital' || alert.is_jhcis_synced == 1;
+            const statusText = isPending ? 'รอรับเรื่องด่วน' : (isReferred ? 'ส่งต่อโรงพยาบาลแล้ว' : 'รับเรื่องแล้ว / กำลังดูแล');
             
             document.getElementById('modal-patient-name').innerText = `${alert.patient_name} ${alert.age ? `(อายุ ${alert.age} ปี)` : ''}`;
-            document.getElementById('modal-alert-time').innerText = `🕒 ${timeInfo.fullTime} (${timeInfo.timeAgo})`;
+            document.getElementById('modal-case-id').innerText = `#${alert.alert_id}`;
+            document.getElementById('modal-cid').innerText = alert.target_cid || '-';
+            document.getElementById('modal-status').innerText = statusText;
+            document.getElementById('modal-alert-time').innerText = `🕒 ${timeInfo.dateText} • ${timeInfo.fullTime} (${timeInfo.timeAgo})`;
             document.getElementById('modal-bp-val').innerText = alert.sbp ? `${alert.sbp}/${alert.dbp} mmHg` : '-';
             document.getElementById('modal-dtx-val').innerText = alert.dtx ? `${alert.dtx} mg/dL` : '-';
-            document.getElementById('modal-address').innerText = `บ้านเลขที่ ${alert.house_no || '-'} หมู่ ${alert.moo || '-'} (รพ.สต. ${alert.hoscode})`;
+            document.getElementById('modal-address').innerText = `บ้านเลขที่ ${alert.house_no || '-'} หมู่ ${alert.moo || '-'}${villageInfo.villageName ? ` บ้าน${villageInfo.villageName}` : ''}${villageInfo.subDistrictName ? ` ต.${villageInfo.subDistrictName}` : ''} (รพ.สต. ${alert.hoscode})`;
             document.getElementById('modal-crisis-type').innerText = `${alert.crisis_type} ${alert.red_flags ? `• ${alert.red_flags}` : ''}`;
             document.getElementById('modal-vhv-info').innerText = `${alert.vhv_name || '-'} ${alert.vhv_phone ? `(${alert.vhv_phone})` : ''}`;
+
+            const ackButton = document.getElementById('btn-modal-ack');
+            if (ackButton) ackButton.style.display = isPending ? 'inline-flex' : 'none';
 
             const modalReferBtn = document.getElementById('modal-btn-refer');
             if (modalReferBtn) {
@@ -2444,6 +2604,7 @@ try {
         function hideEmergencyPopup() {
             document.getElementById('emergency-popup-overlay').style.display = 'none';
             activeCrisisAlertId = null;
+            modalOpenedManually = false;
         }
 
         function acknowledgeCurrentAlert() {
@@ -2507,8 +2668,8 @@ try {
                             document.getElementById('station-pulsing-dot').className = 'pulsing-dot active-crisis';
 
                             // Trigger Modal + Siren if new or active
-                            if (!stationState.knownPendingAlertIds.has(pendingCrisis.alert_id)) {
-                                showEmergencyPopup(pendingCrisis);
+                            if (!stationState.knownPendingAlertIds.has(pendingCrisis.alert_id) && !modalOpenedManually) {
+                                showEmergencyPopup(pendingCrisis, 'auto');
                                 startSirenSound();
                             }
                         } else {
@@ -2523,10 +2684,10 @@ try {
                                 </svg>
                             `;
                             document.getElementById('status-headline').innerText = 'สถานีพร้อมรับสัญญาณฉุกเฉิน (Active Standby)';
-                            document.getElementById('status-sub').innerText = '• เชื่อมต่อ Realtime Dispatcher แล้ว • เฝ้าระวังเคสวิกฤต 24 ชม.';
+                            document.getElementById('status-sub').innerText = '• เชื่อมต่อระบบรับเหตุแล้ว • การตอบสนองขึ้นอยู่กับความพร้อมของเจ้าหน้าที่และหน่วยบริการ';
                             document.getElementById('station-pulsing-dot').className = 'pulsing-dot';
                             
-                            hideEmergencyPopup();
+                            if (!modalOpenedManually) hideEmergencyPopup();
                             stopSirenSound();
                         }
 
@@ -2576,6 +2737,18 @@ try {
 
         // Initialize Live Loop & Keyboard Shortcuts
         document.addEventListener('DOMContentLoaded', () => {
+            const stationHeader = document.querySelector('.station-header');
+            const syncStationHeaderHeight = () => {
+                if (stationHeader) {
+                    document.documentElement.style.setProperty('--station-header-height', `${stationHeader.offsetHeight}px`);
+                }
+            };
+            syncStationHeaderHeight();
+            window.addEventListener('resize', syncStationHeaderHeight);
+            if (stationHeader && 'ResizeObserver' in window) {
+                new ResizeObserver(syncStationHeaderHeight).observe(stationHeader);
+            }
+
             const savedTheme = localStorage.getItem('theme') || 'light';
             updateThemeButtonUI(savedTheme);
 
