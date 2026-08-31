@@ -652,7 +652,7 @@ $active_tab = $_GET['tab'] ?? 'sync';
                     <span>⚙️</span> การตั้งค่าการเชื่อมต่อฐานข้อมูล JHCIS (MySQL Configuration)
                 </h3>
 
-                <form id="form-jhcis-settings" onsubmit="saveJHCISSettings(event)">
+                <form id="form-jhcis-settings" data-no-loader="true" onsubmit="saveJHCISSettings(event)">
                     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px;">
                         <div>
                             <label class="form-label">🖥️ MySQL Host / Server IP:</label>
@@ -922,10 +922,10 @@ $active_tab = $_GET['tab'] ?? 'sync';
             try {
                 return JSON.parse(text);
             } catch (e) {
-                if (text && text.trim().length > 0 && text.length < 300) {
+                if (text && text.trim().length > 0 && text.length < 500) {
                     throw new Error(text.trim());
                 }
-                throw new Error('ไม่สามารถเชื่อมต่อไปยังเครื่องแม่ข่ายปลายทางได้ (เนื่องจากเว็บไซต์อยู่บนคลาวด์ภายนอก จึงไม่สามารถต่อตรงเข้า Local IP หรือ localhost ใน รพ.สต. ได้ กรุณาใช้ปุ่ม "ส่งออกไฟล์ SQL" หรือโปรแกรม RedAlert Station)');
+                throw new Error(`เซิร์ฟเวอร์ตอบกลับไม่ถูกต้อง (HTTP ${response.status})`);
             }
         }
 
@@ -959,7 +959,16 @@ $active_tab = $_GET['tab'] ?? 'sync';
         // Save Settings
         function saveJHCISSettings(e) {
             e.preventDefault();
+            if (typeof window.hidePageLoading === 'function') window.hidePageLoading();
+
             const form = document.getElementById('form-jhcis-settings');
+            const btn = form ? form.querySelector('button[type="submit"]') : null;
+            const originalBtnHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<span>⏳</span> กำลังบันทึกการตั้งค่า...`;
+            }
+
             const formData = new FormData(form);
             formData.append('action', 'save_config');
             formData.append('hoscode', currentHoscode);
@@ -971,12 +980,23 @@ $active_tab = $_GET['tab'] ?? 'sync';
             .then(data => {
                 if (data.status === 'success') {
                     alert('✅ ' + data.message);
-                    logConsole('บันทึกการตั้งค่า JHCIS สำเร็จ');
+                    logConsole('✅ บันทึกการตั้งค่า JHCIS สำเร็จ');
                 } else {
                     alert('❌ ' + data.message);
+                    logConsole('❌ บันทึกการตั้งค่าไม่สำเร็จ: ' + data.message);
                 }
             })
-            .catch(err => alert('บันทึกไม่สำเร็จ: ' + err.message));
+            .catch(err => {
+                alert('บันทึกไม่สำเร็จ: ' + err.message);
+                logConsole('❌ บันทึกไม่สำเร็จ: ' + err.message);
+            })
+            .finally(() => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalBtnHtml;
+                }
+                if (typeof window.hidePageLoading === 'function') window.hidePageLoading();
+            });
         }
 
         // Modal State Controls & Progress Animation

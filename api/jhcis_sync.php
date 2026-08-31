@@ -193,17 +193,40 @@ if ($action === 'save_config') {
         exit();
     }
 
-    $targetHoscode = trim($_POST['hoscode'] ?? $admin_hoscode ?? 'GLOBAL');
+    $rawHoscode = trim($_POST['hoscode'] ?? '');
+    $targetHoscode = !empty($rawHoscode) ? $rawHoscode : ($admin_hoscode ?: 'GLOBAL');
     $host = trim($_POST['jhcis_host'] ?? 'localhost');
+    if ($host === '') $host = 'localhost';
     $port = (int)($_POST['jhcis_port'] ?? 3333);
+    if ($port <= 0) $port = 3333;
     $dbname = trim($_POST['jhcis_dbname'] ?? 'jhcisdb');
+    if ($dbname === '') $dbname = 'jhcisdb';
     $user = trim($_POST['jhcis_user'] ?? 'root');
+    if ($user === '') $user = 'root';
     $pass = $_POST['jhcis_pass'] ?? '';
     $dateMode = in_array($_POST['date_mode'] ?? '', ['screening_date', 'sync_date']) ? $_POST['date_mode'] : 'screening_date';
     $overwriteMode = in_array($_POST['overwrite_mode'] ?? '', ['skip_existing', 'update_newer']) ? $_POST['overwrite_mode'] : 'skip_existing';
     $crossHospitalMode = in_array($_POST['cross_hospital_mode'] ?? '', ['strict', 'smart_lookup', 'force_current']) ? $_POST['cross_hospital_mode'] : 'strict';
 
     try {
+        // Ensure table exists
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `jhcis_sync_configs` (
+            `config_id` INT AUTO_INCREMENT PRIMARY KEY,
+            `hoscode` VARCHAR(10) NOT NULL UNIQUE,
+            `jhcis_host` VARCHAR(100) DEFAULT 'localhost',
+            `jhcis_port` INT DEFAULT 3333,
+            `jhcis_dbname` VARCHAR(50) DEFAULT 'jhcisdb',
+            `jhcis_user` VARCHAR(50) DEFAULT 'root',
+            `jhcis_pass` VARCHAR(100) DEFAULT '',
+            `date_mode` ENUM('screening_date', 'sync_date') DEFAULT 'screening_date',
+            `overwrite_mode` ENUM('skip_existing', 'update_newer') DEFAULT 'skip_existing',
+            `auto_sync_approved` TINYINT(1) DEFAULT 0,
+            `last_connected_at` DATETIME NULL,
+            `last_synced_at` DATETIME NULL,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
         // Check if config exists
         $stmt = $pdo->prepare("SELECT jhcis_pass FROM jhcis_sync_configs WHERE hoscode = ?");
         $stmt->execute([$targetHoscode]);
