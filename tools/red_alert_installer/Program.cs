@@ -11,7 +11,7 @@ using Microsoft.Win32;
 [assembly: AssemblyCompany("สำนักงานสาธารณสุขอำเภอตาลสุม")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: AssemblyInformationalVersion("1.0 Build 202608302007")]
+[assembly: AssemblyInformationalVersion("1.0 Build 202608312200")]
 
 namespace NCDsRedAlertInstaller
 {
@@ -25,7 +25,7 @@ namespace NCDsRedAlertInstaller
         {
             Application.EnableVisualStyles();
             var answer = MessageBox.Show(
-                "ติดตั้ง NCDs Red Alert Station Version 1.0\nBuild 202608302007 บนเครื่องนี้?\n\nSetup จะปิดรุ่นเดิม อัปเกรดไฟล์ และตั้งให้เริ่มพร้อม Windows",
+                "ติดตั้ง NCDs Red Alert Station Version 1.0\nBuild 202608312200 บนเครื่องนี้?\n\nSetup จะปิดรุ่นเดิม อัปเกรดไฟล์ และตั้งให้เริ่มพร้อม Windows",
                 "NCDs Red Alert Station Setup", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
             if (answer != DialogResult.Yes) return;
 
@@ -44,7 +44,7 @@ namespace NCDsRedAlertInstaller
                 RegisterUninstaller(uninstallerPath, installDir);
 
                 Process.Start(new ProcessStartInfo { FileName = appPath, WorkingDirectory = installDir, UseShellExecute = true });
-                MessageBox.Show("ติดตั้ง NCDs Red Alert Station Version 1.0\nBuild 202608302007 เรียบร้อยแล้ว", "ติดตั้งสำเร็จ", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("ติดตั้ง NCDs Red Alert Station Version 1.0\nBuild 202608312200 เรียบร้อยแล้ว", "ติดตั้งสำเร็จ", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
@@ -80,7 +80,7 @@ namespace NCDsRedAlertInstaller
             shortcut.TargetPath = appPath;
             shortcut.WorkingDirectory = installDir;
             shortcut.IconLocation = appPath + ",0";
-            shortcut.Description = "NCDs Red Alert Station Version 1.0 Build 202608302007";
+            shortcut.Description = "NCDs Red Alert Station Version 1.0 Build 202608312200";
             shortcut.Save();
         }
 
@@ -100,7 +100,7 @@ namespace NCDsRedAlertInstaller
             {
                 key.SetValue("DisplayName", "NCDs Red Alert Station");
                 key.SetValue("DisplayVersion", "1.0");
-                key.SetValue("BuildId", "202608302007");
+                key.SetValue("BuildId", "202608312200");
                 key.SetValue("Publisher", "สำนักงานสาธารณสุขอำเภอตาลสุม");
                 key.SetValue("InstallLocation", installDir);
                 key.SetValue("DisplayIcon", Path.Combine(installDir, "NCDs_RedAlert_Station.exe"));

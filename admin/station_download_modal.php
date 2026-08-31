@@ -34,7 +34,7 @@ $stationSetupSize = $stationSetupAvailable ? filesize($stationSetupPath) : 0;
             <button type="button" class="station-download-close" onclick="closeStationDownloadModal()" aria-label="ปิด">×</button>
         </div>
         <div class="station-download-info">
-            <div class="station-download-item"><small>Build</small><strong>202608302007</strong></div>
+            <div class="station-download-item"><small>Build</small><strong>202608312200</strong></div>
             <div class="station-download-item"><small>ขนาดไฟล์</small><strong><?= $stationSetupAvailable ? number_format($stationSetupSize / 1024, 0) . ' KB' : 'ไม่พบไฟล์' ?></strong></div>
         </div>
         <?php if ($stationSetupAvailable): ?>

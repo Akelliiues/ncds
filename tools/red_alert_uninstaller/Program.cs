@@ -10,7 +10,7 @@ using Microsoft.Win32;
 [assembly: AssemblyProduct("NCDs Red Alert Station")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: AssemblyInformationalVersion("1.0 Build 202608302007")]
+[assembly: AssemblyInformationalVersion("1.0 Build 202608312200")]
 
 namespace NCDsRedAlertUninstaller
 {

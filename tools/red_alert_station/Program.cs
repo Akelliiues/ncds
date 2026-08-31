@@ -6,7 +6,6 @@ using System.IO;
 using System.Net;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Diagnostics;
@@ -15,7 +14,7 @@ using System.Windows.Forms;
 using Microsoft.Win32;
 
 [assembly: AssemblyTitle("NCDs Red Alert Station")]
-[assembly: AssemblyDescription("ศูนย์รับสัญญาณเตือนภัยวิกฤตฉุกเฉินและส่งต่อผู้ป่วย NCDs Portal")]
+[assembly: AssemblyDescription("ศูนย์รับสัญญาณเตือนภัยวิกฤตฉุกเฉินและ Local JHCIS Bridge สำหรับ NCDs Portal")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("สำนักงานสาธารณสุขอำเภอตาลสุม")]
 [assembly: AssemblyProduct("NCDs Portal Red Alert Station")]
@@ -26,33 +25,10 @@ using Microsoft.Win32;
 [assembly: Guid("e5f6a7b8-1234-4567-890a-bcdef0123456")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: AssemblyInformationalVersion("1.0 Build 202608302007")]
+[assembly: AssemblyInformationalVersion("1.0 Build 202608312200")]
 
 namespace NCDsRedAlertStation
 {
-    public class SessionWebClient : WebClient
-    {
-        public CookieContainer Cookies { get; private set; }
-
-        public SessionWebClient()
-        {
-            Cookies = new CookieContainer();
-            Encoding = Encoding.UTF8;
-        }
-
-        protected override WebRequest GetWebRequest(Uri address)
-        {
-            var request = base.GetWebRequest(address) as HttpWebRequest;
-            if (request != null)
-            {
-                request.CookieContainer = Cookies;
-                request.AllowAutoRedirect = true;
-                request.UserAgent = "NCDs-RedAlert-Station/3.0";
-            }
-            return request;
-        }
-    }
-
     public class AppConfig
     {
         public string ServerUrl { get; set; }
@@ -68,9 +44,6 @@ namespace NCDsRedAlertStation
         public string JhcisDbname { get; set; }
         public string JhcisUser { get; set; }
         public string JhcisPass { get; set; }
-        public string MySqlClientPath { get; set; }
-        public string StationAccessTokenProtected { get; set; }
-        public string StationId { get; set; }
         public bool AutoSyncJhcisReferral { get; set; }
         public bool IsFirstRunSetupDone { get; set; }
 
@@ -78,7 +51,7 @@ namespace NCDsRedAlertStation
         {
             ServerUrl = "https://ncd.ssotansum.com";
             Hoscode = "ALL";
-            Hosname = "ALL - ส่วนกลาง / สสอ.ตาลสุม / รพ.ตาลสุม (เห็นทุกเคสทั้งอำเภอ)";
+            Hosname = "ALL - ศูนย์กลาง (รับแจ้งเตือนทุกหน่วยบริการ)";
             SoundEnabled = true;
             SoundCycles = 2;
             AutoStartWithWindows = true;
@@ -89,9 +62,6 @@ namespace NCDsRedAlertStation
             JhcisDbname = "jhcisdb";
             JhcisUser = "root";
             JhcisPass = "";
-            MySqlClientPath = @"C:\Program Files\JHCIS\MySQL5.6\bin\mysql.exe";
-            StationAccessTokenProtected = "";
-            StationId = Environment.MachineName + "-" + Guid.NewGuid().ToString("N").Substring(0, 8).ToUpperInvariant();
             AutoSyncJhcisReferral = true;
             IsFirstRunSetupDone = false;
         }
@@ -102,26 +72,26 @@ namespace NCDsRedAlertStation
         public static bool ConfirmAndPrepare()
         {
             var answer = MessageBox.Show(
-                "ถอนการติดตั้ง NCDs Red Alert Station ออกจากเครื่องนี้?\n\nระบบจะลบไฟล์และการตั้งค่าของระบบออกจากเครื่อง\nฐานข้อมูล JHCIS และข้อมูลบนเว็บไซต์จะไม่ถูกลบ",
-                "ถอนการติดตั้ง", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                "ถอน NCDs Red Alert Station V3 ออกจากเครื่อง?\n\nระบบจะลบ Auto Start, Shortcut, การตั้งค่า, Log และไฟล์โปรแกรม V3\nฐานข้อมูล JHCIS และข้อมูลบนเว็บไซต์จะไม่ถูกลบ",
+                "ถอนการติดตั้ง V3", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
             if (answer != DialogResult.Yes) return false;
 
             try
             {
                 using (var key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true))
-                    if (key != null) key.DeleteValue("NCDsRedAlertStation", false);
+                    if (key != null) key.DeleteValue("NCDsRedAlertStationV3", false);
 
-                DeleteIfExists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "🚨 NCDs Red Alert Station.lnk"));
+                DeleteIfExists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "🚨 NCDs Red Alert Station V3.lnk"));
                 string dir = AppDomain.CurrentDomain.BaseDirectory;
-                DeleteIfExists(Path.Combine(dir, "red_alert_config.json"));
-                DeleteIfExists(Path.Combine(dir, "red_alert_debug.log"));
-                DeleteIfExists(Path.Combine(dir, "red_alert_error.log"));
+                DeleteIfExists(Path.Combine(dir, "red_alert_config_v3.json"));
+                DeleteIfExists(Path.Combine(dir, "red_alert_v3_debug.log"));
+                DeleteIfExists(Path.Combine(dir, "red_alert_v3_error.log"));
                 ScheduleSelfDelete(Application.ExecutablePath);
                 return true;
             }
             catch (Exception ex)
             {
-                MessageBox.Show("ถอนการติดตั้งไม่สำเร็จ: " + ex.Message, "ข้อผิดพลาด", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("ถอนการติดตั้ง V3 ไม่สำเร็จ: " + ex.Message, "ข้อผิดพลาด", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
         }
@@ -130,7 +100,7 @@ namespace NCDsRedAlertStation
 
         private static void ScheduleSelfDelete(string executablePath)
         {
-            string helper = Path.Combine(Path.GetTempPath(), "ncd_red_alert_uninstall_" + Guid.NewGuid().ToString("N") + ".cmd");
+            string helper = Path.Combine(Path.GetTempPath(), "ncd_red_alert_v3_uninstall_" + Guid.NewGuid().ToString("N") + ".cmd");
             string script = "@echo off\r\ntimeout /t 2 /nobreak >nul\r\ndel /f /q \"" + executablePath + "\"\r\ndel /f /q \"%~f0\"\r\n";
             File.WriteAllText(helper, script, Encoding.Default);
             Process.Start(new ProcessStartInfo { FileName = helper, UseShellExecute = true, WindowStyle = ProcessWindowStyle.Hidden });
@@ -144,7 +114,7 @@ namespace NCDsRedAlertStation
             get
             {
                 string dir = AppDomain.CurrentDomain.BaseDirectory;
-                return Path.Combine(dir, "red_alert_config.json");
+                return Path.Combine(dir, "red_alert_config_v3.json");
             }
         }
 
@@ -168,53 +138,12 @@ namespace NCDsRedAlertStation
                         {
                             cfg.ServerUrl = "https://ncd.ssotansum.com";
                         }
-                        if (string.IsNullOrEmpty(cfg.StationId))
-                            cfg.StationId = Environment.MachineName + "-" + Guid.NewGuid().ToString("N").Substring(0, 8).ToUpperInvariant();
-                        if (string.IsNullOrEmpty(cfg.MySqlClientPath) || !File.Exists(cfg.MySqlClientPath))
-                            cfg.MySqlClientPath = FindMySqlClient();
                         return cfg;
                     }
                 }
             }
             catch { }
             return new AppConfig();
-        }
-
-        public static string FindMySqlClient()
-        {
-            string[] candidates = {
-                @"C:\Program Files\JHCIS\MySQL5.6\bin\mysql.exe",
-                @"C:\Program Files\JHCIS\MySQL5.5\bin\mysql.exe",
-                @"C:\Program Files\JHCIS\MySQL5.1\bin\mysql.exe",
-                @"C:\Program Files (x86)\JHCIS\MySQL5.6\bin\mysql.exe",
-                @"C:\JHCIS\MySQL5.6\bin\mysql.exe"
-            };
-            foreach (string path in candidates) if (File.Exists(path)) return path;
-            try
-            {
-                foreach (var process in Process.GetProcessesByName("mysqld"))
-                {
-                    try
-                    {
-                        string serverPath = process.MainModule.FileName;
-                        string sibling = Path.Combine(Path.GetDirectoryName(serverPath), "mysql.exe");
-                        if (File.Exists(sibling)) return sibling;
-                    }
-                    catch { }
-                }
-            }
-            catch { }
-            foreach (string root in new[] { @"C:\Program Files\JHCIS", @"C:\Program Files (x86)\JHCIS", @"C:\JHCIS" })
-            {
-                try
-                {
-                    if (!Directory.Exists(root)) continue;
-                    string[] found = Directory.GetFiles(root, "mysql.exe", SearchOption.AllDirectories);
-                    if (found.Length > 0) return found[0];
-                }
-                catch { }
-            }
-            return "";
         }
 
         public static void Save(AppConfig cfg)
@@ -232,32 +161,6 @@ namespace NCDsRedAlertStation
             }
         }
 
-        public static string Protect(string plainText)
-        {
-            if (string.IsNullOrEmpty(plainText)) return "";
-            byte[] raw = Encoding.UTF8.GetBytes(plainText);
-            byte[] encrypted = ProtectedData.Protect(raw, null, DataProtectionScope.CurrentUser);
-            return Convert.ToBase64String(encrypted);
-        }
-
-        public static string Unprotect(string protectedText)
-        {
-            if (string.IsNullOrEmpty(protectedText)) return "";
-            try
-            {
-                byte[] encrypted = Convert.FromBase64String(protectedText);
-                return Encoding.UTF8.GetString(ProtectedData.Unprotect(encrypted, null, DataProtectionScope.CurrentUser));
-            }
-            catch { return ""; }
-        }
-
-        public static void ApplyStationAuth(WebClient client, AppConfig cfg)
-        {
-            string token = Unprotect(cfg.StationAccessTokenProtected);
-            if (!string.IsNullOrEmpty(token)) client.Headers[HttpRequestHeader.Authorization] = "Bearer " + token;
-            if (!string.IsNullOrEmpty(cfg.StationId)) client.Headers["X-Station-ID"] = cfg.StationId;
-        }
-
         public static void ApplyAutoStart(bool enable)
         {
             try
@@ -269,11 +172,13 @@ namespace NCDsRedAlertStation
                         string appPath = Application.ExecutablePath;
                         if (enable)
                         {
-                            key.SetValue("NCDsRedAlertStation", "\"" + appPath + "\"");
+                            // Prevent duplicate alert popups after V3 becomes the active station.
+                            key.DeleteValue("NCDsRedAlertStation", false);
+                            key.SetValue("NCDsRedAlertStationV3", "\"" + appPath + "\"");
                         }
                         else
                         {
-                            key.DeleteValue("NCDsRedAlertStation", false);
+                            key.DeleteValue("NCDsRedAlertStationV3", false);
                         }
                     }
                 }
@@ -286,11 +191,9 @@ namespace NCDsRedAlertStation
             try
             {
                 string desktopDir = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-                string shortcutPath = Path.Combine(desktopDir, "NCDs Red Alert Station.lnk");
+                string shortcutPath = Path.Combine(desktopDir, "🚨 NCDs Red Alert Station V3.lnk");
                 string appPath = Application.ExecutablePath;
                 string workingDir = AppDomain.CurrentDomain.BaseDirectory;
-                string legacyShortcut = Path.Combine(desktopDir, "🚨 NCDs Red Alert Station.lnk");
-                if (File.Exists(legacyShortcut)) File.Delete(legacyShortcut);
 
                 Type shellType = Type.GetTypeFromProgID("WScript.Shell");
                 if (shellType != null)
@@ -299,8 +202,7 @@ namespace NCDsRedAlertStation
                     dynamic shortcut = shell.CreateShortcut(shortcutPath);
                     shortcut.TargetPath = appPath;
                     shortcut.WorkingDirectory = workingDir;
-                    shortcut.IconLocation = appPath + ",0";
-                    shortcut.Description = "ศูนย์รับสัญญาณเคสวิกฤตฉุกเฉิน NCDs Portal อำเภอตาลสุม";
+                    shortcut.Description = "NCDs Red Alert Station V3 พร้อม Local JHCIS Bridge";
                     shortcut.Save();
                 }
             }
@@ -328,149 +230,211 @@ namespace NCDsRedAlertStation
         }
     }
 
-    public sealed class JhcisReferralPreview
+    public sealed class JhcisConnectionResult
     {
-        public bool IsValid;
-        public bool AlreadySynced;
-        public string Error;
-        public string Pcucode;
-        public string Pid;
-        public string VisitNo;
-        public string PatientName;
-        public string VisitDate;
-        public string ExistingRefer;
-        public string ExistingDestination;
-        public string CitizenId;
+        public string Version { get; set; }
+        public string PcuCode { get; set; }
+        public int PersonCount { get; set; }
+        public int ScreenCount { get; set; }
+        public string ClientPath { get; set; }
     }
 
-    // The Station is deliberately limited to existing JHCIS structures. It never
-    // executes CREATE, ALTER or DROP and never creates a visit/person record.
-    public static class JhcisReferralService
+    // Runs on the station computer. It never asks the web server to connect to localhost.
+    public static class LocalJhcisBridge
     {
-        private static string SqlValue(string value)
+        public static JhcisConnectionResult Test(AppConfig config)
         {
-            if (value == null) return "NULL";
-            return "'" + value.Replace("\\", "\\\\").Replace("'", "''").Replace("\0", "") + "'";
+            string client = FindMysqlClient();
+            string version = RunQuery(client, config, "SELECT VERSION()", 8).Trim();
+            string columns = RunQuery(client, config,
+                "SELECT GROUP_CONCAT(LOWER(column_name)) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='person'", 8);
+            string pcuColumn = HasColumn(columns, "pcucodeperson") ? "pcucodeperson" : (HasColumn(columns, "pcucode") ? "pcucode" : "");
+            if (pcuColumn == "") throw new Exception("ตาราง person ไม่มีคอลัมน์ pcucodeperson หรือ pcucode");
+
+            string pcu = RunQuery(client, config,
+                "SELECT `" + pcuColumn + "` FROM person WHERE `" + pcuColumn + "`<>'' GROUP BY `" + pcuColumn + "` ORDER BY COUNT(*) DESC LIMIT 1", 8).Trim();
+            int persons = ParseCount(RunQuery(client, config, "SELECT COUNT(*) FROM person", 8));
+            int screens = ParseCount(RunQuery(client, config, "SELECT COUNT(*) FROM ncd_person_ncd_screen", 8));
+            return new JhcisConnectionResult { Version = version, PcuCode = pcu, PersonCount = persons, ScreenCount = screens, ClientPath = client };
         }
 
-        private static string Identifier(string value)
+        public static int ExecutePortalScript(AppConfig config, string sql)
         {
-            if (string.IsNullOrWhiteSpace(value) || !System.Text.RegularExpressions.Regex.IsMatch(value, "^[A-Za-z0-9_]+$"))
-                throw new Exception("ชื่อฐานข้อมูล JHCIS ไม่ถูกต้อง");
-            return value;
-        }
+            if (string.IsNullOrWhiteSpace(sql) || !sql.Contains("-- NCDS-SCREENING-IDS:"))
+                throw new Exception("ไฟล์คำสั่งไม่ได้สร้างจากหน้า NCDs Portal");
+            string upper = sql.ToUpperInvariant();
+            string[] forbidden = { " DROP ", " DELETE ", " UPDATE ", " ALTER ", " TRUNCATE ", " CREATE ", " GRANT ", " REPLACE " };
+            foreach (string token in forbidden)
+                if (upper.Contains(token)) throw new Exception("พบคำสั่งที่ไม่ได้รับอนุญาต: " + token.Trim());
 
-        private static string Run(AppConfig cfg, string sql)
-        {
-            string client = ConfigManager.FindMySqlClient();
-            if (string.IsNullOrEmpty(client) || !File.Exists(client))
-                throw new Exception("ไม่พบเครื่องมือเชื่อมต่อ MySQL ของ JHCIS");
-            if (string.IsNullOrWhiteSpace(cfg.JhcisHost) || cfg.JhcisPort < 1 || cfg.JhcisPort > 65535)
-                throw new Exception("Host หรือ Port ของ JHCIS ไม่ถูกต้อง");
-
-            var psi = new ProcessStartInfo
-            {
+            string client = FindMysqlClient();
+            var start = new ProcessStartInfo {
                 FileName = client,
-                Arguments = "--connect-timeout=8 --protocol=tcp --batch --raw --skip-column-names -h \"" + cfg.JhcisHost.Replace("\"", "") +
-                    "\" -P " + cfg.JhcisPort + " -u \"" + cfg.JhcisUser.Replace("\"", "") + "\" " + Identifier(cfg.JhcisDbname),
-                UseShellExecute = false,
-                RedirectStandardInput = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8
+                Arguments = "--connect-timeout=5 --protocol=tcp -h " + Quote(config.JhcisHost) + " -P " + config.JhcisPort +
+                    " -u " + Quote(config.JhcisUser) + " --default-character-set=tis620 " + Quote(config.JhcisDbname),
+                UseShellExecute = false, RedirectStandardInput = true, RedirectStandardOutput = true,
+                RedirectStandardError = true, CreateNoWindow = true,
+                StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8
             };
-            psi.EnvironmentVariables["MYSQL_PWD"] = cfg.JhcisPass ?? "";
-            using (var p = Process.Start(psi))
+            start.EnvironmentVariables["MYSQL_PWD"] = config.JhcisPass ?? "";
+            using (var process = Process.Start(start))
             {
-                p.StandardInput.Write(sql);
-                p.StandardInput.Close();
-                string output = p.StandardOutput.ReadToEnd();
-                string error = p.StandardError.ReadToEnd();
-                if (!p.WaitForExit(15000)) { try { p.Kill(); } catch { } throw new Exception("JHCIS ไม่ตอบสนองภายในเวลาที่กำหนด"); }
-                if (p.ExitCode != 0) throw new Exception("JHCIS ปฏิเสธคำสั่ง: " + error.Trim());
-                return output.Replace("\r", "");
+                process.StandardInput.Write(sql);
+                process.StandardInput.Close();
+                string stderr = process.StandardError.ReadToEnd();
+                process.StandardOutput.ReadToEnd();
+                if (!process.WaitForExit(120000)) { process.Kill(); throw new TimeoutException("หมดเวลารอการบันทึก JHCIS"); }
+                if (process.ExitCode != 0) throw new Exception(string.IsNullOrWhiteSpace(stderr) ? "JHCIS ปฏิเสธคำสั่งนำเข้า" : stderr.Trim());
             }
+            int count = 0;
+            const string markerText = "-- NCDS-SCREENING-IDS:";
+            int marker = sql.IndexOf(markerText, StringComparison.Ordinal);
+            if (marker >= 0) count = sql.Substring(marker + markerText.Length).Split('\n')[0].Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Length;
+            return count;
         }
 
-        private static Dictionary<string, string> ReadMarkers(string output)
+        private static bool HasColumn(string csv, string name)
         {
-            var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (string line in output.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries))
-            {
-                int tab = line.IndexOf('\t');
-                if (tab > 0 && line.StartsWith("NCD_", StringComparison.Ordinal)) result[line.Substring(0, tab)] = line.Substring(tab + 1);
-            }
+            foreach (string item in (csv ?? "").Split(','))
+                if (item.Trim().Equals(name, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }
+
+        private static int ParseCount(string value)
+        {
+            int result;
+            if (!int.TryParse((value ?? "").Trim(), out result)) throw new Exception("JHCIS ส่งค่าจำนวนข้อมูลไม่ถูกต้อง");
             return result;
         }
 
-        public static JhcisReferralPreview Preview(AppConfig cfg, Dictionary<string, object> alert, string destinationCode)
+        private static string FindMysqlClient()
         {
-            var r = new JhcisReferralPreview();
-            string cid = alert.ContainsKey("target_cid") && alert["target_cid"] != null ? alert["target_cid"].ToString().Trim() : "";
-            string hoscode = alert.ContainsKey("hoscode") && alert["hoscode"] != null ? alert["hoscode"].ToString().Trim() : "";
-            string alertName = alert.ContainsKey("patient_name") && alert["patient_name"] != null ? alert["patient_name"].ToString().Trim() : "";
-            DateTime alertDate;
-            string created = alert.ContainsKey("created_at") && alert["created_at"] != null ? alert["created_at"].ToString() : "";
-            if (!DateTime.TryParse(created, out alertDate)) alertDate = DateTime.Today;
-
-            if (!System.Text.RegularExpressions.Regex.IsMatch(cid, "^[0-9]{13}$")) { r.Error = "CID ต้องเป็นตัวเลข 13 หลัก"; return r; }
-            r.CitizenId = cid;
-            if (!System.Text.RegularExpressions.Regex.IsMatch(hoscode, "^[0-9]{5}$")) { r.Error = "เคสไม่มีรหัสสถานบริการ 5 หลักที่ถูกต้อง"; return r; }
-            if (cfg.Hoscode != "ALL" && cfg.Hoscode != hoscode) { r.Error = "เคสนี้ไม่ได้อยู่ในสังกัดสถานี " + cfg.Hoscode; return r; }
-            if (!System.Text.RegularExpressions.Regex.IsMatch(destinationCode ?? "", "^[0-9]{5}$")) { r.Error = "รหัสสถานบริการปลายทางไม่ถูกต้อง"; return r; }
-
-            string sql =
-                "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;\n" +
-                "SELECT 'NCD_SCHEMA',COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND ((table_name='visit' AND column_name IN ('pcucode','visitno','visitdate','pcucodeperson','pid','refer','refertohos','dateupdate')) OR (table_name='person' AND column_name IN ('pcucodeperson','pid','idcard','prename','fname','lname')) OR (table_name='visit7referhisreferres' AND column_name IN ('pcucode','visitno','pstatus','ptype','request','dateupdatehistory')));\n" +
-                "SELECT 'NCD_ENGINE',COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name IN ('visit','person','visit7referhisreferres') AND engine='InnoDB';\n" +
-                "SELECT 'NCD_FK',COUNT(*) FROM information_schema.key_column_usage WHERE table_schema=DATABASE() AND table_name='visit7referhisreferres' AND referenced_table_name='visit' AND column_name IN ('pcucode','visitno');\n" +
-                "SELECT 'NCD_DEST',COUNT(*) FROM chospital WHERE hoscode=" + SqlValue(destinationCode) + ";\n" +
-                "SELECT 'NCD_PERSON_COUNT',COUNT(*) FROM person WHERE idcard=" + SqlValue(cid) + ";\n" +
-                "SELECT 'NCD_PERSON',CONCAT_WS('|',pcucodeperson,pid,CONCAT(IFNULL(prename,''),IFNULL(fname,''),' ',IFNULL(lname,''))) FROM person WHERE idcard=" + SqlValue(cid) + " LIMIT 2;\n" +
-                "SELECT 'NCD_VISIT_COUNT',COUNT(*) FROM visit v JOIN person p ON p.pcucodeperson=v.pcucodeperson AND p.pid=v.pid WHERE p.idcard=" + SqlValue(cid) + " AND v.pcucode=" + SqlValue(hoscode) + " AND v.visitdate=" + SqlValue(alertDate.ToString("yyyy-MM-dd")) + ";\n" +
-                "SELECT 'NCD_VISIT',CONCAT_WS('|',v.pcucode,v.visitno,v.visitdate,IFNULL(v.refer,''),IFNULL(v.refertohos,''),IF(EXISTS(SELECT 1 FROM visit7referhisreferres x WHERE x.pcucode=v.pcucode AND x.visitno=v.visitno),'1','0')) FROM visit v JOIN person p ON p.pcucodeperson=v.pcucodeperson AND p.pid=v.pid WHERE p.idcard=" + SqlValue(cid) + " AND v.pcucode=" + SqlValue(hoscode) + " AND v.visitdate=" + SqlValue(alertDate.ToString("yyyy-MM-dd")) + " ORDER BY v.visitno DESC LIMIT 2;\n";
-            var m = ReadMarkers(Run(cfg, sql));
-            int n;
-            if (!m.ContainsKey("NCD_SCHEMA") || !int.TryParse(m["NCD_SCHEMA"], out n) || n != 20) { r.Error = "โครงสร้างฐาน JHCIS รุ่นนี้ไม่ตรงกับชุดที่ผ่านการตรวจสอบ จึงยกเลิกการเขียนข้อมูล"; return r; }
-            if (!m.ContainsKey("NCD_ENGINE") || m["NCD_ENGINE"] != "3" || !m.ContainsKey("NCD_FK") || m["NCD_FK"] != "2") { r.Error = "ฐาน JHCIS ไม่รองรับธุรกรรมหรือความสัมพันธ์ของตารางไม่ครบ จึงยกเลิกการเขียนข้อมูล"; return r; }
-            if (!m.ContainsKey("NCD_DEST") || m["NCD_DEST"] != "1") { r.Error = "ไม่พบรหัสสถานบริการปลายทางในตาราง chospital ของ JHCIS"; return r; }
-            if (!m.ContainsKey("NCD_PERSON_COUNT") || m["NCD_PERSON_COUNT"] != "1" || !m.ContainsKey("NCD_PERSON")) { r.Error = "ต้องพบบุคคลจาก CID ตรงกันเพียง 1 รายใน JHCIS"; return r; }
-            string[] person = m["NCD_PERSON"].Split('|');
-            if (person.Length < 3) { r.Error = "อ่านข้อมูลบุคคลจาก JHCIS ไม่ครบ"; return r; }
-            r.Pid = person[1]; r.PatientName = person[2];
-            string compactAlert = System.Text.RegularExpressions.Regex.Replace(alertName, "\\s+", "");
-            string compactJhcis = System.Text.RegularExpressions.Regex.Replace(r.PatientName, "\\s+", "");
-            if (compactAlert.Length < 3 || compactJhcis.Length < 3 || (!compactJhcis.Contains(compactAlert) && !compactAlert.Contains(compactJhcis))) { r.Error = "ชื่อผู้ป่วยในเคสไม่ตรงกับบุคคลที่พบจาก CID ใน JHCIS"; return r; }
-            if (!m.ContainsKey("NCD_VISIT_COUNT") || m["NCD_VISIT_COUNT"] != "1" || !m.ContainsKey("NCD_VISIT")) { r.Error = "ต้องมี Visit ของผู้ป่วยในวันที่แจ้งเคสเพียง 1 รายการ กรุณาลงทะเบียนรับบริการใน JHCIS ให้เรียบร้อยก่อน"; return r; }
-            string[] visit = m["NCD_VISIT"].Split('|');
-            if (visit.Length < 6) { r.Error = "อ่าน Visit จาก JHCIS ไม่ครบ"; return r; }
-            r.Pcucode = visit[0]; r.VisitNo = visit[1]; r.VisitDate = visit[2]; r.ExistingRefer = visit[3]; r.ExistingDestination = visit[4];
-            bool hasReferRow = visit[5] == "1";
-            if ((!string.IsNullOrEmpty(r.ExistingRefer) && r.ExistingRefer != "00" && r.ExistingRefer != "01") || (!string.IsNullOrEmpty(r.ExistingDestination) && r.ExistingDestination != destinationCode)) { r.Error = "Visit นี้มีข้อมูลส่งต่อเดิมที่ขัดแย้ง ระบบจะไม่เขียนทับ"; return r; }
-            r.AlreadySynced = hasReferRow && r.ExistingRefer == "01" && r.ExistingDestination == destinationCode;
-            if (hasReferRow && !r.AlreadySynced) { r.Error = "Visit นี้มีประวัติส่งต่ออยู่แล้วแต่ข้อมูลไม่ตรงกัน ระบบจะไม่เขียนทับ"; return r; }
-            r.IsValid = true;
-            return r;
+            string[] candidates = {
+                @"C:\Program Files\JHCIS\MySQL5.6\bin\mysql.exe",
+                @"C:\Program Files\JHCIS\MySQL\bin\mysql.exe",
+                @"C:\Program Files (x86)\JHCIS\MySQL\bin\mysql.exe"
+            };
+            foreach (string candidate in candidates) if (File.Exists(candidate)) return candidate;
+            throw new FileNotFoundException("ไม่พบ mysql.exe ของ JHCIS ในเครื่อง");
         }
 
-        public static void Commit(AppConfig cfg, JhcisReferralPreview preview, Dictionary<string, object> alert, string destinationCode)
+        private static string RunQuery(string client, AppConfig config, string query, int timeoutSeconds)
         {
-            if (preview == null || !preview.IsValid) throw new Exception("ยังไม่ผ่านการตรวจสอบก่อนบันทึก");
-            if (preview.AlreadySynced) return;
-            string crisis = alert.ContainsKey("crisis_type") && alert["crisis_type"] != null ? alert["crisis_type"].ToString().Trim() : "";
-            string flags = alert.ContainsKey("red_flags") && alert["red_flags"] != null ? alert["red_flags"].ToString().Trim() : "";
-            string request = (crisis + (flags == "" ? "" : " - " + flags));
-            if (request.Length > 250) request = request.Substring(0, 250);
-            string sql =
-                "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED; START TRANSACTION;\n" +
-                "SELECT @ncd_eligible:=COUNT(*) FROM visit v JOIN person p ON p.pcucodeperson=v.pcucodeperson AND p.pid=v.pid WHERE v.pcucode=" + SqlValue(preview.Pcucode) + " AND v.visitno=" + preview.VisitNo + " AND v.visitdate=" + SqlValue(preview.VisitDate) + " AND p.idcard=" + SqlValue(preview.CitizenId) + " AND (v.refer IS NULL OR v.refer='' OR v.refer='00') AND (v.refertohos IS NULL OR v.refertohos='') FOR UPDATE;\n" +
-                "UPDATE visit SET refer='01',refertohos=" + SqlValue(destinationCode) + ",dateupdate=NOW() WHERE pcucode=" + SqlValue(preview.Pcucode) + " AND visitno=" + preview.VisitNo + " AND @ncd_eligible=1;\n" +
-                "INSERT INTO visit7referhisreferres (pcucode,visitno,pstatus,ptype,request,dateupdatehistory) SELECT " + SqlValue(preview.Pcucode) + "," + preview.VisitNo + "," + SqlValue(crisis) + ",'1'," + SqlValue(request) + ",NOW() FROM visit WHERE pcucode=" + SqlValue(preview.Pcucode) + " AND visitno=" + preview.VisitNo + " AND @ncd_eligible=1 AND refer='01' AND refertohos=" + SqlValue(destinationCode) + " AND NOT EXISTS (SELECT 1 FROM visit7referhisreferres x WHERE x.pcucode=" + SqlValue(preview.Pcucode) + " AND x.visitno=" + preview.VisitNo + ");\n" +
-                "SELECT 'NCD_COMMIT',COUNT(*) FROM visit v JOIN visit7referhisreferres r ON r.pcucode=v.pcucode AND r.visitno=v.visitno WHERE v.pcucode=" + SqlValue(preview.Pcucode) + " AND v.visitno=" + preview.VisitNo + " AND v.refer='01' AND v.refertohos=" + SqlValue(destinationCode) + "; COMMIT;\n";
-            var m = ReadMarkers(Run(cfg, sql));
-            if (!m.ContainsKey("NCD_COMMIT") || m["NCD_COMMIT"] != "1") throw new Exception("ตรวจสอบผลหลังบันทึกไม่ผ่าน กรุณาตรวจใน JHCIS");
+            if (string.IsNullOrWhiteSpace(config.JhcisHost)) throw new Exception("กรุณาระบุ Host หรือ IP ของ JHCIS");
+            if (config.JhcisPort < 1 || config.JhcisPort > 65535) throw new Exception("พอร์ต JHCIS ไม่ถูกต้อง");
+            if (!IsSafeIdentifier(config.JhcisDbname)) throw new Exception("ชื่อฐานข้อมูล JHCIS ไม่ถูกต้อง");
+
+            var start = new ProcessStartInfo {
+                FileName = client,
+                Arguments = "--connect-timeout=5 --protocol=tcp -h " + Quote(config.JhcisHost) + " -P " + config.JhcisPort +
+                    " -u " + Quote(config.JhcisUser) + " --default-character-set=utf8 " + Quote(config.JhcisDbname) + " -N -e " + Quote(query),
+                UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true,
+                StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8
+            };
+            start.EnvironmentVariables["MYSQL_PWD"] = config.JhcisPass ?? "";
+            using (var process = Process.Start(start))
+            {
+                string stdout = process.StandardOutput.ReadToEnd();
+                string stderr = process.StandardError.ReadToEnd();
+                if (!process.WaitForExit(timeoutSeconds * 1000)) { process.Kill(); throw new TimeoutException("หมดเวลารอ JHCIS"); }
+                if (process.ExitCode != 0) throw new Exception(string.IsNullOrWhiteSpace(stderr) ? "เชื่อมต่อ JHCIS ไม่สำเร็จ" : stderr.Trim());
+                return stdout;
+            }
+        }
+
+        private static bool IsSafeIdentifier(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return false;
+            foreach (char c in value) if (!(char.IsLetterOrDigit(c) || c == '_')) return false;
+            return true;
+        }
+
+        private static string Quote(string value)
+        {
+            return "\"" + (value ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+        }
+    }
+
+    public sealed class LocalBridgeServer
+    {
+        private readonly AppConfig _config;
+        private HttpListener _listener;
+        private Thread _thread;
+        public LocalBridgeServer(AppConfig config) { _config = config; }
+
+        public void Start()
+        {
+            _listener = new HttpListener();
+            _listener.Prefixes.Add("http://127.0.0.1:18765/");
+            _listener.Start();
+            _thread = new Thread(ListenLoop) { IsBackground = true };
+            _thread.Start();
+        }
+
+        public void Stop() { try { if (_listener != null) _listener.Stop(); } catch { } }
+
+        private void ListenLoop()
+        {
+            while (_listener != null && _listener.IsListening)
+            {
+                try { ThreadPool.QueueUserWorkItem(Handle, _listener.GetContext()); }
+                catch { if (_listener == null || !_listener.IsListening) return; }
+            }
+        }
+
+        private void Handle(object state)
+        {
+            var context = (HttpListenerContext)state;
+            try
+            {
+                string origin = context.Request.Headers["Origin"] ?? "";
+                Uri allowed;
+                if (!Uri.TryCreate(_config.ServerUrl, UriKind.Absolute, out allowed) ||
+                    !origin.Equals(allowed.GetLeftPart(UriPartial.Authority), StringComparison.OrdinalIgnoreCase))
+                    throw new Exception("Origin ไม่ได้รับอนุญาต");
+                context.Response.Headers["Access-Control-Allow-Origin"] = origin;
+                context.Response.Headers["Vary"] = "Origin";
+                context.Response.Headers["Access-Control-Allow-Methods"] = "POST, OPTIONS";
+                context.Response.Headers["Access-Control-Allow-Headers"] = "Content-Type";
+                if (context.Request.Headers["Access-Control-Request-Private-Network"] == "true")
+                    context.Response.Headers["Access-Control-Allow-Private-Network"] = "true";
+                if (context.Request.HttpMethod == "OPTIONS") { context.Response.StatusCode = 204; return; }
+                if (context.Request.HttpMethod != "POST") throw new Exception("Method not allowed");
+
+                object result;
+                if (context.Request.Url.AbsolutePath == "/test")
+                {
+                    var test = LocalJhcisBridge.Test(_config);
+                    result = new { status = "success", db_version = test.Version, detected_pcucode = test.PcuCode,
+                        person_count = test.PersonCount, screen_count = test.ScreenCount, source = "local_station" };
+                }
+                else if (context.Request.Url.AbsolutePath == "/sync")
+                {
+                    string body;
+                    using (var reader = new StreamReader(context.Request.InputStream, Encoding.UTF8)) body = reader.ReadToEnd();
+                    var payload = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(body);
+                    string sql = payload != null && payload.ContainsKey("sql") ? Convert.ToString(payload["sql"]) : "";
+                    string requestedHoscode = payload != null && payload.ContainsKey("hoscode") ? Convert.ToString(payload["hoscode"]) : "";
+                    JhcisConnectionResult connected = LocalJhcisBridge.Test(_config);
+                    if (string.IsNullOrWhiteSpace(requestedHoscode) || !requestedHoscode.Equals(connected.PcuCode, StringComparison.OrdinalIgnoreCase))
+                        throw new Exception("รหัส รพ.สต. ใน JHCIS (" + connected.PcuCode + ") ไม่ตรงกับหน้าที่เลือก (" + requestedHoscode + ")");
+                    int count = LocalJhcisBridge.ExecutePortalScript(_config, sql);
+                    result = new { status = "success", processed = count, detected_pcucode = connected.PcuCode };
+                }
+                else throw new Exception("Endpoint not found");
+                WriteJson(context, result, 200);
+            }
+            catch (Exception ex) { WriteJson(context, new { status = "error", message = ex.Message }, 400); }
+            finally { try { context.Response.Close(); } catch { } }
+        }
+
+        private static void WriteJson(HttpListenerContext context, object data, int status)
+        {
+            byte[] bytes = Encoding.UTF8.GetBytes(new JavaScriptSerializer().Serialize(data));
+            context.Response.StatusCode = status;
+            context.Response.ContentType = "application/json; charset=utf-8";
+            context.Response.ContentLength64 = bytes.Length;
+            context.Response.OutputStream.Write(bytes, 0, bytes.Length);
         }
     }
 
@@ -529,7 +493,6 @@ namespace NCDsRedAlertStation
     // ==========================================
     public class AlertPopupForm : Form
     {
-        public event Action AlertHandled;
         private AppConfig _config;
         private SirenPlayer _siren;
         private Dictionary<string, object> _currentAlert;
@@ -994,7 +957,6 @@ namespace NCDsRedAlertStation
                     {
                         using (var wb = new WebClient())
                         {
-                            ConfigManager.ApplyStationAuth(wb, _config);
                             var reqData = new System.Collections.Specialized.NameValueCollection();
                             reqData.Add("action", "acknowledge_alert");
                             reqData.Add("alert_id", alertId);
@@ -1006,7 +968,6 @@ namespace NCDsRedAlertStation
                 });
             }
             this.Hide();
-            if (AlertHandled != null) AlertHandled();
         }
 
         private void BtnRefer_Click(object sender, EventArgs e)
@@ -1025,78 +986,28 @@ namespace NCDsRedAlertStation
                 {
                     try
                     {
-                        JhcisReferralPreview preview = null;
-                        bool localCommitted = false;
-                        if (_config.AutoSyncJhcisReferral)
-                        {
-                            preview = JhcisReferralService.Preview(_config, _currentAlert, destCode);
-                            if (!preview.IsValid) throw new Exception("ยังส่งเข้า JHCIS ไม่ได้\n\n" + preview.Error + "\n\nระบบยังไม่ได้แก้ไขข้อมูลใดใน JHCIS");
-
-                            DialogResult answer = DialogResult.No;
-                            this.Invoke((MethodInvoker)delegate
-                            {
-                                string detail =
-                                    "ตรวจสอบข้อมูลก่อนยืนยันส่งเข้า JHCIS\n\n" +
-                                    "ผู้ป่วย: " + preview.PatientName + "\n" +
-                                    "CID: " + (_currentAlert.ContainsKey("target_cid") ? _currentAlert["target_cid"].ToString() : "") + "\n" +
-                                    "สถานบริการต้นทาง: " + preview.Pcucode + "\n" +
-                                    "Visit: " + preview.VisitNo + " วันที่ " + preview.VisitDate + "\n" +
-                                    "ปลายทาง: " + _config.DestHospitalName + " (" + destCode + ")\n\n" +
-                                    (preview.AlreadySynced ? "รายการนี้มีข้อมูลตรงกันใน JHCIS แล้ว ระบบจะไม่สร้างซ้ำ" : "ระบบจะปรับสถานะส่งต่อของ Visit เดิมและเพิ่มประวัติส่งต่อ 1 รายการ\nระบบจะไม่สร้าง Visit บุคคล ตาราง หรือคอลัมน์ใหม่") +
-                                    "\n\nยืนยันข้อมูลถูกต้องและดำเนินการต่อหรือไม่";
-                                answer = MessageBox.Show(detail, "ยืนยันการส่งต่อเข้า JHCIS", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
-                            });
-                            if (answer != DialogResult.Yes) throw new OperationCanceledException("ยกเลิกโดยเจ้าหน้าที่ ระบบไม่ได้แก้ไขข้อมูล JHCIS");
-                            JhcisReferralService.Commit(_config, preview, _currentAlert, destCode);
-                            localCommitted = true;
-                        }
-
                         using (var wb = new WebClient())
                         {
-                            ConfigManager.ApplyStationAuth(wb, _config);
                             var reqData = new System.Collections.Specialized.NameValueCollection();
                             reqData.Add("action", "update_referral_status");
                             reqData.Add("alert_id", alertId);
                             reqData.Add("status", "referred_hospital");
                             reqData.Add("referral_destination", destHospital);
                             reqData.Add("referral_hospcode", destCode);
-                            reqData.Add("sync_jhcis", _config.AutoSyncJhcisReferral ? "1" : "0");
-                            if (localCommitted && preview != null)
-                            {
-                                reqData.Add("jhcis_local_committed", "1");
-                                reqData.Add("jhcis_visitno", preview.VisitNo);
-                            }
+                            reqData.Add("sync_jhcis", (_config.AutoSyncJhcisReferral && _config.Hoscode != "ALL") ? "1" : "0");
                             reqData.Add("staff_name", "จนท. (" + _config.Hosname + ")");
 
                             byte[] response = wb.UploadValues(_config.ServerUrl.TrimEnd('/') + "/api/emergency_alert.php", "POST", reqData);
                             string resStr = Encoding.UTF8.GetString(response);
-                            var parsed = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(resStr);
-                            if (parsed == null || !parsed.ContainsKey("status") || Convert.ToString(parsed["status"]) != "success")
-                                throw new Exception(parsed != null && parsed.ContainsKey("message") ? Convert.ToString(parsed["message"]) : "เว็บไซต์ตอบกลับไม่ถูกต้อง");
-                            if (localCommitted && (!parsed.ContainsKey("is_jhcis_synced") || Convert.ToInt32(parsed["is_jhcis_synced"]) != 1))
-                                throw new Exception("บันทึก JHCIS สำเร็จแล้ว แต่เว็บไซต์ยังไม่ยืนยันผล โปรดกดส่งต่อซ้ำ ระบบจะตรวจพบรายการเดิมและไม่สร้างซ้ำ");
 
                             this.Invoke((MethodInvoker)delegate
                             {
                                 btnRefer.Enabled = true;
                                 btnRefer.Text = string.Format("🏥 สั่งส่งต่อ {0} ({1})", _config.DestHospitalName, _config.DestHospitalCode);
-                                string syncResult = localCommitted && preview != null
-                                    ? (preview.AlreadySynced ? "JHCIS: พบรายการเดิมที่ตรงกัน จึงไม่สร้างซ้ำ (Visit " + preview.VisitNo + ")" : "JHCIS: บันทึกประวัติส่งต่อใน Visit เดิมและตรวจสอบผลแล้ว (Visit " + preview.VisitNo + ")")
-                                    : "JHCIS: ไม่ได้เลือกส่งข้อมูลเข้า JHCIS";
-                                MessageBox.Show(string.Format("สั่งส่งต่อไปยัง {0} (รหัส {1}) เรียบร้อยแล้ว\n\n{2}", _config.DestHospitalName, _config.DestHospitalCode, syncResult), "สำเร็จ", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                                MessageBox.Show(string.Format("✅ สั่งส่งต่อไปยัง {0} (รหัส {1}) เรียบร้อยแล้ว\n{2}", _config.DestHospitalName, _config.DestHospitalCode, (_config.AutoSyncJhcisReferral && _config.Hoscode != "ALL") ? "(ส่งคำขอซิงค์ JHCIS แล้ว)" : ""), "สำเร็จ", MessageBoxButtons.OK, MessageBoxIcon.Information);
                                 this.Hide();
-                                if (AlertHandled != null) AlertHandled();
                             });
                         }
-                    }
-                    catch (OperationCanceledException ex)
-                    {
-                        this.Invoke((MethodInvoker)delegate
-                        {
-                            btnRefer.Enabled = true;
-                            btnRefer.Text = string.Format("🏥 สั่งส่งต่อ {0} ({1})", _config.DestHospitalName, _config.DestHospitalCode);
-                            MessageBox.Show(ex.Message, "ยกเลิกการส่งต่อ", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        });
                     }
                     catch (Exception ex)
                     {
@@ -1142,6 +1053,7 @@ namespace NCDsRedAlertStation
         private TextBox txtServerUrl;
         private ComboBox cboHealthCenter;
         private TextBox txtHoscode;
+        private Label lblUnitLoadStatus;
         private ComboBox cboDestHospital;
         private TextBox txtDestHospCode;
         private TextBox txtDestHospName;
@@ -1152,8 +1064,6 @@ namespace NCDsRedAlertStation
         private TextBox txtJhcisDb;
         private TextBox txtJhcisUser;
         private TextBox txtJhcisPass;
-        private TextBox txtStationAccessToken;
-        private Label lblStationId;
         private CheckBox chkJhcisAutoSync;
         private Button btnSave;
         private Button btnTestJhcis;
@@ -1164,55 +1074,38 @@ namespace NCDsRedAlertStation
             _config = config;
             InitializeUI();
             LoadConfigToUI();
-            this.Shown += (s, e) => LoadHealthUnitsFromServer();
+            LoadHealthUnitsFromServerAsync();
         }
 
         private void InitializeUI()
         {
-            this.Text = "⚙️ การตั้งค่าระบบ NCDs Red Alert Station";
-            this.ClientSize = new Size(900, 560);
+            this.Text = "NCDs Red Alert Station V3 • Settings";
+            this.Size = new Size(720, 640);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.BackColor = Color.FromArgb(235, 242, 249);
-            this.Font = GetSettingsFont(11f);
+            this.BackColor = Color.FromArgb(231, 238, 246);
+            this.Font = ConfigManager.GetSystemFont(9.5f);
 
             tabControl = new TabControl
             {
-                Dock = DockStyle.Fill,
-                Alignment = TabAlignment.Top,
-                Appearance = TabAppearance.Normal,
-                DrawMode = TabDrawMode.OwnerDrawFixed,
-                SizeMode = TabSizeMode.Fixed,
-                ItemSize = new Size(217, 52),
-                Padding = new Point(18, 10),
-                Font = GetSettingsFont(11.5f, FontStyle.Bold)
-            };
-            tabControl.DrawItem += (s, e) =>
-            {
-                bool selected = e.Index == tabControl.SelectedIndex;
-                Rectangle rect = e.Bounds;
-                rect.Inflate(-4, -5);
-                Color fill = selected ? Color.FromArgb(72, 105, 238) : Color.FromArgb(241, 246, 251);
-                Color text = selected ? Color.White : Color.FromArgb(36, 54, 75);
-                using (var brush = new SolidBrush(fill)) e.Graphics.FillRectangle(brush, rect);
-                TextRenderer.DrawText(e.Graphics, tabControl.TabPages[e.Index].Text, tabControl.Font, rect, text,
-                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+                Dock = DockStyle.Top,
+                Height = 510,
+                Padding = new Point(14, 8)
             };
 
             // TAB 1: สถานบริการ & เซิร์ฟเวอร์
-            var tab1 = new TabPage("🏥 สถานีและเซิร์ฟเวอร์");
-            tab1.BackColor = Color.FromArgb(235, 242, 249);
+            var tab1 = new TabPage("🏥 รพ.สต. & เซิร์ฟเวอร์");
+            tab1.BackColor = Color.White;
             tab1.Padding = new Padding(18);
 
-            var lbl1 = new Label { Text = "URL เซิร์ฟเวอร์ NCDs Portal (โฮสต์กลาง):", Location = new Point(18, 16), AutoSize = true, Font = ConfigManager.GetSystemFont(9.5f, FontStyle.Bold) };
-            txtServerUrl = new TextBox { Location = new Point(18, 40), Width = 820, Text = "https://ncd.ssotansum.com", Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+            var lbl1 = new Label { Text = "URL เซิร์ฟเวอร์ NCDs Portal", Location = new Point(24, 24), AutoSize = true, Font = ConfigManager.GetSystemFont(9.5f, FontStyle.Bold) };
+            txtServerUrl = new TextBox { Location = new Point(24, 52), Width = 630, Height = 30, AutoSize = false, Text = "https://ncd.ssotansum.com" };
 
-            var lbl2 = new Label { Text = "สังกัดสถานีรับแจ้งเตือน", Location = new Point(18, 75), AutoSize = true, Font = GetSettingsFont(12f, FontStyle.Bold), ForeColor = Color.FromArgb(37, 99, 235), Tag = "section" };
-            var lbl2Hint = new Label { Text = "เลือกหน่วยบริการของสถานีนี้ หรือเลือก ALL สำหรับศูนย์สั่งการส่วนกลาง", Location = new Point(225, 79), AutoSize = true, Font = GetSettingsFont(9.5f), ForeColor = Color.FromArgb(100, 116, 139), Tag = "hint" };
-            cboHealthCenter = new ComboBox { Location = new Point(18, 104), Width = 820, DropDownWidth = 790, MaxDropDownItems = 7, IntegralHeight = true, DropDownStyle = ComboBoxStyle.DropDownList };
-            cboHealthCenter.Items.Add(new KeyValuePair<string, string>("ALL", "ALL - ศูนย์สั่งการระดับอำเภอ (รับแจ้งเตือนทุกหน่วยบริการ)"));
+            var lbl2 = new Label { Text = "สังกัดสถานี", Location = new Point(24, 104), AutoSize = true, Font = ConfigManager.GetSystemFont(9.5f, FontStyle.Bold) };
+            cboHealthCenter = new ComboBox { Location = new Point(24, 132), Width = 630, DropDownStyle = ComboBoxStyle.DropDownList };
+            cboHealthCenter.Items.Add(new KeyValuePair<string, string>("ALL", "ALL - ศูนย์กลาง (รับแจ้งเตือนทุกหน่วยบริการในอำเภอ)"));
             cboHealthCenter.DisplayMember = "Value";
             cboHealthCenter.ValueMember = "Key";
             cboHealthCenter.SelectedIndexChanged += (s, e) =>
@@ -1221,20 +1114,29 @@ namespace NCDsRedAlertStation
                 {
                     var item = (KeyValuePair<string, string>)cboHealthCenter.SelectedItem;
                     txtHoscode.Text = item.Key;
+                    if (chkJhcisAutoSync != null)
+                    {
+                        chkJhcisAutoSync.Enabled = item.Key != "ALL";
+                        if (item.Key == "ALL") chkJhcisAutoSync.Checked = false;
+                    }
                 }
             };
 
-            var lbl3 = new Label { Text = "รหัสสถานบริการ (Hoscode)", Location = new Point(18, 143), AutoSize = true, Font = GetSettingsFont(10.5f, FontStyle.Bold) };
-            txtHoscode = new TextBox { Location = new Point(18, 170), Width = 180 };
+            lblUnitLoadStatus = new Label
+            {
+                Text = "กำลังโหลดรายชื่อจาก Unit & House Manager...",
+                Location = new Point(24, 168),
+                Size = new Size(630, 22),
+                ForeColor = Color.FromArgb(76, 104, 230)
+            };
 
-            var lblPortalToken = new Label { Text = "Station Access Token", Location = new Point(225, 143), AutoSize = true, Font = GetSettingsFont(10.5f, FontStyle.Bold), ForeColor = Color.FromArgb(37, 99, 235), Tag = "section" };
-            txtStationAccessToken = new TextBox { Location = new Point(225, 170), Width = 613, UseSystemPasswordChar = true };
-            lblStationId = new Label { Text = "Station ID: -", Location = new Point(225, 202), AutoSize = true, Font = GetSettingsFont(9.5f), ForeColor = Color.FromArgb(100, 116, 139), Tag = "hint" };
+            var lbl3 = new Label { Text = "รหัสสถานบริการ (Hoscode)", Location = new Point(24, 204), AutoSize = true, Font = ConfigManager.GetSystemFont(9.5f, FontStyle.Bold) };
+            txtHoscode = new TextBox { Location = new Point(24, 232), Width = 220, Height = 30, AutoSize = false, ReadOnly = true, TabStop = false };
 
             chkAutoStart = new CheckBox
             {
                 Text = "⚡ เปิดโปรแกรมนี้อัตโนมัติเมื่อเปิดเครื่องคอมพิวเตอร์ (Auto-start with Windows)",
-                Location = new Point(18, 230),
+                Location = new Point(24, 284),
                 AutoSize = true,
                 Font = ConfigManager.GetSystemFont(9.5f, FontStyle.Bold),
                 Checked = true
@@ -1242,9 +1144,9 @@ namespace NCDsRedAlertStation
 
             btnSimulateAlert = new Button
             {
-                Text = "⚡ ทดสอบสัญญาณแจ้งเตือน",
-                Location = new Point(18, 274),
-                Size = new Size(280, 44),
+                Text = "⚡ ทดสอบสัญญาณภายในเครื่อง (ไม่ส่งข้อมูลขึ้นเว็บ)",
+                Location = new Point(24, 336),
+                Size = new Size(630, 46),
                 BackColor = Color.FromArgb(220, 38, 38),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
@@ -1257,23 +1159,20 @@ namespace NCDsRedAlertStation
             tab1.Controls.Add(lbl1);
             tab1.Controls.Add(txtServerUrl);
             tab1.Controls.Add(lbl2);
-            tab1.Controls.Add(lbl2Hint);
             tab1.Controls.Add(cboHealthCenter);
+            tab1.Controls.Add(lblUnitLoadStatus);
             tab1.Controls.Add(lbl3);
             tab1.Controls.Add(txtHoscode);
-            tab1.Controls.Add(lblPortalToken);
-            tab1.Controls.Add(txtStationAccessToken);
-            tab1.Controls.Add(lblStationId);
             tab1.Controls.Add(chkAutoStart);
             tab1.Controls.Add(btnSimulateAlert);
 
             // TAB 2: โรงพยาบาลปลายทางส่งต่อ
-            var tabDest = new TabPage("🚑 ปลายทางส่งต่อ");
-            tabDest.BackColor = Color.FromArgb(235, 242, 249);
+            var tabDest = new TabPage("🏥 รพ. ปลายทางส่งต่อ");
+            tabDest.BackColor = Color.White;
             tabDest.Padding = new Padding(18);
 
             var lblDestHosp = new Label { Text = "เลือกโรงพยาบาลแม่ข่ายปลายทางส่งต่อ:", Location = new Point(18, 16), AutoSize = true, Font = ConfigManager.GetSystemFont(9.5f, FontStyle.Bold) };
-            cboDestHospital = new ComboBox { Location = new Point(18, 40), Width = 820, DropDownStyle = ComboBoxStyle.DropDownList, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+            cboDestHospital = new ComboBox { Location = new Point(18, 40), Width = 600, DropDownStyle = ComboBoxStyle.DropDownList };
             cboDestHospital.Items.Add(new KeyValuePair<string, string>("10957", "10957 - โรงพยาบาลตาลสุม (โรงพยาบาลชุมชนแม่ข่ายหลัก)"));
             cboDestHospital.Items.Add(new KeyValuePair<string, string>("10670", "10670 - โรงพยาบาลสรรพสิทธิประสงค์ (โรงพยาบาลศูนย์)"));
             cboDestHospital.Items.Add(new KeyValuePair<string, string>("10738", "10738 - โรงพยาบาลวารินชำราบ"));
@@ -1307,14 +1206,13 @@ namespace NCDsRedAlertStation
             txtDestHospCode = new TextBox { Location = new Point(18, 110), Width = 200, Text = "10957" };
 
             var lblDestName = new Label { Text = "ชื่อโรงพยาบาลปลายทาง:", Location = new Point(240, 85), AutoSize = true, Font = ConfigManager.GetSystemFont(9.5f, FontStyle.Bold) };
-            txtDestHospName = new TextBox { Location = new Point(240, 110), Width = 598, Text = "โรงพยาบาลตาลสุม", Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+            txtDestHospName = new TextBox { Location = new Point(240, 110), Width = 378, Text = "โรงพยาบาลตาลสุม" };
 
             var lblDestNote = new Label
             {
-                Text = "ℹ️ ระบบจะตรวจ CID ชื่อผู้ป่วย Visit และรหัสปลายทางก่อนแสดงหน้าต่างยืนยัน โดยใช้ Visit เดิมใน JHCIS และไม่สร้าง Visit ใหม่",
+                Text = "ℹ️ รหัสสถานบริการ 10957 และชื่อโรงพยาบาลตาลสุม จะถูกบันทึกลงในแฟ้ม visitrefer ของฐานข้อมูล JHCIS และใบส่งต่อ Fast-Track ทันทีเมื่อเจ้าหน้าที่กดสั่งส่งต่อ",
                 Location = new Point(18, 160),
-                Size = new Size(820, 60),
-                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                Size = new Size(600, 60),
                 ForeColor = Color.FromArgb(71, 85, 105)
             };
 
@@ -1327,8 +1225,8 @@ namespace NCDsRedAlertStation
             tabDest.Controls.Add(lblDestNote);
 
             // TAB 3: การตั้งค่าเสียงเตือน
-            var tab2 = new TabPage("🔊 เสียงแจ้งเตือน");
-            tab2.BackColor = Color.FromArgb(235, 242, 249);
+            var tab2 = new TabPage("🔊 การตั้งค่าเสียง");
+            tab2.BackColor = Color.White;
             tab2.Padding = new Padding(18);
 
             chkSound = new CheckBox
@@ -1344,7 +1242,7 @@ namespace NCDsRedAlertStation
             {
                 Text = "ℹ️ เมื่อตรวจพบเคสวิกฤต เสียงไซเรนจะดัง 2 รอบแล้วหยุดอัตโนมัติ เพื่อไม่ให้รบกวนการทำงาน",
                 Location = new Point(18, 65),
-                Size = new Size(820, 40),
+                Size = new Size(600, 40),
                 ForeColor = Color.FromArgb(100, 116, 139)
             };
 
@@ -1371,29 +1269,29 @@ namespace NCDsRedAlertStation
             tab2.Controls.Add(btnTestSound);
 
             // TAB 4: การเชื่อมต่อ JHCIS
-            var tab3 = new TabPage("🗄 เชื่อมต่อ JHCIS");
-            tab3.BackColor = Color.FromArgb(235, 242, 249);
+            var tab3 = new TabPage("💾 ฐานข้อมูล JHCIS");
+            tab3.BackColor = Color.White;
             tab3.Padding = new Padding(18);
 
-            var lblJHost = new Label { Text = "Host JHCIS (localhost หรือ IP)", Location = new Point(18, 15), AutoSize = true, Font = GetSettingsFont(10.5f, FontStyle.Bold) };
-            txtJhcisHost = new TextBox { Location = new Point(18, 42), Width = 270, Text = "localhost" };
+            var lblJHost = new Label { Text = "Host JHCIS (เช่น localhost หรือ IP):", Location = new Point(18, 15), AutoSize = true, Font = ConfigManager.GetSystemFont(9.5f, FontStyle.Bold) };
+            txtJhcisHost = new TextBox { Location = new Point(18, 40), Width = 380, Text = "localhost" };
 
-            var lblJPort = new Label { Text = "Port", Location = new Point(305, 15), AutoSize = true, Font = GetSettingsFont(10.5f, FontStyle.Bold) };
-            txtJhcisPort = new TextBox { Location = new Point(305, 42), Width = 103, Text = "3333" };
+            var lblJPort = new Label { Text = "พอร์ต MySQL:", Location = new Point(420, 15), AutoSize = true, Font = ConfigManager.GetSystemFont(9.5f, FontStyle.Bold) };
+            txtJhcisPort = new TextBox { Location = new Point(420, 40), Width = 198, Text = "3333" };
 
-            var lblJDb = new Label { Text = "ชื่อฐานข้อมูล (Database)", Location = new Point(430, 15), AutoSize = true, Font = GetSettingsFont(10.5f, FontStyle.Bold) };
-            txtJhcisDb = new TextBox { Location = new Point(430, 42), Width = 408, Text = "jhcisdb" };
+            var lblJDb = new Label { Text = "ชื่อฐานข้อมูล (Database):", Location = new Point(18, 78), AutoSize = true, Font = ConfigManager.GetSystemFont(9.5f, FontStyle.Bold) };
+            txtJhcisDb = new TextBox { Location = new Point(18, 102), Width = 600, Text = "jhcisdb" };
 
-            var lblJUser = new Label { Text = "Username", Location = new Point(18, 92), AutoSize = true, Font = GetSettingsFont(10.5f, FontStyle.Bold) };
-            txtJhcisUser = new TextBox { Location = new Point(18, 119), Width = 390, Text = "root" };
+            var lblJUser = new Label { Text = "Username:", Location = new Point(18, 140), AutoSize = true, Font = ConfigManager.GetSystemFont(9.5f, FontStyle.Bold) };
+            txtJhcisUser = new TextBox { Location = new Point(18, 164), Width = 285, Text = "root" };
 
-            var lblJPass = new Label { Text = "Password", Location = new Point(430, 92), AutoSize = true, Font = GetSettingsFont(10.5f, FontStyle.Bold) };
-            txtJhcisPass = new TextBox { Location = new Point(430, 119), Width = 408, UseSystemPasswordChar = true };
+            var lblJPass = new Label { Text = "Password:", Location = new Point(325, 140), AutoSize = true, Font = ConfigManager.GetSystemFont(9.5f, FontStyle.Bold) };
+            txtJhcisPass = new TextBox { Location = new Point(325, 164), Width = 293, UseSystemPasswordChar = true };
 
             chkJhcisAutoSync = new CheckBox
             {
-                Text = "⚡ ตรวจสอบและบันทึกประวัติส่งต่อใน Visit เดิมของ JHCIS เมื่อเจ้าหน้าที่ยืนยัน",
-                Location = new Point(18, 174),
+                Text = "⚡ ซิงค์สร้าง Record ส่งต่อไปยังตาราง visitrefer ใน JHCIS อัตโนมัติเมื่อกดสั่งส่งต่อ",
+                Location = new Point(18, 215),
                 AutoSize = true,
                 Font = ConfigManager.GetSystemFont(9.5f, FontStyle.Bold),
                 Checked = true
@@ -1401,9 +1299,9 @@ namespace NCDsRedAlertStation
 
             btnTestJhcis = new Button
             {
-                Text = "🔌 ทดสอบการเชื่อมต่อ JHCIS",
-                Location = new Point(18, 218),
-                Size = new Size(300, 44),
+                Text = "🔌 ทดสอบการเชื่อมต่อฐานข้อมูล JHCIS",
+                Location = new Point(18, 260),
+                Size = new Size(600, 40),
                 BackColor = Color.FromArgb(16, 185, 129),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
@@ -1431,28 +1329,26 @@ namespace NCDsRedAlertStation
             tabControl.TabPages.Add(tab2);
             tabControl.TabPages.Add(tab3);
 
-            StyleSettingsControls(tabControl);
-
             this.Controls.Add(tabControl);
 
             // Bottom Actions Panel
             var pnlBottom = new Panel
             {
                 Dock = DockStyle.Bottom,
-                Height = 72,
-                BackColor = Color.FromArgb(235, 242, 249),
-                Padding = new Padding(18, 14, 18, 14)
+                Height = 65,
+                BackColor = Color.FromArgb(241, 245, 249),
+                Padding = new Padding(18, 12, 18, 12)
             };
 
             btnSave = new Button
             {
                 Text = "💾 บันทึกการตั้งค่า",
-                Dock = DockStyle.Right,
-                Width = 260,
+                Size = new Size(180, 42),
+                Location = new Point(455, 10),
                 BackColor = Color.FromArgb(37, 99, 235),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Font = GetSettingsFont(11f, FontStyle.Bold),
+                Font = ConfigManager.GetSystemFont(10, FontStyle.Bold),
                 Cursor = Cursors.Hand
             };
             btnSave.FlatAppearance.BorderSize = 0;
@@ -1461,12 +1357,12 @@ namespace NCDsRedAlertStation
             var btnCancel = new Button
             {
                 Text = "ปิด",
-                Dock = DockStyle.Left,
-                Width = 180,
+                Size = new Size(110, 42),
+                Location = new Point(335, 10),
                 BackColor = Color.White,
                 ForeColor = Color.FromArgb(15, 23, 42),
                 FlatStyle = FlatStyle.Flat,
-                Font = GetSettingsFont(11f, FontStyle.Bold),
+                Font = ConfigManager.GetSystemFont(10),
                 Cursor = Cursors.Hand
             };
             btnCancel.Click += (s, e) => this.Close();
@@ -1474,69 +1370,208 @@ namespace NCDsRedAlertStation
             pnlBottom.Controls.Add(btnSave);
             pnlBottom.Controls.Add(btnCancel);
             this.Controls.Add(pnlBottom);
+
+            ApplyNeumorphicTheme(this);
         }
 
-        private void StyleSettingsControls(Control parent)
+        private void LoadHealthUnitsFromServerAsync()
         {
-            foreach (Control control in parent.Controls)
-            {
-                if (control is TextBox)
-                {
-                    var textBox = (TextBox)control;
-                    textBox.Font = GetSettingsFont(11.5f);
-                    textBox.BorderStyle = BorderStyle.FixedSingle;
-                    textBox.BackColor = Color.FromArgb(247, 250, 253);
-                }
-                else if (control is ComboBox)
-                {
-                    var combo = (ComboBox)control;
-                    combo.Font = GetSettingsFont(11f);
-                    combo.FlatStyle = FlatStyle.Flat;
-                    combo.BackColor = Color.FromArgb(247, 250, 253);
-                }
-                else if (control is Label)
-                {
-                    if (Convert.ToString(control.Tag) == "section")
-                    {
-                        control.ForeColor = Color.FromArgb(37, 99, 235);
-                        control.Font = GetSettingsFont(12f, FontStyle.Bold);
-                    }
-                    else if (Convert.ToString(control.Tag) == "hint")
-                    {
-                        control.ForeColor = Color.FromArgb(100, 116, 139);
-                        control.Font = GetSettingsFont(9.5f);
-                    }
-                    else
-                    {
-                        control.ForeColor = Color.FromArgb(36, 54, 75);
-                        control.Font = GetSettingsFont(10.5f, control.Font.Bold ? FontStyle.Bold : FontStyle.Regular);
-                    }
-                }
-                else if (control is CheckBox)
-                {
-                    control.ForeColor = Color.FromArgb(36, 54, 75);
-                    control.Font = GetSettingsFont(10.5f, FontStyle.Bold);
-                }
-                if (control.HasChildren) StyleSettingsControls(control);
-            }
-        }
-
-        private Font GetSettingsFont(float size, FontStyle style = FontStyle.Regular)
-        {
-            string[] fonts = { "Leelawadee UI", "Sarabun", "Tahoma", "Segoe UI" };
-            foreach (string name in fonts)
+            string serverUrl = (_config.ServerUrl ?? "https://ncd.ssotansum.com").TrimEnd('/');
+            string selectedHoscode = _config.Hoscode ?? "ALL";
+            ThreadPool.QueueUserWorkItem(state =>
             {
                 try
                 {
-                    using (var candidate = new Font(name, size, style))
+                    string json = DownloadUnitDirectory(serverUrl + "/api/health_units.php");
+
+                    var serializer = new JavaScriptSerializer();
+                    var payload = serializer.Deserialize<Dictionary<string, object>>(json);
+                    if (payload == null || !payload.ContainsKey("status") || payload["status"].ToString() != "success")
+                        throw new Exception("เซิร์ฟเวอร์ไม่ส่งรายชื่อหน่วยบริการ");
+                    var units = payload.ContainsKey("units") ? payload["units"] as System.Collections.ArrayList : null;
+                    if (units == null || units.Count == 0) throw new Exception("ไม่พบหน่วยบริการในระบบ");
+
+                    this.BeginInvoke((MethodInvoker)delegate
                     {
-                        if (candidate.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase))
-                            return new Font(name, size, style);
-                    }
+                        cboHealthCenter.BeginUpdate();
+                        try
+                        {
+                            cboHealthCenter.Items.Clear();
+                            cboHealthCenter.Items.Add(new KeyValuePair<string, string>("ALL", "ALL - ศูนย์กลาง (รับแจ้งเตือนทุกหน่วยบริการในอำเภอ)"));
+                            foreach (object itemObject in units)
+                            {
+                                var unit = itemObject as Dictionary<string, object>;
+                                if (unit == null) continue;
+                                string code = unit.ContainsKey("hoscode") && unit["hoscode"] != null ? unit["hoscode"].ToString().Trim() : "";
+                                string name = unit.ContainsKey("hosname") && unit["hosname"] != null ? unit["hosname"].ToString().Trim() : "";
+                                if (code == "" || name == "") continue;
+                                cboHealthCenter.Items.Add(new KeyValuePair<string, string>(code, code + " - " + name));
+                            }
+                            SelectHealthUnit(selectedHoscode);
+                            lblUnitLoadStatus.Text = "โหลดจาก Unit & House Manager แล้ว " + (cboHealthCenter.Items.Count - 1) + " หน่วยบริการ";
+                            lblUnitLoadStatus.ForeColor = Color.FromArgb(22, 163, 74);
+                        }
+                        finally { cboHealthCenter.EndUpdate(); }
+                    });
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    try { File.AppendAllText("red_alert_v3_debug.log", DateTime.Now + " - Unit directory: " + ex.Message + "\r\n"); } catch { }
+                    this.BeginInvoke((MethodInvoker)delegate
+                    {
+                        if (cboHealthCenter.Items.Count == 1 && selectedHoscode != "" && selectedHoscode != "ALL")
+                            cboHealthCenter.Items.Add(new KeyValuePair<string, string>(selectedHoscode, selectedHoscode + " - " + (_config.Hosname ?? "หน่วยบริการที่บันทึกไว้")));
+                        SelectHealthUnit(selectedHoscode);
+                        lblUnitLoadStatus.Text = "โหลดรายชื่อไม่สำเร็จ: " + ex.Message;
+                        lblUnitLoadStatus.ForeColor = Color.FromArgb(220, 38, 38);
+                    });
+                }
+            });
+        }
+
+        private string DownloadUnitDirectory(string primaryUrl)
+        {
+            string fallbackUrl = primaryUrl.Replace("/api/health_units.php", "/api/emergency_alert.php?action=get_health_units");
+            Exception lastError = null;
+            foreach (string url in new[] { primaryUrl, fallbackUrl })
+            {
+                try
+                {
+                    var request = (HttpWebRequest)WebRequest.Create(url);
+                    request.Method = "GET";
+                    request.Timeout = 7000;
+                    request.ReadWriteTimeout = 7000;
+                    using (var response = (HttpWebResponse)request.GetResponse())
+                    using (var reader = new StreamReader(response.GetResponseStream(), Encoding.UTF8))
+                        return reader.ReadToEnd();
+                }
+                catch (Exception ex) { lastError = ex; }
             }
-            return new Font("Tahoma", size, style);
+            throw new Exception(lastError != null ? lastError.Message : "ติดต่อ API ไม่สำเร็จ");
+        }
+
+        private void SelectHealthUnit(string hoscode)
+        {
+            for (int i = 0; i < cboHealthCenter.Items.Count; i++)
+            {
+                var item = (KeyValuePair<string, string>)cboHealthCenter.Items[i];
+                if (item.Key == hoscode) { cboHealthCenter.SelectedIndex = i; return; }
+            }
+            cboHealthCenter.SelectedIndex = 0;
+        }
+
+        private void ApplyNeumorphicTheme(Control root)
+        {
+            Color surface = Color.FromArgb(232, 238, 244);
+            Color raised = Color.FromArgb(238, 243, 248);
+            Color text = Color.FromArgb(55, 62, 72);
+            root.ForeColor = text;
+            root.BackColor = surface;
+
+            foreach (Control control in root.Controls)
+            {
+                if (control is TabPage || control is Panel)
+                    control.BackColor = surface;
+                else if (control is TextBox)
+                {
+                    ((TextBox)control).BorderStyle = BorderStyle.None;
+                    control.BackColor = raised;
+                    control.ForeColor = text;
+                }
+                else if (control is ComboBox)
+                {
+                    ((ComboBox)control).FlatStyle = FlatStyle.Flat;
+                    control.BackColor = raised;
+                    control.ForeColor = text;
+                }
+                else if (control is Button)
+                {
+                    var button = (Button)control;
+                    button.FlatStyle = FlatStyle.Flat;
+                    button.FlatAppearance.BorderSize = 0;
+                    button.FlatAppearance.MouseOverBackColor = ControlPaint.Light(button.BackColor, 0.08f);
+                    button.FlatAppearance.MouseDownBackColor = ControlPaint.Dark(button.BackColor, 0.05f);
+                    SetRoundedRegion(button, 15);
+                }
+                else if (control is CheckBox || control is Label)
+                    control.BackColor = Color.Transparent;
+
+                if (control.HasChildren) ApplyNeumorphicTheme(control);
+            }
+
+            root.Paint += NeumorphicSurface_Paint;
+            root.Resize += (s, e) => root.Invalidate();
+
+            tabControl.Appearance = TabAppearance.Normal;
+            tabControl.DrawMode = TabDrawMode.OwnerDrawFixed;
+            tabControl.ItemSize = new Size(154, 42);
+            tabControl.SizeMode = TabSizeMode.Fixed;
+            tabControl.BackColor = surface;
+            tabControl.DrawItem -= TabControl_DrawItem;
+            tabControl.DrawItem += TabControl_DrawItem;
+        }
+
+        private void NeumorphicSurface_Paint(object sender, PaintEventArgs e)
+        {
+            var parent = sender as Control;
+            if (parent == null) return;
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            foreach (Control child in parent.Controls)
+            {
+                if (!(child is TextBox || child is ComboBox || child is Button)) continue;
+                Rectangle box = child.Bounds;
+                box.Inflate(5, 5);
+                DrawSoftShadow(e.Graphics, box, 14, child is TextBox || child is ComboBox);
+            }
+        }
+
+        private void DrawSoftShadow(Graphics g, Rectangle bounds, int radius, bool insetLook)
+        {
+            using (GraphicsPath darkPath = RoundedPath(new Rectangle(bounds.X + 4, bounds.Y + 5, bounds.Width, bounds.Height), radius))
+            using (var dark = new SolidBrush(Color.FromArgb(insetLook ? 26 : 42, 139, 153, 168)))
+                g.FillPath(dark, darkPath);
+            using (GraphicsPath lightPath = RoundedPath(new Rectangle(bounds.X - 3, bounds.Y - 3, bounds.Width, bounds.Height), radius))
+            using (var light = new SolidBrush(Color.FromArgb(insetLook ? 150 : 205, 255, 255, 255)))
+                g.FillPath(light, lightPath);
+            using (GraphicsPath facePath = RoundedPath(bounds, radius))
+            using (var face = new SolidBrush(Color.FromArgb(238, 243, 248)))
+                g.FillPath(face, facePath);
+        }
+
+        private void TabControl_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            bool selected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
+            Rectangle rect = e.Bounds;
+            rect.Inflate(-5, -5);
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            DrawSoftShadow(e.Graphics, rect, 14, false);
+            using (GraphicsPath path = RoundedPath(rect, 14))
+            using (var brush = new SolidBrush(selected ? Color.FromArgb(76, 104, 230) : Color.FromArgb(238, 243, 248)))
+                e.Graphics.FillPath(brush, path);
+            TextRenderer.DrawText(e.Graphics, tabControl.TabPages[e.Index].Text, ConfigManager.GetSystemFont(8.8f, FontStyle.Bold), rect,
+                selected ? Color.White : Color.FromArgb(65, 73, 84), TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+        }
+
+        private static GraphicsPath RoundedPath(Rectangle rect, int radius)
+        {
+            int diameter = Math.Max(2, radius * 2);
+            var path = new GraphicsPath();
+            path.AddArc(rect.X, rect.Y, diameter, diameter, 180, 90);
+            path.AddArc(rect.Right - diameter, rect.Y, diameter, diameter, 270, 90);
+            path.AddArc(rect.Right - diameter, rect.Bottom - diameter, diameter, diameter, 0, 90);
+            path.AddArc(rect.X, rect.Bottom - diameter, diameter, diameter, 90, 90);
+            path.CloseFigure();
+            return path;
+        }
+
+        private static void SetRoundedRegion(Control control, int radius)
+        {
+            control.Region = new Region(RoundedPath(new Rectangle(0, 0, control.Width, control.Height), radius));
+            control.Resize += (s, e) =>
+            {
+                if (control.Region != null) control.Region.Dispose();
+                control.Region = new Region(RoundedPath(new Rectangle(0, 0, control.Width, control.Height), radius));
+            };
         }
 
         private void LoadConfigToUI()
@@ -1552,8 +1587,6 @@ namespace NCDsRedAlertStation
             txtJhcisDb.Text = _config.JhcisDbname;
             txtJhcisUser.Text = _config.JhcisUser;
             txtJhcisPass.Text = _config.JhcisPass;
-            txtStationAccessToken.Text = ConfigManager.Unprotect(_config.StationAccessTokenProtected);
-            lblStationId.Text = "Station ID: " + _config.StationId;
             chkJhcisAutoSync.Checked = _config.AutoSyncJhcisReferral;
 
             for (int i = 0; i < cboHealthCenter.Items.Count; i++)
@@ -1584,78 +1617,15 @@ namespace NCDsRedAlertStation
             if (cboDestHospital.SelectedIndex < 0) cboDestHospital.SelectedIndex = 0;
         }
 
-        private void LoadHealthUnitsFromServer()
-        {
-            string serverUrl = txtServerUrl.Text.Trim().TrimEnd('/');
-            ThreadPool.QueueUserWorkItem(state =>
-            {
-                try
-                {
-                    using (var wb = new WebClient())
-                    {
-                        wb.Encoding = Encoding.UTF8;
-                        string json = wb.DownloadString(serverUrl + "/api/health_units.php");
-                        var serializer = new JavaScriptSerializer();
-                        var response = serializer.Deserialize<Dictionary<string, object>>(json);
-                        if (response == null || !response.ContainsKey("status") || response["status"].ToString() != "success")
-                            throw new Exception("ระบบไม่ส่งรายชื่อหน่วยบริการกลับมา");
-
-                        var loadedUnits = new List<KeyValuePair<string, string>>();
-                        var enumerable = response.ContainsKey("units") ? response["units"] as System.Collections.IEnumerable : null;
-                        if (enumerable != null)
-                        {
-                            foreach (object raw in enumerable)
-                            {
-                                var unit = raw as Dictionary<string, object>;
-                                if (unit == null) continue;
-                                string hoscode = unit.ContainsKey("hoscode") ? Convert.ToString(unit["hoscode"]).Trim() : "";
-                                string hosname = unit.ContainsKey("hosname") ? Convert.ToString(unit["hosname"]).Trim() : "";
-                                if (hoscode != "" && hosname != "")
-                                    loadedUnits.Add(new KeyValuePair<string, string>(hoscode, hoscode + " - " + hosname));
-                            }
-                        }
-                        if (loadedUnits.Count == 0) throw new Exception("ไม่พบหน่วยบริการใน health_units");
-
-                        this.BeginInvoke((MethodInvoker)delegate
-                        {
-                            string selectedHoscode = !string.IsNullOrEmpty(_config.Hoscode) ? _config.Hoscode : "ALL";
-                            cboHealthCenter.BeginUpdate();
-                            cboHealthCenter.Items.Clear();
-                            cboHealthCenter.Items.Add(new KeyValuePair<string, string>("ALL", "ALL - ศูนย์สั่งการระดับอำเภอ (รับแจ้งเตือนทุกหน่วยบริการ)"));
-                            foreach (var unit in loadedUnits) cboHealthCenter.Items.Add(unit);
-                            cboHealthCenter.EndUpdate();
-
-                            cboHealthCenter.SelectedIndex = 0;
-                            for (int i = 0; i < cboHealthCenter.Items.Count; i++)
-                            {
-                                var item = (KeyValuePair<string, string>)cboHealthCenter.Items[i];
-                                if (item.Key == selectedHoscode) { cboHealthCenter.SelectedIndex = i; break; }
-                            }
-                        });
-                    }
-                }
-                catch (Exception ex)
-                {
-                    this.BeginInvoke((MethodInvoker)delegate
-                    {
-                        cboHealthCenter.Items.Clear();
-                        cboHealthCenter.Items.Add(new KeyValuePair<string, string>("ALL", "ALL - ไม่สามารถโหลดรายชื่อหน่วยบริการได้"));
-                        if (!string.IsNullOrEmpty(_config.Hoscode) && _config.Hoscode != "ALL")
-                        {
-                            string savedName = string.IsNullOrEmpty(_config.Hosname) ? "ค่าที่บันทึกไว้" : _config.Hosname;
-                            cboHealthCenter.Items.Add(new KeyValuePair<string, string>(_config.Hoscode, _config.Hoscode + " - " + savedName + " (ออฟไลน์)"));
-                            cboHealthCenter.SelectedIndex = 1;
-                        }
-                        else cboHealthCenter.SelectedIndex = 0;
-                        MessageBox.Show("โหลดรายชื่อหน่วยบริการจากเว็บไซต์ไม่สำเร็จ: " + ex.Message,
-                            "ข้อมูลสังกัดสถานี", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    });
-                }
-            });
-        }
-
         private void BtnSave_Click(object sender, EventArgs e)
         {
+            if (string.IsNullOrWhiteSpace(txtHoscode.Text))
+            {
+                MessageBox.Show(this, "กรุณาเลือก ALL หรือหน่วยบริการจากรายการก่อนบันทึก", "ต้องเลือกสังกัด", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                tabControl.SelectedIndex = 0;
+                cboHealthCenter.Focus();
+                return;
+            }
             _config.ServerUrl = txtServerUrl.Text.Trim();
             _config.Hoscode = txtHoscode.Text.Trim();
             _config.Hosname = cboHealthCenter.Text;
@@ -1669,8 +1639,7 @@ namespace NCDsRedAlertStation
             _config.JhcisDbname = txtJhcisDb.Text.Trim();
             _config.JhcisUser = txtJhcisUser.Text.Trim();
             _config.JhcisPass = txtJhcisPass.Text;
-            _config.StationAccessTokenProtected = ConfigManager.Protect(txtStationAccessToken.Text.Trim());
-            _config.AutoSyncJhcisReferral = chkJhcisAutoSync.Checked;
+            _config.AutoSyncJhcisReferral = txtHoscode.Text.Trim() != "ALL" && chkJhcisAutoSync.Checked;
             _config.IsFirstRunSetupDone = true;
 
             ConfigManager.Save(_config);
@@ -1683,49 +1652,36 @@ namespace NCDsRedAlertStation
         private void BtnTestJhcis_Click(object sender, EventArgs e)
         {
             btnTestJhcis.Enabled = false;
-            btnTestJhcis.Text = "⏳ กำลังทดสอบการเชื่อมต่อไปยัง JHCIS...";
+            btnTestJhcis.Text = "⏳ กำลังทดสอบ JHCIS จากเครื่องนี้...";
+
+            int testPort;
+            var testConfig = new AppConfig {
+                JhcisHost = txtJhcisHost.Text.Trim(),
+                JhcisPort = int.TryParse(txtJhcisPort.Text.Trim(), out testPort) ? testPort : 3333,
+                JhcisDbname = txtJhcisDb.Text.Trim(),
+                JhcisUser = txtJhcisUser.Text.Trim(),
+                JhcisPass = txtJhcisPass.Text
+            };
 
             ThreadPool.QueueUserWorkItem(state =>
             {
                 try
                 {
-                    string clientPath = ConfigManager.FindMySqlClient();
-                    if (!File.Exists(clientPath)) throw new FileNotFoundException("ไม่พบส่วนเชื่อมต่อ MySQL ของ JHCIS ในเครื่อง กรุณาตรวจสอบว่าติดตั้ง JHCIS Server หรือ MySQL Client แล้ว");
-                    string db = SafeMySqlIdentifier(txtJhcisDb.Text.Trim());
-                    int port;
-                    if (!int.TryParse(txtJhcisPort.Text.Trim(), out port) || port < 1 || port > 65535) throw new Exception("พอร์ต MySQL ไม่ถูกต้อง");
-                    string query = "SELECT CONCAT('MySQL ',VERSION()); " +
-                        "SELECT CONCAT('Database ',DATABASE()); " +
-                        "SELECT CONCAT('PCU ',pcucodeperson,' | Persons ',COUNT(*)) FROM person WHERE pcucodeperson<>'' GROUP BY pcucodeperson ORDER BY COUNT(*) DESC LIMIT 1;";
-                    var start = new ProcessStartInfo
-                    {
-                        FileName = clientPath,
-                        Arguments = "--connect-timeout=5 --protocol=tcp -h " + QuoteProcessArg(txtJhcisHost.Text.Trim()) +
-                            " -P " + port + " -u " + QuoteProcessArg(txtJhcisUser.Text.Trim()) +
-                            " --default-character-set=tis620 " + QuoteProcessArg(db) + " -N -e " + QuoteProcessArg(query),
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        CreateNoWindow = true,
-                        StandardOutputEncoding = Encoding.UTF8,
-                        StandardErrorEncoding = Encoding.UTF8
-                    };
-                    start.EnvironmentVariables["MYSQL_PWD"] = txtJhcisPass.Text;
-                    string output, error;
-                    int exitCode;
-                    using (var process = Process.Start(start))
-                    {
-                        output = process.StandardOutput.ReadToEnd();
-                        error = process.StandardError.ReadToEnd();
-                        if (!process.WaitForExit(10000)) { process.Kill(); throw new TimeoutException("หมดเวลารอเชื่อมต่อ JHCIS 10 วินาที"); }
-                        exitCode = process.ExitCode;
-                    }
-                    if (exitCode != 0) throw new Exception(string.IsNullOrWhiteSpace(error) ? "MySQL ปฏิเสธการเชื่อมต่อ" : error.Trim());
+                    JhcisConnectionResult result = LocalJhcisBridge.Test(testConfig);
                     this.Invoke((MethodInvoker)delegate
                     {
                         btnTestJhcis.Enabled = true;
-                        btnTestJhcis.Text = "🔌 ทดสอบการเชื่อมต่อ JHCIS";
-                        MessageBox.Show("เชื่อมต่อฐานข้อมูล JHCIS จากเครื่องนี้สำเร็จ (READ ONLY)\n\n" + output.Trim(), "เชื่อมต่อสำเร็จ", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        btnTestJhcis.Text = "🔌 ทดสอบการเชื่อมต่อฐานข้อมูล JHCIS";
+                        string selectedHoscode = txtHoscode.Text.Trim();
+                        string mismatch = selectedHoscode != "" && selectedHoscode != "ALL" && selectedHoscode != result.PcuCode
+                            ? "\n\n⚠️ รหัสใน JHCIS ไม่ตรงกับสถานีที่เลือก (" + selectedHoscode + ")" : "";
+                        MessageBox.Show("✅ เชื่อมต่อ JHCIS จากเครื่อง Local/IP สำเร็จ" +
+                            "\n- MySQL: " + result.Version +
+                            "\n- รหัสสถานบริการ: " + result.PcuCode +
+                            "\n- บุคคล: " + result.PersonCount.ToString("N0") +
+                            "\n- คัดกรอง NCD: " + result.ScreenCount.ToString("N0") + mismatch,
+                            "Local JHCIS Bridge V3", MessageBoxButtons.OK,
+                            mismatch == "" ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
                     });
                 }
                 catch (Exception ex)
@@ -1733,34 +1689,22 @@ namespace NCDsRedAlertStation
                     this.Invoke((MethodInvoker)delegate
                     {
                         btnTestJhcis.Enabled = true;
-                        btnTestJhcis.Text = "🔌 ทดสอบการเชื่อมต่อ JHCIS";
+                        btnTestJhcis.Text = "🔌 ทดสอบการเชื่อมต่อฐานข้อมูล JHCIS";
                         MessageBox.Show("❌ เกิดข้อผิดพลาดในการทดสอบ: " + ex.Message, "ข้อผิดพลาด", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     });
                 }
             });
         }
 
-        private static string SafeMySqlIdentifier(string value)
-        {
-            if (string.IsNullOrWhiteSpace(value)) throw new Exception("กรุณาระบุชื่อฐานข้อมูล");
-            foreach (char c in value) if (!(char.IsLetterOrDigit(c) || c == '_')) throw new Exception("ชื่อฐานข้อมูลมีอักขระที่ไม่รองรับ");
-            return value;
-        }
-
-        private static string QuoteProcessArg(string value)
-        {
-            return "\"" + (value ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
-        }
-
         private void BtnSimulateAlert_Click(object sender, EventArgs e)
         {
             btnSimulateAlert.Enabled = false;
-            btnSimulateAlert.Text = "⏳ กำลังยิงสัญญาณ...";
+            btnSimulateAlert.Text = "⏳ กำลังเปิดสัญญาณทดสอบ...";
 
             var mockAlert = new Dictionary<string, object>
             {
                 { "alert_id", 9999 },
-                { "hoscode", txtHoscode.Text.Trim() == "ALL" ? "07758" : txtHoscode.Text.Trim() },
+                { "hoscode", txtHoscode.Text.Trim() },
                 { "target_cid", "3340500123456" },
                 { "patient_name", "นายสมคิด สุขเกษม" },
                 { "age", 68 },
@@ -1778,61 +1722,31 @@ namespace NCDsRedAlertStation
                 { "longitude", 104.9860 }
             };
 
-            ThreadPool.QueueUserWorkItem(state =>
+            try
             {
-                bool serverSuccess = false;
-                string serverMsg = "";
-
-                try
+                var testConfig = ConfigManager.Load();
+                testConfig.SoundEnabled = chkSound.Checked;
+                var siren = new SirenPlayer();
+                var testPopup = new AlertPopupForm(testConfig, siren);
+                testPopup.FormClosed += (s, args) => siren.Stop();
+                testPopup.DisplayAlert(mockAlert);
+                btnSimulateAlert.Text = "✅ เปิดหน้าต่างทดสอบแล้ว — ปิดได้จากหน้าต่างแจ้งเตือน";
+                var resetTimer = new System.Windows.Forms.Timer { Interval = 2500 };
+                resetTimer.Tick += (s, args) =>
                 {
-                    using (var wb = new WebClient())
-                    {
-                        ConfigManager.ApplyStationAuth(wb, _config);
-                        var req = new System.Collections.Specialized.NameValueCollection();
-                        req.Add("action", "trigger_alert");
-                        req.Add("hoscode", txtHoscode.Text.Trim() == "ALL" ? "07758" : txtHoscode.Text.Trim());
-                        req.Add("target_cid", "3340500123456");
-                        req.Add("patient_name", "นายสมคิด สุขเกษม");
-                        req.Add("age", "68");
-                        req.Add("house_no", "12/1");
-                        req.Add("moo", "2");
-                        req.Add("sub_district_code", "341601");
-                        req.Add("crisis_type", "HT Crisis (ความดันโลหิตสูงวิกฤต)");
-                        req.Add("sbp", "210");
-                        req.Add("dbp", "118");
-                        req.Add("dtx", "330");
-                        req.Add("red_flags", "ปวดศีรษะรุนแรง ตาพร่ามัว ปากเบี้ยว แขนขาอ่อนแรง");
-                        req.Add("vhv_name", "อสม. สมชาย มีสุข");
-                        req.Add("vhv_phone", "081-999-8888");
-
-                        byte[] res = wb.UploadValues(txtServerUrl.Text.Trim().TrimEnd('/') + "/api/emergency_alert.php", "POST", req);
-                        serverSuccess = true;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    serverMsg = ex.Message;
-                }
-
-                this.Invoke((MethodInvoker)delegate
-                {
+                    resetTimer.Stop();
+                    resetTimer.Dispose();
                     btnSimulateAlert.Enabled = true;
-                    btnSimulateAlert.Text = "⚡ ทดสอบสัญญาณแจ้งเตือน";
-
-                    var siren = new SirenPlayer();
-                    var testPopup = new AlertPopupForm(_config, siren);
-                    testPopup.DisplayAlert(mockAlert);
-
-                    if (serverSuccess)
-                    {
-                        MessageBox.Show("🚀 ยิงสัญญาณวิกฤตจำลองเข้าสู่โฮสต์กลาง (ncd.ssotansum.com) สำเร็จ!\n- หน้าต่าง Red Alert และเสียงไซเรน (2 รอบ) กำลังทำงาน", "สำเร็จ", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                    else
-                    {
-                        MessageBox.Show("⚡ ทำการทดสอบระบบไซเรน & หน้าต่างแจ้งเตือนแบบ Local Simulation ให้ทันที\n(หมายเหตุ: " + serverMsg + ")", "ทดสอบระบบสำเร็จ", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                });
-            });
+                    btnSimulateAlert.Text = "⚡ ทดสอบสัญญาณภายในเครื่อง (ไม่ส่งข้อมูลขึ้นเว็บ)";
+                };
+                resetTimer.Start();
+            }
+            catch (Exception ex)
+            {
+                btnSimulateAlert.Enabled = true;
+                btnSimulateAlert.Text = "⚡ ทดสอบสัญญาณภายในเครื่อง (ไม่ส่งข้อมูลขึ้นเว็บ)";
+                MessageBox.Show(this, "เปิดการทดสอบไม่สำเร็จ: " + ex.Message, "V3", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 
@@ -1846,12 +1760,12 @@ namespace NCDsRedAlertStation
         private AppConfig _config;
         private SirenPlayer _siren;
         private AlertPopupForm _popupForm;
+        private SettingsForm _settingsForm;
         private System.Windows.Forms.Timer _pollTimer;
+        private int _lastAlertIdSeen = 0;
         private bool _isPolling = false;
         private SynchronizationContext _syncContext;
-        private readonly Queue<Dictionary<string, object>> _pendingQueue = new Queue<Dictionary<string, object>>();
-        private readonly HashSet<int> _knownPendingIds = new HashSet<int>();
-        private int _activeAlertId = 0;
+        private LocalBridgeServer _localBridge;
 
         public RedAlertApplicationContext()
         {
@@ -1870,21 +1784,22 @@ namespace NCDsRedAlertStation
             _syncContext = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
             bool isFirstRun = !ConfigManager.ConfigExists();
             _config = ConfigManager.Load();
+            _localBridge = new LocalBridgeServer(_config);
+            try { _localBridge.Start(); } catch (Exception ex) { try { File.AppendAllText("red_alert_v3_debug.log", DateTime.Now + " - Local bridge: " + ex.Message + "\r\n"); } catch { } }
+            bool needsHealthUnit = string.IsNullOrWhiteSpace(_config.Hoscode);
             _siren = new SirenPlayer();
             _popupForm = new AlertPopupForm(_config, _siren);
-            _popupForm.AlertHandled += PopupForm_AlertHandled;
             IntPtr dummyHandle = _popupForm.Handle; // Ensure window handle is created upfront
 
             if (isFirstRun || !_config.IsFirstRunSetupDone)
             {
-                ConfigManager.CreateDesktopShortcut();
-                ConfigManager.ApplyAutoStart(true);
+                // Do not replace the legacy Auto Start until the user reviews and saves V3 settings.
             }
 
             _trayIcon = new NotifyIcon
             {
                 Icon = SystemIcons.Shield,
-                Text = "🚨 NCDs Red Alert Station (" + _config.Hoscode + ")",
+                Text = "🚨 NCDs Red Alert V3 (" + (string.IsNullOrWhiteSpace(_config.Hoscode) ? "ยังไม่ตั้งค่า" : _config.Hoscode) + ")",
                 Visible = true
             };
 
@@ -1899,7 +1814,7 @@ namespace NCDsRedAlertStation
                 System.Diagnostics.Process.Start(_config.ServerUrl.TrimEnd('/') + "/admin/critical_referrals.php?hoscode=" + _config.Hoscode);
             });
             contextMenu.Items.Add(new ToolStripSeparator());
-            contextMenu.Items.Add("🗑️ ถอนการติดตั้ง", null, (s, e) => { if (UninstallManager.ConfirmAndPrepare()) Exit(); });
+            contextMenu.Items.Add("🗑️ ถอนการติดตั้ง V3", null, (s, e) => { if (UninstallManager.ConfirmAndPrepare()) Exit(); });
             contextMenu.Items.Add("❌ ออกจากโปรแกรม", null, (s, e) => Exit());
 
             _trayIcon.ContextMenuStrip = contextMenu;
@@ -1910,9 +1825,11 @@ namespace NCDsRedAlertStation
             _pollTimer.Tick += PollTimer_Tick;
             _pollTimer.Start();
 
-            string statusMsg = (_config.Hoscode == "ALL")
-                ? "ศูนย์กลางส่วนกลาง: เฝ้าระวังเคสวิกฤตฉุกเฉินทุก รพ.สต. ทั้งอำเภอ 24 ชม."
-                : "กำลังเฝ้าระวังเคสวิกฤตฉุกเฉินสำหรับ รพ.สต. " + _config.Hoscode + " 24 ชม.";
+            string statusMsg = needsHealthUnit
+                ? "ยังไม่เริ่มรับแจ้งเตือน: กรุณาเลือกสังกัด Station"
+                : (_config.Hoscode == "ALL"
+                    ? "ศูนย์กลางกำลังรับแจ้งเตือนจากทุกหน่วยบริการในอำเภอ"
+                    : "กำลังเฝ้าระวังเคสวิกฤตฉุกเฉินสำหรับหน่วยบริการ " + _config.Hoscode + " 24 ชม.");
 
             try
             {
@@ -1920,7 +1837,7 @@ namespace NCDsRedAlertStation
             }
             catch { }
 
-            if (isFirstRun || !_config.IsFirstRunSetupDone)
+            if (isFirstRun || !_config.IsFirstRunSetupDone || needsHealthUnit)
             {
                 ShowSettings();
             }
@@ -1928,18 +1845,33 @@ namespace NCDsRedAlertStation
 
         private void ShowSettings()
         {
-            var settingsForm = new SettingsForm(_config);
-            settingsForm.ShowDialog();
-            _config = ConfigManager.Load();
-            if (_popupForm != null && !_popupForm.IsDisposed)
+            if (_settingsForm != null && !_settingsForm.IsDisposed)
             {
-                _popupForm.UpdateConfig(_config);
+                if (_settingsForm.WindowState == FormWindowState.Minimized)
+                    _settingsForm.WindowState = FormWindowState.Normal;
+                _settingsForm.Show();
+                _settingsForm.BringToFront();
+                _settingsForm.Activate();
+                return;
             }
-            _trayIcon.Text = "🚨 NCDs Red Alert Station (" + _config.Hoscode + ")";
+
+            _settingsForm = new SettingsForm(_config);
+            _settingsForm.FormClosed += (s, e) =>
+            {
+                _settingsForm = null;
+                _config = ConfigManager.Load();
+                if (_popupForm != null && !_popupForm.IsDisposed)
+                    _popupForm.UpdateConfig(_config);
+                _trayIcon.Text = "🚨 NCDs Red Alert V3 (" + (string.IsNullOrWhiteSpace(_config.Hoscode) ? "ยังไม่ตั้งค่า" : _config.Hoscode) + ")";
+            };
+            _settingsForm.Show();
+            _settingsForm.BringToFront();
+            _settingsForm.Activate();
         }
 
         private void PollTimer_Tick(object sender, EventArgs e)
         {
+            if (string.IsNullOrWhiteSpace(_config.Hoscode)) return;
             if (_isPolling) return;
             _isPolling = true;
 
@@ -1950,7 +1882,6 @@ namespace NCDsRedAlertStation
                     string url = string.Format("{0}/api/emergency_alert.php?action=get_active_alerts&hoscode={1}", _config.ServerUrl.TrimEnd('/'), _config.Hoscode);
                     using (var wb = new WebClient())
                     {
-                        ConfigManager.ApplyStationAuth(wb, _config);
                         wb.Encoding = Encoding.UTF8;
                         string json = wb.DownloadString(url);
                         var serializer = new JavaScriptSerializer();
@@ -1959,31 +1890,50 @@ namespace NCDsRedAlertStation
                         if (data != null && data.ContainsKey("status") && data["status"].ToString() == "success")
                         {
                             var alerts = data["alerts"] as System.Collections.ArrayList;
-                            if (alerts != null)
+                            if (alerts != null && alerts.Count > 0)
                             {
-                                var pending = new List<Dictionary<string, object>>();
-                                var liveIds = new HashSet<int>();
                                 foreach (object item in alerts)
                                 {
                                     var alert = item as Dictionary<string, object>;
                                     if (alert == null) continue;
+
                                     string status = alert.ContainsKey("alert_status") ? alert["alert_status"].ToString() : "";
                                     int alertId = alert.ContainsKey("alert_id") ? Convert.ToInt32(alert["alert_id"]) : 0;
-                                    if (status == "pending" && alertId > 0)
+
+                                    if (status == "pending" && alertId > _lastAlertIdSeen)
                                     {
-                                        liveIds.Add(alertId);
-                                        pending.Add(alert);
+                                        _lastAlertIdSeen = alertId;
+                                        string patientName = alert.ContainsKey("patient_name") ? alert["patient_name"].ToString() : "ผู้ป่วย";
+                                        
+                                        _syncContext.Post(s =>
+                                        {
+                                            try
+                                            {
+                                                _trayIcon.ShowBalloonTip(5000, "🚨 แจ้งเตือนเหตุวิกฤตฉุกเฉิน!", "พบเคสวิกฤต: " + patientName, ToolTipIcon.Warning);
+
+                                                if (_popupForm == null || _popupForm.IsDisposed)
+                                                {
+                                                    _popupForm = new AlertPopupForm(_config, _siren);
+                                                }
+
+                                                _popupForm.DisplayAlert(alert);
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                try { File.AppendAllText("red_alert_v3_debug.log", DateTime.Now + " - " + ex.ToString() + "\r\n"); } catch { }
+                                            }
+                                        }, null);
+
+                                        break;
                                     }
                                 }
-                                pending.Sort((a, b) => Convert.ToInt32(a["alert_id"]).CompareTo(Convert.ToInt32(b["alert_id"])));
-                                _syncContext.Post(s => UpdatePendingQueue(pending, liveIds), null);
                             }
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    try { File.AppendAllText("red_alert_debug.log", DateTime.Now + " - Poll error: " + ex.Message + "\r\n"); } catch { }
+                    try { File.AppendAllText("red_alert_v3_debug.log", DateTime.Now + " - Poll error: " + ex.Message + "\r\n"); } catch { }
                 }
                 finally
                 {
@@ -1992,53 +1942,9 @@ namespace NCDsRedAlertStation
             });
         }
 
-        private void UpdatePendingQueue(List<Dictionary<string, object>> pending, HashSet<int> liveIds)
-        {
-            _knownPendingIds.RemoveWhere(id => !liveIds.Contains(id));
-            if (_activeAlertId != 0 && !liveIds.Contains(_activeAlertId))
-            {
-                _knownPendingIds.Remove(_activeAlertId);
-                _activeAlertId = 0;
-            }
-            foreach (var alert in pending)
-            {
-                int id = Convert.ToInt32(alert["alert_id"]);
-                if (_knownPendingIds.Add(id)) _pendingQueue.Enqueue(alert);
-            }
-            ShowNextPendingAlert();
-        }
-
-        private void PopupForm_AlertHandled()
-        {
-            if (_activeAlertId != 0) _knownPendingIds.Remove(_activeAlertId);
-            _activeAlertId = 0;
-            ShowNextPendingAlert();
-        }
-
-        private void ShowNextPendingAlert()
-        {
-            if (_activeAlertId != 0) return;
-            while (_pendingQueue.Count > 0)
-            {
-                var alert = _pendingQueue.Dequeue();
-                int id = Convert.ToInt32(alert["alert_id"]);
-                if (!_knownPendingIds.Contains(id)) continue;
-                _activeAlertId = id;
-                string patientName = alert.ContainsKey("patient_name") ? Convert.ToString(alert["patient_name"]) : "ผู้ป่วย";
-                int waiting = _pendingQueue.Count;
-                _trayIcon.ShowBalloonTip(5000, "🚨 แจ้งเตือนเหตุวิกฤตฉุกเฉิน!", "พบเคสวิกฤต: " + patientName + (waiting > 0 ? " • รอในคิวอีก " + waiting + " เคส" : ""), ToolTipIcon.Warning);
-                if (_popupForm == null || _popupForm.IsDisposed)
-                {
-                    _popupForm = new AlertPopupForm(_config, _siren);
-                    _popupForm.AlertHandled += PopupForm_AlertHandled;
-                }
-                _popupForm.DisplayAlert(alert);
-                break;
-            }
-        }
-
         private void Exit()
         {
+            if (_localBridge != null) _localBridge.Stop();
             _pollTimer.Stop();
             _siren.Stop();
             _trayIcon.Visible = false;
@@ -2048,28 +1954,32 @@ namespace NCDsRedAlertStation
 
     public static class Program
     {
+        private static Mutex _singleInstance;
+
         [STAThread]
         public static void Main()
         {
-            bool createdNew;
-            using (var singleInstance = new Mutex(true, @"Local\NCDsRedAlertStation_SingleInstance", out createdNew))
+            try
             {
-                if (!createdNew) return;
-                try
+                bool createdNew;
+                _singleInstance = new Mutex(true, "NCDsRedAlertStationV3-2C82E2EB", out createdNew);
+                if (!createdNew)
                 {
-                    ServicePointManager.Expect100Continue = true;
-                    ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072 | (SecurityProtocolType)768 | SecurityProtocolType.Tls;
-                    ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
+                    MessageBox.Show("NCDs Red Alert Station V3 กำลังทำงานอยู่แล้ว", "V3", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+                ServicePointManager.Expect100Continue = true;
+                ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072 | (SecurityProtocolType)768 | SecurityProtocolType.Tls;
+                ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
 
-                    Application.EnableVisualStyles();
-                    Application.SetCompatibleTextRenderingDefault(false);
-                    Application.Run(new RedAlertApplicationContext());
-                }
-                catch (Exception ex)
-                {
-                    try { File.WriteAllText("red_alert_error.log", ex.ToString()); } catch { }
-                    MessageBox.Show("ข้อผิดพลาดในการเริ่มต้นโปรแกรม:\n" + ex.Message, "Red Alert Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+                Application.Run(new RedAlertApplicationContext());
+            }
+            catch (Exception ex)
+            {
+                try { File.WriteAllText("red_alert_v3_error.log", ex.ToString()); } catch { }
+                MessageBox.Show("ข้อผิดพลาดในการเริ่มต้นโปรแกรม:\n" + ex.Message, "Red Alert V3 Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }
