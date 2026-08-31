@@ -1,58 +1,34 @@
 <?php
-// admin/download_station.php - Safe Downloader for NCDs Red Alert Desktop Station
 require_once __DIR__ . '/../config/session.php';
 
-$format = $_GET['format'] ?? 'zip';
-$baseDir = realpath(__DIR__ . '/../tools/red_alert_station');
-
-if ($format === 'exe') {
-    $filePath = $baseDir . DIRECTORY_SEPARATOR . 'NCDs_RedAlert_Station.exe';
-    $fileName = 'NCDs_RedAlert_Station.exe';
-    $contentType = 'application/octet-stream';
-} else {
-    // Default to safe .zip package
-    $filePath = $baseDir . DIRECTORY_SEPARATOR . 'NCDs_RedAlert_Station.zip';
-    $fileName = 'NCDs_RedAlert_Station.zip';
-    $contentType = 'application/zip';
-    
-    // Auto re-pack if zip doesn't exist
-    if (!file_exists($filePath) && file_exists($baseDir . DIRECTORY_SEPARATOR . 'NCDs_RedAlert_Station.exe')) {
-        if (class_exists('ZipArchive')) {
-            $zip = new ZipArchive();
-            if ($zip->open($filePath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === TRUE) {
-                $zip->addFile($baseDir . DIRECTORY_SEPARATOR . 'NCDs_RedAlert_Station.exe', 'NCDs_RedAlert_Station.exe');
-                if (file_exists($baseDir . DIRECTORY_SEPARATOR . 'START_RED_ALERT_STATION.bat')) {
-                    $zip->addFile($baseDir . DIRECTORY_SEPARATOR . 'START_RED_ALERT_STATION.bat', 'START_RED_ALERT_STATION.bat');
-                }
-                if (file_exists($baseDir . DIRECTORY_SEPARATOR . 'HOW_TO_RUN.txt')) {
-                    $zip->addFile($baseDir . DIRECTORY_SEPARATOR . 'HOW_TO_RUN.txt', 'HOW_TO_RUN.txt');
-                }
-                $zip->close();
-            }
-        }
-    }
-}
-
-if (!file_exists($filePath)) {
-    http_response_code(404);
-    echo "<!DOCTYPE html><html lang='th'><head><meta charset='UTF-8'><title>ไม่พบไฟล์</title></head><body style='font-family:sans-serif; text-align:center; padding:50px;'><h2>⚠️ ไม่พบไฟล์โปรแกรมที่ต้องการดาวน์โหลด</h2><p>กรุณาติดต่อผู้ดูแลระบบ</p><a href='emergency_receiver.php'>กลับหน้าหลัก</a></body></html>";
+if (empty($_SESSION['admin_logged_in'])) {
+    header('Location: ../index.php');
     exit;
 }
 
-// Clean output buffer to avoid corrupted binary downloads
-if (ob_get_level()) {
+// This URL is now a download endpoint only. The confirmation UI is displayed
+// as a modal in critical_referrals.php and emergency_receiver.php.
+if (($_GET['download'] ?? '') !== '1') {
+    header('Location: critical_referrals.php');
+    exit;
+}
+
+$filePath = __DIR__ . DIRECTORY_SEPARATOR . 'NCDs_RedAlert_Station_Setup.exe';
+if (!is_file($filePath)) {
+    http_response_code(404);
+    exit('ไม่พบไฟล์ติดตั้ง กรุณาติดต่อผู้ดูแลระบบ');
+}
+
+while (ob_get_level() > 0) {
     ob_end_clean();
 }
 
-// Send standard safe download headers
 header('Content-Description: File Transfer');
-header('Content-Type: ' . $contentType);
-header('Content-Disposition: attachment; filename="' . $fileName . '"');
-header('Expires: 0');
-header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
-header('Pragma: public');
+header('Content-Type: application/octet-stream');
+header('Content-Disposition: attachment; filename="NCDs_RedAlert_Station_Setup.exe"');
 header('Content-Length: ' . filesize($filePath));
+header('Cache-Control: private, no-transform, must-revalidate');
+header('Pragma: public');
 header('X-Content-Type-Options: nosniff');
-
 readfile($filePath);
 exit;

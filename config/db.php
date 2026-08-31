@@ -699,6 +699,29 @@ try {
 
 // Auto-create JHCIS sync tables and columns
 try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `station_access_tokens` (
+        `token_id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `token_hash` CHAR(64) NOT NULL UNIQUE,
+        `token_ciphertext` TEXT NULL,
+        `token_prefix` VARCHAR(32) NOT NULL,
+        `hoscode` VARCHAR(10) NOT NULL,
+        `station_name` VARCHAR(150) NOT NULL,
+        `permissions` VARCHAR(255) NOT NULL DEFAULT 'alerts:read,alerts:update,jhcis:sync',
+        `created_by` VARCHAR(50) NOT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        `expires_at` DATETIME NULL,
+        `last_used_at` DATETIME NULL,
+        `last_ip` VARCHAR(45) NULL,
+        `last_station_id` VARCHAR(100) NULL,
+        `revoked_at` DATETIME NULL,
+        INDEX `idx_station_token_hoscode` (`hoscode`),
+        INDEX `idx_station_token_active` (`revoked_at`, `expires_at`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+    $tokenCipherColumn = $pdo->query("SHOW COLUMNS FROM `station_access_tokens` LIKE 'token_ciphertext'");
+    if ($tokenCipherColumn->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `station_access_tokens` ADD COLUMN `token_ciphertext` TEXT NULL AFTER `token_hash`");
+    }
+
     $pdo->exec("CREATE TABLE IF NOT EXISTS `jhcis_sync_configs` (
         `config_id` INT AUTO_INCREMENT PRIMARY KEY,
         `hoscode` VARCHAR(10) NOT NULL UNIQUE,
@@ -2700,4 +2723,3 @@ try {
 } catch (\PDOException $e) {
     // Fail silently
 }
-

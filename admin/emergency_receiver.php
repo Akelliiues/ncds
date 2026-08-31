@@ -605,7 +605,7 @@ try {
             display: none;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 12px;
             box-sizing: border-box;
         }
 
@@ -615,11 +615,12 @@ try {
             -webkit-backdrop-filter: blur(18px);
             border: none;
             border-radius: 26px;
-            max-width: 760px;
+            max-width: 900px;
             width: 100%;
-            max-height: calc(100vh - 40px);
-            overflow-y: auto;
-            padding: 26px;
+            max-height: calc(100vh - 24px);
+            max-height: calc(100dvh - 24px);
+            overflow: hidden;
+            padding: 18px 22px;
             box-shadow: none;
             color: var(--text-primary, #0d2c54);
             text-align: center;
@@ -630,7 +631,53 @@ try {
         .emergency-modal-card > div:first-of-type .neu-disc-icon {
             animation: none !important;
             border: none !important;
-            box-shadow: var(--neumorph-flat) !important;
+            box-shadow: 0 8px 20px rgba(220, 38, 38, 0.34) !important;
+        }
+
+        .emergency-modal-actions {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1.2fr;
+            gap: 10px;
+        }
+
+        .emergency-modal-action {
+            min-width: 0;
+            min-height: 48px;
+            padding: 10px 12px !important;
+            border-radius: 14px;
+            font-size: 13.5px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            white-space: nowrap;
+        }
+
+        .emergency-modal-action .neu-disc-icon {
+            width: auto !important;
+            height: auto !important;
+            min-width: 0 !important;
+            padding: 0 !important;
+            background: transparent !important;
+            border: 0 !important;
+            box-shadow: none !important;
+            filter: none !important;
+        }
+
+        @media (max-width: 760px) {
+            .emergency-modal-card { padding: 14px; }
+            .emergency-modal-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+            .emergency-modal-action { font-size: 11.5px; padding: 8px 5px !important; white-space: normal; line-height: 1.25; }
+        }
+
+        @media (max-height: 850px) {
+            .emergency-modal-card { padding: 12px 18px; }
+            .emergency-modal-card > div:first-of-type { margin-bottom: 4px !important; }
+            .emergency-modal-card > div:first-of-type .neu-disc-icon { width: 52px !important; height: 52px !important; min-width: 52px !important; }
+            #modal-patient-name { margin: 5px 0 9px !important; font-size: 23px !important; }
+            .modal-summary-grid { margin-bottom: 8px; }
+            .modal-summary-item { padding: 7px 10px; }
         }
 
         [data-theme="dark"] .emergency-modal-card {
@@ -1216,11 +1263,10 @@ try {
                     <span>จำลองส่งสัญญาณฉุกเฉิน</span>
                 </button>
 
-                <!-- Safe ZIP Download Link -->
-                <a href="download_station.php?format=zip" class="btn-station-ctrl btn-download-app" title="ดาวน์โหลดตัวรับสัญญาณระบบ NCDs Red Alert Station ">
+                <button type="button" onclick="openStationDownloadModal()" class="btn-station-ctrl btn-download-app" title="ดาวน์โหลด NCDs Red Alert Station">
                     <span class="neu-disc-icon xs disc-green-subtle">📥</span>
-                    <span>ดาวน์โหลดตัวรับสัญญาณ</span>
-                </a>
+                    <span>ดาวน์โหลด</span>
+                </button>
 
                 <!-- Referral Board -->
                 <a href="critical_referrals.php" onclick="openOrFocusTab('critical_referrals.php', 'ncd_critical_referrals_tab'); return false;" class="btn-station-ctrl btn-referral-board" title="เปิดบอร์ดส่งต่อเคสวิกฤต รพ.">
@@ -1489,9 +1535,9 @@ try {
     <!-- Fullscreen Emergency Pop-up Modal (Modern Clean Glassmorphism) -->
     <div id="emergency-popup-overlay" onclick="hideEmergencyPopup()">
         <div class="emergency-modal-card" onclick="event.stopPropagation()">
-            <div style="display: flex; justify-content: center; margin-bottom: 12px;">
-                <div class="neu-disc-icon" style="width: 76px; height: 76px; min-width: 76px; background: radial-gradient(circle at 35% 35%, #EF4444 0%, #DC2626 70%, #991B1B 100%); color: #fff; border: 3px solid rgba(255, 255, 255, 0.9); box-shadow: inset 2px 2px 4px rgba(255,255,255,0.7), 0 8px 24px rgba(220,38,38,0.45); display: flex; align-items: center; justify-content: center; animation: emergencyBeaconPulse 1.8s infinite;">
-                    <svg width="54" height="54" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.35));">
+            <div style="display: flex; justify-content: center; margin-bottom: 6px;">
+                <div class="neu-disc-icon" style="width: 62px; height: 62px; min-width: 62px; background: radial-gradient(circle at 35% 35%, #EF4444 0%, #DC2626 70%, #991B1B 100%); color: #fff; border: 0; box-shadow: 0 8px 20px rgba(220,38,38,0.34); display: flex; align-items: center; justify-content: center; animation: emergencyBeaconPulse 1.8s infinite;">
+                    <svg width="46" height="46" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
                         <line x1="24" y1="3" x2="24" y2="8" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
                         <line x1="10" y1="8" x2="14" y2="12" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
                         <line x1="38" y1="8" x2="34" y2="12" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
@@ -1505,7 +1551,7 @@ try {
                 </div>
             </div>
 
-            <h2 id="modal-patient-name" style="margin: 10px 0 16px 0; font-size: 28px; line-height: 1.25; font-weight: 900; color: #DC2626;">
+            <h2 id="modal-patient-name" style="margin: 6px 0 10px 0; font-size: 25px; line-height: 1.25; font-weight: 900; color: #DC2626;">
                 คุณ... (อายุ ... ปี)
             </h2>
 
@@ -1524,7 +1570,7 @@ try {
                 </div>
             </div>
             
-            <div style="background: var(--bg-darker); border-radius: 18px; padding: 16px; margin-bottom: 18px; border: none; text-align: left; box-shadow: var(--neumorph-inset);">
+            <div style="background: var(--bg-darker); border-radius: 18px; padding: 13px 16px; margin-bottom: 12px; border: none; text-align: left; box-shadow: var(--neumorph-inset);">
                 <!-- Time of Alert Header in Modal -->
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px dashed var(--border-color, rgba(0,0,0,0.1));">
                     <span style="font-size: 13.5px; color: var(--text-muted); font-weight: 700;">วันและเวลาที่แจ้ง:</span>
@@ -1578,21 +1624,19 @@ try {
             </div>
 
             <!-- Action Buttons -->
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                <button type="button" id="btn-modal-ack" onclick="acknowledgeCurrentAlert()" class="btn-action-glow">
+            <div class="emergency-modal-actions">
+                <button type="button" id="btn-modal-ack" onclick="acknowledgeCurrentAlert()" class="btn-action-glow emergency-modal-action">
                     <span class="neu-disc-icon xs" style="background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.4); box-shadow: none;">🔕</span>
-                    <span>กดรับทราบเคส (หยุดเสียงไซเรน)</span>
+                    <span>รับทราบเคส</span>
                 </button>
-                <div style="display: flex; gap: 10px;">
-                    <a id="modal-btn-map" href="#" target="_blank" style="flex: 1; padding: 12px; background: #2563EB; color: white; text-decoration: none; border-radius: 14px; font-weight: 800; font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
-                        <span class="neu-disc-icon xs disc-blue">⚓️</span>
-                        <span>เปิดแผนที่ GPS</span>
-                    </a>
-                    <a id="modal-btn-refer" href="critical_referrals.php" onclick="openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" style="flex: 1; padding: 12px; background: #10B981; color: white; text-decoration: none; border-radius: 14px; font-weight: 800; font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
-                        <span class="neu-disc-icon xs disc-green">🏥</span>
-                        <span>สั่งส่งต่อ รพ. (JHCIS)</span>
-                    </a>
-                </div>
+                <a id="modal-btn-map" href="#" target="_blank" class="emergency-modal-action" style="background: #2563EB; color: white; text-decoration: none; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
+                    <span class="neu-disc-icon xs">📍</span>
+                    <span>เปิดแผนที่ GPS</span>
+                </a>
+                <a id="modal-btn-refer" href="critical_referrals.php" onclick="openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" class="emergency-modal-action" style="background: #10B981; color: white; text-decoration: none; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+                    <span class="neu-disc-icon xs">🏥</span>
+                    <span>ส่งต่อ รพ. (JHCIS)</span>
+                </a>
             </div>
         </div>
     </div>
@@ -1790,18 +1834,28 @@ try {
                 osc.frequency.setValueAtTime(800, audioCtx.currentTime);
                 
                 const now = audioCtx.currentTime;
-                for (let i = 0; i < 60; i++) {
+                const sirenRounds = 2;
+                for (let i = 0; i < sirenRounds; i++) {
                     osc.frequency.linearRampToValueAtTime(1300, now + (i * 0.8) + 0.4);
                     osc.frequency.linearRampToValueAtTime(750, now + (i * 0.8) + 0.8);
                 }
 
                 gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.3, now + (sirenRounds * 0.8) - 0.12);
+                gain.gain.linearRampToValueAtTime(0.001, now + (sirenRounds * 0.8));
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
 
                 osc.start();
+                osc.stop(now + (sirenRounds * 0.8));
                 sirenOscillator = osc;
                 isSirenPlaying = true;
+                osc.onended = () => {
+                    if (sirenOscillator === osc) sirenOscillator = null;
+                    isSirenPlaying = false;
+                    const testButton = document.getElementById('btn-audio-toggle');
+                    if (testButton) testButton.innerHTML = '<span class="neu-disc-icon xs disc-blue">🔊</span><span>ทดสอบเสียงไซเรน</span>';
+                };
             } catch (e) {
                 console.warn('Audio play prevented:', e);
             }
@@ -2647,8 +2701,11 @@ try {
                         const alerts = data.alerts || [];
                         stationState.allAlerts = alerts;
 
-                        // Check for any pending alerts
-                        const pendingCrisis = alerts.find(a => a.alert_status === 'pending');
+                        // FIFO: keep the current case on screen and queue newer cases.
+                        const pendingAlerts = alerts
+                            .filter(a => a.alert_status === 'pending')
+                            .sort((a, b) => Number(a.alert_id) - Number(b.alert_id));
+                        const pendingCrisis = pendingAlerts[0] || null;
                         const statusHero = document.getElementById('status-hero');
                         const statusIconContainer = document.getElementById('status-icon-container');
 
@@ -2667,8 +2724,10 @@ try {
                             document.getElementById('status-sub').innerText = `• ความดัน ${pendingCrisis.sbp || '-'}/${pendingCrisis.dbp || '-'} | น้ำตาล DTX ${pendingCrisis.dtx || '-'} mg% • ต้องการการดูแลฉุกเฉินด่วน`;
                             document.getElementById('station-pulsing-dot').className = 'pulsing-dot active-crisis';
 
-                            // Trigger Modal + Siren if new or active
-                            if (!stationState.knownPendingAlertIds.has(pendingCrisis.alert_id) && !modalOpenedManually) {
+                            const activeStillPending = pendingAlerts.some(a => String(a.alert_id) === String(activeCrisisAlertId));
+                            // Never overwrite an alert being handled. Show the oldest queued case next.
+                            if (!modalOpenedManually && (!activeCrisisAlertId || !activeStillPending)) {
+                                if (activeCrisisAlertId && !activeStillPending) hideEmergencyPopup();
                                 showEmergencyPopup(pendingCrisis, 'auto');
                                 startSirenSound();
                             }
@@ -2701,38 +2760,36 @@ try {
         }
 
         // Simulate Test Alert
-        function simulateTestAlert() {
-            const formData = new FormData();
-            formData.append('action', 'trigger_alert');
-            formData.append('hoscode', currentHoscode === 'ALL' ? '07758' : currentHoscode);
-            formData.append('target_cid', '3340500123456');
-            formData.append('patient_name', 'นายสมชาย ใจกล้า (เคสทดสอบสัญญาณ)');
-            formData.append('age', '67');
-            formData.append('house_no', '99/1');
-            formData.append('moo', '3');
-            formData.append('sub_district_code', '341601');
-            formData.append('latitude', '15.4321');
-            formData.append('longitude', '104.9876');
-            formData.append('crisis_type', 'ht_crisis (ความดันโลหิตสูงวิกฤต)');
-            formData.append('sbp', '215');
-            formData.append('dbp', '120');
-            formData.append('dtx', '340');
-            formData.append('red_flags', 'ปวดศีรษะรุนแรง, ตาพร่ามัว, แขนขาอ่อนแรง');
-            formData.append('vhv_name', 'อสม. สมศรี (ทดสอบ)');
-            formData.append('vhv_phone', '089-123-4567');
-
-            fetch('../api/emergency_alert.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(r => r.json())
-            .then(res => {
-                if (res.status === 'success') {
-                    fetchActiveAlerts();
-                } else {
-                    alert('ข้อผิดพลาด: ' + res.message);
-                }
-            });
+        async function simulateTestAlert() {
+            const unitCodes = <?= json_encode(array_values(array_keys($hc_names)), JSON_UNESCAPED_UNICODE) ?>;
+            const testHoscode = (currentHoscode && !['ALL', 'GLOBAL', '99999'].includes(currentHoscode))
+                ? currentHoscode
+                : (unitCodes[0] || '');
+            if (!/^\d{5}$/.test(testHoscode)) {
+                alert('ไม่พบรหัสหน่วยบริการสำหรับการทดสอบ');
+                return;
+            }
+            try {
+                const formData = new FormData();
+                formData.append('action', 'trigger_alert');
+                formData.append('hoscode', testHoscode);
+                formData.append('target_cid', '9000000000001');
+                formData.append('patient_name', 'เคสทดสอบสัญญาณฉุกเฉิน');
+                formData.append('age', '67');
+                formData.append('house_no', 'TEST-1');
+                formData.append('moo', '1');
+                formData.append('crisis_type', 'โหมดทดสอบสัญญาณฉุกเฉิน');
+                formData.append('sbp', '215');
+                formData.append('dbp', '120');
+                formData.append('dtx', '340');
+                formData.append('red_flags', 'ข้อมูลจำลองสำหรับทดสอบสัญญาณ ห้ามส่งเข้า JHCIS');
+                formData.append('vhv_name', 'ผู้ทดสอบระบบ');
+                const result = await fetch('../api/emergency_alert.php', { method: 'POST', body: formData }).then(r => r.json());
+                if (result.status !== 'success') throw new Error(result.message || 'สร้างเคสทดสอบไม่สำเร็จ');
+                fetchActiveAlerts();
+            } catch (error) {
+                alert('ทดสอบสัญญาณไม่สำเร็จ: ' + error.message);
+            }
         }
 
         // Initialize Live Loop & Keyboard Shortcuts
@@ -2814,6 +2871,7 @@ try {
             });
         });
     </script>
+    <?php include __DIR__ . '/station_download_modal.php'; ?>
     <?php include_once __DIR__ . '/../config/dev_modal.php'; ?>
 </body>
 </html>

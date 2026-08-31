@@ -4,6 +4,28 @@
 
 ---
 
+## [v3.3-stable] - แก้ไขระบบมอบหมายงาน อสม. ระดับ รพ.สต., จัดการความปลอดภัย Transaction และปรับปรุง RedAlert Station (2026-08-31) 🚀
+
+### 🛠️ การแก้ไขระบบมอบหมายงาน อสม. (VHV Work Assignment & Automation Fixes)
+- **แก้ไขปัญหา Session Authentication (Unauthorized)**:
+  - เพิ่มการเรียกใช้งาน `config/session.php` และส่ง HTTP Header `Content-Type: application/json; charset=utf-8` ในไฟล์ API: `api/assign_tasks.php`, `api/cancel_assignment.php`, `api/assign_dpac.php`, และ `api/cancel_dpac.php`
+  - ปรับปรุงการตรวจสอบสิทธิ์ `$_SESSION['admin_logged_in'] === true` ให้ถูกต้อง ปลดล็อกให้ผู้รับผิดชอบระดับ รพ.สต. มอบหมายงานได้ราบรื่น
+- **แก้ไขปัญหา Transaction & Activity Logging Conflict (There is no active transaction)**:
+  - ปรับปรุง `config/activity_logger.php` ในส่วน `ensureActivityLogTable()` ให้ข้ามคำสั่ง DDL (`CREATE TABLE`) ขณะที่ฐานข้อมูลอยู่ใน Transaction ป้องกันการเกิด Implicit Commit โดยไม่ตั้งใจ
+  - ย้ายคำสั่งบันทึกประวัติการทำงาน `logUserActivity()` ไปทำงานหลัง `$pdo->commit()` ใน `api/assign_tasks.php` และ `api/cancel_assignment.php`
+- **แก้ไขปัญหา SQL Parameter ในระบบมอบหมายงานอัตโนมัติ (Smart Next-Round Auto-Assignment)**:
+  - แก้ไขข้อผิดพลาด `SQLSTATE[HY093]: Invalid parameter number: mixed named and positional parameters` ใน `api/auto_assign_next_round.php` โดยแปลงคำสั่ง SQL ให้ใช้ Positional Placeholders (`?`) 100% สอดคล้องกับอาร์เรย์พารามิเตอร์ที่ส่งเข้า `execute()`
+  - เพิ่มระบบบันทึก Audit Log การมอบหมายงานอัตโนมัติลงใน `user_activity_logs` หลังเสร็จสิ้น Transaction
+
+### 🚨 ปรับปรุงระบบสถานีรับแจ้งเตือนวิกฤต NCDs RedAlert Station & Security Tokens
+- **ระบบ Token Authentication สำหรับสถานีรับเหตุ**:
+  - พัฒนาระบบสร้างและตรวจสอบ Station Token สำหรับแอปพลิเคชัน Desktop RedAlert Station แยกรายหน่วยบริการ
+  - จัดทำ Modal ดาวน์โหลดและตั้งค่าสถานีรับเหตุอัตโนมัติในหน้าบริหารจัดการ
+- **อัปเดตตัวติดตั้ง RedAlert Station Setup**:
+  - ปรับปรุงตัวติดตั้ง `NCDs_RedAlert_Station_Setup.exe` และ Script ติดตั้ง/ถอนการติดตั้งให้ทำงานได้เสถียรบน Windows 10/11
+
+---
+
 ## [v3.2-stable] - ปรับความพร้อมสำหรับการสาธิตและความสอดคล้องของข้อมูล (2026-08-29)
 
 ### ภาพรวมสำหรับผู้ใช้งาน

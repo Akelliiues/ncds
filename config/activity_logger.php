@@ -6,6 +6,9 @@ if (!function_exists('ensureActivityLogTable')) {
     function ensureActivityLogTable($pdo) {
         static $checked = false;
         if ($checked || !$pdo) return;
+        if ($pdo->inTransaction()) {
+            return;
+        }
         try {
             $pdo->exec("
                 CREATE TABLE IF NOT EXISTS user_activity_logs (

@@ -1,5 +1,30 @@
 [
   {
+    "title": "🎉 ปล่อยเวอร์ชันเสถียร Stable Version 3.3 (v3.3-stable) แก้ไขระบบมอบหมายงาน อสม. ทั้งแบบรายบุคคลและอัตโนมัติสำหรับระดับ รพ.สต., จัดการความปลอดภัย Session & Transaction ใน API และปรับปรุงระบบ RedAlert Station",
+    "date": "2026-08-31",
+    "type": "release"
+  },
+  {
+    "title": "แก้ไขปัญหา Session Authentication (Unauthorized) ใน API มอบหมายงานและยกเลิกงาน NCDs/DPAC สำหรับผู้รับผิดชอบระดับ รพ.สต.",
+    "date": "2026-08-31",
+    "type": "fix"
+  },
+  {
+    "title": "แก้ไขปัญหา Transaction Conflict (There is no active transaction) จากการเรียก Activity Logger ระหว่าง Transaction ในการมอบหมายงาน",
+    "date": "2026-08-31",
+    "type": "fix"
+  },
+  {
+    "title": "แก้ไขปัญหา SQL Parameter (mixed named and positional parameters) ในระบบมอบหมายงานรอบถัดไปอัตโนมัติ (Smart Next-Round Auto-Assignment)",
+    "date": "2026-08-31",
+    "type": "fix"
+  },
+  {
+    "title": "ปรับปรุงระบบสถานีรับแจ้งเตือนวิกฤต NCDs RedAlert Station Desktop Client, Station Token Authentication และการเชื่อมต่อศูนย์รับเหตุ",
+    "date": "2026-08-31",
+    "type": "feature"
+  },
+  {
     "title": "ปรับความพร้อมสำหรับการสาธิต: ศูนย์รับเหตุ คู่มือ การคัดกรอง แดชบอร์ด และสื่อประกอบมีรูปแบบที่สอดคล้องและอ่านเข้าใจง่ายขึ้น",
     "date": "2026-08-29",
     "type": "release"

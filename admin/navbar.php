@@ -21,12 +21,16 @@ $availableBudgetYearsNav = function_exists('get_available_budget_years') ? get_a
 $current_page = basename($_SERVER['PHP_SELF']);
 // Determine if super admin
 $is_super_admin = (!isset($admin_hoscode) || empty($admin_hoscode)) && (isset($_SESSION['admin_username']) && $_SESSION['admin_username'] !== 'adminsso');
+$can_manage_station_tokens = empty($admin_hoscode)
+    && ($_SESSION['admin_role'] ?? '') === 'admin'
+    && empty($_SESSION['is_visitor'])
+    && empty($_SESSION['is_executive']);
 
 $is_core_active = in_array($current_page, ['index.php', 'profile.php', 'leaderboard.php']);
 $is_targets_active = in_array($current_page, ['target_manager.php', 'dpac_manager.php']);
 $is_work_active = in_array($current_page, ['assignment.php', 'vhv_approval.php', 'print_qr.php', 'vhv_tasks.php', 'critical_referrals.php', 'rewards_management.php']);
 $is_reports_active = in_array($current_page, ['analytics.php', 'citizen_health_dashboard.php', 'reports.php', 'security_log.php', 'surveillance_reports.php', 'activity_logs.php']);
-$is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php', 'db_manager.php', 'user_manager.php', 'unit_house_manager.php', 'update.php', 'messages.php', 'jhcis_sync.php', 'emergency_receiver.php']);
+$is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php', 'db_manager.php', 'user_manager.php', 'unit_house_manager.php', 'station_tokens.php', 'update.php', 'messages.php', 'jhcis_sync.php', 'emergency_receiver.php']);
 
 $pendingAlertsCount = 0;
 try {
@@ -67,12 +71,14 @@ try {
         display: flex;
         align-items: center;
         gap: 8px;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        min-width: 0;
     }
 
     .nav-dropdown {
         position: relative;
         display: inline-block;
+        flex: 0 0 auto;
     }
 
     .nav-dropbtn {
@@ -92,7 +98,16 @@ try {
         box-sizing: border-box;
         height: 38px;
         line-height: 1;
+        white-space: nowrap;
+        word-break: keep-all;
         transform: none !important;
+    }
+
+    .nav-dropbtn span,
+    .nav-dropdown-content a {
+        white-space: nowrap !important;
+        word-break: keep-all !important;
+        overflow-wrap: normal !important;
     }
 
     .nav-dropbtn:hover {
@@ -597,6 +612,12 @@ try {
                     </svg>
                     จัดการปีงบประมาณ
                 </a>
+                <?php if ($can_manage_station_tokens): ?>
+                    <a href="station_tokens.php" class="<?= $current_page == 'station_tokens.php' ? 'active' : '' ?>">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"></circle><path d="M11 12l8-8m-2 2l2 2m-5 1l2 2"></path></svg>
+                        Station Access Token
+                    </a>
+                <?php endif; ?>
                 <?php if ($is_super_admin): ?>
                     <a href="user_manager.php" onclick="showPageLoading('จัดการผู้ใช้งานระบบ', 'กำลังโหลดรายชื่อผู้ดูแลระบบ...', '👥');" class="<?= $current_page == 'user_manager.php' ? 'active' : '' ?>">
                         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">

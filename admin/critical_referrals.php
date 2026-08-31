@@ -157,6 +157,8 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
             border-radius: 12px;
             font-weight: 600;
             font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
             box-shadow: var(--neumorph-flat);
             display: inline-flex;
             align-items: center;
@@ -492,10 +494,10 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                    <a href="download_station.php?format=zip" class="referral-header-action download" title="ดาวน์โหลดตัวรับสัญญาณระบบ NCDs Red Alert Station">
+                    <button type="button" onclick="openStationDownloadModal()" class="referral-header-action download" title="ดาวน์โหลด NCDs Red Alert Station">
                         <span class="action-icon">📥</span>
-                        <span>ดาวน์โหลดตัวรับสัญญาณ</span>
-                    </a>
+                        <span>ดาวน์โหลด</span>
+                    </button>
                     <a href="emergency_receiver.php" onclick="openOrFocusTab('emergency_receiver.php', 'ncd_red_alert_station_tab'); return false;" class="referral-header-action station">
                         <span class="action-icon">🖥️</span>
                         <span>เปิดหน้าจอ Red Alert Station</span>
@@ -1141,5 +1143,6 @@ $districtName = defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม';
             });
         })();
     </script>
+    <?php include __DIR__ . '/station_download_modal.php'; ?>
 </body>
 </html>

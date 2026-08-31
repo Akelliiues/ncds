@@ -2,18 +2,26 @@
 // api/jhcis_sync.php
 require_once __DIR__ . '/../config/session.php';
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/station_token_auth.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-// Ensure user is logged in as admin
-if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    echo json_encode(['status' => 'error', 'message' => 'กรุณาเข้าสู่ระบบในฐานะผู้ดูแลระบบ'], JSON_UNESCAPED_UNICODE);
+$stationToken = authenticate_station_token($pdo);
+$isAdminSession = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
+if (!$isAdminSession && !$stationToken) {
+    http_response_code(401);
+    echo json_encode(['status' => 'error', 'message' => 'Access Token ไม่ถูกต้อง หมดอายุ หรือถูกเพิกถอน'], JSON_UNESCAPED_UNICODE);
     exit();
 }
 
-$admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
+$admin_hoscode = $stationToken ? $stationToken['hoscode'] : ($_SESSION['admin_hoscode'] ?? null);
 $hc_names = function_exists('get_health_units') ? get_health_units() : [];
 $action = $_REQUEST['action'] ?? '';
+if ($stationToken && $action !== 'test_connection') {
+    http_response_code(403);
+    echo json_encode(['status' => 'error', 'message' => 'Station Token ใช้ได้เฉพาะการตรวจสอบการเชื่อมต่อ JHCIS'], JSON_UNESCAPED_UNICODE);
+    exit();
+}
 
 /**
  * Connect to external JHCIS MySQL Database with provided config or saved config
@@ -59,7 +67,9 @@ function detectJHCISHospitalInfo($jhcisPdo) {
 
     // 1. Try office table
     try {
-        $stmt = $jhcisPdo->query("SELECT offid, offname FROM office LIMIT 1");
+        $officeColumns = $jhcisPdo->query("SHOW COLUMNS FROM office")->fetchAll(PDO::FETCH_COLUMN);
+        $officeNameExpr = in_array('offname', $officeColumns, true) ? 'offname' : "'' AS offname";
+        $stmt = $jhcisPdo->query("SELECT offid, {$officeNameExpr} FROM office WHERE offid <> '' AND offid <> '0000x' LIMIT 1");
         $res = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($res && !empty($res['offid'])) {
             $pcucode = trim((string)$res['offid']);
@@ -82,7 +92,12 @@ function detectJHCISHospitalInfo($jhcisPdo) {
     // 3. Try person table majority pcucode
     if (empty($pcucode)) {
         try {
-            $stmt = $jhcisPdo->query("SELECT pcucode, COUNT(*) as cnt FROM person WHERE pcucode IS NOT NULL AND pcucode != '' GROUP BY pcucode ORDER BY cnt DESC LIMIT 1");
+            $personColumns = getJHCISTableColumns($jhcisPdo, 'person');
+            $personPcuColumn = $personColumns['pcucode'] ?? $personColumns['pcucodeperson'] ?? null;
+            if (!$personPcuColumn) {
+                throw new Exception('No PCU column in person table');
+            }
+            $stmt = $jhcisPdo->query("SELECT `{$personPcuColumn}` AS pcucode, COUNT(*) as cnt FROM person WHERE `{$personPcuColumn}` IS NOT NULL AND `{$personPcuColumn}` != '' GROUP BY `{$personPcuColumn}` ORDER BY cnt DESC LIMIT 1");
             $res = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($res && !empty($res['pcucode'])) {
                 $pcucode = trim((string)$res['pcucode']);
@@ -94,6 +109,18 @@ function detectJHCISHospitalInfo($jhcisPdo) {
         'pcucode' => $pcucode,
         'hosname' => $hosname
     ];
+}
+
+function getJHCISTableColumns($jhcisPdo, $table) {
+    $allowed = ['person', 'ncd_person_ncd_screen'];
+    if (!in_array($table, $allowed, true)) {
+        throw new InvalidArgumentException('Unsupported JHCIS table');
+    }
+    $columns = [];
+    foreach ($jhcisPdo->query("SHOW COLUMNS FROM `{$table}`")->fetchAll(PDO::FETCH_ASSOC) as $column) {
+        $columns[strtolower($column['Field'])] = $column['Field'];
+    }
+    return $columns;
 }
 
 // -------------------------------------------------------------
@@ -201,12 +228,20 @@ if ($action === 'save_config') {
 // 3. TEST CONNECTION & DETECT JHCIS PCU CODE
 // -------------------------------------------------------------
 if ($action === 'test_connection') {
+    if ($stationToken && !station_token_can($stationToken, 'jhcis:sync')) {
+        http_response_code(403);
+        echo json_encode(['status' => 'error', 'message' => 'Token นี้ไม่มีสิทธิ์เชื่อมต่อ JHCIS'], JSON_UNESCAPED_UNICODE);
+        exit();
+    }
     $host = trim($_POST['jhcis_host'] ?? 'localhost');
     $port = (int)($_POST['jhcis_port'] ?? 3333);
     $dbname = trim($_POST['jhcis_dbname'] ?? 'jhcisdb');
     $user = trim($_POST['jhcis_user'] ?? 'root');
     $pass = $_POST['jhcis_pass'] ?? '';
     $hoscode = trim($_POST['hoscode'] ?? $admin_hoscode ?? 'GLOBAL');
+    if ($stationToken && $stationToken['hoscode'] !== 'ALL') {
+        $hoscode = $stationToken['hoscode'];
+    }
 
     // If password is blank or '••••••••', look up from saved config
     if ($pass === '' || $pass === '••••••••') {
@@ -222,7 +257,7 @@ if ($action === 'test_connection') {
 
     if ($isDemo) {
         // Simulated connection in Demo mode
-        $detectedPcu = ($hoscode && $hoscode !== 'GLOBAL') ? $hoscode : '03752';
+        $detectedPcu = ($hoscode && $hoscode !== 'GLOBAL') ? $hoscode : '';
         $detectedName = $hc_names[$detectedPcu] ?? 'รพ.สต.บ้านสำโรง (จำลอง)';
         echo json_encode([
             'status' => 'success',
@@ -543,36 +578,47 @@ if ($action === 'execute_sync') {
 
             // Auto detect connected JHCIS Hospital PCU code
             $jhcisHosp = detectJHCISHospitalInfo($jhcisPdo);
-            $connectedPcu = $jhcisHosp['pcucode'] ?: $filterHoscode ?: '07758';
+            $connectedPcu = $jhcisHosp['pcucode'] ?: $filterHoscode;
+            if (empty($connectedPcu)) {
+                throw new Exception('ไม่พบรหัสสถานบริการจากฐาน JHCIS และไม่ได้ระบุ รพ.สต. สำหรับการซิงค์');
+            }
 
-            // Prepared statements for JHCIS
-            $findPidStmt = $jhcisPdo->prepare("SELECT pid, pcucode FROM person WHERE idcard = ? OR cid = ? LIMIT 1");
-            
-            // Query to check existing screen record in JHCIS
-            $checkScreenStmt = $jhcisPdo->prepare("
-                SELECT datescreen FROM ncd_person_ncd_screen 
-                WHERE pcucode = ? AND pid = ? AND datescreen = ? 
-                LIMIT 1
-            ");
+            // JHCIS releases use two different column-name sets.
+            $personColumns = getJHCISTableColumns($jhcisPdo, 'person');
+            $screenColumns = getJHCISTableColumns($jhcisPdo, 'ncd_person_ncd_screen');
+            $personPcuColumn = $personColumns['pcucode'] ?? $personColumns['pcucodeperson'] ?? null;
+            $personCidColumn = $personColumns['idcard'] ?? $personColumns['cid'] ?? null;
+            if (!$personPcuColumn || !$personCidColumn) {
+                throw new Exception('โครงสร้างตาราง person ของ JHCIS ไม่มีคอลัมน์ที่รองรับ');
+            }
+            $birthExpr = isset($personColumns['birth']) ? 'birth' : 'NULL AS birth';
+            $findPidStmt = $jhcisPdo->prepare("SELECT pid, `{$personPcuColumn}` AS pcucode, {$birthExpr} FROM person WHERE `{$personCidColumn}` = ? LIMIT 1");
+            $usesModernScreenSchema = isset($screenColumns['screen_date']);
 
-            // Insert statement for JHCIS ncd_person_ncd_screen
-            $insertScreenStmt = $jhcisPdo->prepare("
-                INSERT INTO ncd_person_ncd_screen (
-                    pcucode, pid, datescreen, screenplace,
-                    weight, height, waist,
-                    bps1, bpd1, bps2, bpd2,
-                    fbs,
-                    smoke, alcohol,
-                    officer, dateupdate
-                ) VALUES (
-                    ?, ?, ?, 2,
-                    ?, ?, ?,
-                    ?, ?, ?, ?,
-                    ?,
-                    ?, ?,
-                    'VHV', NOW()
-                )
-            ");
+            if ($usesModernScreenSchema) {
+                $checkScreenStmt = $jhcisPdo->prepare("SELECT screen_date FROM ncd_person_ncd_screen WHERE pcucode = ? AND pid = ? AND screen_date = ? LIMIT 1");
+                $nextScreenNoStmt = $jhcisPdo->prepare("SELECT COALESCE(MAX(no), 0) + 1 FROM ncd_person_ncd_screen WHERE pcucode = ? AND pid = ?");
+                $insertScreenStmt = $jhcisPdo->prepare("
+                    INSERT INTO ncd_person_ncd_screen (
+                        pcucode, pid, no, age_year, screen_date, height, weight, waist,
+                        hbp_s1, hbp_d1, screen_q1, screen_q2, screen_q3, screen_q4, screen_q5, screen_q6,
+                        do_measure, hbp_s2, hbp_d2, bsl, bmi, result_new_dm, result_new_hbp,
+                        result_new_waist, result_new_obesity, d_update, user_update, smoke, alcohol,
+                        dateupdate, servplace
+                    ) VALUES (
+                        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '0', '0', '0', '0', '0', '0',
+                        '1', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'VHV', ?, ?, NOW(), '2'
+                    )
+                ");
+            } else {
+                $checkScreenStmt = $jhcisPdo->prepare("SELECT datescreen FROM ncd_person_ncd_screen WHERE pcucode = ? AND pid = ? AND datescreen = ? LIMIT 1");
+                $insertScreenStmt = $jhcisPdo->prepare("
+                    INSERT INTO ncd_person_ncd_screen (
+                        pcucode, pid, datescreen, screenplace, weight, height, waist,
+                        bps1, bpd1, bps2, bpd2, fbs, smoke, alcohol, officer, dateupdate
+                    ) VALUES (?, ?, ?, 2, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'VHV', NOW())
+                ");
+            }
 
             foreach ($records as $r) {
                 $cid = $r['target_cid'];
@@ -595,7 +641,7 @@ if ($action === 'execute_sync') {
 
                 try {
                     // Lookup PID & PCU Code in target JHCIS
-                    $findPidStmt->execute([$cid, $cid]);
+                    $findPidStmt->execute([$cid]);
                     $personRow = $findPidStmt->fetch(PDO::FETCH_ASSOC);
 
                     if (!$personRow || empty($personRow['pid'])) {
@@ -634,13 +680,31 @@ if ($action === 'execute_sync') {
                     // Alcohol code in JHCIS (1=ไม่ดื่ม, 2=ดื่มนานๆครั้ง, 3=ดื่มประจำ, 4=เลิกแล้ว)
                     $alcohol = ($r['alcohol_status'] == 1 || $r['alcohol_status'] === 'drink') ? '3' : '1';
 
-                    $insertScreenStmt->execute([
-                        $targetPcu, $pid, $screenDate,
-                        $weight, $height, $waist,
-                        $bps1, $bpd1, $bps2, $bpd2,
-                        $fbs,
-                        $smoke, $alcohol
-                    ]);
+                    if ($usesModernScreenSchema) {
+                        $nextScreenNoStmt->execute([$targetPcu, $pid]);
+                        $screenNo = (int)$nextScreenNoStmt->fetchColumn();
+                        $birthDate = !empty($personRow['birth']) ? new DateTime($personRow['birth']) : null;
+                        $ageYear = $birthDate ? $birthDate->diff(new DateTime($screenDate))->y : 0;
+                        $bmi = ($weight && $height) ? round($weight / (($height / 100) ** 2), 3) : 0;
+                        $dmResult = ($fbs !== null && $fbs >= 126) ? '2' : '1';
+                        $hbpResult = (($bps1 !== null && $bps1 >= 140) || ($bpd1 !== null && $bpd1 >= 90)) ? '2' : '1';
+                        $waistResult = ($waist !== null && $waist >= 90) ? '2' : '1';
+                        $obesityResult = ($bmi >= 25) ? '2' : '1';
+                        $insertScreenStmt->execute([
+                            $targetPcu, $pid, $screenNo, $ageYear, $screenDate,
+                            $height ?: 0, $weight ?: 0, $waist ?: 0, $bps1 ?: 0, $bpd1 ?: 0,
+                            $bps2, $bpd2, $fbs, $bmi,
+                            $dmResult, $hbpResult, $waistResult, $obesityResult,
+                            $screenDate, $smoke, $alcohol
+                        ]);
+                    } else {
+                        $insertScreenStmt->execute([
+                            $targetPcu, $pid, $screenDate,
+                            $weight, $height, $waist,
+                            $bps1, $bpd1, $bps2, $bpd2,
+                            $fbs, $smoke, $alcohol
+                        ]);
+                    }
 
                     $successCount++;
                     $syncedIds[] = $r['screening_id'];

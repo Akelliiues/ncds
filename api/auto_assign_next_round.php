@@ -352,7 +352,7 @@ try {
         $villageVhvsStmt = $pdo->prepare("
             SELECT vhv_id, vhv_name 
             FROM vhv_users 
-            WHERE (vhid_code = ? OR (CAST(vhv_moo AS UNSIGNED) = CAST(? AS UNSIGNED) AND (:target_hcode = '' OR hoscode = :target_hcode2)))
+            WHERE (vhid_code = ? OR (CAST(vhv_moo AS UNSIGNED) = CAST(? AS UNSIGNED) AND (? = '' OR hoscode = ?)))
               AND (approved = 1 OR approved IS NULL)
             ORDER BY vhv_name ASC
         ");
@@ -390,6 +390,16 @@ try {
         }
 
         $pdo->commit();
+
+        if (function_exists('logUserActivity')) {
+            logUserActivity('ASSIGNMENT', "มอบหมายงานรอบที่ {$foundReadyRound} อัตโนมัติ", [
+                'tambon' => $tambon,
+                'moo' => $moo,
+                'assigned_count' => $insertCount,
+                'target_round' => $foundReadyRound,
+                'budget_year' => $selectedBudgetYear
+            ]);
+        }
 
         echo json_encode([
             'status' => 'success',

@@ -1,8 +1,37 @@
 <?php
 // api/emergency_alert.php - Realtime Critical Emergency Dispatcher & Referral Sync
+require_once __DIR__ . '/../config/session.php';
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/station_token_auth.php';
 
 $action = $_REQUEST['action'] ?? '';
+$stationToken = authenticate_station_token($pdo);
+$isAdminSession = !empty($_SESSION['admin_logged_in']);
+
+function requireStationAccess($stationToken, $isAdminSession, $permission) {
+    if (!$isAdminSession && !$stationToken) {
+        http_response_code(401);
+        echo json_encode(['status' => 'error', 'message' => 'กรุณาระบุ Station Access Token'], JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+    if ($stationToken && !station_token_can($stationToken, $permission)) {
+        http_response_code(403);
+        echo json_encode(['status' => 'error', 'message' => 'Token ไม่มีสิทธิ์ดำเนินการนี้'], JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+}
+
+function requireAlertHoscode(PDO $pdo, $stationToken, $alertId) {
+    if (!$stationToken || $stationToken['hoscode'] === 'ALL') return;
+    $stmt = $pdo->prepare('SELECT hoscode FROM critical_alerts WHERE alert_id = ? LIMIT 1');
+    $stmt->execute([$alertId]);
+    $hoscode = (string)$stmt->fetchColumn();
+    if ($hoscode === '' || !station_token_allows_hoscode($stationToken, $hoscode)) {
+        http_response_code(403);
+        echo json_encode(['status' => 'error', 'message' => 'Token ไม่ได้รับอนุญาตให้เข้าถึงเคสนี้'], JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+}
 
 // -------------------------------------------------------------
 // 1. STREAM ALERTS (Server-Sent Events: SSE)
@@ -76,6 +105,19 @@ if ($action === 'stream_alerts') {
 // For all other JSON actions
 header('Content-Type: application/json; charset=utf-8');
 
+// Read-only station directory. Source is the same health_units table used by
+// admin/unit_house_manager.php?tab=units.
+if ($action === 'get_health_units') {
+    try {
+        $stmt = $pdo->query("SELECT hoscode, hosname FROM health_units WHERE hoscode <> '' AND hosname <> '' ORDER BY hoscode ASC");
+        echo json_encode(['status' => 'success', 'source' => 'health_units', 'units' => $stmt->fetchAll(PDO::FETCH_ASSOC)], JSON_UNESCAPED_UNICODE);
+    } catch (Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => 'ไม่สามารถอ่านรายชื่อหน่วยบริการได้'], JSON_UNESCAPED_UNICODE);
+    }
+    exit();
+}
+
 // -------------------------------------------------------------
 // 2. TRIGGER ALERT (From VHV screening form or Citizen Self-Screening)
 // -------------------------------------------------------------
@@ -113,9 +155,9 @@ if ($action === 'trigger_alert') {
     if (empty($patientName)) {
         $patientName = 'ผู้ป่วยฉุกเฉิน (ไม่ระบุนาม)';
     }
-    if (empty($hoscode)) {
-        // Fallback hoscode if missing
-        $hoscode = '07758';
+    if (!preg_match('/^\d{5}$/', $hoscode)) {
+        echo json_encode(['status' => 'error', 'message' => 'กรุณาระบุรหัสสถานบริการ 5 หลักจากข้อมูลหน่วยบริการ'], JSON_UNESCAPED_UNICODE);
+        exit();
     }
 
     try {
@@ -165,7 +207,9 @@ if ($action === 'trigger_alert') {
 // 3. GET ACTIVE ALERTS (Polling fallback / Dashboard fetch)
 // -------------------------------------------------------------
 if ($action === 'get_active_alerts') {
+    requireStationAccess($stationToken, $isAdminSession, 'alerts:read');
     $hoscode = trim($_GET['hoscode'] ?? '');
+    if ($stationToken && $stationToken['hoscode'] !== 'ALL') $hoscode = $stationToken['hoscode'];
     $statusFilter = trim($_GET['status'] ?? 'all');
     $limit = isset($_GET['limit']) ? min(500, max(1, (int)$_GET['limit'])) : 150;
 
@@ -210,7 +254,9 @@ if ($action === 'get_active_alerts') {
 // 4. ACKNOWLEDGE ALERT (Mute alarm & mark as acknowledged)
 // -------------------------------------------------------------
 if ($action === 'acknowledge_alert') {
+    requireStationAccess($stationToken, $isAdminSession, 'alerts:update');
     $alertId = (int)($_POST['alert_id'] ?? 0);
+    requireAlertHoscode($pdo, $stationToken, $alertId);
     $staffName = trim($_POST['staff_name'] ?? 'เจ้าหน้าที่ รพ.สต.');
 
     if ($alertId <= 0) {
@@ -329,16 +375,15 @@ if ($action === 'simulate_demo_refer') {
     }
 
     try {
-        $mockVisitNo = 'REF-6901-' . str_pad($alertId, 4, '0', STR_PAD_LEFT);
         $stmt = $pdo->prepare("
             UPDATE critical_alerts 
             SET alert_status = 'referred_hospital',
                 referral_destination = ?,
-                is_jhcis_synced = 1,
-                jhcis_visitno = ?
+                is_jhcis_synced = 0,
+                jhcis_visitno = NULL
             WHERE alert_id = ?
         ");
-        $stmt->execute([$dest, $mockVisitNo, $alertId]);
+        $stmt->execute([$dest, $alertId]);
 
         echo json_encode([
             'status' => 'success',
@@ -346,8 +391,8 @@ if ($action === 'simulate_demo_refer') {
             'alert_id' => $alertId,
             'alert_status' => 'referred_hospital',
             'referral_destination' => $dest,
-            'is_jhcis_synced' => 1,
-            'jhcis_visitno' => $mockVisitNo
+            'is_jhcis_synced' => 0,
+            'jhcis_visitno' => null
         ], JSON_UNESCAPED_UNICODE);
     } catch (\Throwable $e) {
         echo json_encode(['status' => 'error', 'message' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
@@ -359,7 +404,9 @@ if ($action === 'simulate_demo_refer') {
 // 5. UPDATE REFERRAL STATUS & JHCIS SYNC
 // -------------------------------------------------------------
 if ($action === 'update_referral_status') {
+    requireStationAccess($stationToken, $isAdminSession, 'alerts:update');
     $alertId = (int)($_POST['alert_id'] ?? 0);
+    requireAlertHoscode($pdo, $stationToken, $alertId);
     $newStatus = trim($_POST['status'] ?? 'referred_hospital'); // acknowledged, dispatched, referred_hospital, resolved, cancelled
     $destination = trim($_POST['referral_destination'] ?? 'โรงพยาบาลตาลสุม (10988)');
     $notes = trim($_POST['referral_notes'] ?? '');
@@ -386,63 +433,18 @@ if ($action === 'update_referral_status') {
         $isJhcisSynced = (int)$alert['is_jhcis_synced'];
         $jhcisSyncMessage = '';
 
-        // Push to JHCIS if requested
-        if ($syncToJHCIS && $newStatus === 'referred_hospital') {
-            try {
-                $targetHoscode = $alert['hoscode'] ?: '07758';
-                $configStmt = $pdo->prepare("SELECT * FROM jhcis_sync_configs WHERE hoscode = ? LIMIT 1");
-                $configStmt->execute([$targetHoscode]);
-                $jhcisConfig = $configStmt->fetch(PDO::FETCH_ASSOC);
-
-                // Extract 5-digit destination hospital code (e.g. 10957 from "โรงพยาบาลตาลสุม (10957)")
-                $destHospCode = '10957';
-                if (!empty($_POST['referral_hospcode'])) {
-                    $destHospCode = trim($_POST['referral_hospcode']);
-                } elseif (preg_match('/\b(\d{5})\b/', $destination, $m)) {
-                    $destHospCode = $m[1];
-                }
-
-                if ($jhcisConfig && function_exists('getJHCISConnection')) {
-                    $jhcisPdo = getJHCISConnection($jhcisConfig);
-
-                    // Find Person in JHCIS
-                    $findPid = $jhcisPdo->prepare("SELECT pid, pcucode FROM person WHERE idcard = ? OR cid = ? LIMIT 1");
-                    $findPid->execute([$alert['target_cid'], $alert['target_cid']]);
-                    $pRow = $findPid->fetch(PDO::FETCH_ASSOC);
-
-                    if ($pRow) {
-                        $pcuCode = $pRow['pcucode'];
-                        $pid = $pRow['pid'];
-                        $visitDate = date('Y-m-d');
-                        $visitTime = date('H:i:s');
-                        $cause = "ความดัน/น้ำตาลวิกฤต: SBP {$alert['sbp']}/{$alert['dbp']} DTX {$alert['dtx']} ({$alert['crisis_type']})";
-
-                        // Create visit if needed
-                        $visitNoStmt = $jhcisPdo->prepare("SELECT MAX(visitno) as max_v FROM visit WHERE pcucode = ?");
-                        $visitNoStmt->execute([$pcuCode]);
-                        $maxV = $visitNoStmt->fetch(PDO::FETCH_ASSOC);
-                        $newVisitNo = ((int)($maxV['max_v'] ?? 0)) + 1;
-
-                        $insVisit = $jhcisPdo->prepare("
-                            INSERT INTO visit (pcucode, visitno, visitdate, pid, symptoms, sbp, dbp, money1, userupdate, dateupdate)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, 0, 'NCD_PORTAL', NOW())
-                        ");
-                        $insVisit->execute([$pcuCode, $newVisitNo, $visitDate, $pid, $cause, $alert['sbp'], $alert['dbp']]);
-
-                        // Insert into visitrefer
-                        $insRefer = $jhcisPdo->prepare("
-                            INSERT INTO visitrefer (pcucode, visitno, pid, referdate, referhosp, refertype, cause, officer, dateupdate)
-                            VALUES (?, ?, ?, ?, ?, '1', ?, 'NCD_PORTAL', NOW())
-                        ");
-                        $insRefer->execute([$pcuCode, $newVisitNo, $pid, $visitDate, $destHospCode, $cause]);
-
-                        $jhcisVisitNo = (string)$newVisitNo;
-                        $isJhcisSynced = 1;
-                        $jhcisSyncMessage = " (ซิงค์เข้า JHCIS visitno: {$newVisitNo} ปลายทาง รพ. {$destHospCode} เรียบร้อย)";
-                    }
-                }
-            } catch (\Throwable $je) {
-                $jhcisSyncMessage = " (หมายเหตุ JHCIS: " . $je->getMessage() . ")";
+        // JHCIS writes are performed locally by the Station only after preview,
+        // explicit confirmation, transaction and post-write verification.
+        // The web server must never open or mutate a facility's JHCIS database.
+        if ($syncToJHCIS) {
+            $localSynced = ($_POST['jhcis_local_committed'] ?? '') === '1';
+            $localVisitNo = trim($_POST['jhcis_visitno'] ?? '');
+            if ($localSynced && $stationToken && station_token_can($stationToken, 'jhcis:sync') && ctype_digit($localVisitNo)) {
+                $jhcisVisitNo = $localVisitNo;
+                $isJhcisSynced = 1;
+                $jhcisSyncMessage = " (Station ยืนยันการบันทึก JHCIS visitno: {$localVisitNo})";
+            } else {
+                $jhcisSyncMessage = ' (ยังไม่ได้บันทึก JHCIS จาก Station)';
             }
         }
 
