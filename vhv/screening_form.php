@@ -551,6 +551,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
         <?php else: ?>
             <form id="screening-form" action="" method="POST">
                 <input type="hidden" name="assignment_id" id="assignment_id" value="<?= $isDemo ? $activeAssignId : '' ?>">
+                <input type="hidden" name="target_cid" id="target_cid" value="<?= $isDemo ? htmlspecialchars($activeResident['cid'] ?? '0032500000001') : '' ?>">
                 <input type="hidden" name="screening_lat" id="screening_lat" value="<?= $isDemo ? '15.430000' : '' ?>">
                 <input type="hidden" name="screening_lng" id="screening_lng" value="<?= $isDemo ? '104.980000' : '' ?>">
 
@@ -3332,14 +3333,20 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
         document.addEventListener('DOMContentLoaded', () => {
             <?php if ($isDemo && !empty($residents)): ?>
             const r = <?= json_encode($residents[0], JSON_UNESCAPED_UNICODE) ?>;
-            const birthDate = new Date(r.birth);
-            const age = new Date().getFullYear() - birthDate.getFullYear();
+            let residentAge = r.age ? parseInt(r.age) : 55;
+            if (r.birth && !r.age) {
+                const bDate = new Date(r.birth);
+                if (!isNaN(bDate.getTime())) {
+                    residentAge = new Date().getFullYear() - bDate.getFullYear();
+                }
+            }
             
             selectedResident = {
-                assignmentId: r.assignment_id,
-                name: `${r.first_name} ${r.last_name}`,
-                sex: r.sex,
-                age: age,
+                assignmentId: r.assignment_id || 'DEMO_ASSIGN_1',
+                targetCid: r.cid || '0032500000001',
+                name: `${r.first_name || ''} ${r.last_name || ''}`.trim(),
+                sex: r.sex || '1',
+                age: residentAge,
                 needDm: true,
                 needHt: true,
                 origin: r.health_status_origin || 'BOTH',
@@ -3351,6 +3358,14 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 lastDtxType: r.last_dtx_type || 'fpg',
                 roundNumber: parseInt(r.round_number || 1)
             };
+
+            const elAssign = document.getElementById('assignment_id');
+            if (elAssign) elAssign.value = selectedResident.assignmentId;
+            const elTargetCid = document.getElementById('target_cid');
+            if (elTargetCid) elTargetCid.value = selectedResident.targetCid;
+            const elResName = document.getElementById('selected-resident-name');
+            if (elResName) elResName.innerText = selectedResident.name;
+
             calculateBmi();
             calculateCvRisk();
             <?php else: ?>

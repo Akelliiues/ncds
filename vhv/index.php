@@ -894,13 +894,20 @@ if (DemoDataProvider::isDemoMode()) {
             }
             alert("⚠️ ระบบทำงานในโหมดใช้งานจริง: กรุณากดปุ่ม 'สแกนบ้าน' ด้านล่างเพื่อสแกน QR Code ประจำบ้านเป้าหมายและเริ่มทำการคัดกรอง");
         }
-        document.getElementById('btn-enter-test').onclick = function() {
-            if (currentTestHid) {
-                window.location.href = 'screening_form.php?hid=' + currentTestHid;
-            } else {
-                window.location.href = 'screening_form.php?cid=' + currentTestCid;
-            }
-        };
+        function closeTestModal() {
+            const tm = document.getElementById('test-modal');
+            if (tm) tm.style.display = 'none';
+        }
+        const btnEnterTest = document.getElementById('btn-enter-test');
+        if (btnEnterTest) {
+            btnEnterTest.onclick = function() {
+                if (currentTestHid) {
+                    window.location.href = 'screening_form.php?hid=' + encodeURIComponent(currentTestHid);
+                } else if (currentTestCid) {
+                    window.location.href = 'screening_form.php?cid=' + encodeURIComponent(currentTestCid);
+                }
+            };
+        }
         function switchTab(tabId, btn) {
             // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(content => {

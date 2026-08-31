@@ -19,6 +19,17 @@ if (isset($_GET['demo_role']) || isset($_POST['demo_role'])) {
     $_SESSION['demo_role'] = $demoRole;
 
     if ($demoRole === 'vhv') {
+        // Clear conflicting admin sessions
+        unset($_SESSION['admin_logged_in']);
+        unset($_SESSION['admin_username']);
+        unset($_SESSION['admin_hoscode']);
+        unset($_SESSION['admin_hosname']);
+        unset($_SESSION['admin_role']);
+        unset($_SESSION['is_visitor']);
+        unset($_SESSION['is_executive']);
+        unset($_SESSION['impersonator_admin']);
+        unset($_SESSION['is_admin_impersonating']);
+
         $_SESSION['vhv_id'] = 'DEMO_1001';
         $_SESSION['vhv_name'] = 'อสม. สมชาย ใจดี (จำลอง สสอ.ตาลสุม)';
         $_SESSION['vhv_phone'] = '081-234-5678';
@@ -31,6 +42,17 @@ if (isset($_GET['demo_role']) || isset($_POST['demo_role'])) {
         header("Location: vhv/index.php");
         exit();
     } elseif ($demoRole === 'staff') {
+        // Clear conflicting vhv sessions
+        unset($_SESSION['vhv_id']);
+        unset($_SESSION['vhv_name']);
+        unset($_SESSION['vhv_phone']);
+        unset($_SESSION['vhv_moo']);
+        unset($_SESSION['vhid_code']);
+        unset($_SESSION['is_leader']);
+        unset($_SESSION['is_hl_coach']);
+        unset($_SESSION['impersonator_admin']);
+        unset($_SESSION['is_admin_impersonating']);
+
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['admin_username'] = 'demo_staff';
         $_SESSION['admin_hoscode'] = '00325';
