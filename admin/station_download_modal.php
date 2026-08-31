@@ -31,22 +31,55 @@ $stationSetupSha256 = $stationSetupAvailable ? hash_file('sha256', $stationSetup
 </style>
 
 <div id="station-download-modal" class="station-download-modal" role="dialog" aria-modal="true" aria-labelledby="station-download-title" hidden>
-    <section class="station-download-dialog">
+    <section class="station-download-dialog" style="max-width: 580px;">
         <div class="station-download-head">
             <div>
-                <h2 id="station-download-title" class="station-download-title">ดาวน์โหลด Red Alert Station</h2>
-                <p class="station-download-subtitle">Version 1.0 สำหรับติดตั้งหรืออัปเกรดบนเครื่องรับแจ้งเตือน</p>
+                <h2 id="station-download-title" class="station-download-title" style="display: flex; align-items: center; gap: 8px;">
+                    <span>🚨</span> <span>NCDs Red Alert Station</span>
+                </h2>
+                <p class="station-download-subtitle">โปรแกรมตัวรับสัญญาณแจ้งเหตุวิกฤตฉุกเฉินบนคอมพิวเตอร์ (Version 1.0)</p>
             </div>
             <button type="button" class="station-download-close" onclick="closeStationDownloadModal()" aria-label="ปิด">×</button>
         </div>
-        <div class="station-download-info">
-            <div class="station-download-item"><small>Build</small><strong>202608312200</strong></div>
-            <div class="station-download-item"><small>ขนาดไฟล์</small><strong><?= $stationSetupAvailable ? number_format($stationSetupSize / 1024, 0) . ' KB' : 'ไม่พบไฟล์' ?></strong></div>
+
+        <!-- 2 Clear Deployment Profiles -->
+        <div style="margin: 18px 0 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <!-- Profile 1: Main Dispatch Hub -->
+            <div style="background: #e7eef6; border-radius: 16px; padding: 14px; box-shadow: inset 2px 2px 5px #cbd6e1, inset -2px -2px 5px #fff; border: 1px solid rgba(203, 213, 225, 0.6);">
+                <div style="display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 13px; color: #1e3a8a; margin-bottom: 6px;">
+                    <span style="font-size: 16px;">🏢</span>
+                    <span>1. สถานีหลัก แม่ข่าย</span>
+                </div>
+                <div style="font-size: 11.5px; color: #475569; line-height: 1.45;">
+                    <div style="color: #0f172a; font-weight: 700; margin-bottom: 2px;">สำหรับ: สสอ.ตาลสุม / รพ.ตาลสุม</div>
+                    <div>• <strong>สังกัดสถานี:</strong> เลือก <code>ALL - ศูนย์กลาง</code></div>
+                    <div>• รับแจ้งเตือนเคสวิกฤต Fast-Track ภาพรวมทุก รพ.สต. ทั้งอำเภอ</div>
+                </div>
+            </div>
+
+            <!-- Profile 2: Health Center -->
+            <div style="background: #e7eef6; border-radius: 16px; padding: 14px; box-shadow: inset 2px 2px 5px #cbd6e1, inset -2px -2px 5px #fff; border: 1px solid rgba(203, 213, 225, 0.6);">
+                <div style="display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 13px; color: #065f46; margin-bottom: 6px;">
+                    <span style="font-size: 16px;">🏥</span>
+                    <span>2. รพ.สต. ในสังกัด</span>
+                </div>
+                <div style="font-size: 11.5px; color: #475569; line-height: 1.45;">
+                    <div style="color: #0f172a; font-weight: 700; margin-bottom: 2px;">สำหรับ: รพ.สต. 7 แห่งในอำเภอ</div>
+                    <div>• <strong>สังกัดสถานี:</strong> เลือกรหัส รพ.สต. ตนเอง</div>
+                    <div>• รับแจ้งเตือนเฉพาะตำบล + ส่งต่อบันทึกลงฐานข้อมูล JHCIS</div>
+                </div>
+            </div>
         </div>
+
+        <div class="station-download-info" style="margin: 0 0 12px;">
+            <div class="station-download-item"><small>เวอร์ชันโปรแกรม</small><strong>Version 1.0 (Build 202608312200)</strong></div>
+            <div class="station-download-item"><small>ขนาดไฟล์ติดตั้ง</small><strong><?= $stationSetupAvailable ? number_format($stationSetupSize / 1024, 0) . ' KB' : 'ไม่พบไฟล์' ?></strong></div>
+        </div>
+
         <?php if ($stationSetupAvailable && !empty($stationSetupSha256)): ?>
             <div class="station-download-sha-box">
                 <div class="station-download-sha-head">
-                    <small style="color: #718399; font-weight: 800; font-size: 11.5px;">🔐 SHA-256 Checksum:</small>
+                    <small style="color: #475569; font-weight: 800; font-size: 11.5px;">🔐 SHA-256 Checksum (สำหรับตรวจสอบความปลอดภัย):</small>
                     <button type="button" class="btn-copy-sha" onclick="copyStationSha256('<?= htmlspecialchars($stationSetupSha256) ?>')" id="btn-copy-sha-status">
                         📋 คัดลอก
                     </button>
@@ -54,14 +87,18 @@ $stationSetupSha256 = $stationSetupAvailable ? hash_file('sha256', $stationSetup
                 <code class="station-download-sha-code" id="station-sha256-text"><?= htmlspecialchars($stationSetupSha256) ?></code>
             </div>
         <?php endif; ?>
+
         <?php if ($stationSetupAvailable): ?>
-            <p class="station-download-note">ก่อนติดตั้ง ให้ปิด Red Alert Station ที่กำลังทำงาน รวมถึงไอคอนบริเวณมุมขวาล่างของ Windows</p>
+            <p class="station-download-note" style="margin-bottom: 16px;">💡 ติดตั้งตัวติดตั้งเดียวกันทั้ง 2 รูปแบบ จากนั้นเปิดหน้าต่างการตั้งค่า (Settings) เพื่อเลือกสังกัดตามหน่วยบริการของท่าน</p>
         <?php else: ?>
             <p class="station-download-note station-download-error">ไม่พบตัวติดตั้งบนเซิร์ฟเวอร์ กรุณาแจ้งผู้ดูแลระบบ</p>
         <?php endif; ?>
+
         <div class="station-download-actions">
-            <button type="button" class="station-download-action" onclick="closeStationDownloadModal()">ยกเลิก</button>
-            <a class="station-download-action primary<?= $stationSetupAvailable ? '' : ' disabled' ?>" href="download_station.php?download=1" download>ดาวน์โหลด</a>
+            <button type="button" class="station-download-action" onclick="closeStationDownloadModal()">ปิด</button>
+            <a class="station-download-action primary<?= $stationSetupAvailable ? '' : ' disabled' ?>" href="download_station.php?download=1" download>
+                📥 ดาวน์โหลดตัวติดตั้ง (.EXE)
+            </a>
         </div>
     </section>
 </div>
