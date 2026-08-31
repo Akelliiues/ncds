@@ -31,6 +31,7 @@ namespace NCDsRedAlertStation
     public class AppConfig
     {
         public string ServerUrl { get; set; }
+        public string StationToken { get; set; }
         public string Hoscode { get; set; }
         public string Hosname { get; set; }
         public bool SoundEnabled { get; set; }
@@ -49,6 +50,7 @@ namespace NCDsRedAlertStation
         public AppConfig()
         {
             ServerUrl = "https://ncd.ssotansum.com";
+            StationToken = "";
             Hoscode = "ALL";
             Hosname = "ALL - ศูนย์กลาง (รับแจ้งเตือนทุกหน่วยบริการ)";
             SoundEnabled = true;
@@ -975,6 +977,11 @@ namespace NCDsRedAlertStation
                     {
                         using (var wb = new WebClient())
                         {
+                            if (!string.IsNullOrWhiteSpace(_config.StationToken))
+                            {
+                                wb.Headers.Add("X-Station-Token", _config.StationToken.Trim());
+                                wb.Headers.Add("Authorization", "Bearer " + _config.StationToken.Trim());
+                            }
                             var reqData = new System.Collections.Specialized.NameValueCollection();
                             reqData.Add("action", "acknowledge_alert");
                             reqData.Add("alert_id", alertId);
@@ -1006,6 +1013,11 @@ namespace NCDsRedAlertStation
                     {
                         using (var wb = new WebClient())
                         {
+                            if (!string.IsNullOrWhiteSpace(_config.StationToken))
+                            {
+                                wb.Headers.Add("X-Station-Token", _config.StationToken.Trim());
+                                wb.Headers.Add("Authorization", "Bearer " + _config.StationToken.Trim());
+                            }
                             var reqData = new System.Collections.Specialized.NameValueCollection();
                             reqData.Add("action", "update_referral_status");
                             reqData.Add("alert_id", alertId);
@@ -1069,6 +1081,7 @@ namespace NCDsRedAlertStation
 
         private TabControl tabControl;
         private TextBox txtServerUrl;
+        private TextBox txtStationToken;
         private ComboBox cboHealthCenter;
         private TextBox txtHoscode;
         private Label lblUnitLoadStatus;
@@ -1114,7 +1127,7 @@ namespace NCDsRedAlertStation
             };
 
             // TAB 1: สถานบริการ & เซิร์ฟเวอร์
-            var tab1 = new TabPage("🏥 รพ.สต. & เซิร์ฟเวอร์");
+            var tab1 = new TabPage("🏥 รพ.สต. _เซิร์ฟเวอร์");
             tab1.BackColor = Color.White;
             tab1.Padding = new Padding(18);
 
@@ -1149,7 +1162,10 @@ namespace NCDsRedAlertStation
             };
 
             var lbl3 = new Label { Text = "รหัสสถานบริการ (Hoscode)", Location = new Point(24, 204), AutoSize = true, Font = ConfigManager.GetSystemFont(9.5f, FontStyle.Bold) };
-            txtHoscode = new TextBox { Location = new Point(24, 232), Width = 220, Height = 30, AutoSize = false, ReadOnly = true, TabStop = false };
+            txtHoscode = new TextBox { Location = new Point(24, 232), Width = 180, Height = 30, AutoSize = false, ReadOnly = true, TabStop = false };
+
+            var lblToken = new Label { Text = "🔑 กุญแจยืนยันสถานี (Station Token Key):", Location = new Point(220, 204), AutoSize = true, Font = ConfigManager.GetSystemFont(9.5f, FontStyle.Bold) };
+            txtStationToken = new TextBox { Location = new Point(220, 232), Width = 434, Height = 30, AutoSize = false };
 
             chkAutoStart = new CheckBox
             {
@@ -1181,6 +1197,8 @@ namespace NCDsRedAlertStation
             tab1.Controls.Add(lblUnitLoadStatus);
             tab1.Controls.Add(lbl3);
             tab1.Controls.Add(txtHoscode);
+            tab1.Controls.Add(lblToken);
+            tab1.Controls.Add(txtStationToken);
             tab1.Controls.Add(chkAutoStart);
             tab1.Controls.Add(btnSimulateAlert);
 
@@ -1457,6 +1475,11 @@ namespace NCDsRedAlertStation
                 {
                     var request = (HttpWebRequest)WebRequest.Create(url);
                     request.Method = "GET";
+                    if (!string.IsNullOrWhiteSpace(_config.StationToken))
+                    {
+                        request.Headers.Add("X-Station-Token", _config.StationToken.Trim());
+                        request.Headers.Add("Authorization", "Bearer " + _config.StationToken.Trim());
+                    }
                     request.Timeout = 7000;
                     request.ReadWriteTimeout = 7000;
                     using (var response = (HttpWebResponse)request.GetResponse())
@@ -1595,6 +1618,7 @@ namespace NCDsRedAlertStation
         private void LoadConfigToUI()
         {
             txtServerUrl.Text = _config.ServerUrl;
+            txtStationToken.Text = _config.StationToken ?? "";
             txtHoscode.Text = _config.Hoscode;
             txtDestHospCode.Text = !string.IsNullOrEmpty(_config.DestHospitalCode) ? _config.DestHospitalCode : "10957";
             txtDestHospName.Text = !string.IsNullOrEmpty(_config.DestHospitalName) ? _config.DestHospitalName : "โรงพยาบาลตาลสุม";
@@ -1645,6 +1669,7 @@ namespace NCDsRedAlertStation
                 return;
             }
             _config.ServerUrl = txtServerUrl.Text.Trim();
+            _config.StationToken = txtStationToken.Text.Trim();
             _config.Hoscode = txtHoscode.Text.Trim();
             _config.Hosname = cboHealthCenter.Text;
             _config.DestHospitalCode = txtDestHospCode.Text.Trim();
@@ -1901,6 +1926,11 @@ namespace NCDsRedAlertStation
                     using (var wb = new WebClient())
                     {
                         wb.Encoding = Encoding.UTF8;
+                        if (!string.IsNullOrWhiteSpace(_config.StationToken))
+                        {
+                            wb.Headers.Add("X-Station-Token", _config.StationToken.Trim());
+                            wb.Headers.Add("Authorization", "Bearer " + _config.StationToken.Trim());
+                        }
                         string json = wb.DownloadString(url);
                         var serializer = new JavaScriptSerializer();
                         var data = serializer.Deserialize<Dictionary<string, object>>(json);
