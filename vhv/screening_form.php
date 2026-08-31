@@ -66,31 +66,10 @@ if (DemoDataProvider::isDemoMode()) {
     }
     unset($res);
 } elseif (!$isShell) {
-    // Auto-assign task if no pending assignment exists yet
     $currentBudgetYear = function_exists('get_current_budget_year') ? get_current_budget_year() : 2026;
     $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
-    if (!empty($hid)) {
-        $checkStmt = $pdo->prepare("SELECT cid FROM target_population WHERE CAST(hid AS UNSIGNED) = CAST(? AS UNSIGNED)");
-        $checkStmt->execute([$hid]);
-        $targets = $checkStmt->fetchAll(PDO::FETCH_COLUMN);
-        if (!empty($targets)) {
-            $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, ?, 'pending', ?)");
-            foreach ($targets as $tc) {
-                $ins->execute([$tc, $vhvId, $currentBudgetYear, $isSandboxVal]);
-            }
-        }
-    } elseif (!empty($cid)) {
-        $checkStmt = $pdo->prepare("SELECT cid FROM target_population WHERE cid = ? LIMIT 1");
-        $checkStmt->execute([$cid]);
-        $pop = $checkStmt->fetch();
-        if ($pop) {
-            $ins = $pdo->prepare("INSERT IGNORE INTO task_assignments (target_cid, vhv_id, budget_year, assignment_status, is_sandbox) VALUES (?, ?, ?, 'pending', ?)");
-            $ins->execute([$cid, $vhvId, $currentBudgetYear, $isSandboxVal]);
-        }
-    }
 
-    // Fetch residents based on hid or cid
-    $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
+    // Fetch residents who have been assigned to this VHV based on hid or cid
     if (!empty($hid)) {
         $residentsStmt = $pdo->prepare("
             SELECT p.*, a.assignment_id, a.round_number,
@@ -114,15 +93,9 @@ if (DemoDataProvider::isDemoMode()) {
             JOIN target_population p ON a.target_cid = p.cid
             WHERE CAST(p.hid AS UNSIGNED) = CAST(? AS UNSIGNED) AND a.vhv_id = ? AND a.budget_year = ? AND a.assignment_status IN ('pending', 'skipped') AND a.is_sandbox = ?
               AND (
-                  (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-                  OR 
-                  (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
-                  OR
-                  p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
-                  OR
-                  COALESCE(p.is_manual, 0) = 1
-                  OR
-                  a.assignment_id IS NOT NULL
+                  ((p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35 OR COALESCE(p.is_manual, 0) = 1))
+                  OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+                  OR COALESCE(p.is_manual, 0) = 1
               )
         ");
         $residentsStmt->execute([$hid, $vhvId, $currentBudgetYear, $isSandboxVal]);
@@ -135,15 +108,9 @@ if (DemoDataProvider::isDemoMode()) {
                 JOIN target_population p ON a.target_cid = p.cid
                 WHERE CAST(p.hid AS UNSIGNED) = CAST(? AS UNSIGNED) AND a.vhv_id = ? AND a.budget_year = ? AND a.is_sandbox = ?
                   AND (
-                      (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-                      OR 
-                      (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
-                      OR
-                      p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
-                      OR
-                      COALESCE(p.is_manual, 0) = 1
-                      OR
-                      a.assignment_id IS NOT NULL
+                      ((p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35 OR COALESCE(p.is_manual, 0) = 1))
+                      OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+                      OR COALESCE(p.is_manual, 0) = 1
                   )
             ");
             $historyStmt->execute([$hid, $vhvId, $currentBudgetYear, $isSandboxVal]);
@@ -172,15 +139,9 @@ if (DemoDataProvider::isDemoMode()) {
             JOIN target_population p ON a.target_cid = p.cid
             WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = ? AND a.assignment_status IN ('pending', 'skipped') AND a.is_sandbox = ?
               AND (
-                  (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-                  OR 
-                  (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
-                  OR
-                  p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
-                  OR
-                  COALESCE(p.is_manual, 0) = 1
-                  OR
-                  a.assignment_id IS NOT NULL
+                  ((p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35 OR COALESCE(p.is_manual, 0) = 1))
+                  OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+                  OR COALESCE(p.is_manual, 0) = 1
               )
         ");
         $residentsStmt->execute([$cid, $vhvId, $currentBudgetYear, $isSandboxVal]);
@@ -193,15 +154,9 @@ if (DemoDataProvider::isDemoMode()) {
                 JOIN target_population p ON a.target_cid = p.cid
                 WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = ? AND a.is_sandbox = ?
                   AND (
-                      (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-                      OR 
-                      (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
-                      OR
-                      p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
-                      OR
-                      COALESCE(p.is_manual, 0) = 1
-                      OR
-                      a.assignment_id IS NOT NULL
+                      ((p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35 OR COALESCE(p.is_manual, 0) = 1))
+                      OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+                      OR COALESCE(p.is_manual, 0) = 1
                   )
             ");
             $historyStmt->execute([$cid, $vhvId, $currentBudgetYear, $isSandboxVal]);
