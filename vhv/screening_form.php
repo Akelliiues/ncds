@@ -3220,33 +3220,14 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
 
         let currentActiveAlertId = null;
         let vhvAlertPollTimer = null;
-        let demoAutoSimTimer1 = null;
-        let demoAutoSimTimer2 = null;
 
         function startVhvAlertStatusPolling(alertId) {
             currentActiveAlertId = alertId;
             if (vhvAlertPollTimer) clearInterval(vhvAlertPollTimer);
-            if (demoAutoSimTimer1) clearTimeout(demoAutoSimTimer1);
-            if (demoAutoSimTimer2) clearTimeout(demoAutoSimTimer2);
 
             // Show demo simulator control panel if in demo/sandbox mode
             const demoPanel = document.getElementById('demo-sim-controls');
             if (demoPanel) demoPanel.style.display = 'block';
-
-            // Automatic demo progression in demo mode if no real station answers in 3.5 seconds
-            <?php if ($isDemo): ?>
-            demoAutoSimTimer1 = setTimeout(() => {
-                if (currentActiveAlertId) {
-                    triggerDemoSimulationAck();
-                }
-            }, 3500);
-
-            demoAutoSimTimer2 = setTimeout(() => {
-                if (currentActiveAlertId) {
-                    triggerDemoSimulationRefer();
-                }
-            }, 7500);
-            <?php endif; ?>
 
             vhvAlertPollTimer = setInterval(() => {
                 fetch(`../api/emergency_alert.php?action=check_alert_status&alert_id=${alertId}`)
@@ -3344,8 +3325,6 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
 
         function closeCounselingSummaryAndFinish() {
             if (vhvAlertPollTimer) clearInterval(vhvAlertPollTimer);
-            if (demoAutoSimTimer1) clearTimeout(demoAutoSimTimer1);
-            if (demoAutoSimTimer2) clearTimeout(demoAutoSimTimer2);
             document.getElementById('counseling-summary-modal').style.display = 'none';
             window.location.href = 'index.php';
         }
