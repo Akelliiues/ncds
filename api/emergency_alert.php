@@ -537,21 +537,32 @@ if ($action === 'clear_test_alerts') {
 }
 
 // -------------------------------------------------------------
-// 8. DELETE SINGLE ALERT
+// 8. DELETE SINGLE ALERT (Restricted strictly to Main District Admin only)
 // -------------------------------------------------------------
 if ($action === 'delete_alert') {
-    requireStationAccess($stationToken, $isAdminSession, 'alerts:write', true);
-    $alertId = (int)($_POST['alert_id'] ?? $_GET['alert_id'] ?? 0);
-    if ($alertId <= 0) {
-        echo json_encode(['status' => 'error', 'message' => 'ไม่ระบุ alert_id'], JSON_UNESCAPED_UNICODE);
+    $adminHoscode = $_SESSION['admin_hoscode'] ?? null;
+    $isVisitor = !empty($_SESSION['is_visitor']) || !empty($_SESSION['is_executive']);
+    $username = strtolower($_SESSION['admin_username'] ?? '');
+    $isMainAdmin = !empty($_SESSION['admin_logged_in']) && !$isVisitor && ($username === 'admin' || empty($adminHoscode) || $adminHoscode === '00325');
+
+    if (!$isMainAdmin) {
+        http_response_code(403);
+        echo json_encode(['status' => 'error', 'message' => 'ไม่อนุญาต: สิทธิ์การลบเคสสงวนไว้สำหรับแอดมินหลัก (สสอ.ตาลสุม) เท่านั้น ผู้รับผิดชอบ รพ. หรือระดับ รพ.สต. ไม่มีสิทธิ์ลบ'], JSON_UNESCAPED_UNICODE);
         exit();
     }
+
+    $alertId = (int)($_POST['alert_id'] ?? $_GET['alert_id'] ?? 0);
+    if ($alertId <= 0) {
+        echo json_encode(['status' => 'error', 'message' => 'ไม่ระบุรหัสเคสที่ต้องการลบ'], JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+
     try {
         $stmt = $pdo->prepare("DELETE FROM critical_alerts WHERE alert_id = ?");
         $stmt->execute([$alertId]);
-        echo json_encode(['status' => 'success', 'message' => 'ลบเคสเรียบร้อยแล้ว', 'alert_id' => $alertId], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['status' => 'success', 'message' => "ลบเคส #{$alertId} ออกจากระบบเรียบร้อยแล้ว", 'alert_id' => $alertId], JSON_UNESCAPED_UNICODE);
     } catch (\Throwable $e) {
-        echo json_encode(['status' => 'error', 'message' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['status' => 'error', 'message' => 'เกิดข้อผิดพลาดในการลบเคส: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
     }
     exit();
 }

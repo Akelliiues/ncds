@@ -4,6 +4,9 @@ require_once __DIR__ . '/../config/session.php';
 require_once __DIR__ . '/../config/db.php';
 
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
+$admin_username = strtolower($_SESSION['admin_username'] ?? '');
+$is_visitor = !empty($_SESSION['is_visitor']) || !empty($_SESSION['is_executive']);
+$is_main_admin = !empty($_SESSION['admin_logged_in']) && !$is_visitor && ($admin_username === 'admin' || empty($admin_hoscode) || $admin_hoscode === '00325');
 $is_super_admin = !empty($_SESSION['is_super_admin']);
 $hc_names = function_exists('get_health_units') ? get_health_units() : [];
 
@@ -1289,12 +1292,6 @@ try {
                     <span>จำลองส่งสัญญาณฉุกเฉิน</span>
                 </button>
 
-                <!-- Clear Test Alerts Button -->
-                <button type="button" onclick="clearAllTestAlerts()" class="btn-station-ctrl btn-clear-test" style="color: #7e22ce;" title="ลบเคสทดสอบและข้อมูลจำลองทั้งหมด">
-                    <span class="neu-disc-icon xs disc-purple-subtle" style="font-size: 13px;">🗑️</span>
-                    <span>ลบเคสทดสอบ</span>
-                </button>
-
                 <button type="button" onclick="openStationDownloadModal()" class="btn-station-ctrl btn-download-app" title="ดาวน์โหลด NCDs Red Alert Station">
                     <span class="neu-disc-icon xs disc-green-subtle">📥</span>
                     <span>ดาวน์โหลด</span>
@@ -1662,6 +1659,12 @@ try {
 
             <!-- Action Buttons -->
             <div class="emergency-modal-actions">
+                <?php if ($is_main_admin): ?>
+                <button type="button" id="modal-btn-delete" onclick="deleteCurrentAlertFromModal()" class="emergency-modal-action" style="background: #FEF2F2; color: #DC2626; border: 1.5px solid rgba(220,38,38,0.3); box-shadow: var(--neumorph-flat);" title="ลบเคสนี้ออกจากระบบ (สิทธิ์เฉพาะแอดมินหลัก)">
+                    <span class="neu-disc-icon xs" style="color: #DC2626; background: rgba(220,38,38,0.1);">🗑️</span>
+                    <span>ลบเคส</span>
+                </button>
+                <?php endif; ?>
                 <button type="button" id="btn-modal-close" onclick="closeEmergencyPopupWithoutAction()" class="emergency-modal-action" style="background: var(--bg-card); color: var(--text-secondary); border: 1.5px solid var(--border-color, #CBD5E1); box-shadow: var(--neumorph-flat);" title="ปิดหน้าต่างการแจ้งเตือนไว้ก่อน เคสยังคงอยู่ในสถานะรอรับเรื่อง">
                     <span class="neu-disc-icon xs" style="color: #64748B;">✕</span>
                     <span>ปิดไว้ก่อน</span>
@@ -1684,6 +1687,7 @@ try {
 
     <!-- Web Audio Siren Synthesizer, State Manager & SSE / Polling Client -->
     <script>
+        const IS_MAIN_ADMIN = <?= $is_main_admin ? 'true' : 'false' ?>;
         const ALL_SUBDISTRICTS = <?= json_encode($sub_districts, JSON_UNESCAPED_UNICODE) ?>;
         const ALL_VILLAGES = <?= json_encode($villages_data, JSON_UNESCAPED_UNICODE) ?>;
         let currentHoscode = '<?= htmlspecialchars($selected_hoscode) ?>';
@@ -2438,6 +2442,11 @@ try {
 
                         <!-- 5. Action Buttons Row (Pinned to bottom) -->
                         <div class="card-actions-block">
+                            ${IS_MAIN_ADMIN ? `
+                                <button type="button" onclick="event.stopPropagation(); deleteAlertRecord(${a.alert_id}, '${(a.patient_name || '').replace(/'/g, "\\'")}')" class="btn-station-ctrl" style="padding: 9px 10px; color: #DC2626; background: #FEF2F2; border: 1.5px solid rgba(220,38,38,0.25); border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="ลบเคส #${a.alert_id} (สิทธิ์เฉพาะแอดมินหลัก)">
+                                    <span style="font-size: 13px;">🗑️</span>
+                                </button>
+                            ` : ''}
                             ${isPending ? `
                                 <button type="button" onclick="ackAlertById(${a.alert_id})" style="flex: 1.2; padding: 9px 12px; background: #DC2626; color: white; border: none; border-radius: 12px; font-weight: 800; font-size: 12.5px; cursor: pointer; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35); display: flex; align-items: center; justify-content: center; gap: 6px;">
                                     <span class="neu-disc-icon xs" style="background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.4); box-shadow: none; width: 18px; height: 18px; font-size: 10px;">🔕</span>
@@ -2554,6 +2563,11 @@ try {
                         </td>
                         <td style="text-align: right; white-space: nowrap;">
                             <div class="station-table-actions">
+                                ${IS_MAIN_ADMIN ? `
+                                    <button type="button" onclick="event.stopPropagation(); deleteAlertRecord(${a.alert_id}, '${(a.patient_name || '').replace(/'/g, "\\'")}')" class="btn-station-ctrl" style="padding: 6px 8px; color: #DC2626; background: #FEF2F2; border: 1px solid rgba(220,38,38,0.3); border-radius: 8px; font-size: 12px; cursor: pointer;" title="ลบเคส #${a.alert_id} (สิทธิ์เฉพาะแอดมินหลัก)">
+                                        <span>🗑️</span>
+                                    </button>
+                                ` : ''}
                                 <a href="${mapLink}" target="_blank" class="btn-station-ctrl station-map-action" title="เปิดตำแหน่งบนแผนที่">
                                     <span>⚓️</span>
                                 </a>
@@ -2904,21 +2918,36 @@ try {
             }
         }
 
-        // Clear All Test Alerts
-        async function clearAllTestAlerts() {
-            if (!confirm('ยืนยันการลบเคสทดสอบและข้อมูลจำลองทั้งหมดในระบบ?\n\n(ระบบจะลบเฉพาะเคสทดสอบและข้อมูลจำลอง โดยไม่กระทบกับข้อมูลจริงใดๆ)')) {
+        // Delete Single Alert Record (Restricted strictly to Main District Admin)
+        async function deleteAlertRecord(alertId, patientName) {
+            if (!IS_MAIN_ADMIN) {
+                alert('⚠️ สิทธิ์ไม่เพียงพอ: การลบเคสสงวนสิทธิ์เฉพาะแอดมินหลัก (สสอ.ตาลสุม) เท่านั้น\nผู้รับผิดชอบ รพ. หรือระดับ รพ.สต. ไม่สามารถลบได้');
+                return;
+            }
+            const nameText = patientName ? `เคส #${alertId} (${patientName})` : `เคส #${alertId}`;
+            if (!confirm(`ยืนยันการลบ ${nameText} ออกจากระบบ?`)) {
                 return;
             }
             try {
                 const formData = new FormData();
-                formData.append('action', 'clear_test_alerts');
+                formData.append('action', 'delete_alert');
+                formData.append('alert_id', alertId);
                 const result = await fetch('../api/emergency_alert.php', { method: 'POST', body: formData }).then(r => r.json());
-                if (result.status !== 'success') throw new Error(result.message || 'ลบเคสทดสอบไม่สำเร็จ');
+                if (result.status !== 'success') throw new Error(result.message || 'ลบเคสไม่สำเร็จ');
                 showStationToast(`🗑️ ${result.message}`);
+                if (activeCrisisAlertId && String(activeCrisisAlertId) === String(alertId)) {
+                    hideEmergencyPopup();
+                }
                 fetchActiveAlerts();
             } catch (error) {
                 alert('เกิดข้อผิดพลาด: ' + error.message);
             }
+        }
+
+        function deleteCurrentAlertFromModal() {
+            if (!activeCrisisAlertId) return;
+            const patientName = document.getElementById('modal-patient-name')?.innerText || '';
+            deleteAlertRecord(activeCrisisAlertId, patientName);
         }
 
         // Initialize Live Loop & Keyboard Shortcuts
