@@ -27,17 +27,33 @@ if ($stationToken && $action !== 'test_connection') {
  * Connect to external JHCIS MySQL Database with provided config or saved config
  */
 function getJHCISConnection($config) {
-    $host = $config['jhcis_host'] ?? 'localhost';
+    $host = trim($config['jhcis_host'] ?? 'localhost');
+    if ($host === 'localhost') {
+        $host = '127.0.0.1';
+    }
     $port = !empty($config['jhcis_port']) ? (int)$config['jhcis_port'] : 3333;
-    $dbname = $config['jhcis_dbname'] ?? 'jhcisdb';
-    $user = $config['jhcis_user'] ?? 'root';
+    $dbname = trim($config['jhcis_dbname'] ?? 'jhcisdb');
+    $user = trim($config['jhcis_user'] ?? 'root');
     $pass = $config['jhcis_pass'] ?? '';
+
+    // Fast socket check with 2 seconds timeout to prevent Web Server / Nginx 504 Gateway Timeouts
+    $socket = @fsockopen($host, $port, $errno, $errstr, 2);
+    if (!$socket) {
+        $msg = "ไม่สามารถเชื่อมต่อไปยังเครื่องแม่ข่าย {$host}:{$port} ได้";
+        if (in_array($host, ['127.0.0.1', 'localhost'], true) || preg_match('/^(192\.168|10\.|172\.(1[6-9]|2[0-9]|3[01]))\./', $host)) {
+            $msg .= " (เนื่องจากเว็บไซต์รันอยู่บนระบบคลาวด์ภายนอก จึงไม่สามารถต่อตรงเข้า IP ท้องถิ่นใน รพ.สต. ได้ แนะนำให้ใช้ปุ่ม 'ส่งออกไฟล์ SQL สำหรับนำเข้า JHCIS' หรือซิงค์ผ่านโปรแกรม RedAlert Station ประจำสถานี)";
+        } else {
+            $msg .= " ($errstr [$errno])";
+        }
+        throw new Exception($msg);
+    }
+    fclose($socket);
 
     $dsn = "mysql:host={$host};port={$port};dbname={$dbname};charset=tis620";
     $options = [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_TIMEOUT => 5 // 5 seconds timeout
+        PDO::ATTR_TIMEOUT => 3 // 3 seconds timeout
     ];
 
     try {
@@ -53,7 +69,7 @@ function getJHCISConnection($config) {
             $jhcisPdo = new PDO($dsnUtf8, $user, $pass, $options);
             return $jhcisPdo;
         } catch (\PDOException $e2) {
-            throw new Exception("ไม่สามารถเชื่อมต่อฐานข้อมูล JHCIS ได้: " . $e->getMessage());
+            throw new Exception("เชื่อมต่อฐานข้อมูล JHCIS ({$dbname}) ไม่สำเร็จ: " . $e->getMessage());
         }
     }
 }

@@ -630,10 +630,22 @@ $active_tab = $_GET['tab'] ?? 'sync';
             consoleBox.scrollTop = consoleBox.scrollHeight;
         }
 
+        async function apiFetch(url, options = {}) {
+            const response = await fetch(url, options);
+            const text = await response.text();
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                if (text && text.trim().length > 0 && text.length < 300) {
+                    throw new Error(text.trim());
+                }
+                throw new Error('ไม่สามารถเชื่อมต่อไปยังเครื่องแม่ข่ายปลายทางได้ (เนื่องจากเว็บไซต์อยู่บนคลาวด์ภายนอก จึงไม่สามารถต่อตรงเข้า Local IP หรือ localhost ใน รพ.สต. ได้ กรุณาใช้ปุ่ม "ส่งออกไฟล์ SQL" หรือโปรแกรม RedAlert Station)');
+            }
+        }
+
         // Load Settings
         function loadJHCISSettings() {
-            fetch(`../api/jhcis_sync.php?action=get_config&hoscode=${currentHoscode}`)
-                .then(r => r.json())
+            apiFetch(`../api/jhcis_sync.php?action=get_config&hoscode=${currentHoscode}`)
                 .then(data => {
                     if (data.status === 'success' && data.config) {
                         const cfg = data.config;
@@ -646,7 +658,7 @@ $active_tab = $_GET['tab'] ?? 'sync';
                         document.getElementById('cfg-overwrite-mode').value = cfg.overwrite_mode || 'skip_existing';
                     }
                 })
-                .catch(err => logConsole('เกิดข้อผิดพลาดในการโหลดการตั้งค่า: ' + err));
+                .catch(err => logConsole('เกิดข้อผิดพลาดในการโหลดการตั้งค่า: ' + err.message));
         }
 
         // Save Settings
@@ -657,11 +669,10 @@ $active_tab = $_GET['tab'] ?? 'sync';
             formData.append('action', 'save_config');
             formData.append('hoscode', currentHoscode);
 
-            fetch('../api/jhcis_sync.php', {
+            apiFetch('../api/jhcis_sync.php', {
                 method: 'POST',
                 body: formData
             })
-            .then(r => r.json())
             .then(data => {
                 if (data.status === 'success') {
                     alert('✅ ' + data.message);
@@ -670,7 +681,7 @@ $active_tab = $_GET['tab'] ?? 'sync';
                     alert('❌ ' + data.message);
                 }
             })
-            .catch(err => alert('เชื่อมต่อล้มเหลว: ' + err));
+            .catch(err => alert('บันทึกไม่สำเร็จ: ' + err.message));
         }
 
         // Test Connection
@@ -685,11 +696,10 @@ $active_tab = $_GET['tab'] ?? 'sync';
             formData.append('jhcis_user', document.getElementById('cfg-user') ? document.getElementById('cfg-user').value : '');
             formData.append('jhcis_pass', document.getElementById('cfg-pass') ? document.getElementById('cfg-pass').value : '');
 
-            fetch('../api/jhcis_sync.php', {
+            apiFetch('../api/jhcis_sync.php', {
                 method: 'POST',
                 body: formData
             })
-            .then(r => r.json())
             .then(data => {
                 if (data.status === 'success') {
                     const detectedPcu = data.detected_pcucode || 'ไม่ระบุ';
@@ -709,15 +719,14 @@ $active_tab = $_GET['tab'] ?? 'sync';
                 }
             })
             .catch(err => {
-                logConsole(`❌ ข้อผิดพลาดเครือข่าย: ${err}`);
-                alert('ข้อผิดพลาดเครือข่าย: ' + err);
+                logConsole(`❌ ข้อผิดพลาด: ${err.message}`);
+                alert('ไม่สามารถเชื่อมต่อฐานข้อมูลได้:\n' + err.message);
             });
         }
 
         // Load Sync Preview
         function loadSyncPreview() {
-            fetch(`../api/jhcis_sync.php?action=get_sync_preview&hoscode=${currentHoscode}`)
-                .then(r => r.json())
+            apiFetch(`../api/jhcis_sync.php?action=get_sync_preview&hoscode=${currentHoscode}`)
                 .then(data => {
                     if (data.status === 'success') {
                         const sum = data.summary;
@@ -746,7 +755,7 @@ $active_tab = $_GET['tab'] ?? 'sync';
                                         <span>${dot} [${b.hoscode}] ${b.hosname}:</span>
                                         <span class="${badgeClass}">${b.pending_count} คน</span>
                                     </div>
-                                `;
+                                ` ;
                             });
                             chipBox.innerHTML = chipHtml;
                         } else {
@@ -790,7 +799,7 @@ $active_tab = $_GET['tab'] ?? 'sync';
                         tbody.innerHTML = html;
                     }
                 })
-                .catch(err => logConsole('ไม่สามารถโหลดตัวอย่างข้อมูลได้: ' + err));
+                .catch(err => logConsole('ไม่สามารถโหลดตัวอย่างข้อมูลได้: ' + err.message));
         }
 
         // Start Sync Process
@@ -830,11 +839,10 @@ $active_tab = $_GET['tab'] ?? 'sync';
                 }
             }, 300);
 
-            fetch('../api/jhcis_sync.php', {
+            apiFetch('../api/jhcis_sync.php', {
                 method: 'POST',
                 body: formData
             })
-            .then(r => r.json())
             .then(data => {
                 clearInterval(timer);
                 progressBar.style.width = '100%';
@@ -868,8 +876,8 @@ $active_tab = $_GET['tab'] ?? 'sync';
             .catch(err => {
                 clearInterval(timer);
                 progressText.innerText = 'สถานะ: เชื่อมต่อล้มเหลว';
-                logConsole(`❌ เกิดข้อผิดพลาดเครือข่าย: ${err}`);
-                alert('เชื่อมต่อล้มเหลว: ' + err);
+                logConsole(`❌ ${err.message}`);
+                alert('เชื่อมต่อล้มเหลว:\n' + err.message);
             })
             .finally(() => {
                 btn.disabled = false;
@@ -890,8 +898,7 @@ $active_tab = $_GET['tab'] ?? 'sync';
 
         // Load Logs
         function loadSyncLogs() {
-            fetch(`../api/jhcis_sync.php?action=get_logs&hoscode=${currentHoscode}`)
-                .then(r => r.json())
+            apiFetch(`../api/jhcis_sync.php?action=get_logs&hoscode=${currentHoscode}`)
                 .then(data => {
                     const tbody = document.getElementById('logs-tbody');
                     if (!data.logs || data.logs.length === 0) {
@@ -916,7 +923,7 @@ $active_tab = $_GET['tab'] ?? 'sync';
                     });
                     tbody.innerHTML = html;
                 })
-                .catch(err => logConsole('ไม่สามารถโหลดประวัติได้: ' + err));
+                .catch(err => logConsole('ไม่สามารถโหลดประวัติได้: ' + err.message));
         }
 
         // Initial Load
