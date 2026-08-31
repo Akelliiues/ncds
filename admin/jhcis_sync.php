@@ -367,7 +367,10 @@ $active_tab = $_GET['tab'] ?? 'sync';
 
                     <div style="display: flex; flex-direction: column; gap: 10px;">
                         <button type="button" id="btn-start-sync" onclick="startSyncProcess()" class="btn-action-primary" style="width: 100%; padding: 14px; font-size: 15px;">
-                            <span>🚀</span> เริ่มซิงค์ข้อมูลเข้า JHCIS ทันที
+                            <span>🚀</span> เริ่มซิงค์ข้อมูลเข้า JHCIS ทันที (Direct / Local)
+                        </button>
+                        <button type="button" onclick="exportSqlScript()" class="btn-action-secondary" style="width: 100%; justify-content: center; background: rgba(16, 185, 129, 0.08); color: #10B981; border-color: rgba(16, 185, 129, 0.3);">
+                            <span>📥</span> ส่งออกไฟล์ SQL สำหรับนำเข้า JHCIS (HeidiSQL / Query Tool)
                         </button>
                         <button type="button" onclick="testJHCISConnection()" class="btn-action-secondary" style="width: 100%; justify-content: center;">
                             <span>🔌</span> ทดสอบการเชื่อมต่อ & ตรวจสอบรหัส JHCIS
@@ -538,6 +541,30 @@ $active_tab = $_GET['tab'] ?? 'sync';
                         </button>
                     </div>
                 </form>
+
+                <!-- Connection Help & Guide Box -->
+                <div style="background: var(--bg-darker); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; margin-top: 24px;">
+                    <h4 style="color: var(--color-primary); margin: 0 0 12px 0; font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                        <span>💡</span> คำแนะนำการเชื่อมต่อฐานข้อมูล JHCIS (Localhost / Local IP ใน รพ.สต.)
+                    </h4>
+                    <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.7;">
+                        <div style="margin-bottom: 10px;">
+                            <strong style="color: var(--text-primary);">1. กรณีเว็บรันบนเครื่องใน รพ.สต. (Local Server / XAMPP / วงแลนเดียวกัน):</strong><br>
+                            • ถ้าเว็บอยู่เครื่องเดียวกับ JHCIS: ให้ตั้ง Host เป็น <code>localhost</code> หรือ <code>127.0.0.1</code> Port <code>3333</code><br>
+                            • ถ้าเว็บอยู่คนละเครื่องแต่อยู่วงแลนเดียวกัน: ให้ใส่หมายเลข IP ของเครื่องแม่ข่าย JHCIS (เช่น <code>192.168.1.100</code>) Port <code>3333</code>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <strong style="color: var(--text-primary);">2. กรณีเว็บรันบน Cloud / อินเทอร์เน็ตภายนอก:</strong><br>
+                            • สามารถกดปุ่ม <strong style="color:#10B981;">"📥 ส่งออกไฟล์ SQL สำหรับนำเข้า JHCIS"</strong> จากแท็บซิงค์ด่วน เพื่อนำไฟล์ไปรันใน JHCIS ได้ทันที สะดวก ปลอดภัย ไม่ต้องเปิด Port ใน Router<br>
+                            • หรือใช้โปรแกรม <strong>RedAlert Station</strong> ที่ติดตั้งบนเครื่องใน รพ.สต. เพื่อช่วยเชื่อมโยงข้อมูลกับ JHCIS ท้องถิ่นอัตโนมัติ
+                        </div>
+                        <div>
+                            <strong style="color: var(--text-primary);">3. การตรวจสอบเบื้องต้นเมื่อเชื่อมต่อไม่ได้:</strong><br>
+                            • ตรวจสอบว่าเปิดโปรแกรม JHCIS และ Service <code>MySQL_JHCIS</code> ทำงานอยู่<br>
+                            • ตรวจสอบว่า Firewall บนเครื่อง JHCIS ไม่ได้บล็อก Port <code>3333</code>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -846,8 +873,19 @@ $active_tab = $_GET['tab'] ?? 'sync';
             })
             .finally(() => {
                 btn.disabled = false;
-                btn.innerHTML = `<span>🚀</span> เริ่มซิงค์ข้อมูลเข้า JHCIS ทันที`;
+                btn.innerHTML = `<span>🚀</span> เริ่มซิงค์ข้อมูลเข้า JHCIS ทันที (Direct / Local)`;
             });
+        }
+
+        // Export SQL Script
+        function exportSqlScript() {
+            const markSynced = confirm("ต้องการมาร์กสถานะรายการที่ส่งออกว่า 'ซิงค์แล้ว' ในระบบด้วยหรือไม่?\n\n• กด [ตกลง / OK] เพื่อดาวน์โหลดไฟล์ SQL และมาร์กสถานะว่าซิงค์แล้ว\n• กด [ยกเลิก / Cancel] เพื่อดาวน์โหลดไฟล์ SQL อย่างเดียว (คงสถานะรอซิงค์ไว้)");
+            const markParam = markSynced ? '&mark_synced=1' : '';
+            window.open(`../api/jhcis_sync.php?action=export_sql&hoscode=${currentHoscode}${markParam}`, '_blank');
+            logConsole("📥 เริ่มดาวน์โหลดไฟล์ SQL สำหรับนำเข้า JHCIS เรียบร้อยแล้ว");
+            if (markSynced) {
+                setTimeout(() => { loadSyncPreview(); }, 1500);
+            }
         }
 
         // Load Logs

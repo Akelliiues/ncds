@@ -794,11 +794,138 @@ if ($action === 'get_logs') {
             'status' => 'success',
             'logs' => $logs
         ], JSON_UNESCAPED_UNICODE);
+// -------------------------------------------------------------
+// 7. EXPORT SQL SCRIPT (FOR JHCIS QUERY CENTER / HEIDISQL / NAVICAT)
+// -------------------------------------------------------------
+if ($action === 'export_sql') {
+    $filterHoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '';
+    $filterMoo = $_GET['moo'] ?? '';
+    $markSynced = !empty($_GET['mark_synced']);
+
+    try {
+        $where = ["(p.need_screen_dm = 1 OR p.need_screen_ht = 1)", "s.screening_id IS NOT NULL"];
+        $params = [];
+
+        if (!empty($filterHoscode)) {
+            $where[] = "COALESCE(v.hoscode, p.hoscode) = ?";
+            $params[] = $filterHoscode;
+        }
+        if (!empty($filterMoo)) {
+            $where[] = "p.moo = ?";
+            $params[] = $filterMoo;
+        }
+        $where[] = "(s.is_synced_jhcis = 0 OR s.is_synced_jhcis IS NULL)";
+
+        $whereClause = implode(" AND ", $where);
+
+        $sql = "
+            SELECT 
+                s.screening_id,
+                s.target_cid,
+                p.first_name,
+                p.last_name,
+                p.house_no,
+                p.moo,
+                COALESCE(v.hoscode, p.hoscode) as hoscode,
+                s.screening_date,
+                s.sys_bp1,
+                s.dia_bp1,
+                s.sys_bp2,
+                s.dia_bp2,
+                s.dtx_value,
+                s.dtx_type,
+                s.weight,
+                s.height,
+                s.waist,
+                s.smoke_status,
+                s.alcohol_status,
+                s.vhv_id
+            FROM screening_results s
+            JOIN target_population p ON s.target_cid = p.cid
+            LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
+            WHERE {$whereClause}
+            ORDER BY s.screening_date ASC
+        ";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $dateStr = date('Y-m-d_His');
+        $filename = "jhcis_ncd_screen_sync_" . ($filterHoscode ?: 'all') . "_{$dateStr}.sql";
+
+        header('Content-Type: text/plain; charset=utf-8');
+        header("Content-Disposition: attachment; filename=\"{$filename}\"");
+
+        echo "-- =========================================================================\n";
+        echo "-- NCDs Portal - JHCIS Screening Data Import Script\n";
+        echo "-- รพ.สต. / หน่วยบริการ: " . ($filterHoscode ? "[{$filterHoscode}] " . ($hc_names[$filterHoscode] ?? '') : "ทุก รพ.สต.") . "\n";
+        echo "-- วันที่สร้าง: " . date('d/m/Y H:i:s') . "\n";
+        echo "-- จำนวนรายการ: " . count($records) . " รายการ\n";
+        echo "-- วิธีใช้งาน:\n";
+        echo "-- 1. เปิดโปรแกรมจัดการฐานข้อมูล เช่น HeidiSQL, Navicat หรือ JHCIS Query Tool\n";
+        echo "-- 2. เชื่อมต่อฐานข้อมูล jhcisdb\n";
+        echo "-- 3. Run คำสั่ง SQL ด้านล่างนี้ทั้งหมดเพื่อนำเข้าข้อมูลผลคัดกรอง NCD\n";
+        echo "-- =========================================================================\n\n";
+
+        echo "SET NAMES tis620;\n\n";
+
+        $syncedIds = [];
+        foreach ($records as $r) {
+            $cid = addslashes($r['target_cid']);
+            $hCode = addslashes($r['hoscode'] ?: $filterHoscode);
+            $sDate = !empty($r['screening_date']) ? $r['screening_date'] : date('Y-m-d');
+            $sBp1 = $r['sys_bp1'] !== null && $r['sys_bp1'] !== '' ? (int)$r['sys_bp1'] : 'NULL';
+            $dBp1 = $r['dia_bp1'] !== null && $r['dia_bp1'] !== '' ? (int)$r['dia_bp1'] : 'NULL';
+            $sBp2 = $r['sys_bp2'] !== null && $r['sys_bp2'] !== '' ? (int)$r['sys_bp2'] : 'NULL';
+            $dBp2 = $r['dia_bp2'] !== null && $r['dia_bp2'] !== '' ? (int)$r['dia_bp2'] : 'NULL';
+            $dtx = $r['dtx_value'] !== null && $r['dtx_value'] !== '' ? (float)$r['dtx_value'] : 'NULL';
+            $wt = $r['weight'] !== null && $r['weight'] !== '' ? (float)$r['weight'] : 'NULL';
+            $ht = $r['height'] !== null && $r['height'] !== '' ? (float)$r['height'] : 'NULL';
+            $wst = $r['waist'] !== null && $r['waist'] !== '' ? (float)$r['waist'] : 'NULL';
+
+            $smoke = ($r['smoke_status'] === 'smoke' || $r['smoke_status'] === 'sometimes') ? '2' : '1';
+            $alcohol = ($r['alcohol_status'] === 'drink' || $r['alcohol_status'] === 'sometimes') ? '2' : '1';
+
+            $nameComment = "-- [{$r['target_cid']}] {$r['first_name']} {$r['last_name']} (บ้าน {$r['house_no']} ม.{$r['moo']})";
+
+            echo "{$nameComment}\n";
+            echo "INSERT INTO ncd_person_ncd_screen (\n";
+            echo "    pcucode, pid, no, age_year, screen_date, height, weight, waist,\n";
+            echo "    hbp_s1, hbp_d1, screen_q1, screen_q2, screen_q3, screen_q4, screen_q5, screen_q6,\n";
+            echo "    do_measure, hbp_s2, hbp_d2, bsl, bmi, result_new_dm, result_new_hbp,\n";
+            echo "    result_new_waist, result_new_obesity, d_update, user_update, smoke, alcohol,\n";
+            echo "    dateupdate, servplace\n";
+            echo ")\n";
+            echo "SELECT \n";
+            echo "    p.pcucodeperson, p.pid,\n";
+            echo "    (SELECT COALESCE(MAX(no), 0) + 1 FROM ncd_person_ncd_screen s WHERE s.pcucode = p.pcucodeperson AND s.pid = p.pid),\n";
+            echo "    TIMESTAMPDIFF(YEAR, p.birth, '{$sDate}'),\n";
+            echo "    '{$sDate}', {$ht}, {$wt}, {$wst},\n";
+            echo "    {$sBp1}, {$dBp1}, '0', '0', '0', '0', '0', '0',\n";
+            echo "    '1', {$sBp2}, {$dBp2}, {$dtx}, \n";
+            echo "    CASE WHEN {$wt} IS NOT NULL AND {$ht} IS NOT NULL AND {$ht} > 0 THEN ROUND({$wt} / (({$ht}/100)*({$ht}/100)), 2) ELSE NULL END,\n";
+            echo "    0, 0, 0, 0, NOW(), 'VHV', '{$smoke}', '{$alcohol}', NOW(), '2'\n";
+            echo "FROM person p\n";
+            echo "WHERE p.idcard = '{$cid}'\n";
+            echo "  AND NOT EXISTS (SELECT 1 FROM ncd_person_ncd_screen ex WHERE ex.pcucode = p.pcucodeperson AND ex.pid = p.pid AND ex.screen_date = '{$sDate}')\n";
+            echo "LIMIT 1;\n\n";
+
+            $syncedIds[] = $r['screening_id'];
+        }
+
+        if ($markSynced && !empty($syncedIds)) {
+            $idPlaceholders = implode(',', array_fill(0, count($syncedIds), '?'));
+            $pdo->prepare("UPDATE screening_results SET is_synced_jhcis = 1, jhcis_synced_at = NOW() WHERE screening_id IN ($idPlaceholders)")
+                ->execute($syncedIds);
+        }
+        exit();
     } catch (\Exception $e) {
-        echo json_encode(['status' => 'error', 'message' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+        echo "-- ERROR: " . $e->getMessage();
+        exit();
     }
-    exit();
 }
 
 // Invalid action
 echo json_encode(['status' => 'error', 'message' => 'Invalid action specified'], JSON_UNESCAPED_UNICODE);
+
