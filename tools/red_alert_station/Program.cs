@@ -631,7 +631,7 @@ namespace NCDsRedAlertStation
 
             lblAddress = new Label
             {
-                Text = "📍 ที่อยู่: บ้านเลขที่ 12/1 ม.2 ต.ตาลสุม (รพ.สต. 07758)",
+                Text = "📍 ที่อยู่: บ้านเลขที่ 12/1 ม.2 ต.ตาลสุม (รพ.สต. 03756)",
                 Font = ConfigManager.GetSystemFont(10, FontStyle.Regular),
                 ForeColor = Color.FromArgb(203, 213, 225),
                 Location = new Point(16, 118),

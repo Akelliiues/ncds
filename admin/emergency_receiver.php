@@ -7,7 +7,7 @@ $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 $is_super_admin = !empty($_SESSION['is_super_admin']);
 $hc_names = function_exists('get_health_units') ? get_health_units() : [];
 
-$selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? '07758';
+$selected_hoscode = $_GET['hoscode'] ?? $admin_hoscode ?? 'ALL';
 
 // 1. Query all Sub-districts in District (ตรวจจับตำบลทั้งหมดในเขตอำเภอ)
 $sub_districts = [];

@@ -3030,7 +3030,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
 
                     currentEmergencyData = {
                         screening_id: data.screening_id || null,
-                        hoscode: selectedResident?.hoscode || '<?= addslashes($_SESSION["admin_hoscode"] ?? "07758") ?>',
+                        hoscode: selectedResident?.hoscode || '<?= addslashes($_SESSION["admin_hoscode"] ?? $_SESSION["hoscode"] ?? "00325") ?>',
                         target_cid: selectedResident?.cid || meta.target_cid || '',
                         patient_name: resName,
                         age: selectedResident?.age || meta.age || null,
