@@ -118,12 +118,13 @@ try {
             // Suspect group requires age 35+ and not already an active target
             $query .= " AND p.need_screen_dm = 0 AND p.need_screen_ht = 0 AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35";
         } elseif ($group === 'under_35_risk') {
-            // Specific under-35 risk group
-            $query .= " AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) < 35 AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)";
+            // Specific under-35 risk group (must have risk flag or manual flag)
+            $query .= " AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) < 35 AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1 OR COALESCE(p.is_manual, 0) = 1)";
         } else {
-            // Active target group (Main Baseline Targets)
-            $query .= " AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1)";
+            // Active target group (Main Baseline Targets: age 35+ and needs screening)
+            $query .= " AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35";
         }
+
         
         // กรองข้อมูลประชากรจำลองทดสอบออกในโหมดจริง
         if (!isSandboxMode($hoscode)) {

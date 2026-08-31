@@ -21,6 +21,50 @@ $steps = [];
 $previewData = null;
 $verifyResults = null;
 
+// Check pending tasks assigned to non-target people (< 35 years old and not risk)
+$under35PendingCount = 0;
+try {
+    $u35Stmt = $pdo->query("
+        SELECT COUNT(*) FROM task_assignments ta
+        JOIN target_population tp ON ta.target_cid = tp.cid
+        WHERE ta.assignment_status = 'pending'
+          AND TIMESTAMPDIFF(YEAR, tp.birth, CURDATE()) < 35
+          AND COALESCE(tp.is_manual, 0) = 0
+          AND tp.health_status_origin NOT IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+          AND NOT EXISTS (SELECT 1 FROM screening_results sr WHERE sr.assignment_id = ta.assignment_id)
+    ");
+    $under35PendingCount = (int)$u35Stmt->fetchColumn();
+} catch (\Exception $e) {}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_clean_under35'])) {
+    try {
+        $pdo->beginTransaction();
+
+        $delStmt = $pdo->prepare("
+            DELETE ta FROM task_assignments ta
+            JOIN target_population tp ON ta.target_cid = tp.cid
+            WHERE ta.assignment_status = 'pending'
+              AND TIMESTAMPDIFF(YEAR, tp.birth, CURDATE()) < 35
+              AND COALESCE(tp.is_manual, 0) = 0
+              AND tp.health_status_origin NOT IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+              AND NOT EXISTS (SELECT 1 FROM screening_results sr WHERE sr.assignment_id = ta.assignment_id)
+        ");
+        $delStmt->execute();
+        $cleanedUnder35 = $delStmt->rowCount();
+
+        $pdo->commit();
+        $message = "success_under35";
+        $steps[] = "🧹 ดึงคืนใบงานค้างของผู้ที่อายุต่ำกว่า 35 ปี ที่ไม่ใช่กลุ่มเสี่ยงสำเร็จ: " . $cleanedUnder35 . " รายการ";
+        
+        $under35PendingCount = 0;
+    } catch (\Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        $error = "เกิดข้อผิดพลาดในการดึงคืนใบงาน: " . $e->getMessage();
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: ค้นหา duplicate ทั้ง 3 รูปแบบ แล้ว normalize เป็น array เดียวกัน
 // ─────────────────────────────────────────────────────────────────────────────
@@ -496,6 +540,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_clean'])) {
             </form>
             <?php endif; ?>
         </div>
+
+        <!-- ── ส่วนจัดการใบงานค้างที่ไม่เข้าเกณฑ์ (< 35 ปี) ────────────────────── -->
+        <div class="card-dark" style="margin-bottom: 24px;">
+            <h3 style="color: var(--color-accent); margin-top: 0; display:flex; align-items:center; gap:10px;">
+                🎯 ตรวจสอบและดึงคืนใบงานค้างของคนไม่เข้าเกณฑ์ (&lt; 35 ปี)
+            </h3>
+            <p style="color: var(--text-secondary); margin: 0 0 16px 0; line-height: 1.6; font-size: 14px;">
+                ตรวจหาใบงานคัดกรอง NCD ที่มอบหมายให้ อสม. แล้ว แต่ประชากรมีอายุต่ำกว่า 35 ปี และไม่ได้ถูกระบุเป็นกลุ่มเสี่ยงเฉพาะ 
+                (ระบบจะดึงคืนเฉพาะใบงานที่ยังไม่ได้คัดกรอง / รอคัดกรองเท่านั้น)
+            </p>
+            <div style="background: var(--bg-darker); border-radius: 12px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+                <div>
+                    <span style="font-size: 13px; color: var(--text-secondary);">ใบงานค้างที่อายุ &lt; 35 ปี ในระบบ:</span>
+                    <div style="font-size: 20px; font-weight: 800; color: <?= $under35PendingCount > 0 ? 'var(--color-red)' : 'var(--color-green)' ?>;">
+                        <?= $under35PendingCount > 0 ? $under35PendingCount . ' รายการ' : '✅ ไม่พบใบงานผิดเกณฑ์' ?>
+                    </div>
+                </div>
+                <?php if ($under35PendingCount > 0): ?>
+                <form method="POST" onsubmit="return confirm('⚠️ ยืนยันดึงคืนใบงานค้างของผู้ที่อายุต่ำกว่า 35 ปีทั้งหมดจำนวน <?= $under35PendingCount ?> รายการ?');">
+                    <button type="submit" name="action_clean_under35" class="btn-giant btn-giant-danger" style="border-radius: var(--border-radius); padding: 10px 20px; font-size: 14px;">
+                        🧹 ดึงคืนใบงานคนอายุ &lt; 35 ปี ทั้งหมด (<?= $under35PendingCount ?>)
+                    </button>
+                </form>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <?php if ($message === 'success_under35'): ?>
+        <div style="background: rgba(16,185,129,0.1); border: 1px solid var(--color-green); color: var(--color-green); padding: 16px; border-radius: var(--border-radius); margin-bottom: 24px;">
+            <strong>✅ ดึงคืนใบงานค้างสำเร็จ!</strong>
+            <ul style="line-height: 1.8; margin: 8px 0 0 0; padding-left: 20px;">
+                <?php foreach ($steps as $s): ?>
+                <li><?= htmlspecialchars($s) ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+        <?php endif; ?>
 
         <?php if (!empty($error)): ?>
         <div style="background: rgba(239,68,68,0.12); border: 1px solid var(--color-red); color: var(--color-red); padding: 16px; border-radius: var(--border-radius); margin-bottom: 24px;">

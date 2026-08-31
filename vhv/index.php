@@ -64,15 +64,9 @@ if (DemoDataProvider::isDemoMode()) {
         JOIN target_population p ON a.target_cid = p.cid
         WHERE a.vhv_id = ? AND a.budget_year = ? AND a.assignment_status = 'pending' AND COALESCE(a.is_sandbox, 0) = ?
           AND (
-              (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-              OR 
-              (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
-              OR
-              p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
-              OR
-              COALESCE(p.is_manual, 0) = 1
-              OR
-              a.assignment_id IS NOT NULL
+              ((p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35 OR COALESCE(p.is_manual, 0) = 1))
+              OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+              OR COALESCE(p.is_manual, 0) = 1
           )
         ORDER BY LENGTH(p.house_no), p.house_no
     ");
@@ -94,15 +88,10 @@ if (DemoDataProvider::isDemoMode()) {
         LEFT JOIN staging_hdc_dm dm ON p.cid = dm.cid
         WHERE a.vhv_id = ? AND a.budget_year = ? AND a.assignment_status IN ('completed', 'skipped') AND COALESCE(a.is_sandbox, 0) = ?
           AND (
-              (p.need_screen_dm = 1 OR p.need_screen_ht = 1)
-              OR 
-              (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35)
-              OR
-              p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
-              OR
-              COALESCE(p.is_manual, 0) = 1
-              OR
-              a.assignment_id IS NOT NULL
+              ((p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35 OR COALESCE(p.is_manual, 0) = 1))
+              OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+              OR COALESCE(p.is_manual, 0) = 1
+              OR sr.screening_id IS NOT NULL
           )
         ORDER BY a.assigned_at DESC
     ");

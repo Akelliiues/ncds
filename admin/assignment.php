@@ -325,7 +325,11 @@ if (DemoDataProvider::isDemoMode()) {
             style="display: flex; gap: 8px; margin: 20px 0; background-color: var(--bg-card); padding: 6px; border-radius: 16px; box-shadow: var(--neumorph-inset); width: fit-content; flex-wrap: wrap;">
             <button onclick="switchTargetGroup('main')" id="tab-group-main" class="tab active"
                 style="border: none; background: none; font-size: 15px; font-weight: 800; padding: 10px 20px; cursor: pointer; border-radius: 12px; transition: all var(--transition-speed); color: var(--text-secondary);">
-                📋 กลุ่มเป้าหมายหลัก (Risk 1-2)
+                📋 กลุ่มเป้าหมายหลัก (อายุ 35 ปีขึ้นไป)
+            </button>
+            <button onclick="switchTargetGroup('under_35_risk')" id="tab-group-under_35_risk" class="tab"
+                style="border: none; background: none; font-size: 15px; font-weight: 800; padding: 10px 20px; cursor: pointer; border-radius: 12px; transition: all var(--transition-speed); color: var(--text-secondary);">
+                🔸 กลุ่มอายุ &lt; 35 ปี (เสี่ยงเฉพาะ)
             </button>
             <button onclick="switchTargetGroup('suspect')" id="tab-group-suspect" class="tab"
                 style="border: none; background: none; font-size: 15px; font-weight: 800; padding: 10px 20px; cursor: pointer; border-radius: 12px; transition: all var(--transition-speed); color: var(--text-secondary);">
@@ -655,10 +659,12 @@ if (DemoDataProvider::isDemoMode()) {
 
             // Toggle active tab class
             document.getElementById('tab-group-main').classList.toggle('active', group === 'main');
+            const tabUnder35 = document.getElementById('tab-group-under_35_risk');
+            if (tabUnder35) tabUnder35.classList.toggle('active', group === 'under_35_risk');
             document.getElementById('tab-group-suspect').classList.toggle('active', group === 'suspect');
 
             // Toggle side cards
-            document.getElementById('vhv-card').style.display = group === 'main' ? 'flex' : 'none';
+            document.getElementById('vhv-card').style.display = group !== 'suspect' ? 'flex' : 'none';
             document.getElementById('suspect-activation-card').style.display = group === 'suspect' ? 'flex' : 'none';
 
             // Reset selections

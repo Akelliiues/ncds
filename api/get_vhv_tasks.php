@@ -109,6 +109,12 @@ try {
             NULL AS risk_type,
             p.cid, p.first_name, p.last_name, p.house_no, p.moo,
             TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) AS age,
+            CASE 
+                WHEN TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35 AND (p.need_screen_dm = 1 OR p.need_screen_ht = 1) THEN 1
+                WHEN TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) < 35 AND (COALESCE(p.is_manual, 0) = 1 OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')) THEN 1
+                WHEN sr.screening_id IS NOT NULL THEN 1
+                ELSE 0
+            END AS is_valid_target,
             sr.screening_id,
             sr.sys_bp1, sr.dia_bp1, sr.sys_bp2, sr.dia_bp2,
             sr.dtx_value, sr.dtx_type,
@@ -140,6 +146,7 @@ try {
             e.risk_type,
             p.cid, p.first_name, p.last_name, p.house_no, p.moo,
             TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) AS age,
+            1 AS is_valid_target,
             NULL AS screening_id,
             f.bp_sys AS sys_bp1, f.bp_dia AS dia_bp1, NULL AS sys_bp2, NULL AS dia_bp2,
             f.fbs AS dtx_value, 'fpg' AS dtx_type,
