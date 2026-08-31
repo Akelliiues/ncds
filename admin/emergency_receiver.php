@@ -1690,6 +1690,13 @@ try {
         // ----------------------------------------------------
         // Station State Management (Search, Filters, Pagination, View)
         // ----------------------------------------------------
+        // Load previously dismissed alert IDs in this session
+        let initialDismissedAlertIds = new Set();
+        try {
+            const savedDismissed = JSON.parse(sessionStorage.getItem('ncd_dismissed_alert_ids') || '[]');
+            if (Array.isArray(savedDismissed)) initialDismissedAlertIds = new Set(savedDismissed.map(String));
+        } catch(e) {}
+
         const stationState = {
             allAlerts: [],
             filteredAlerts: [],
@@ -1702,7 +1709,8 @@ try {
             viewMode: localStorage.getItem('red_alert_view_mode') || 'card',
             currentPage: 1,
             pageSize: 12,
-            knownPendingAlertIds: new Set()
+            knownPendingAlertIds: new Set(),
+            dismissedAlertIds: initialDismissedAlertIds
         };
 
         // ----------------------------------------------------
@@ -2692,8 +2700,15 @@ try {
 
         function closeEmergencyPopupWithoutAction() {
             stopSirenSound();
+            if (activeCrisisAlertId) {
+                stationState.dismissedAlertIds.add(String(activeCrisisAlertId));
+                try {
+                    sessionStorage.setItem('ncd_dismissed_alert_ids', JSON.stringify(Array.from(stationState.dismissedAlertIds)));
+                } catch(e) {}
+            }
             hideEmergencyPopup();
             showStationToast('🔕 ปิดการแจ้งเตือนแล้ว เคสยังคงอยู่ในสถานะ "รอรับเรื่อง" ในรายการ');
+            applyFiltersAndRender();
         }
 
         function hideEmergencyPopup() {
@@ -2743,6 +2758,12 @@ try {
             .then(res => {
                 if (res.status === 'success') {
                     stopSirenSound();
+                    if (stationState.dismissedAlertIds) {
+                        stationState.dismissedAlertIds.delete(String(alertId));
+                        try {
+                            sessionStorage.setItem('ncd_dismissed_alert_ids', JSON.stringify(Array.from(stationState.dismissedAlertIds)));
+                        } catch(e) {}
+                    }
                     hideEmergencyPopup();
                     fetchActiveAlerts();
                 }
@@ -2760,11 +2781,16 @@ try {
                         const alerts = data.alerts || [];
                         stationState.allAlerts = alerts;
 
-                        // FIFO: keep the current case on screen and queue newer cases.
-                        const pendingAlerts = alerts
+                        // All pending cases sorted FIFO
+                        const allPendingAlerts = alerts
                             .filter(a => a.alert_status === 'pending')
                             .sort((a, b) => Number(a.alert_id) - Number(b.alert_id));
-                        const pendingCrisis = pendingAlerts[0] || null;
+
+                        // Filter out cases that were explicitly dismissed/closed on this station
+                        const unhandledPendingAlerts = allPendingAlerts
+                            .filter(a => !stationState.dismissedAlertIds.has(String(a.alert_id)));
+
+                        const pendingCrisis = unhandledPendingAlerts[0] || null;
                         const statusHero = document.getElementById('status-hero');
                         const statusIconContainer = document.getElementById('status-icon-container');
 
@@ -2783,13 +2809,31 @@ try {
                             document.getElementById('status-sub').innerText = `• ความดัน ${pendingCrisis.sbp || '-'}/${pendingCrisis.dbp || '-'} | น้ำตาล DTX ${pendingCrisis.dtx || '-'} mg% • ต้องการการดูแลฉุกเฉินด่วน`;
                             document.getElementById('station-pulsing-dot').className = 'pulsing-dot active-crisis';
 
-                            const activeStillPending = pendingAlerts.some(a => String(a.alert_id) === String(activeCrisisAlertId));
+                            const activeStillPending = unhandledPendingAlerts.some(a => String(a.alert_id) === String(activeCrisisAlertId));
                             // Never overwrite an alert being handled. Show the oldest queued case next.
                             if (!modalOpenedManually && (!activeCrisisAlertId || !activeStillPending)) {
                                 if (activeCrisisAlertId && !activeStillPending) hideEmergencyPopup();
                                 showEmergencyPopup(pendingCrisis, 'auto');
                                 startSirenSound();
                             }
+                        } else if (allPendingAlerts.length > 0) {
+                            // There are pending cases in the list, but all have been dismissed/snoozed by user
+                            statusHero.classList.remove('alerting');
+                            statusIconContainer.style.background = 'radial-gradient(circle at 35% 35%, #F59E0B 0%, #D97706 70%, #B45309 100%)';
+                            statusIconContainer.style.animation = 'none';
+                            statusIconContainer.innerHTML = `
+                                <svg width="18" height="18" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="24" cy="24" r="20" fill="#FFFFFF"/>
+                                    <path d="M24 14 V26" stroke="#D97706" stroke-width="4.5" stroke-linecap="round"/>
+                                    <circle cx="24" cy="33" r="2.5" fill="#D97706"/>
+                                </svg>
+                            `;
+                            document.getElementById('status-headline').innerText = `มีเคสวิกฤตรอดำเนินการ ${allPendingAlerts.length} เคส (ปิดการแจ้งเตือนไว้)`;
+                            document.getElementById('status-sub').innerText = '• ปิดเสียงเตือนชั่วคราวแล้ว • คลิกที่การ์ดในรายการเพื่อดูรายละเอียดเมื่อพร้อมดำเนินการ';
+                            document.getElementById('station-pulsing-dot').className = 'pulsing-dot';
+                            
+                            if (!modalOpenedManually) hideEmergencyPopup();
+                            stopSirenSound();
                         } else {
                             statusHero.classList.remove('alerting');
                             statusIconContainer.style.background = 'radial-gradient(circle at 35% 35%, #34D399 0%, #10B981 70%, #047857 100%)';
@@ -2845,6 +2889,9 @@ try {
                 formData.append('vhv_name', 'ผู้ทดสอบระบบ (สสอ.)');
                 const result = await fetch('../api/emergency_alert.php', { method: 'POST', body: formData }).then(r => r.json());
                 if (result.status !== 'success') throw new Error(result.message || 'สร้างเคสทดสอบไม่สำเร็จ');
+                if (result.alert_id && stationState.dismissedAlertIds) {
+                    stationState.dismissedAlertIds.delete(String(result.alert_id));
+                }
                 fetchActiveAlerts();
             } catch (error) {
                 alert('ทดสอบสัญญาณไม่สำเร็จ: ' + error.message);

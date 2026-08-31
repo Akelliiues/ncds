@@ -257,7 +257,7 @@ if ($action === 'get_active_alerts') {
 // 4. ACKNOWLEDGE ALERT (Mute alarm & mark as acknowledged)
 // -------------------------------------------------------------
 if ($action === 'acknowledge_alert') {
-    requireStationAccess($stationToken, $isAdminSession, 'alerts:update');
+    requireStationAccess($stationToken, $isAdminSession, 'alerts:update', true);
     $alertId = (int)($_POST['alert_id'] ?? 0);
     requireAlertHoscode($pdo, $stationToken, $alertId);
     $staffName = trim($_POST['staff_name'] ?? 'เจ้าหน้าที่ รพ.สต.');
