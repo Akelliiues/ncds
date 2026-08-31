@@ -93,8 +93,17 @@ try {
         $success++;
     }
     $pdo->commit();
+
+    // Log activity
+    if (function_exists('logUserActivity')) {
+        logUserActivity('ASSIGN_DPAC', "มอบหมายงานติดตาม DPAC จำนวน {$success} รายการ ให้กับ อสม. ID: {$vhvId}", $admin_hoscode);
+    }
+
     echo json_encode(['status' => 'success', 'message' => "มอบหมายงานติดตาม DPAC สำเร็จ $success รายการ"]);
 } catch (\Throwable $e) {
-    $pdo->rollBack();
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     echo json_encode(['status' => 'error', 'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()]);
 }
+

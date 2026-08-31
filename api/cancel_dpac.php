@@ -46,7 +46,11 @@ try {
 
     $pdo->beginTransaction();
 
-    // Delete followups first
+    // Delete associated rewards first
+    $deleteRewards = $pdo->prepare("DELETE FROM vhv_rewards WHERE followup_id IN (SELECT followup_id FROM dpac_followups WHERE enrollment_id = ?)");
+    $deleteRewards->execute([$enrollmentId]);
+
+    // Delete followups
     $deleteFollowups = $pdo->prepare("DELETE FROM dpac_followups WHERE enrollment_id = ?");
     $deleteFollowups->execute([$enrollmentId]);
     
@@ -55,8 +59,17 @@ try {
     $deleteEnrollment->execute([$enrollmentId]);
     
     $pdo->commit();
+
+    // Log activity
+    if (function_exists('logUserActivity')) {
+        logUserActivity('CANCEL_DPAC', "ยกเลิกการเข้าร่วมโครงการ DPAC ID: {$enrollmentId}", $admin_hoscode);
+    }
+
     echo json_encode(['status' => 'success', 'message' => "ยกเลิกการเข้าร่วมโครงการ DPAC สำเร็จ"]);
 } catch (\Throwable $e) {
-    $pdo->rollBack();
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     echo json_encode(['status' => 'error', 'message' => 'เกิดข้อผิดพลาดในการยกเลิก: ' . $e->getMessage()]);
 }
+
