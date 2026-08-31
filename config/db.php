@@ -884,16 +884,32 @@ try {
         ");
     } catch (\PDOException $e) {}
 
-    // Auto-reconciliation: Automatically purge any invalid pending task assignments for non-targets (< 35 years old and not a clinical risk or manual target)
+    // Auto-reconciliation: Automatically purge ANY invalid pending task assignments
+    // (Only purges 'pending' assignments where no screening results exist)
     try {
+        // 1. Purge non-targets and under-35 non-risk individuals
         $pdo->exec("
             DELETE ta FROM task_assignments ta
             JOIN target_population tp ON ta.target_cid = tp.cid
             WHERE ta.assignment_status = 'pending'
-              AND TIMESTAMPDIFF(YEAR, tp.birth, CURDATE()) < 35
-              AND COALESCE(tp.is_manual, 0) = 0
-              AND tp.health_status_origin NOT IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
               AND NOT EXISTS (SELECT 1 FROM screening_results sr WHERE sr.assignment_id = ta.assignment_id OR sr.target_cid = ta.target_cid)
+              AND (
+                  (TIMESTAMPDIFF(YEAR, tp.birth, CURDATE()) < 35 AND COALESCE(tp.is_manual, 0) = 0 AND tp.health_status_origin NOT IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH'))
+                  OR
+                  (tp.need_screen_dm = 0 AND tp.need_screen_ht = 0 AND COALESCE(tp.is_manual, 0) = 0 AND tp.health_status_origin NOT IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH'))
+              )
+        ");
+
+        // 2. Purge pending assignments where resident belongs to a different village than the VHV
+        $pdo->exec("
+            DELETE ta FROM task_assignments ta
+            JOIN target_population tp ON ta.target_cid = tp.cid
+            JOIN vhv_users vu ON ta.vhv_id = vu.vhv_id
+            WHERE ta.assignment_status = 'pending'
+              AND NOT EXISTS (SELECT 1 FROM screening_results sr WHERE sr.assignment_id = ta.assignment_id OR sr.target_cid = ta.target_cid)
+              AND vu.vhv_moo IS NOT NULL AND vu.vhv_moo != '' AND tp.moo IS NOT NULL AND tp.moo != ''
+              AND CAST(tp.moo AS UNSIGNED) != CAST(vu.vhv_moo AS UNSIGNED)
+              AND tp.vhid_code != vu.vhid_code
         ");
     } catch (\PDOException $e) {}
 

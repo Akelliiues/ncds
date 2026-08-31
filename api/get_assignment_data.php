@@ -156,13 +156,26 @@ try {
                        (
                            SELECT COUNT(*) 
                            FROM task_assignments a 
+                           JOIN target_population p ON a.target_cid = p.cid
                            WHERE a.vhv_id = v.vhv_id 
                              AND a.budget_year = {$selectedBudgetYear} 
                              AND a.assignment_status = 'pending'
                              AND a.is_sandbox = :is_sandbox1
+                             AND (
+                                 ((p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35 OR COALESCE(p.is_manual, 0) = 1))
+                                 OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+                                 OR COALESCE(p.is_manual, 0) = 1
+                             )
+                             AND (
+                                 v.vhv_moo IS NULL OR v.vhv_moo = '' OR p.moo IS NULL OR p.moo = ''
+                                 OR CAST(p.moo AS UNSIGNED) = CAST(v.vhv_moo AS UNSIGNED)
+                                 OR p.vhid_code = v.vhid_code
+                             )
                        ) + (
                            SELECT COUNT(*) 
                            FROM dpac_followups f
+                           JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
+                           JOIN target_population p ON e.cid = p.cid
                            WHERE f.vhv_id = v.vhv_id
                              AND f.status = 'pending'
                              AND f.is_sandbox = :is_sandbox2
@@ -172,12 +185,28 @@ try {
                        (
                            SELECT COUNT(*) 
                            FROM task_assignments a 
+                           JOIN target_population p ON a.target_cid = p.cid
+                           LEFT JOIN screening_results sr ON a.assignment_id = sr.assignment_id
                            WHERE a.vhv_id = v.vhv_id 
                              AND a.budget_year = {$selectedBudgetYear} 
                              AND a.is_sandbox = :is_sandbox3
+                             AND (
+                                 ((p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35 OR COALESCE(p.is_manual, 0) = 1))
+                                 OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+                                 OR COALESCE(p.is_manual, 0) = 1
+                                 OR sr.screening_id IS NOT NULL
+                             )
+                             AND (
+                                 sr.screening_id IS NOT NULL
+                                 OR v.vhv_moo IS NULL OR v.vhv_moo = '' OR p.moo IS NULL OR p.moo = ''
+                                 OR CAST(p.moo AS UNSIGNED) = CAST(v.vhv_moo AS UNSIGNED)
+                                 OR p.vhid_code = v.vhid_code
+                             )
                        ) + (
                            SELECT COUNT(*) 
                            FROM dpac_followups f
+                           JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
+                           JOIN target_population p ON e.cid = p.cid
                            WHERE f.vhv_id = v.vhv_id
                              AND f.is_sandbox = :is_sandbox4
                        )
@@ -191,6 +220,11 @@ try {
                              AND a.budget_year = {$selectedBudgetYear} 
                              AND (p.vhid_code = :vhid1 OR (CAST(p.moo AS UNSIGNED) = CAST(:moo1 AS UNSIGNED) AND p.hoscode = v.hoscode))
                              AND a.is_sandbox = :is_sandbox5
+                             AND (
+                                 ((p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35 OR COALESCE(p.is_manual, 0) = 1))
+                                 OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+                                 OR COALESCE(p.is_manual, 0) = 1
+                             )
                        ) + (
                            SELECT COUNT(*) 
                            FROM dpac_followups f

@@ -62,11 +62,17 @@ if (DemoDataProvider::isDemoMode()) {
                (SELECT sr.sleep_quality FROM screening_results sr LEFT JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE (sr.target_cid = p.cid OR ta.target_cid = p.cid) ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1) AS last_sleep_quality
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
+        LEFT JOIN vhv_users v ON a.vhv_id = v.vhv_id
         WHERE a.vhv_id = ? AND a.budget_year = ? AND a.assignment_status = 'pending' AND COALESCE(a.is_sandbox, 0) = ?
           AND (
               ((p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35 OR COALESCE(p.is_manual, 0) = 1))
               OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
               OR COALESCE(p.is_manual, 0) = 1
+          )
+          AND (
+              v.vhv_moo IS NULL OR v.vhv_moo = '' OR p.moo IS NULL OR p.moo = ''
+              OR CAST(p.moo AS UNSIGNED) = CAST(v.vhv_moo AS UNSIGNED)
+              OR p.vhid_code = v.vhid_code
           )
         ORDER BY LENGTH(p.house_no), p.house_no
     ");
@@ -83,6 +89,7 @@ if (DemoDataProvider::isDemoMode()) {
                ht.sbp as base_sbp, ht.dbp as base_dbp, dm.bslevel as base_bslevel
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
+        LEFT JOIN vhv_users v ON a.vhv_id = v.vhv_id
         LEFT JOIN screening_results sr ON a.assignment_id = sr.assignment_id
         LEFT JOIN staging_hdc_ht ht ON p.cid = ht.cid
         LEFT JOIN staging_hdc_dm dm ON p.cid = dm.cid
@@ -92,6 +99,12 @@ if (DemoDataProvider::isDemoMode()) {
               OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
               OR COALESCE(p.is_manual, 0) = 1
               OR sr.screening_id IS NOT NULL
+          )
+          AND (
+              sr.screening_id IS NOT NULL
+              OR v.vhv_moo IS NULL OR v.vhv_moo = '' OR p.moo IS NULL OR p.moo = ''
+              OR CAST(p.moo AS UNSIGNED) = CAST(v.vhv_moo AS UNSIGNED)
+              OR p.vhid_code = v.vhid_code
           )
         ORDER BY a.assigned_at DESC
     ");
