@@ -4,7 +4,10 @@
 class DemoDataProvider {
 
     public static function isDemoMode() {
-        return isset($_SESSION['is_demo_mode']) && $_SESSION['is_demo_mode'] === true;
+        return (!empty($_SESSION['is_demo_mode'])
+            || (!empty($_SESSION['demo_role']))
+            || (isset($_SESSION['vhv_id']) && $_SESSION['vhv_id'] === 'DEMO_1001')
+            || (isset($_SESSION['admin_username']) && $_SESSION['admin_username'] === 'demo_staff'));
     }
 
     public static function getDemoRole() {
@@ -556,7 +559,7 @@ class DemoDataProvider {
     }
 
     // 4. การประมวลผลการคัดกรองในโหมด Demo
-    public static function processDemoScreening($postData) {
+    private static function processDemoScreeningLegacy($postData) {
         $sbp1 = intval($postData['sys_bp1'] ?? 0);
         $dbp1 = intval($postData['dia_bp1'] ?? 0);
         $sbp2 = intval($postData['sys_bp2'] ?? 0);
@@ -1370,45 +1373,13 @@ class DemoDataProvider {
             ]
         ];
 
-        // Insert into critical_alerts so receiver station and desktop app can catch the simulated critical alert
-        $alertId = null;
-        if ($isCritical) {
-            try {
-                require_once __DIR__ . '/db.php';
-                global $pdo;
-                if ($pdo) {
-                    $crisisType = ($sys1 >= 180 || $dia1 >= 110) ? 'ความดันสูงวิกฤต (จำลอง)' : (($dtx >= 300) ? 'น้ำตาลสูงวิกฤต (จำลอง)' : 'น้ำตาลต่ำวิกฤต (จำลอง)');
-                    $stmtAlert = $pdo->prepare("
-                        INSERT INTO critical_alerts (
-                            screening_id, hoscode, target_cid,
-                            patient_name, age, house_no, moo, sub_district_code,
-                            latitude, longitude, crisis_type, sbp, dbp, dtx,
-                            red_flags, vhv_name, vhv_phone, contact_phone, contact_type, alert_status, created_at
-                        ) VALUES (
-                            999999, '00325', ?,
-                            ?, ?, ?, ?, ?,
-                            15.3456, 105.1234, ?, ?, ?, ?,
-                            ?, 'อสม. สมชาย ใจดี (จำลอง สสอ.ตาลสุม)', '081-234-5678', '081-234-5678', 'vhv', 'pending', NOW()
-                        )
-                    ");
-                    $stmtAlert->execute([
-                        $targetCid,
-                        $residentName, $age, $houseNo, $moo, $subDistrictCode,
-                        $crisisType, $sys1, $dia1, $dtx,
-                        $redFlags
-                    ]);
-                    $alertId = $pdo->lastInsertId();
-                }
-            } catch (\Throwable $ex) {
-                // Ignore DB error if table is busy
-            }
-        }
-
         return [
             'status' => 'success',
             'message' => 'บันทึกผลการคัดกรองในโหมดจำลอง (Demo Sandbox) เรียบร้อยแล้ว',
             'screening_id' => 999999,
-            'alert_id' => $alertId,
+            // Screening only classifies the case. The alert is created later by
+            // emergency_alert.php after the user confirms a contact phone.
+            'alert_id' => null,
             'reward_status' => 'approved',
             'reward_points' => 20,
             'round_number' => 1,

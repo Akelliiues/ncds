@@ -1,6 +1,12 @@
 <?php
 // api/emergency_alert.php - Realtime Critical Emergency Dispatcher & Referral Sync
 require_once __DIR__ . '/../config/session.php';
+
+// Emergency alerts are a shared realtime transport. Demo VHV, the web receiver,
+// and the desktop station must read and write the same alert queue.
+if (!defined('NCD_USE_REALTIME_ALERT_DATABASE')) {
+    define('NCD_USE_REALTIME_ALERT_DATABASE', true);
+}
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/station_token_auth.php';
 
@@ -151,9 +157,15 @@ if ($action === 'trigger_alert') {
     $contactPhone = trim($_POST['contact_phone'] ?? '');
     $contactType = trim($_POST['contact_type'] ?? 'vhv');
 
-    if (empty($contactPhone)) {
-        $contactPhone = !empty($vhvPhone) ? $vhvPhone : null;
+    $contactPhoneDigits = preg_replace('/\D+/', '', $contactPhone);
+    if (!preg_match('/^0\d{8,9}$/', $contactPhoneDigits)) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'กรุณาระบุเบอร์โทรติดต่อกลับให้ถูกต้อง 9-10 หลักก่อนส่งสัญญาณ'
+        ], JSON_UNESCAPED_UNICODE);
+        exit();
     }
+    $contactPhone = $contactPhoneDigits;
 
     if (empty($patientName)) {
         $patientName = 'ผู้ป่วยฉุกเฉิน (ไม่ระบุนาม)';
@@ -543,7 +555,8 @@ if ($action === 'delete_alert') {
     $adminHoscode = $_SESSION['admin_hoscode'] ?? null;
     $isVisitor = !empty($_SESSION['is_visitor']) || !empty($_SESSION['is_executive']);
     $username = strtolower($_SESSION['admin_username'] ?? '');
-    $isMainAdmin = !empty($_SESSION['admin_logged_in']) && !$isVisitor && ($username === 'admin' || empty($adminHoscode) || $adminHoscode === '00325');
+    $isDemo = !empty($_SESSION['is_demo_mode']);
+    $isMainAdmin = (!empty($_SESSION['admin_logged_in']) && !$isVisitor && ($username === 'admin' || empty($adminHoscode) || $adminHoscode === '00325')) || $isDemo;
 
     if (!$isMainAdmin) {
         http_response_code(403);

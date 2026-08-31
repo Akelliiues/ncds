@@ -15,21 +15,26 @@ if (isset($_GET['exit_demo'])) {
 // Handle Demo Sandbox Role Selection
 if (isset($_GET['demo_role']) || isset($_POST['demo_role'])) {
     $demoRole = trim($_GET['demo_role'] ?? $_POST['demo_role'] ?? '');
+    if (!in_array($demoRole, ['vhv', 'staff'], true)) {
+        header("Location: index.php");
+        exit();
+    }
+
+    // A demo role must own a clean, exclusive session. Keeping credentials from
+    // the previous role caused VHV and staff pages to resolve conflicting access.
+    foreach ([
+        'vhv_id', 'vhv_name', 'vhv_phone', 'vhv_moo', 'vhid_code', 'hoscode', 'hosname',
+        'is_leader', 'is_hl_coach', 'admin_logged_in', 'admin_username', 'admin_hoscode',
+        'admin_hosname', 'admin_role', 'is_visitor', 'is_executive', 'is_super_admin',
+        'impersonator_admin', 'is_admin_impersonating'
+    ] as $demoSessionKey) {
+        unset($_SESSION[$demoSessionKey]);
+    }
+    session_regenerate_id(true);
     $_SESSION['is_demo_mode'] = true;
     $_SESSION['demo_role'] = $demoRole;
 
     if ($demoRole === 'vhv') {
-        // Clear conflicting admin sessions
-        unset($_SESSION['admin_logged_in']);
-        unset($_SESSION['admin_username']);
-        unset($_SESSION['admin_hoscode']);
-        unset($_SESSION['admin_hosname']);
-        unset($_SESSION['admin_role']);
-        unset($_SESSION['is_visitor']);
-        unset($_SESSION['is_executive']);
-        unset($_SESSION['impersonator_admin']);
-        unset($_SESSION['is_admin_impersonating']);
-
         $_SESSION['vhv_id'] = 'DEMO_1001';
         $_SESSION['vhv_name'] = 'อสม. สมชาย ใจดี (จำลอง สสอ.ตาลสุม)';
         $_SESSION['vhv_phone'] = '081-234-5678';
@@ -42,22 +47,14 @@ if (isset($_GET['demo_role']) || isset($_POST['demo_role'])) {
         header("Location: vhv/index.php");
         exit();
     } elseif ($demoRole === 'staff') {
-        // Clear conflicting vhv sessions
-        unset($_SESSION['vhv_id']);
-        unset($_SESSION['vhv_name']);
-        unset($_SESSION['vhv_phone']);
-        unset($_SESSION['vhv_moo']);
-        unset($_SESSION['vhid_code']);
-        unset($_SESSION['is_leader']);
-        unset($_SESSION['is_hl_coach']);
-        unset($_SESSION['impersonator_admin']);
-        unset($_SESSION['is_admin_impersonating']);
-
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['admin_username'] = 'demo_staff';
         $_SESSION['admin_hoscode'] = '00325';
         $_SESSION['admin_hosname'] = 'สำนักงานสาธารณสุขอำเภอตาลสุม';
         $_SESSION['is_visitor'] = false;
+        $_SESSION['is_executive'] = false;
+        $_SESSION['is_super_admin'] = false;
+        $_SESSION['admin_role'] = 'staff';
         header("Location: admin/index.php");
         exit();
     }

@@ -1,21 +1,33 @@
 <?php
 // vhv/index.php
 require_once __DIR__ . '/../config/session.php';
-require_once __DIR__ . '/../config/demo_banner.php';
 
 if (!isset($_SESSION['vhv_id'])) {
-    header("Location: ../index.php");
-    exit();
+    if (!empty($_SESSION['is_demo_mode']) && ($_SESSION['demo_role'] ?? '') === 'vhv') {
+        $_SESSION['vhv_id'] = 'DEMO_1001';
+        $_SESSION['vhv_name'] = 'อสม. สมชาย ใจดี (จำลอง สสอ.ตาลสุม)';
+        $_SESSION['vhv_phone'] = '081-234-5678';
+        $_SESSION['vhv_moo'] = 1;
+        $_SESSION['vhid_code'] = '34100101';
+        $_SESSION['hoscode'] = '00325';
+        $_SESSION['hosname'] = 'สำนักงานสาธารณสุขอำเภอตาลสุม';
+        $_SESSION['is_leader'] = 1;
+        $_SESSION['is_hl_coach'] = 1;
+    } else {
+        header("Location: ../index.php");
+        exit();
+    }
 }
 
+require_once __DIR__ . '/../config/demo_banner.php';
 require_once __DIR__ . '/../config/db.php';
 
-$vhvId = $_SESSION['vhv_id'];
-$vhvName = $_SESSION['vhv_name'];
-$vhvMoo = $_SESSION['vhv_moo'];
-$vhidCode = $_SESSION['vhid_code'];
-$isLeader = $_SESSION['is_leader'];
-$hoscode = $_SESSION['hoscode'];
+$vhvId = $_SESSION['vhv_id'] ?? 'DEMO_1001';
+$vhvName = $_SESSION['vhv_name'] ?? 'อสม. สมชาย ใจดี (จำลอง สสอ.ตาลสุม)';
+$vhvMoo = $_SESSION['vhv_moo'] ?? 1;
+$vhidCode = $_SESSION['vhid_code'] ?? '34100101';
+$isLeader = $_SESSION['is_leader'] ?? 1;
+$hoscode = $_SESSION['hoscode'] ?? '00325';
 $isHlCoach = $_SESSION['is_hl_coach'] ?? false;
 
 // Fetch assigned tasks for budget year 2026
@@ -894,13 +906,9 @@ if (DemoDataProvider::isDemoMode()) {
             }
             alert("⚠️ ระบบทำงานในโหมดใช้งานจริง: กรุณากดปุ่ม 'สแกนบ้าน' ด้านล่างเพื่อสแกน QR Code ประจำบ้านเป้าหมายและเริ่มทำการคัดกรอง");
         }
-        function closeTestModal() {
-            const tm = document.getElementById('test-modal');
-            if (tm) tm.style.display = 'none';
-        }
-        const btnEnterTest = document.getElementById('btn-enter-test');
-        if (btnEnterTest) {
-            btnEnterTest.onclick = function() {
+        const enterTestBtn = document.getElementById('btn-enter-test');
+        if (enterTestBtn) {
+            enterTestBtn.onclick = function() {
                 if (currentTestHid) {
                     window.location.href = 'screening_form.php?hid=' + encodeURIComponent(currentTestHid);
                 } else if (currentTestCid) {

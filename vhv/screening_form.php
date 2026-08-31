@@ -25,6 +25,10 @@ if (!isset($_SESSION['vhv_id'])) {
     exit();
 }
 
+if (DemoDataProvider::isDemoMode() && empty($hid) && empty($cid)) {
+    $cid = '0032500000001';
+}
+
 if (!$isShell && empty($hid) && empty($cid)) {
     header("Location: scan.php");
     exit();
@@ -38,7 +42,7 @@ $history = [];
 if (DemoDataProvider::isDemoMode()) {
     $allTargets = DemoDataProvider::getMockTargets();
     if (!empty($cid)) {
-        $filtered = array_values(array_filter($allTargets, function($r) use ($cid) { return $r['cid'] === $cid; }));
+        $filtered = array_values(array_filter($allTargets, function($r) use ($cid) { return ($r['cid'] ?? '') === $cid; }));
         $residents = !empty($filtered) ? $filtered : [$allTargets[0]];
     } elseif (!empty($hid)) {
         $cleanHid = trim(preg_replace('/^(บ้านเลขที่|บ้าน|ม\.)\s*/u', '', $hid));
@@ -50,8 +54,8 @@ if (DemoDataProvider::isDemoMode()) {
         elseif ($hid === 'DEMO_HOUSE_9_5') $cleanHid = '9/1';
         
         $filtered = array_values(array_filter($allTargets, function($r) use ($hid, $cleanHid) { 
-            return $r['house_no'] === $hid || $r['house_no'] === $cleanHid || 
-                   $r['cid'] === $hid || $r['cid'] === $cleanHid || 
+            return ($r['house_no'] ?? '') === $hid || ($r['house_no'] ?? '') === $cleanHid ||
+                   ($r['cid'] ?? '') === $hid || ($r['cid'] ?? '') === $cleanHid ||
                    (isset($r['assignment_id']) && ($r['assignment_id'] === $hid || $r['assignment_id'] === $cleanHid)); 
         }));
         $residents = !empty($filtered) ? $filtered : [$allTargets[0]];
@@ -61,7 +65,37 @@ if (DemoDataProvider::isDemoMode()) {
 
     foreach ($residents as &$res) {
         if (empty($res['assignment_id'])) {
-            $res['assignment_id'] = 'DEMO_ASSIGN_' . substr($res['cid'], -2);
+            $res['assignment_id'] = 'DEMO_ASSIGN_' . substr($res['cid'] ?? '01', -2);
+        }
+        if (empty($res['birth'])) {
+            $res['birth'] = '1970-01-01';
+        }
+        if (!isset($res['need_screen_dm'])) {
+            $res['need_screen_dm'] = 1;
+        }
+        if (!isset($res['need_screen_ht'])) {
+            $res['need_screen_ht'] = 1;
+        }
+        if (!isset($res['last_sbp'])) {
+            $res['last_sbp'] = 120;
+        }
+        if (!isset($res['last_dbp'])) {
+            $res['last_dbp'] = 80;
+        }
+        if (!isset($res['last_dtx'])) {
+            $res['last_dtx'] = 100;
+        }
+        if (!isset($res['last_dtx_type'])) {
+            $res['last_dtx_type'] = 'fpg';
+        }
+        if (!isset($res['latitude'])) {
+            $res['latitude'] = 15.4300;
+        }
+        if (!isset($res['longitude'])) {
+            $res['longitude'] = 104.9800;
+        }
+        if (!isset($res['health_status_origin'])) {
+            $res['health_status_origin'] = 'NORMAL';
         }
     }
     unset($res);
@@ -530,17 +564,19 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
 </head>
 <body class="vhv-accessibility">
     <div class="mobile-wrapper" style="padding-bottom: 100px;">
-        <div class="vhv-header">
-            <h3 style="color: var(--color-accent); margin: 0; font-size: 16px;">แบบคัดกรอง บ้านเลขที่ <?= htmlspecialchars($residents[0]['house_no'] ?? $history[0]['house_no'] ?? '') ?></h3>
-            <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 14px;">รหัสบ้าน HID: <?= htmlspecialchars($hid) ?></p>
-        </div>
-
         <?php 
         $isDemo = DemoDataProvider::isDemoMode();
         $activeResident = (!empty($residents)) ? $residents[0] : null;
         $activeName = $activeResident ? htmlspecialchars($activeResident['first_name'] . ' ' . $activeResident['last_name']) : 'สมชาย ใจดี (จำลอง)';
-        $activeAssignId = $activeResident ? $activeResident['assignment_id'] : 'DEMO_ASSIGN_1';
+        $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_ASSIGN_1') : 'DEMO_ASSIGN_1';
+        $houseDisplay = !empty($residents[0]['house_no']) ? $residents[0]['house_no'] : (!empty($history[0]['house_no']) ? $history[0]['house_no'] : '12/1');
+        $hidDisplay = !empty($hid) ? $hid : (!empty($cid) ? 'CID: ' . $cid : '12/1');
         ?>
+        <div class="vhv-header">
+            <h3 style="color: var(--color-accent); margin: 0; font-size: 16px;">แบบคัดกรอง บ้านเลขที่ <?= htmlspecialchars($houseDisplay) ?></h3>
+            <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 14px;">รหัสบ้าน HID: <?= htmlspecialchars($hidDisplay) ?></p>
+        </div>
+
         <?php if (empty($residents) && !$isShell && !$isDemo): ?>
             <div class="card-dark" style="text-align: center; padding: 40px 20px;">
                 <span style="font-size: 48px; display: block; margin-bottom: 16px;">✅</span>
@@ -550,19 +586,21 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             </div>
         <?php else: ?>
             <form id="screening-form" action="" method="POST">
-                <input type="hidden" name="assignment_id" id="assignment_id" value="<?= $isDemo ? $activeAssignId : '' ?>">
-                <input type="hidden" name="target_cid" id="target_cid" value="<?= $isDemo ? htmlspecialchars($activeResident['cid'] ?? '0032500000001') : '' ?>">
+                <input type="hidden" name="assignment_id" id="assignment_id" value="<?= $activeAssignId ?>">
                 <input type="hidden" name="screening_lat" id="screening_lat" value="<?= $isDemo ? '15.430000' : '' ?>">
                 <input type="hidden" name="screening_lng" id="screening_lng" value="<?= $isDemo ? '104.980000' : '' ?>">
 
                 <!-- STEP 1: Select Resident -->
-                <div id="step-resident" class="step-section <?= $isDemo ? '' : 'active' ?>">
+                <div id="step-resident" class="step-section active">
                     <span class="form-label-big">1. เลือกบุคคลที่ต้องการคัดกรอง</span>
                     
                     <div id="residents-container">
                     <?php if (!$isShell): ?>
-                        <?php foreach ($residents as $r): ?>
-                            <div class="resident-card <?= ($isDemo && $r['assignment_id'] === $activeAssignId) ? 'selected' : '' ?>" onclick="selectResident('<?= $r['assignment_id'] ?>', '<?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name'], ENT_QUOTES) ?>', '<?= $r['sex'] ?>', '<?= $r['birth'] ?>', <?= $r['need_screen_dm'] ? 'true' : 'false' ?>, <?= $r['need_screen_ht'] ? 'true' : 'false' ?>, '<?= htmlspecialchars($r['health_status_origin'] ?? 'NORMAL', ENT_QUOTES) ?>', <?= (float)($r['latitude'] ?? 0) ?>, <?= (float)($r['longitude'] ?? 0) ?>, <?= $r['last_sbp'] !== null ? (int)$r['last_sbp'] : 'null' ?>, <?= $r['last_dbp'] !== null ? (int)$r['last_dbp'] : 'null' ?>, <?= $r['last_dtx'] !== null ? (int)$r['last_dtx'] : 'null' ?>, '<?= htmlspecialchars($r['last_dtx_type'] ?? 'fpg', ENT_QUOTES) ?>', this)">
+                        <?php foreach ($residents as $r):
+                            $rAge = (!empty($r['birth']) && date_create($r['birth'])) ? date_diff(date_create($r['birth']), date_create('today'))->y : ($r['age'] ?? 50);
+                            $isSelected = ($r['assignment_id'] ?? '') === $activeAssignId;
+                        ?>
+                            <div class="resident-card <?= $isSelected ? 'selected' : '' ?>" onclick="selectResident('<?= htmlspecialchars($r['assignment_id'] ?? 'DEMO_ASSIGN_1', ENT_QUOTES) ?>', '<?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name'], ENT_QUOTES) ?>', '<?= htmlspecialchars($r['sex'] ?? '1', ENT_QUOTES) ?>', '<?= htmlspecialchars($r['birth'] ?? '1970-01-01', ENT_QUOTES) ?>', <?= !empty($r['need_screen_dm']) ? 'true' : 'false' ?>, <?= !empty($r['need_screen_ht']) ? 'true' : 'false' ?>, '<?= htmlspecialchars($r['health_status_origin'] ?? 'NORMAL', ENT_QUOTES) ?>', <?= (float)($r['latitude'] ?? 15.4300) ?>, <?= (float)($r['longitude'] ?? 104.9800) ?>, <?= isset($r['last_sbp']) && $r['last_sbp'] !== null ? (int)$r['last_sbp'] : 'null' ?>, <?= isset($r['last_dbp']) && $r['last_dbp'] !== null ? (int)$r['last_dbp'] : 'null' ?>, <?= isset($r['last_dtx']) && $r['last_dtx'] !== null ? (int)$r['last_dtx'] : 'null' ?>, '<?= htmlspecialchars($r['last_dtx_type'] ?? 'fpg', ENT_QUOTES) ?>', this, true)">
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                     <div>
                                         <strong style="font-size: 18px; color: var(--text-primary);"><?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?></strong>
@@ -572,23 +610,23 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                                             </span>
                                         <?php endif; ?>
                                         <p style="margin: 4px 0 0 0; font-size: 14px; color: var(--text-secondary);">
-                                            เพศ: <?= $r['sex'] == '1' ? 'ชาย' : 'หญิง' ?> • อายุ: <?= date_diff(date_create($r['birth']), date_create('today'))->y ?> ปี
+                                            เพศ: <?= ($r['sex'] ?? '1') == '1' ? 'ชาย' : 'หญิง' ?> • อายุ: <?= $rAge ?> ปี
                                         </p>
                                         <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-muted);">
                                             สิทธิ์การตรวจ: 
-                                            <?= $r['need_screen_dm'] ? '<span style="color:var(--color-accent)">เบาหวาน</span>' : '<s>เบาหวาน (ตรวจแล้ว/ป่วยแล้ว)</s>' ?>
+                                            <?= !empty($r['need_screen_dm']) ? '<span style="color:var(--color-accent)">เบาหวาน</span>' : '<s>เบาหวาน (ตรวจแล้ว/ป่วยแล้ว)</s>' ?>
                                             •
-                                            <?= $r['need_screen_ht'] ? '<span style="color:var(--color-primary)">ความดัน</span>' : '<s>ความดัน (ตรวจแล้ว/ป่วยแล้ว)</s>' ?>
+                                            <?= !empty($r['need_screen_ht']) ? '<span style="color:var(--color-primary)">ความดัน</span>' : '<s>ความดัน (ตรวจแล้ว/ป่วยแล้ว)</s>' ?>
                                         </p>
                                     </div>
-                                    <span style="font-size: 24px; color: var(--border-color);" class="select-indicator"><?= ($isDemo && $r['assignment_id'] === $activeAssignId) ? '🟡' : '⚪' ?></span>
+                                    <span style="font-size: 24px; color: var(--border-color);" class="select-indicator"><?= $isSelected ? '🟡' : '⚪' ?></span>
                                 </div>
                             </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
                     </div>
                     
-                    <button type="button" onclick="nextStep('step-vital')" class="btn-giant btn-giant-primary" id="btn-next-resident" style="margin-top: 20px; display: <?= $isDemo ? 'block' : 'none' ?>;">
+                    <button type="button" onclick="nextStep('step-vital')" class="btn-giant btn-giant-primary" id="btn-next-resident" style="margin-top: 20px; display: block;">
                         ถัดไป (คัดกรองร่างกาย) →
                     </button>
                     
@@ -598,13 +636,13 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 </div>
 
                 <!-- STEP 2: Vital Signs & Measurements (Consolidated) -->
-                <div id="step-vital" class="step-section <?= $isDemo ? 'active' : '' ?>">
+                <div id="step-vital" class="step-section">
                     <div class="card-dark" style="padding: 16px; margin-bottom: 20px;">
                         <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold;">ชื่อผู้รับการคัดกรอง:</span>
-                        <div id="selected-resident-name" style="font-size: 20px; font-weight: 800; color: var(--color-accent); margin-top: 4px;"><?= $isDemo ? $activeName : '' ?></div>
-                        <?php if ($isDemo && !empty($activeResident)): ?>
+                        <div id="selected-resident-name" style="font-size: 20px; font-weight: 800; color: var(--color-accent); margin-top: 4px;"><?= $activeName ?></div>
+                        <?php if (!empty($activeResident)): ?>
                         <div style="margin-top: 6px; font-size: 12px; color: var(--text-muted); display: flex; gap: 8px; flex-wrap: wrap;">
-                            <span>บ้านเลขที่ <?= htmlspecialchars($activeResident['house_no']) ?> ม.<?= htmlspecialchars($activeResident['moo']) ?></span>
+                            <span>บ้านเลขที่ <?= htmlspecialchars($activeResident['house_no'] ?? '') ?> ม.<?= htmlspecialchars($activeResident['moo'] ?? '') ?></span>
                             <span>•</span>
                             <span>รอบที่ <?= htmlspecialchars($activeResident['round_number'] ?? 1) ?></span>
                             <?php if (!empty($activeResident['last_sbp'])): ?>
@@ -1412,6 +1450,28 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             document.querySelectorAll('input[name="smoking_risk"]').forEach(radio => {
                 radio.addEventListener('change', calculateCvRisk);
             });
+
+            // Auto initialize active resident state in JavaScript
+            <?php if (!empty($activeResident)): ?>
+            const firstCard = document.querySelector('.resident-card.selected') || document.querySelector('.resident-card');
+            selectResident(
+                '<?= htmlspecialchars($activeResident['assignment_id'] ?? 'DEMO_ASSIGN_1', ENT_QUOTES) ?>',
+                '<?= htmlspecialchars($activeResident['first_name'] . ' ' . $activeResident['last_name'], ENT_QUOTES) ?>',
+                '<?= htmlspecialchars($activeResident['sex'] ?? '1', ENT_QUOTES) ?>',
+                '<?= htmlspecialchars($activeResident['birth'] ?? '1970-01-01', ENT_QUOTES) ?>',
+                <?= !empty($activeResident['need_screen_dm']) ? 'true' : 'false' ?>,
+                <?= !empty($activeResident['need_screen_ht']) ? 'true' : 'false' ?>,
+                '<?= htmlspecialchars($activeResident['health_status_origin'] ?? 'NORMAL', ENT_QUOTES) ?>',
+                <?= (float)($activeResident['latitude'] ?? 15.4300) ?>,
+                <?= (float)($activeResident['longitude'] ?? 104.9800) ?>,
+                <?= isset($activeResident['last_sbp']) && $activeResident['last_sbp'] !== null ? (int)$activeResident['last_sbp'] : 'null' ?>,
+                <?= isset($activeResident['last_dbp']) && $activeResident['last_dbp'] !== null ? (int)$activeResident['last_dbp'] : 'null' ?>,
+                <?= isset($activeResident['last_dtx']) && $activeResident['last_dtx'] !== null ? (int)$activeResident['last_dtx'] : 'null' ?>,
+                '<?= htmlspecialchars($activeResident['last_dtx_type'] ?? 'fpg', ENT_QUOTES) ?>',
+                firstCard,
+                false
+            );
+            <?php endif; ?>
         });
 
         function selectSkipReason(reason, elem) {
@@ -1519,7 +1579,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             calculateCvRisk();
         }
 
-        function selectResident(assignId, name, sex, birth, needDm, needHt, origin, latVal, lngVal, lastSbp, lastDbp, lastDtx, lastDtxType, card) {
+        function selectResident(assignId, name, sex, birth, needDm, needHt, origin, latVal, lngVal, lastSbp, lastDbp, lastDtx, lastDtxType, card, autoAdvance = true) {
             // Deselect all
             document.querySelectorAll('.resident-card').forEach(c => {
                 c.classList.remove('selected');
@@ -1535,8 +1595,13 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             }
 
             // Store resident info
-            const birthDate = new Date(birth);
-            const age = new Date().getFullYear() - birthDate.getFullYear();
+            let age = 50;
+            if (birth) {
+                const birthDate = new Date(birth);
+                if (!isNaN(birthDate.getTime())) {
+                    age = new Date().getFullYear() - birthDate.getFullYear();
+                }
+            }
             
             selectedResident = {
                 assignmentId: assignId,
@@ -1554,12 +1619,14 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 lastDtxType: lastDtxType || 'fpg'
             };
 
-            document.getElementById('assignment_id').value = assignId;
-            document.getElementById('selected-resident-name').innerText = name;
+            const assignInput = document.getElementById('assignment_id');
+            if (assignInput) assignInput.value = assignId;
+            const resNameEl = document.getElementById('selected-resident-name');
+            if (resNameEl) resNameEl.innerText = name;
             
             // Set home coordinates for GPS mock checks
-            homeLat = parseFloat(latVal);
-            homeLng = parseFloat(lngVal);
+            homeLat = parseFloat(latVal) || 15.4300;
+            homeLng = parseFloat(lngVal) || 104.9800;
             if (isSandboxMode) {
                 mockGps('home');
             }
@@ -1597,16 +1664,19 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             }
 
             // Show next button
-            document.getElementById('btn-next-resident').style.display = 'block';
+            const btnNext = document.getElementById('btn-next-resident');
+            if (btnNext) btnNext.style.display = 'block';
 
             // Trigger initial calculations
             calculateCvRisk();
             calculateBmi();
 
-            // Auto-transition to next step (Zero-Typing 3-Click Flow: Click 1)
-            setTimeout(() => {
-                nextStep('step-vital');
-            }, 250);
+            // Auto-transition to next step (Zero-Typing 3-Click Flow: Click 1) only when directly clicked by user
+            if (autoAdvance) {
+                setTimeout(() => {
+                    nextStep('step-vital');
+                }, 250);
+            }
         }
 
         function nextStep(stepId) {
@@ -3123,7 +3193,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             const phoneInput = document.getElementById('emergency_contact_phone');
             const cleanPhone = (phoneInput?.value || '').replace(/\D/g, '');
 
-            if (cleanPhone.length >= 9 && cleanPhone.length <= 10) {
+            if (/^0\d{8,9}$/.test(cleanPhone)) {
                 if (err) err.style.display = 'none';
                 if (btn) {
                     btn.disabled = false;
@@ -3153,7 +3223,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             let contactType = isVhvChoice ? 'vhv' : 'relative';
 
             const cleanPhone = contactPhone.replace(/\D/g, '');
-            if (cleanPhone.length < 9) {
+            if (!/^0\d{8,9}$/.test(cleanPhone)) {
                 alert('⚠️ กรุณากรอกเบอร์โทรติดต่อกลับให้ถูกต้อง ก่อนส่งสัญญาณฉุกเฉิน');
                 phoneInput?.focus();
                 return;
@@ -3333,20 +3403,14 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
         document.addEventListener('DOMContentLoaded', () => {
             <?php if ($isDemo && !empty($residents)): ?>
             const r = <?= json_encode($residents[0], JSON_UNESCAPED_UNICODE) ?>;
-            let residentAge = r.age ? parseInt(r.age) : 55;
-            if (r.birth && !r.age) {
-                const bDate = new Date(r.birth);
-                if (!isNaN(bDate.getTime())) {
-                    residentAge = new Date().getFullYear() - bDate.getFullYear();
-                }
-            }
+            const birthDate = new Date(r.birth);
+            const age = new Date().getFullYear() - birthDate.getFullYear();
             
             selectedResident = {
-                assignmentId: r.assignment_id || 'DEMO_ASSIGN_1',
-                targetCid: r.cid || '0032500000001',
-                name: `${r.first_name || ''} ${r.last_name || ''}`.trim(),
-                sex: r.sex || '1',
-                age: residentAge,
+                assignmentId: r.assignment_id,
+                name: `${r.first_name} ${r.last_name}`,
+                sex: r.sex,
+                age: age,
                 needDm: true,
                 needHt: true,
                 origin: r.health_status_origin || 'BOTH',
@@ -3358,14 +3422,6 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
                 lastDtxType: r.last_dtx_type || 'fpg',
                 roundNumber: parseInt(r.round_number || 1)
             };
-
-            const elAssign = document.getElementById('assignment_id');
-            if (elAssign) elAssign.value = selectedResident.assignmentId;
-            const elTargetCid = document.getElementById('target_cid');
-            if (elTargetCid) elTargetCid.value = selectedResident.targetCid;
-            const elResName = document.getElementById('selected-resident-name');
-            if (elResName) elResName.innerText = selectedResident.name;
-
             calculateBmi();
             calculateCvRisk();
             <?php else: ?>

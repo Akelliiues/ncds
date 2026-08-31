@@ -4,8 +4,19 @@ require_once __DIR__ . '/../config/session.php';
 
 // ตรวจสอบสิทธิ์แอดมิน
 if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    header("Location: ../index.php");
-    exit();
+    if (!empty($_SESSION['is_demo_mode']) && ($_SESSION['demo_role'] ?? '') === 'staff') {
+        $_SESSION['admin_logged_in'] = true;
+        $_SESSION['admin_username'] = 'demo_staff';
+        $_SESSION['admin_hoscode'] = '00325';
+        $_SESSION['admin_hosname'] = 'สำนักงานสาธารณสุขอำเภอตาลสุม';
+        $_SESSION['admin_role'] = 'staff';
+        $_SESSION['is_visitor'] = false;
+        $_SESSION['is_executive'] = false;
+        $_SESSION['is_super_admin'] = false;
+    } else {
+        header("Location: ../index.php");
+        exit();
+    }
 }
 
 require_once __DIR__ . '/../config/demo_banner.php';
@@ -175,6 +186,49 @@ if (DemoDataProvider::isDemoMode()) {
     $chartRound1Count = 185;
     $chartRound2Count = 64;
     $chartRound3Count = 7;
+
+    $metrics = [
+        'total_targets' => $total_targets_val,
+        'group_risk' => $groupCounts['group_risk'] ?? 250,
+        'group_dm' => $groupCounts['group_dm'] ?? 45,
+        'group_ht' => $groupCounts['group_ht'] ?? 80,
+        'group_both' => $groupCounts['group_both'] ?? 125,
+        'group_normal' => $groupCounts['group_normal'] ?? 30,
+        'group_suspected' => $groupCounts['group_suspected'] ?? 15,
+        'screened_count' => $screened_val,
+        'pending_count' => 50,
+        'skipped_count' => 15,
+        'total_points' => 1250,
+        'total_vhvs' => 25,
+        'r1_completed' => 185,
+        'r2_completed' => 64,
+        'r3_completed' => 7
+    ];
+    $groupDetail = [
+        ['health_status_origin' => 'BOTH', 'count' => 125],
+        ['health_status_origin' => 'DM_ONLY', 'count' => 45],
+        ['health_status_origin' => 'HT_ONLY', 'count' => 80],
+        ['health_status_origin' => 'SUSPECT', 'count' => 15],
+        ['health_status_origin' => 'NORMAL', 'count' => 35]
+    ];
+    $targetsDetail = [
+        ['hoscode' => '99999', 'moo' => '1', 'village_name' => 'หมู่ 1 บ้านตาลสุม (จำลอง)', 'health_status_origin' => 'BOTH', 'count' => 25],
+        ['hoscode' => '99999', 'moo' => '2', 'village_name' => 'หมู่ 2 บ้านดอนใหญ่ (จำลอง)', 'health_status_origin' => 'BOTH', 'count' => 30],
+        ['hoscode' => '99999', 'moo' => '3', 'village_name' => 'หมู่ 3 บ้านโคกสว่าง (จำลอง)', 'health_status_origin' => 'BOTH', 'count' => 20]
+    ];
+    $skippedDetail = [
+        ['skipped_reason' => 'ไม่อยู่บ้าน/ไปทำงานต่างจังหวัด', 'count' => 14],
+        ['skipped_reason' => 'ปฏิเสธการตรวจ', 'count' => 5],
+        ['skipped_reason' => 'ย้ายที่อยู่ชั่วคราว', 'count' => 8]
+    ];
+    $pendingDetail = [
+        ['hoscode' => '99999', 'moo' => '1', 'village_name' => 'หมู่ 1 บ้านตาลสุม (จำลอง)', 'count' => 10],
+        ['hoscode' => '99999', 'moo' => '2', 'village_name' => 'หมู่ 2 บ้านดอนใหญ่ (จำลอง)', 'count' => 15]
+    ];
+    $rewardsDetail = [
+        ['vhv_name' => 'อสม. สมชาย ใจดี (จำลอง)', 'total_points' => 340],
+        ['vhv_name' => 'อสม. สมศรี สุขสรรค์ (จำลอง)', 'total_points' => 290]
+    ];
 } elseif ($admin_hoscode) {
     $hoscodes = get_query_hoscodes($admin_hoscode);
     $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
@@ -1649,7 +1703,28 @@ if (!DemoDataProvider::isDemoMode()) {
                     </thead>
                     <tbody>
                         <?php
-                        if ($admin_hoscode) {
+                        if (DemoDataProvider::isDemoMode()) {
+                            // Demo pages must be renderable without depending on optional
+                            // demo tables on the host database.
+                            $recentScreens = [
+                                [
+                                    'house_no' => '12/1',
+                                    'moo' => '1',
+                                    'sub_district_code' => '341001',
+                                    'hoscode' => '00325',
+                                    'sys_bp' => 138,
+                                    'dia_bp' => 86,
+                                    'dtx_value' => 118,
+                                    'bmi' => 23.4,
+                                    'cv_risk_score' => 6.2,
+                                    'vhv_name' => 'อสม. สมชาย ใจดี (จำลอง)',
+                                    'screening_lat' => 15.3456,
+                                    'screening_lng' => 105.1234,
+                                    'activity_type' => 'คัดกรองแรก',
+                                    'created_at' => date('Y-m-d H:i:s', strtotime('-20 minutes'))
+                                ]
+                            ];
+                        } elseif ($admin_hoscode) {
                             $hoscodes = get_query_hoscodes($admin_hoscode);
                             $inPlaceholders = implode(',', array_fill(0, count($hoscodes), '?'));
                             $recentScreenQuery = $pdo->prepare("

@@ -427,7 +427,12 @@ foreach ($portsToTry as $pTry) {
                 $dsnTry = "mysql:host=$host;dbname=$db;charset=$charset";
             }
 
-            if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION['is_demo_mode']) && $_SESSION['is_demo_mode'] === true) {
+            $useDemoDatabase = session_status() === PHP_SESSION_ACTIVE
+                && isset($_SESSION['is_demo_mode'])
+                && $_SESSION['is_demo_mode'] === true
+                && !(defined('NCD_USE_REALTIME_ALERT_DATABASE') && NCD_USE_REALTIME_ALERT_DATABASE === true);
+
+            if ($useDemoDatabase) {
                 $pdo = new DemoMockPDO($dsnTry, $uName, $uPass, $options);
                 initDemoMockupDatabase($pdo);
             } else {
