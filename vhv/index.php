@@ -413,7 +413,7 @@ if (DemoDataProvider::isDemoMode()) {
                     <h2 style="color: var(--text-primary); margin: 0 0 2px 0; font-size: 18px; font-weight: 800; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?= htmlspecialchars($vhvName) ?></h2>
 
                     <p style="color: var(--text-secondary); margin: 0; font-size: 12px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        หมู่ <?= $vhvMoo ?> • รพ.สต. [<?= htmlspecialchars($hoscode) ?>]
+                        หมู่ <?= $vhvMoo ?> • <?= ($hoscode === '00325') ? 'สสอ.ตาลสุม' : (($hoscode === '10957') ? 'รพ.ตาลสุม' : 'รพ.สต.') ?> [<?= htmlspecialchars($hoscode) ?>]
                         <?php if ($isLeader == 1): ?>
                             • <span style="color: var(--color-accent); font-weight: bold;">ประธานหมู่บ้าน</span>
                         <?php elseif ($isLeader == 2): ?>
