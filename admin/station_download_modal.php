@@ -12,55 +12,56 @@ $stationSetupSha256 = $stationSetupAvailable ? hash_file('sha256', $stationSetup
         z-index: 100000; 
         display: grid; 
         place-items: center; 
-        padding: 24px; 
+        padding: 16px; 
         background: rgba(15, 23, 42, 0.65); 
         backdrop-filter: blur(8px); 
-        animation: fadeIn 0.2s ease-out;
+        animation: fadeIn 0.18s ease-out;
     }
     .station-download-dialog { 
-        width: min(840px, 96vw); 
+        width: min(980px, 95vw); 
         border: 0; 
-        border-radius: 28px; 
-        padding: 32px 36px; 
+        border-radius: 24px; 
+        padding: 22px 28px; 
         color: #1e293b; 
         background: #edf3f9; 
         box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.4), 0 0 0 1px rgba(255,255,255,0.7); 
         font-family: "Prompt", "Sarabun", "Leelawadee UI", sans-serif; 
-        max-height: 92vh;
+        max-height: 96vh;
         overflow-y: auto;
+        box-sizing: border-box;
     }
     .station-download-head { 
         display: flex; 
-        align-items: flex-start; 
+        align-items: center; 
         justify-content: space-between; 
-        gap: 20px; 
-        padding-bottom: 20px;
+        gap: 16px; 
+        padding-bottom: 12px;
         border-bottom: 1.5px solid rgba(203, 213, 225, 0.7);
     }
     .station-download-title { 
         margin: 0; 
-        font-size: 1.55rem; 
+        font-size: 1.35rem; 
         font-weight: 900; 
-        line-height: 1.3; 
+        line-height: 1.25; 
         color: #0f172a;
     }
     .station-download-subtitle { 
-        margin: 6px 0 0; 
+        margin: 3px 0 0; 
         color: #475569; 
-        font-size: 1rem; 
-        line-height: 1.5; 
+        font-size: 0.92rem; 
+        line-height: 1.4; 
     }
     .station-download-close { 
-        flex: 0 0 44px; 
-        width: 44px; 
-        height: 44px; 
+        flex: 0 0 38px; 
+        width: 38px; 
+        height: 38px; 
         border: 0; 
-        border-radius: 14px; 
+        border-radius: 12px; 
         color: #64748b; 
         background: #edf3f9; 
-        box-shadow: 5px 5px 12px #cbd6e1, -5px -5px 12px #fff; 
+        box-shadow: 4px 4px 10px #cbd6e1, -4px -4px 10px #fff; 
         cursor: pointer; 
-        font-size: 1.5rem; 
+        font-size: 1.35rem; 
         display: flex;
         align-items: center;
         justify-content: center;
@@ -68,101 +69,101 @@ $stationSetupSha256 = $stationSetupAvailable ? hash_file('sha256', $stationSetup
     }
     .station-download-close:hover {
         color: #0f172a;
-        box-shadow: inset 2px 2px 5px #cbd6e1, inset -2px -2px 5px #fff;
+        box-shadow: inset 2px 2px 4px #cbd6e1, inset -2px -2px 4px #fff;
     }
     .station-profiles-grid {
-        margin: 22px 0 18px;
+        margin: 12px 0 10px;
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 16px;
+        gap: 12px;
     }
     .profile-card {
         background: #e6eef7;
-        border-radius: 20px;
-        padding: 20px 22px;
-        box-shadow: inset 2.5px 2.5px 6px #cbd6e1, inset -2.5px -2.5px 6px #ffffff;
+        border-radius: 16px;
+        padding: 12px 16px;
+        box-shadow: inset 2px 2px 5px #cbd6e1, inset -2px -2px 5px #ffffff;
         border: 1.5px solid rgba(255,255,255,0.8);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
     }
     .profile-card.hub {
-        border-top: 4px solid #2563eb;
+        border-top: 3.5px solid #2563eb;
     }
     .profile-card.subcenter {
-        border-top: 4px solid #059669;
+        border-top: 3.5px solid #059669;
     }
     .profile-badge {
         display: inline-flex;
         align-items: center;
         gap: 6px;
         font-weight: 900;
-        font-size: 14.5px;
-        margin-bottom: 10px;
+        font-size: 13.5px;
+        margin-bottom: 6px;
     }
     .profile-badge.hub { color: #1d4ed8; }
     .profile-badge.subcenter { color: #047857; }
     .profile-desc {
-        font-size: 13px;
+        font-size: 12px;
         color: #334155;
-        line-height: 1.55;
+        line-height: 1.45;
     }
     .station-download-info { 
-        margin: 18px 0; 
+        margin: 10px 0; 
         display: grid; 
         grid-template-columns: repeat(3, 1fr); 
-        gap: 12px; 
+        gap: 10px; 
     }
     .station-download-item { 
         min-width: 0; 
-        padding: 14px 18px; 
-        border-radius: 18px; 
+        padding: 8px 14px; 
+        border-radius: 14px; 
         background: #e6eef7; 
-        box-shadow: inset 2px 2px 5px #cbd6e1, inset -2px -2px 5px #fff; 
+        box-shadow: inset 2px 2px 4px #cbd6e1, inset -2px -2px 4px #fff; 
     }
     .station-download-item small { 
         display: block; 
         color: #64748b; 
-        margin-bottom: 4px; 
+        margin-bottom: 2px; 
         font-weight: 800; 
-        font-size: 11.5px;
+        font-size: 10.5px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
     .station-download-item strong { 
         display: block; 
-        font-size: 14px;
+        font-size: 12.5px;
         color: #0f172a;
         overflow: hidden; 
         text-overflow: ellipsis; 
         white-space: nowrap; 
     }
     .station-download-sha-box { 
-        margin-bottom: 18px; 
-        padding: 16px 20px; 
-        border-radius: 20px; 
+        margin-bottom: 10px; 
+        padding: 10px 14px; 
+        border-radius: 14px; 
         background: #e6eef7; 
-        box-shadow: inset 2.5px 2.5px 6px #cbd6e1, inset -2.5px -2.5px 6px #fff; 
+        box-shadow: inset 2px 2px 5px #cbd6e1, inset -2px -2px 5px #fff; 
     }
     .station-download-sha-head { 
         display: flex; 
         align-items: center; 
         justify-content: space-between; 
-        margin-bottom: 8px; 
+        margin-bottom: 5px; 
     }
     .btn-copy-sha { 
         background: #edf3f9; 
         border: 1px solid #cbd6e1; 
-        border-radius: 10px; 
-        padding: 5px 12px; 
-        font-size: 12px; 
+        border-radius: 8px; 
+        padding: 3px 10px; 
+        font-size: 11px; 
         font-weight: 800; 
         color: #2563eb; 
         cursor: pointer; 
         display: inline-flex; 
         align-items: center; 
-        gap: 5px; 
-        box-shadow: 2px 2px 5px #cbd6e1, -2px -2px 5px #fff; 
+        gap: 4px; 
+        box-shadow: 2px 2px 4px #cbd6e1, -2px -2px 4px #fff; 
         transition: all 0.2s;
     }
     .btn-copy-sha:hover { 
@@ -173,63 +174,63 @@ $stationSetupSha256 = $stationSetupAvailable ? hash_file('sha256', $stationSetup
     .station-download-sha-code { 
         display: block; 
         font-family: "JetBrains Mono", "Consolas", monospace; 
-        font-size: 12.5px; 
+        font-size: 11.5px; 
         font-weight: 600;
         color: #0f172a; 
         word-break: break-all; 
         background: #ffffff; 
-        padding: 10px 14px; 
-        border-radius: 12px; 
+        padding: 6px 10px; 
+        border-radius: 8px; 
         border: 1px solid rgba(203, 213, 225, 0.8); 
         user-select: all; 
-        line-height: 1.45; 
-        box-shadow: inset 1px 1px 3px rgba(0,0,0,0.05);
+        line-height: 1.35; 
+        box-shadow: inset 1px 1px 2px rgba(0,0,0,0.05);
     }
     .station-download-note { 
-        margin: 0 0 24px; 
-        padding: 14px 18px; 
-        border-radius: 18px; 
+        margin: 0 0 14px; 
+        padding: 9px 14px; 
+        border-radius: 12px; 
         color: #854d0e; 
         background: #fef9c3; 
         border: 1px solid #fef08a;
-        line-height: 1.55; 
-        font-size: 0.95rem; 
+        line-height: 1.45; 
+        font-size: 0.88rem; 
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
     }
     .station-download-error { color: #991b1b; background: #fee2e2; border-color: #fecaca; }
     .station-download-actions { 
         display: flex; 
         align-items: center; 
         justify-content: flex-end; 
-        gap: 14px; 
+        gap: 12px; 
     }
     .station-download-action { 
-        min-height: 52px; 
+        min-height: 44px; 
         display: inline-flex; 
         align-items: center; 
         justify-content: center; 
         border: 0; 
-        border-radius: 18px; 
-        padding: 12px 28px; 
+        border-radius: 14px; 
+        padding: 8px 22px; 
         font: inherit; 
-        font-size: 15px;
+        font-size: 14px;
         font-weight: 800; 
         text-decoration: none; 
         cursor: pointer; 
         color: #334155; 
         background: #edf3f9; 
-        box-shadow: 6px 6px 14px #cbd6e1, -6px -6px 14px #fff; 
+        box-shadow: 4px 4px 10px #cbd6e1, -4px -4px 10px #fff; 
         transition: all 0.2s;
     }
     .station-download-action:hover {
-        box-shadow: 3px 3px 8px #cbd6e1, -3px -3px 8px #fff;
+        box-shadow: 2px 2px 5px #cbd6e1, -2px -2px 5px #fff;
     }
     .station-download-action.primary { 
         color: #fff; 
         background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); 
-        box-shadow: 6px 6px 16px rgba(37, 99, 235, 0.35), -4px -4px 12px #fff; 
+        box-shadow: 4px 4px 12px rgba(37, 99, 235, 0.35), -3px -3px 8px #fff; 
     }
     .station-download-action.primary:hover {
         background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
@@ -240,7 +241,7 @@ $stationSetupSha256 = $stationSetupAvailable ? hash_file('sha256', $stationSetup
         .station-download-info { grid-template-columns: 1fr; }
         .station-download-actions { flex-direction: column-reverse; }
         .station-download-action { width: 100%; }
-        .station-download-dialog { padding: 22px; }
+        .station-download-dialog { padding: 18px; }
     }
 </style>
 
