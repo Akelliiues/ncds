@@ -133,6 +133,12 @@ try {
         JOIN target_population p ON a.target_cid = p.cid
         LEFT JOIN screening_results sr ON a.assignment_id = sr.assignment_id
         WHERE a.vhv_id = ? AND a.budget_year = ?
+          AND (
+              ((p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35 OR COALESCE(p.is_manual, 0) = 1))
+              OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+              OR COALESCE(p.is_manual, 0) = 1
+              OR sr.screening_id IS NOT NULL
+          )
         
         UNION ALL
         

@@ -884,6 +884,19 @@ try {
         ");
     } catch (\PDOException $e) {}
 
+    // Auto-reconciliation: Automatically purge any invalid pending task assignments for non-targets (< 35 years old and not a clinical risk or manual target)
+    try {
+        $pdo->exec("
+            DELETE ta FROM task_assignments ta
+            JOIN target_population tp ON ta.target_cid = tp.cid
+            WHERE ta.assignment_status = 'pending'
+              AND TIMESTAMPDIFF(YEAR, tp.birth, CURDATE()) < 35
+              AND COALESCE(tp.is_manual, 0) = 0
+              AND tp.health_status_origin NOT IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
+              AND NOT EXISTS (SELECT 1 FROM screening_results sr WHERE sr.assignment_id = ta.assignment_id OR sr.target_cid = ta.target_cid)
+        ");
+    } catch (\PDOException $e) {}
+
     // Backfill assignment_id in vhv_rewards from screening_results or task_assignments
     try {
         $pdo->exec("

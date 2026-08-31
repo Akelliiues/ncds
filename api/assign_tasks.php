@@ -71,7 +71,7 @@ try {
     $pdo->beginTransaction();
 
     foreach ($cids as $cid) {
-        $tStmt = $pdo->prepare("SELECT first_name, last_name, hoscode, vhid_code, moo FROM target_population WHERE cid = ?");
+        $tStmt = $pdo->prepare("SELECT first_name, last_name, hoscode, vhid_code, moo, birth, need_screen_dm, need_screen_ht, health_status_origin, is_manual FROM target_population WHERE cid = ?");
         $tStmt->execute([$cid]);
         $tRow = $tStmt->fetch();
         if (!$tRow) {
@@ -83,6 +83,17 @@ try {
             if (!in_array($tRow['hoscode'], $allowed_hoscodes)) {
                 throw new \Exception("กลุ่มเป้าหมาย {$residentName} อยู่นอกเขตบริการ ไม่สามารถดำเนินการได้");
             }
+        }
+
+        // Strict target validation: Age >= 35 or clinical risk or manual target
+        $birthDate = !empty($tRow['birth']) ? new \DateTime($tRow['birth']) : null;
+        $now = new \DateTime();
+        $age = $birthDate ? $now->diff($birthDate)->y : 0;
+        $isClinicalRisk = in_array($tRow['health_status_origin'] ?? '', ['RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH']);
+        $isManual = (int)($tRow['is_manual'] ?? 0) === 1;
+
+        if ($age < 35 && !$isClinicalRisk && !$isManual) {
+            throw new \Exception("ไม่สามารถมอบหมายงานให้ {$residentName} ได้ เนื่องจากอายุ {$age} ปี (ต่ำกว่าเกณฑ์ 35 ปี) และไม่ได้ระบุเป็นกลุ่มเสี่ยงเฉพาะ");
         }
 
         $isSandboxVal = isSandboxMode($vhvRow['hoscode']) ? 1 : 0;

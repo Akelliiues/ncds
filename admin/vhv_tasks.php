@@ -487,19 +487,14 @@ if ($admin_hoscode !== null) {
                 <!-- Top Table Card: NCD Screenings -->
                 <div class="list-card" id="ncd-card" style="height: 330px; padding: 18px; margin-bottom: 0; min-width: 0;">
                     <div class="task-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 0;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 8px; flex-wrap: wrap;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                             <div>
                                 <h3 style="margin: 0; color: var(--color-primary); font-size: 15px;">📋 งานคัดกรอง NCD</h3>
                                 <p style="color: var(--text-muted); margin: 3px 0 0 0; font-size: 12px;" id="ncd-summary-text">ค้าง 0 | ทั้งหมด 0 ใบ</p>
                             </div>
-                            <div style="display: flex; gap: 8px;">
-                                <button class="btn-cancel-all" id="btn-cancel-ncd-invalid" style="display: none; background: rgba(239, 68, 68, 0.15); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.3);" onclick="cancelInvalidNcdTasks()">
-                                    🧹 ดึงคืนคนอายุ &lt; 35 ปี
-                                </button>
-                                <button class="btn-cancel-all" id="btn-cancel-ncd" style="display: none;" onclick="cancelAllNcdTasks()">
-                                    ดึงคืนทั้งหมด
-                                </button>
-                            </div>
+                            <button class="btn-cancel-all" id="btn-cancel-ncd" style="display: none;" onclick="cancelAllNcdTasks()">
+                                ดึงคืนทั้งหมด
+                            </button>
                         </div>
                     </div>
                     <div class="list-body" style="overflow-x: auto; margin-top: 10px;">
@@ -735,7 +730,6 @@ if ($admin_hoscode !== null) {
             const ncdTbody = document.getElementById('ncd-list-body');
             const ncdText = document.getElementById('ncd-summary-text');
             const btnCancelNcd = document.getElementById('btn-cancel-ncd');
-            const btnCancelNcdInvalid = document.getElementById('btn-cancel-ncd-invalid');
 
             ncdTbody.innerHTML = '';
             let ncdPending = 0;
@@ -743,7 +737,6 @@ if ($admin_hoscode !== null) {
             if (currentNcdTasks.length === 0) {
                 ncdTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 30px; color:var(--text-muted);">ไม่มีงานคัดกรอง NCD</td></tr>';
                 btnCancelNcd.style.display = 'none';
-                if (btnCancelNcdInvalid) btnCancelNcdInvalid.style.display = 'none';
             } else {
                 currentNcdTasks.forEach(t => {
                     let statusHtml = '';
@@ -785,16 +778,11 @@ if ($admin_hoscode !== null) {
                     const datePrefix = t.assignment_status === 'completed' ? 'คัดกรอง: ' : (t.assignment_status === 'skipped' ? 'บันทึก: ' : 'มอบหมาย: ');
                     let dateText = datePrefix + formatThaiDate(dateVal);
 
-                    const isUnder35Invalid = parseInt(t.age) < 35 && (!t.is_valid_target || t.is_valid_target == 0);
-                    const ageDisplay = isUnder35Invalid 
-                        ? `<span style="background: rgba(239, 68, 68, 0.15); color: #dc2626; padding: 2px 6px; border-radius: 8px; font-weight: bold; font-size: 11px;" title="อายุต่ำกว่าเกณฑ์มาตรฐาน 35 ปี">${t.age} ⚠️</span>` 
-                        : `${t.age}`;
-
                     ncdTbody.innerHTML += `
-                        <tr ${isUnder35Invalid && t.assignment_status === 'pending' ? 'style="background: rgba(239, 68, 68, 0.03);"' : ''}>
+                        <tr>
                             <td style="font-family:monospace; font-size:12.5px;">${t.cid}</td>
                             <td><strong>${t.first_name} ${t.last_name}</strong></td>
-                            <td style="text-align:center; font-size:12.5px;">${ageDisplay}</td>
+                            <td style="text-align:center; font-size:12.5px;">${t.age}</td>
                             <td style="font-size:12.5px;">${t.house_no} ม.${t.moo}</td>
                             <td style="font-size:12.5px;">${statusHtml}</td>
                             <td style="font-size:12px; color:var(--text-muted);">${dateText}</td>
@@ -803,16 +791,6 @@ if ($admin_hoscode !== null) {
                     `;
                 });
                 btnCancelNcd.style.display = ncdPending > 0 ? 'inline-flex' : 'none';
-
-                const invalidPendingCount = currentNcdTasks.filter(t => t.assignment_status === 'pending' && parseInt(t.age) < 35 && (!t.is_valid_target || t.is_valid_target == 0)).length;
-                if (btnCancelNcdInvalid) {
-                    if (invalidPendingCount > 0) {
-                        btnCancelNcdInvalid.style.display = 'inline-flex';
-                        btnCancelNcdInvalid.innerHTML = `🧹 ดึงคืนคนอายุ &lt; 35 ปี (${invalidPendingCount})`;
-                    } else {
-                        btnCancelNcdInvalid.style.display = 'none';
-                    }
-                }
             }
             const ncdCompleted = currentNcdTasks.filter(t => t.assignment_status === 'completed').length;
             const ncdSkipped = currentNcdTasks.filter(t => t.assignment_status === 'skipped').length;
@@ -1069,18 +1047,6 @@ if ($admin_hoscode !== null) {
                         }
                     })
                     .catch(() => alert("เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย"));
-            }
-        }
-
-        function cancelInvalidNcdTasks() {
-            const invalidTasks = currentNcdTasks.filter(t => t.assignment_status === 'pending' && parseInt(t.age) < 35 && (!t.is_valid_target || t.is_valid_target == 0));
-            if (invalidTasks.length === 0) {
-                alert("ไม่พบใบงานค้างของบุคคลที่อายุต่ำกว่า 35 ปี ที่ไม่เข้าเกณฑ์");
-                return;
-            }
-
-            if (confirm(`⚠️ ยืนยันดึงงานค้างของบุคคลอายุต่ำกว่า 35 ปี (ไม่เข้าเกณฑ์คัดกรองหลัก) คืนทั้งหมดจำนวน ${invalidTasks.length} รายการ จาก อสม. ${selectedVhvName}?`)) {
-                executeBulkCancel(invalidTasks);
             }
         }
 
