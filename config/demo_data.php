@@ -16,7 +16,7 @@ class DemoDataProvider {
         return [
             // --- หมู่ 1: ได้รับมอบหมาย (กดคัดกรองได้จากหน้าหลัก อสม. หรือสแกน QR ก็ผ่าน) ---
             [
-                'cid' => '9999900000001',
+                'cid' => '0032500000001',
                 'first_name' => 'สมชาย',
                 'last_name' => 'ใจดี (จำลอง)',
                 'sex' => '1',
@@ -39,7 +39,7 @@ class DemoDataProvider {
                 'health_case' => 'risk' // กลุ่มเสี่ยง (Pre-HT/DM)
             ],
             [
-                'cid' => '9999900000002',
+                'cid' => '0032500000002',
                 'first_name' => 'สมศรี',
                 'last_name' => 'สุขสรรค์ (จำลอง)',
                 'sex' => '2',
@@ -64,7 +64,7 @@ class DemoDataProvider {
 
             // --- หมู่ 2: Bypass สแกน QR Code หมู่ 2 ได้ทั้งหมด และเข้าคัดกรองได้ปกติ ---
             [
-                'cid' => '9999900000003',
+                'cid' => '0032500000003',
                 'first_name' => 'บุญมี',
                 'last_name' => 'มีโชค (จำลอง)',
                 'sex' => '1',
@@ -87,7 +87,7 @@ class DemoDataProvider {
                 'health_case' => 'round2_comparison' // เคสรอบที่ 2 สำหรับเปรียบเทียบผลกับรอบ 1
             ],
             [
-                'cid' => '9999900000004',
+                'cid' => '0032500000004',
                 'first_name' => 'ทองสุข',
                 'last_name' => 'สดใส (จำลอง)',
                 'sex' => '2',
@@ -112,7 +112,7 @@ class DemoDataProvider {
 
             // --- หมู่ 3: ล็อกการคัดกรองเพราะ "ยังไม่ได้รับมอบหมายงาน" ---
             [
-                'cid' => '9999900000005',
+                'cid' => '0032500000005',
                 'first_name' => 'วิชัย',
                 'last_name' => 'มั่นคง (จำลอง)',
                 'sex' => '1',
@@ -134,7 +134,7 @@ class DemoDataProvider {
                 'demo_category' => 'moo3_unassigned'
             ],
             [
-                'cid' => '9999900000006',
+                'cid' => '0032500000006',
                 'first_name' => 'อำนวย',
                 'last_name' => 'รวยรื่น (จำลอง)',
                 'sex' => '2',
@@ -159,7 +159,7 @@ class DemoDataProvider {
             // --- หมู่ 4: ล็อกการคัดกรองเพราะ "ยังไม่ได้รับมอบหมายงาน" ---
             [
                 'hid' => '1007',
-                'cid' => '9999900001007',
+                'cid' => '0032500001007',
                 'first_name' => 'อนันต์',
                 'last_name' => 'เจริญสุข (จำลอง)',
                 'sex' => '1',
@@ -185,7 +185,7 @@ class DemoDataProvider {
             // --- หมู่ 5: ล็อกการคัดกรองเพราะ "สแกนข้ามเขต" ---
             [
                 'hid' => '1008',
-                'cid' => '9999900001008',
+                'cid' => '0032500001008',
                 'first_name' => 'อุบล',
                 'last_name' => 'มีสุข (จำลอง)',
                 'sex' => '2',
@@ -210,7 +210,7 @@ class DemoDataProvider {
 
             // --- หมู่ 5: ล็อกการคัดกรองเพราะ "สแกนข้ามเขต" ---
             [
-                'cid' => '9999900000009',
+                'cid' => '0032500000009',
                 'first_name' => 'ประเสริฐ',
                 'last_name' => 'เลิศล้ำ (จำลอง)',
                 'sex' => '1',
@@ -232,7 +232,7 @@ class DemoDataProvider {
                 'demo_category' => 'moo5_outofarea'
             ],
             [
-                'cid' => '9999900000010',
+                'cid' => '0032500000010',
                 'first_name' => 'พวงเพ็ญ',
                 'last_name' => 'เจริญผล (จำลอง)',
                 'sex' => '2',
@@ -255,7 +255,7 @@ class DemoDataProvider {
             ],
             // --- รายการเพิ่มเติมสำหรับจำลองการจัดการกลุ่มเป้าหมาย (หมู่ 1 - 5) ---
             [
-                'cid' => '9999900000011',
+                'cid' => '0032500000011',
                 'first_name' => 'สำราญ',
                 'last_name' => 'จิตผ่อง (จำลอง)',
                 'sex' => '1',
@@ -276,7 +276,7 @@ class DemoDataProvider {
                 'last_dtx_type' => 'fpg'
             ],
             [
-                'cid' => '9999900000012',
+                'cid' => '0032500000012',
                 'first_name' => 'ประนอม',
                 'last_name' => 'ศรีสวัสดิ์ (จำลอง)',
                 'sex' => '2',
@@ -297,7 +297,7 @@ class DemoDataProvider {
                 'last_dtx_type' => 'fpg'
             ],
             [
-                'cid' => '9999900000013',
+                'cid' => '0032500000013',
                 'first_name' => 'ชูเกียรติ',
                 'last_name' => 'มั่นคง (จำลอง)',
                 'sex' => '1',
@@ -318,7 +318,7 @@ class DemoDataProvider {
                 'last_dtx_type' => 'fpg'
             ],
             [
-                'cid' => '9999900000014',
+                'cid' => '0032500000014',
                 'first_name' => 'จันทร์แรม',
                 'last_name' => 'แก้วมณี (จำลอง)',
                 'sex' => '2',
@@ -339,7 +339,7 @@ class DemoDataProvider {
                 'last_dtx_type' => 'fpg'
             ],
             [
-                'cid' => '9999900000015',
+                'cid' => '0032500000015',
                 'first_name' => 'ประสิทธิ์',
                 'last_name' => 'วารินทร์ (จำลอง)',
                 'sex' => '1',
@@ -360,7 +360,7 @@ class DemoDataProvider {
                 'last_dtx_type' => 'fpg'
             ],
             [
-                'cid' => '9999900000016',
+                'cid' => '0032500000016',
                 'first_name' => 'บัวลอย',
                 'last_name' => 'สุขสมบูรณ์ (จำลอง)',
                 'sex' => '2',
@@ -381,7 +381,7 @@ class DemoDataProvider {
                 'last_dtx_type' => 'fpg'
             ],
             [
-                'cid' => '9999900000017',
+                'cid' => '0032500000017',
                 'first_name' => 'ไพฑูรย์',
                 'last_name' => 'ศรีสุมิตร (จำลอง)',
                 'sex' => '1',
@@ -402,7 +402,7 @@ class DemoDataProvider {
                 'last_dtx_type' => 'fpg'
             ],
             [
-                'cid' => '9999900000018',
+                'cid' => '0032500000018',
                 'first_name' => 'ดวงใจ',
                 'last_name' => 'สายธาร (จำลอง)',
                 'sex' => '2',
@@ -423,7 +423,7 @@ class DemoDataProvider {
                 'last_dtx_type' => 'fpg'
             ],
             [
-                'cid' => '9999900000019',
+                'cid' => '0032500000019',
                 'first_name' => 'สง่า',
                 'last_name' => 'วงศ์เจริญ (จำลอง)',
                 'sex' => '1',
@@ -444,7 +444,7 @@ class DemoDataProvider {
                 'last_dtx_type' => 'fpg'
             ],
             [
-                'cid' => '9999900000020',
+                'cid' => '0032500000020',
                 'first_name' => 'ปราณี',
                 'last_name' => 'ทองหล่อ (จำลอง)',
                 'sex' => '2',
@@ -505,7 +505,7 @@ class DemoDataProvider {
             'recent_screenings' => [
                 [
                     'screening_id' => 'DEMO_SCR_101',
-                    'cid' => '9999900000005',
+                    'cid' => '0032500000005',
                     'first_name' => 'วิชัย',
                     'last_name' => 'มั่นคง (จำลอง)',
                     'house_no' => '15/3',
@@ -521,7 +521,7 @@ class DemoDataProvider {
                 ],
                 [
                     'screening_id' => 'DEMO_SCR_102',
-                    'cid' => '9999900000004',
+                    'cid' => '0032500000004',
                     'first_name' => 'ทองสุข',
                     'last_name' => 'สดใส (จำลอง)',
                     'house_no' => '101',
@@ -539,7 +539,7 @@ class DemoDataProvider {
             'dpac_followups' => [
                 [
                     'followup_id' => 'DEMO_DPAC_101',
-                    'cid' => '9999900000003',
+                    'cid' => '0032500000003',
                     'first_name' => 'บุญมี',
                     'last_name' => 'มีโชค (จำลอง)',
                     'house_no' => '88',
@@ -826,7 +826,7 @@ class DemoDataProvider {
                 'village_name' => $n[1],
                 'vhv_moo' => $n[2],
                 'vhid_code' => '3410010' . $n[2],
-                'hoscode' => '99999',
+                'hoscode' => '00325',
                 'is_hl_coach' => $n[3],
                 'total_points' => $n[4],
                 'screening_points' => $n[5],
@@ -867,7 +867,7 @@ class DemoDataProvider {
                 'completed_targets' => 503, 'fair_score' => 88.90
             ],
             [
-                'hoscode' => '99999',
+                'hoscode' => '00325',
                 'hosname' => 'รพ.สต.ตาลสุม (จำลอง)',
                 'total_targets' => 283, 'r1_total' => 283, 'r1_done' => 247,
                 'r2_total' => 176, 'r2_done' => 176, 'r3_done' => 68,
@@ -914,7 +914,7 @@ class DemoDataProvider {
                 'moo' => 1,
                 'village_name' => 'บ้านตาลสุม (จำลอง)',
                 'vhid_code' => '34100101',
-                'hoscode' => '99999',
+                'hoscode' => '00325',
                 'phone' => '081-234-5671',
                 'is_leader' => 1,
                 'is_hl_coach' => 1,
@@ -930,7 +930,7 @@ class DemoDataProvider {
                 'moo' => 2,
                 'village_name' => 'บ้านดอนใหญ่ (จำลอง)',
                 'vhid_code' => '34100102',
-                'hoscode' => '99999',
+                'hoscode' => '00325',
                 'phone' => '082-345-6782',
                 'is_leader' => 0,
                 'is_hl_coach' => 1,
@@ -946,7 +946,7 @@ class DemoDataProvider {
                 'moo' => 3,
                 'village_name' => 'บ้านโคกสว่าง (จำลอง)',
                 'vhid_code' => '34100103',
-                'hoscode' => '99999',
+                'hoscode' => '00325',
                 'phone' => '083-456-7893',
                 'is_leader' => 1,
                 'is_hl_coach' => 0,
@@ -962,7 +962,7 @@ class DemoDataProvider {
                 'moo' => 4,
                 'village_name' => 'บ้านนาเจริญ (จำลอง)',
                 'vhid_code' => '34100104',
-                'hoscode' => '99999',
+                'hoscode' => '00325',
                 'phone' => '084-567-8904',
                 'is_leader' => 0,
                 'is_hl_coach' => 0,
@@ -978,7 +978,7 @@ class DemoDataProvider {
                 'moo' => 5,
                 'village_name' => 'บ้านโนนงาม (จำลอง)',
                 'vhid_code' => '34100105',
-                'hoscode' => '99999',
+                'hoscode' => '00325',
                 'phone' => '085-678-9015',
                 'is_leader' => 0,
                 'is_hl_coach' => 1,
@@ -994,7 +994,7 @@ class DemoDataProvider {
                 'moo' => 1,
                 'village_name' => 'บ้านตาลสุม (จำลอง)',
                 'vhid_code' => '34100101',
-                'hoscode' => '99999',
+                'hoscode' => '00325',
                 'phone' => '086-789-0126',
                 'is_leader' => 0,
                 'is_hl_coach' => 0,
@@ -1010,7 +1010,7 @@ class DemoDataProvider {
                 'moo' => 3,
                 'village_name' => 'บ้านโคกสว่าง (จำลอง)',
                 'vhid_code' => '34100103',
-                'hoscode' => '99999',
+                'hoscode' => '00325',
                 'phone' => '087-890-1237',
                 'is_leader' => 0,
                 'is_hl_coach' => 0,
@@ -1054,7 +1054,7 @@ class DemoDataProvider {
             $cid = $t['cid'];
             // Session toggle for active/inactive target
             $t['is_active'] = $_SESSION['demo_target_status'][$cid] ?? 1;
-            $t['hoscode'] = '99999';
+            $t['hoscode'] = '00325';
             $t['vhid_code'] = '3410010' . $t['moo'];
             $t['sub_district_code'] = '341001';
         }
@@ -1068,12 +1068,12 @@ class DemoDataProvider {
             'beforeAfterData' => [
                 [
                     'enrollment_id' => 'DEMO_ENROLL_1',
-                    'cid' => '9999900000003',
+                    'cid' => '0032500000003',
                     'first_name' => 'บุญมี',
                     'last_name' => 'มีโชค (จำลอง)',
                     'house_no' => '88',
                     'moo' => '2',
-                    'hoscode' => '99999',
+                    'hoscode' => '00325',
                     'risk_type' => 'BOTH',
                     'sbp_before' => 162,
                     'dbp_before' => 98,
@@ -1087,12 +1087,12 @@ class DemoDataProvider {
                 ],
                 [
                     'enrollment_id' => 'DEMO_ENROLL_2',
-                    'cid' => '9999900000002',
+                    'cid' => '0032500000002',
                     'first_name' => 'สมศรี',
                     'last_name' => 'สุขสรรค์ (จำลอง)',
                     'house_no' => '45/2',
                     'moo' => '1',
-                    'hoscode' => '99999',
+                    'hoscode' => '00325',
                     'risk_type' => 'BOTH',
                     'sbp_before' => 158,
                     'dbp_before' => 96,
@@ -1106,12 +1106,12 @@ class DemoDataProvider {
                 ],
                 [
                     'enrollment_id' => 'DEMO_ENROLL_3',
-                    'cid' => '9999900000005',
+                    'cid' => '0032500000005',
                     'first_name' => 'วิชัย',
                     'last_name' => 'มั่นคง (จำลอง)',
                     'house_no' => '15/3',
                     'moo' => '3',
-                    'hoscode' => '99999',
+                    'hoscode' => '00325',
                     'risk_type' => 'BOTH',
                     'sbp_before' => 162,
                     'dbp_before' => 98,
@@ -1126,12 +1126,12 @@ class DemoDataProvider {
             ],
             'ncdMultiRoundData' => [
                 [
-                    'cid' => '9999900000003',
+                    'cid' => '0032500000003',
                     'first_name' => 'บุญมี',
                     'last_name' => 'มีโชค (จำลอง)',
                     'house_no' => '88',
                     'moo' => '2',
-                    'hoscode' => '99999',
+                    'hoscode' => '00325',
                     'sbp_r1' => 162,
                     'dbp_r1' => 98,
                     'dtx_r1' => 195,
@@ -1151,12 +1151,12 @@ class DemoDataProvider {
                     'trend_label' => 'improved'
                 ],
                 [
-                    'cid' => '9999900000004',
+                    'cid' => '0032500000004',
                     'first_name' => 'ทองสุข',
                     'last_name' => 'สดใส (จำลอง)',
                     'house_no' => '101',
                     'moo' => '2',
-                    'hoscode' => '99999',
+                    'hoscode' => '00325',
                     'sbp_r1' => 118,
                     'dbp_r1' => 76,
                     'dtx_r1' => 95,
@@ -1176,12 +1176,12 @@ class DemoDataProvider {
                     'trend_label' => 'stable'
                 ],
                 [
-                    'cid' => '9999900000001',
+                    'cid' => '0032500000001',
                     'first_name' => 'สมชาย',
                     'last_name' => 'ใจดี (จำลอง)',
                     'house_no' => '12/1',
                     'moo' => '1',
-                    'hoscode' => '99999',
+                    'hoscode' => '00325',
                     'sbp_r1' => 136,
                     'dbp_r1' => 86,
                     'dtx_r1' => 116,

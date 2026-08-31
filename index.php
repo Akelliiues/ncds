@@ -20,18 +20,21 @@ if (isset($_GET['demo_role']) || isset($_POST['demo_role'])) {
 
     if ($demoRole === 'vhv') {
         $_SESSION['vhv_id'] = 'DEMO_1001';
-        $_SESSION['vhv_name'] = 'อสม. ใจดี มีสุข (จำลอง สสอ.)';
+        $_SESSION['vhv_name'] = 'อสม. สมชาย ใจดี (จำลอง สสอ.ตาลสุม)';
+        $_SESSION['vhv_phone'] = '081-234-5678';
         $_SESSION['vhv_moo'] = 1;
         $_SESSION['vhid_code'] = '34100101';
         $_SESSION['hoscode'] = '00325';
-        $_SESSION['is_leader'] = 0;
-        $_SESSION['is_hl_coach'] = 0;
+        $_SESSION['hosname'] = 'สำนักงานสาธารณสุขอำเภอตาลสุม';
+        $_SESSION['is_leader'] = 1;
+        $_SESSION['is_hl_coach'] = 1;
         header("Location: vhv/index.php");
         exit();
     } elseif ($demoRole === 'staff') {
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['admin_username'] = 'demo_staff';
         $_SESSION['admin_hoscode'] = '00325';
+        $_SESSION['admin_hosname'] = 'สำนักงานสาธารณสุขอำเภอตาลสุม';
         $_SESSION['is_visitor'] = false;
         header("Location: admin/index.php");
         exit();

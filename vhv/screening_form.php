@@ -3166,7 +3166,7 @@ $activeAssignId = $activeResident ? ($activeResident['assignment_id'] ?? 'DEMO_A
             const formData = new FormData();
             formData.append('action', 'trigger_alert');
             formData.append('screening_id', currentEmergencyData.screening_id || '');
-            formData.append('hoscode', currentEmergencyData.hoscode || '07758');
+            formData.append('hoscode', currentEmergencyData.hoscode || '<?= htmlspecialchars($_SESSION["hoscode"] ?? "00325") ?>');
             formData.append('target_cid', currentEmergencyData.target_cid || '');
             formData.append('patient_name', currentEmergencyData.patient_name || '');
             formData.append('age', currentEmergencyData.age || '');
