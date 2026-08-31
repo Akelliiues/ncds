@@ -8,10 +8,13 @@ $action = $_REQUEST['action'] ?? '';
 $stationToken = authenticate_station_token($pdo);
 $isAdminSession = !empty($_SESSION['admin_logged_in']);
 
-function requireStationAccess($stationToken, $isAdminSession, $permission) {
+function requireStationAccess($stationToken, $isAdminSession, $permission, $allowWithHoscode = false) {
     if (!$isAdminSession && !$stationToken) {
+        if ($allowWithHoscode && !empty($_REQUEST['hoscode'])) {
+            return; // Allow public/station polling by valid hoscode
+        }
         http_response_code(401);
-        echo json_encode(['status' => 'error', 'message' => 'กรุณาระบุ Station Access Token'], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['status' => 'error', 'message' => 'กรุณาระบุ Station Access Token หรือเข้าสู่ระบบ'], JSON_UNESCAPED_UNICODE);
         exit();
     }
     if ($stationToken && !station_token_can($stationToken, $permission)) {
@@ -207,7 +210,7 @@ if ($action === 'trigger_alert') {
 // 3. GET ACTIVE ALERTS (Polling fallback / Dashboard fetch)
 // -------------------------------------------------------------
 if ($action === 'get_active_alerts') {
-    requireStationAccess($stationToken, $isAdminSession, 'alerts:read');
+    requireStationAccess($stationToken, $isAdminSession, 'alerts:read', true);
     $hoscode = trim($_GET['hoscode'] ?? '');
     if ($stationToken && $stationToken['hoscode'] !== 'ALL') $hoscode = $stationToken['hoscode'];
     $statusFilter = trim($_GET['status'] ?? 'all');

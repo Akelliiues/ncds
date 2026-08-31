@@ -48,13 +48,19 @@ if (!function_exists('decrypt_station_token')) {
 if (!function_exists('authenticate_station_token')) {
     function authenticate_station_token(PDO $pdo): ?array
     {
+        $plainToken = '';
         $header = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
-        if (!preg_match('/^Bearer\s+(.+)$/i', trim($header), $match)) {
-            return null;
+        if (preg_match('/^Bearer\s+(.+)$/i', trim($header), $match)) {
+            $plainToken = trim($match[1]);
+        } elseif (!empty($_SERVER['HTTP_X_STATION_TOKEN'])) {
+            $plainToken = trim($_SERVER['HTTP_X_STATION_TOKEN']);
+        } elseif (!empty($_REQUEST['station_token'])) {
+            $plainToken = trim($_REQUEST['station_token']);
+        } elseif (!empty($_REQUEST['token'])) {
+            $plainToken = trim($_REQUEST['token']);
         }
 
-        $plainToken = trim($match[1]);
-        if (!preg_match('/^ncdst_[A-Za-z0-9_-]{40,}$/', $plainToken)) {
+        if ($plainToken === '' || !preg_match('/^ncdst_[A-Za-z0-9_-]{30,}$/', $plainToken)) {
             return null;
         }
 
