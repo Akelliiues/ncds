@@ -632,6 +632,8 @@ try {
             animation: none !important;
             border: none !important;
             box-shadow: 0 8px 20px rgba(220, 38, 38, 0.34) !important;
+        }
+
         .modal-corner-close-btn {
             position: absolute;
             top: 14px;
