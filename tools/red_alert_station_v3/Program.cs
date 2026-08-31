@@ -828,15 +828,33 @@ namespace NCDsRedAlertStation
                 Padding = new Padding(20, 14, 20, 14)
             };
 
-            btnAck = new Button
+            var btnClose = new Button
             {
-                Text = "🔕 รับทราบเคส (ปิดเสียงไซเรน)",
-                Font = ConfigManager.GetSystemFont(11, FontStyle.Bold),
+                Text = "❌ ปิดไว้ก่อน (ยังไม่ได้รับเคส)",
+                Font = ConfigManager.GetSystemFont(10, FontStyle.Bold),
                 BackColor = Color.FromArgb(51, 65, 85), // Slate 700
-                ForeColor = Color.FromArgb(241, 245, 249),
+                ForeColor = Color.FromArgb(203, 213, 225),
                 FlatStyle = FlatStyle.Flat,
                 Location = new Point(20, 16),
-                Size = new Size(340, 52),
+                Size = new Size(220, 52),
+                Cursor = Cursors.Hand
+            };
+            btnClose.FlatAppearance.BorderSize = 0;
+            btnClose.Click += (s, e) =>
+            {
+                if (_siren != null) _siren.Stop();
+                this.Hide();
+            };
+
+            btnAck = new Button
+            {
+                Text = "🔕 รับทราบเคส",
+                Font = ConfigManager.GetSystemFont(10.5f, FontStyle.Bold),
+                BackColor = Color.FromArgb(220, 38, 38), // Crimson Red
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Location = new Point(250, 16),
+                Size = new Size(220, 52),
                 Cursor = Cursors.Hand
             };
             btnAck.FlatAppearance.BorderSize = 0;
@@ -845,17 +863,18 @@ namespace NCDsRedAlertStation
             btnRefer = new Button
             {
                 Text = string.Format("🏥 สั่งส่งต่อ {0} ({1})", _config.DestHospitalName, _config.DestHospitalCode),
-                Font = ConfigManager.GetSystemFont(11, FontStyle.Bold),
+                Font = ConfigManager.GetSystemFont(10.5f, FontStyle.Bold),
                 BackColor = Color.FromArgb(37, 99, 235), // Royal Blue
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Location = new Point(375, 16),
-                Size = new Size(410, 52),
+                Location = new Point(480, 16),
+                Size = new Size(305, 52),
                 Cursor = Cursors.Hand
             };
             btnRefer.FlatAppearance.BorderSize = 0;
             btnRefer.Click += BtnRefer_Click;
 
+            pnlBottom.Controls.Add(btnClose);
             pnlBottom.Controls.Add(btnAck);
             pnlBottom.Controls.Add(btnRefer);
             this.Controls.Add(pnlBottom);

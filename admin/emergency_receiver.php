@@ -632,11 +632,35 @@ try {
             animation: none !important;
             border: none !important;
             box-shadow: 0 8px 20px rgba(220, 38, 38, 0.34) !important;
+        .modal-corner-close-btn {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color, #CBD5E1);
+            background: var(--bg-card, #FFFFFF);
+            color: var(--text-secondary, #64748B);
+            font-size: 22px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--neumorph-flat);
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+        .modal-corner-close-btn:hover {
+            color: #DC2626;
+            border-color: #DC2626;
+            transform: scale(1.06);
         }
 
         .emergency-modal-actions {
             display: grid;
-            grid-template-columns: 1.2fr 1fr 1.2fr;
+            grid-template-columns: 1.1fr 1.2fr 1fr 1.2fr;
             gap: 10px;
         }
 
@@ -667,8 +691,8 @@ try {
 
         @media (max-width: 760px) {
             .emergency-modal-card { padding: 14px; }
-            .emergency-modal-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-            .emergency-modal-action { font-size: 11.5px; padding: 8px 5px !important; white-space: normal; line-height: 1.25; }
+            .emergency-modal-actions { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .emergency-modal-action { font-size: 12px; padding: 8px 6px !important; white-space: normal; line-height: 1.25; }
         }
 
         @media (max-height: 850px) {
@@ -1533,8 +1557,13 @@ try {
     </footer>
 
     <!-- Fullscreen Emergency Pop-up Modal (Modern Clean Glassmorphism) -->
-    <div id="emergency-popup-overlay" onclick="hideEmergencyPopup()">
+    <div id="emergency-popup-overlay" onclick="closeEmergencyPopupWithoutAction()">
         <div class="emergency-modal-card" onclick="event.stopPropagation()">
+            <!-- Top Right Close Button -->
+            <button type="button" onclick="closeEmergencyPopupWithoutAction()" class="modal-corner-close-btn" aria-label="ปิดหน้าต่าง" title="ปิดการแจ้งเตือนไว้ก่อน (ยังไม่ได้รับเคส)">
+                ✕
+            </button>
+
             <div style="display: flex; justify-content: center; margin-bottom: 6px;">
                 <div class="neu-disc-icon" style="width: 62px; height: 62px; min-width: 62px; background: radial-gradient(circle at 35% 35%, #EF4444 0%, #DC2626 70%, #991B1B 100%); color: #fff; border: 0; box-shadow: 0 8px 20px rgba(220,38,38,0.34); display: flex; align-items: center; justify-content: center; animation: emergencyBeaconPulse 1.8s infinite;">
                     <svg width="46" height="46" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
@@ -1625,17 +1654,21 @@ try {
 
             <!-- Action Buttons -->
             <div class="emergency-modal-actions">
-                <button type="button" id="btn-modal-ack" onclick="acknowledgeCurrentAlert()" class="btn-action-glow emergency-modal-action">
+                <button type="button" id="btn-modal-close" onclick="closeEmergencyPopupWithoutAction()" class="emergency-modal-action" style="background: var(--bg-card); color: var(--text-secondary); border: 1.5px solid var(--border-color, #CBD5E1); box-shadow: var(--neumorph-flat);" title="ปิดหน้าต่างการแจ้งเตือนไว้ก่อน เคสยังคงอยู่ในสถานะรอรับเรื่อง">
+                    <span class="neu-disc-icon xs" style="color: #64748B;">✕</span>
+                    <span>ปิดไว้ก่อน</span>
+                </button>
+                <button type="button" id="btn-modal-ack" onclick="acknowledgeCurrentAlert()" class="btn-action-glow emergency-modal-action" title="กดรับทราบเคสและส่งสัญญาณยืนยัน">
                     <span class="neu-disc-icon xs" style="background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.4); box-shadow: none;">🔕</span>
                     <span>รับทราบเคส</span>
                 </button>
-                <a id="modal-btn-map" href="#" target="_blank" class="emergency-modal-action" style="background: #2563EB; color: white; text-decoration: none; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
+                <a id="modal-btn-map" href="#" target="_blank" class="emergency-modal-action" style="background: #2563EB; color: white; text-decoration: none; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);" title="เปิดพิกัดแผนที่บน Google Maps">
                     <span class="neu-disc-icon xs">📍</span>
                     <span>เปิดแผนที่ GPS</span>
                 </a>
-                <a id="modal-btn-refer" href="critical_referrals.php" onclick="openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" class="emergency-modal-action" style="background: #10B981; color: white; text-decoration: none; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+                <a id="modal-btn-refer" href="critical_referrals.php" onclick="openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" class="emergency-modal-action" style="background: #10B981; color: white; text-decoration: none; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);" title="เปิดหน้าส่งต่อผู้ป่วยเข้า รพ.">
                     <span class="neu-disc-icon xs">🏥</span>
-                    <span>ส่งต่อ รพ. (JHCIS)</span>
+                    <span>ส่งต่อ รพ.</span>
                 </a>
             </div>
         </div>
@@ -2655,10 +2688,34 @@ try {
             document.getElementById('emergency-popup-overlay').style.display = 'flex';
         }
 
+        function closeEmergencyPopupWithoutAction() {
+            stopSirenSound();
+            hideEmergencyPopup();
+            showStationToast('🔕 ปิดการแจ้งเตือนแล้ว เคสยังคงอยู่ในสถานะ "รอรับเรื่อง" ในรายการ');
+        }
+
         function hideEmergencyPopup() {
-            document.getElementById('emergency-popup-overlay').style.display = 'none';
+            stopSirenSound();
+            const overlay = document.getElementById('emergency-popup-overlay');
+            if (overlay) overlay.style.display = 'none';
             activeCrisisAlertId = null;
             modalOpenedManually = false;
+        }
+
+        function showStationToast(msg) {
+            let toast = document.getElementById('station-toast-msg');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'station-toast-msg';
+                toast.style.cssText = 'position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: #1E293B; color: #F8FAFC; padding: 12px 24px; border-radius: 16px; font-size: 13.5px; font-weight: 700; box-shadow: 0 10px 30px rgba(0,0,0,0.35); z-index: 10000000; display: flex; align-items: center; gap: 8px; border: 1px solid rgba(255,255,255,0.15); transition: opacity 0.3s ease; opacity: 0; pointer-events: none;';
+                document.body.appendChild(toast);
+            }
+            toast.innerHTML = msg;
+            toast.style.opacity = '1';
+            if (window._toastTimer) clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => {
+                toast.style.opacity = '0';
+            }, 3500);
         }
 
         function acknowledgeCurrentAlert() {
