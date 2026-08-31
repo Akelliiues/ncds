@@ -252,6 +252,177 @@ $active_tab = $_GET['tab'] ?? 'sync';
             font-size: 12px;
             font-weight: 700;
         }
+
+        /* Test Connection Modal Styles */
+        .test-modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 100000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(6px);
+            animation: modalFadeIn 0.2s ease-out;
+        }
+
+        .test-modal-dialog {
+            width: min(560px, 100%);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            box-shadow: var(--neumorph-raised), 0 20px 50px rgba(0,0,0,0.35);
+            overflow: hidden;
+            animation: modalScaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .test-modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-darker);
+        }
+
+        .modal-icon-pulse {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: rgba(59, 130, 246, 0.12);
+            color: #3B82F6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: inset 2px 2px 5px var(--neumorph-shadow-dark), inset -2px -2px 5px var(--neumorph-shadow-light);
+        }
+
+        .modal-close-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .modal-close-btn:hover {
+            color: #EF4444;
+            border-color: #EF4444;
+            transform: rotate(90deg);
+        }
+
+        .test-modal-body {
+            padding: 24px;
+        }
+
+        .test-progress-track {
+            width: 100%;
+            height: 14px;
+            background: var(--bg-darker);
+            border-radius: 50px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            position: relative;
+            margin: 12px 0 8px 0;
+        }
+
+        .test-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3B82F6, #10B981);
+            border-radius: 50px;
+            transition: width 0.3s ease;
+        }
+
+        .result-banner {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px;
+            border-radius: 16px;
+            margin-bottom: 18px;
+        }
+        .result-banner.success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1.5px solid rgba(16, 185, 129, 0.35);
+        }
+        .result-banner.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1.5px solid rgba(239, 68, 68, 0.35);
+        }
+
+        .result-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .result-info-item {
+            background: var(--bg-darker);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 10px 14px;
+        }
+        .result-info-item .label {
+            display: block;
+            font-size: 11.5px;
+            color: var(--text-secondary);
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+        .result-info-item .value {
+            display: block;
+            font-size: 13.5px;
+            color: var(--text-primary);
+            font-weight: 800;
+            word-break: break-word;
+        }
+
+        .error-detail-box {
+            background: var(--bg-darker);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-size: 12.5px;
+            color: #EF4444;
+            line-height: 1.5;
+            margin-bottom: 14px;
+        }
+
+        .solution-hint-box {
+            background: var(--bg-darker);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-size: 12px;
+        }
+
+        .test-modal-footer {
+            padding: 16px 24px;
+            background: var(--bg-darker);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes modalScaleUp {
+            from { opacity: 0; transform: scale(0.94); }
+            to { opacity: 1; transform: scale(1); }
+        }
     </style>
 </head>
 <body class="admin-body">
@@ -604,6 +775,121 @@ $active_tab = $_GET['tab'] ?? 'sync';
                     </table>
                 </div>
             </div>
+    </div>
+
+    <!-- Connection Test Modal (Progress & Diagnosis Results) -->
+    <div id="test-connection-modal" class="test-modal-overlay" style="display: none;">
+        <div class="test-modal-dialog">
+            <!-- Modal Header -->
+            <div class="test-modal-header">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div id="modal-status-icon" class="modal-icon-pulse">🔌</div>
+                    <div>
+                        <h3 id="modal-title" style="margin: 0; font-size: 17px; font-weight: 800; color: var(--text-primary);">
+                            ทดสอบการเชื่อมต่อฐานข้อมูล JHCIS
+                        </h3>
+                        <p id="modal-subtitle" style="margin: 3px 0 0 0; font-size: 12.5px; color: var(--text-secondary);">
+                            กำลังตรวจสอบสัญญาณและการเชื่อมโยงกับฐานข้อมูล...
+                        </p>
+                    </div>
+                </div>
+                <button type="button" class="modal-close-btn" onclick="closeTestConnectionModal()" aria-label="ปิด">×</button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="test-modal-body">
+                <!-- 1. Progress State View (While Testing) -->
+                <div id="modal-testing-view">
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; color: var(--text-primary);">
+                        <span id="test-step-text">ขั้นตอนที่ 1/3: ตรวจสอบพอร์ตและการเชื่อมต่อเครือข่าย...</span>
+                        <span id="test-percent-text" style="color: var(--color-primary);">20%</span>
+                    </div>
+                    <div class="test-progress-track">
+                        <div id="test-progress-bar" class="test-progress-fill" style="width: 20%;"></div>
+                    </div>
+                    <div id="test-step-detail" style="font-size: 12px; color: var(--text-secondary); margin-top: 6px; min-height: 18px;">
+                        กำลังส่งคำขอตรวจสอบสัญญาณไปยังระบบ JHCIS ประจำสถานี...
+                    </div>
+                </div>
+
+                <!-- 2. Success State View -->
+                <div id="modal-success-view" style="display: none;">
+                    <div class="result-banner success">
+                        <div style="font-size: 26px;">🎉</div>
+                        <div>
+                            <div style="font-size: 15px; font-weight: 800; color: #10B981;">เชื่อมต่อฐานข้อมูล JHCIS สำเร็จเรียบร้อย!</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
+                                ระบบตรวจพบฐานข้อมูลและพร้อมสำหรับการถ่ายโอนผลคัดกรอง
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="result-info-grid">
+                        <div class="result-info-item">
+                            <span class="label">🏥 รหัสหน่วยบริการ (PCU)</span>
+                            <strong class="value" id="res-modal-pcu">-</strong>
+                        </div>
+                        <div class="result-info-item">
+                            <span class="label">🏢 ชื่อหน่วยบริการ</span>
+                            <strong class="value" id="res-modal-hosname">-</strong>
+                        </div>
+                        <div class="result-info-item">
+                            <span class="label">🖥️ เวอร์ชัน MySQL JHCIS</span>
+                            <strong class="value" id="res-modal-version">-</strong>
+                        </div>
+                        <div class="result-info-item">
+                            <span class="label">🔌 ช่องทางการเชื่อมต่อ</span>
+                            <strong class="value" id="res-modal-channel" style="color: #10B981;">-</strong>
+                        </div>
+                        <div class="result-info-item" id="box-person-count" style="display: none;">
+                            <span class="label">👥 ประชากรในฐาน JHCIS</span>
+                            <strong class="value" id="res-modal-persons" style="color: #3B82F6;">-</strong>
+                        </div>
+                        <div class="result-info-item" id="box-screen-count" style="display: none;">
+                            <span class="label">📋 ผลคัดกรอง NCD เดิม</span>
+                            <strong class="value" id="res-modal-screens" style="color: #10B981;">-</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Error State View -->
+                <div id="modal-error-view" style="display: none;">
+                    <div class="result-banner error">
+                        <div style="font-size: 26px;">⚠️</div>
+                        <div>
+                            <div style="font-size: 15px; font-weight: 800; color: #EF4444;">ไม่สามารถเชื่อมต่อฐานข้อมูล JHCIS ได้</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
+                                กรุณาตรวจสอบสถานะโปรแกรมหรือเครือข่ายตามคำแนะนำด้านล่าง
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="error-detail-box" id="error-modal-msg">
+                        -
+                    </div>
+
+                    <div class="solution-hint-box">
+                        <strong style="color: var(--color-primary); font-size: 12.5px;">💡 แนวทางแก้ไขที่แนะนำ:</strong>
+                        <ul style="margin: 6px 0 0 0; padding-left: 18px; font-size: 12px; line-height: 1.6; color: var(--text-secondary);">
+                            <li><strong>กรณีใช้งานบนคอมพิวเตอร์ใน รพ.สต.</strong>: ให้เปิดโปรแกรม <strong>RedAlert Station</strong> บนเครื่องนี้ เพื่อเปิด Local Bridge (พอร์ต 18765)</li>
+                            <li><strong>หรือส่งออกเป็นไฟล์ SQL</strong>: กดปุ่ม <span style="color:#10B981; font-weight:700;">"📥 ส่งออกไฟล์ SQL สำหรับนำเข้า JHCIS"</span> เพื่อนำไปรันใน HeidiSQL / JHCIS Query Tool ได้ทันทีโดยไม่ต้องเปิดพอร์ต</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="test-modal-footer">
+                <button type="button" class="btn-action-secondary" onclick="closeTestConnectionModal()">
+                    ปิดหน้าต่าง
+                </button>
+                <button type="button" id="btn-modal-retry" class="btn-action-secondary" onclick="testJHCISConnection()" style="display: none;">
+                    <span>🔄</span> ทดสอบอีกครั้ง
+                </button>
+                <button type="button" id="btn-modal-sync-now" class="btn-action-primary" onclick="closeTestConnectionModal(); startSyncProcess();" style="display: none;">
+                    <span>🚀</span> เริ่มซิงค์ข้อมูลทันที
+                </button>
+            </div>
         </div>
     </div>
 
@@ -693,23 +979,170 @@ $active_tab = $_GET['tab'] ?? 'sync';
             .catch(err => alert('บันทึกไม่สำเร็จ: ' + err.message));
         }
 
-        // Test Connection
+        // Modal State Controls & Progress Animation
+        let testProgressTimer = null;
+
+        function openTestConnectionModal() {
+            const modal = document.getElementById('test-connection-modal');
+            if (!modal) return;
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+
+            // Reset Modal Header & State
+            const icon = document.getElementById('modal-status-icon');
+            icon.innerText = '🔌';
+            icon.style.background = 'rgba(59, 130, 246, 0.12)';
+            icon.style.color = '#3B82F6';
+
+            document.getElementById('modal-title').innerText = 'ทดสอบการเชื่อมต่อฐานข้อมูล JHCIS';
+            document.getElementById('modal-subtitle').innerText = 'กำลังตรวจสอบสัญญาณและการเชื่อมโยงกับฐานข้อมูล...';
+
+            document.getElementById('modal-testing-view').style.display = 'block';
+            document.getElementById('modal-success-view').style.display = 'none';
+            document.getElementById('modal-error-view').style.display = 'none';
+
+            document.getElementById('btn-modal-retry').style.display = 'none';
+            document.getElementById('btn-modal-sync-now').style.display = 'none';
+
+            // Start Progress Animation
+            let p = 25;
+            const pBar = document.getElementById('test-progress-bar');
+            const pTxt = document.getElementById('test-percent-text');
+            const sTxt = document.getElementById('test-step-text');
+            const sDet = document.getElementById('test-step-detail');
+
+            pBar.style.width = '25%';
+            pBar.style.background = 'linear-gradient(90deg, #3B82F6, #10B981)';
+            pTxt.innerText = '25%';
+            pTxt.style.color = 'var(--color-primary)';
+            sTxt.innerText = 'ขั้นตอนที่ 1/3: ตรวจสอบพอร์ตเครือข่ายและการตอบสนอง...';
+            sDet.innerText = 'กำลังส่งคำขอตรวจสอบสัญญาณไปยังระบบ JHCIS / Local Bridge...';
+
+            if (testProgressTimer) clearInterval(testProgressTimer);
+            testProgressTimer = setInterval(() => {
+                if (p < 85) {
+                    p += 15;
+                    pBar.style.width = p + '%';
+                    pTxt.innerText = p + '%';
+                    if (p >= 40 && p < 65) {
+                        sTxt.innerText = 'ขั้นตอนที่ 2/3: ตรวจสอบรหัสสถานบริการ (PCU Code)...';
+                        sDet.innerText = 'กำลังตรวจหาข้อมูลหน่วยบริการและเชื่อมโยงกับระบบ...';
+                    } else if (p >= 65) {
+                        sTxt.innerText = 'ขั้นตอนที่ 3/3: ตรวจสอบความพร้อมของตารางข้อมูล...';
+                        sDet.innerText = 'กำลังตรวจสอบโครงสร้างตาราง ncd_person_ncd_screen และ person...';
+                    }
+                }
+            }, 300);
+        }
+
+        function closeTestConnectionModal() {
+            const modal = document.getElementById('test-connection-modal');
+            if (!modal) return;
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+            if (testProgressTimer) clearInterval(testProgressTimer);
+        }
+
+        function showConnectionSuccessModal(data) {
+            if (testProgressTimer) clearInterval(testProgressTimer);
+            const pBar = document.getElementById('test-progress-bar');
+            const pTxt = document.getElementById('test-percent-text');
+            pBar.style.width = '100%';
+            pTxt.innerText = '100%';
+
+            setTimeout(() => {
+                const icon = document.getElementById('modal-status-icon');
+                icon.innerText = '✅';
+                icon.style.background = 'rgba(16, 185, 129, 0.15)';
+                icon.style.color = '#10B981';
+
+                document.getElementById('modal-title').innerText = 'เชื่อมต่อฐานข้อมูล JHCIS สำเร็จ';
+                document.getElementById('modal-subtitle').innerText = 'ระบบพร้อมสำหรับการถ่ายโอนข้อมูลคัดกรอง';
+
+                document.getElementById('modal-testing-view').style.display = 'none';
+                document.getElementById('modal-success-view').style.display = 'block';
+                document.getElementById('modal-error-view').style.display = 'none';
+
+                const detectedPcu = data.detected_pcucode || 'ไม่ระบุ';
+                const detectedName = data.detected_hosname || '';
+                document.getElementById('res-modal-pcu').innerText = detectedPcu;
+                document.getElementById('res-modal-hosname').innerText = detectedName || 'รพ.สต. รหัส ' + detectedPcu;
+                document.getElementById('res-modal-version').innerText = data.db_version || 'MySQL 5.x';
+                document.getElementById('res-modal-channel').innerText = data.source === 'local_station' ? '⚡ Local Bridge API (พอร์ต 18765)' : '🌐 Direct MySQL Connection';
+
+                if (data.source === 'local_station') {
+                    document.getElementById('box-person-count').style.display = 'block';
+                    document.getElementById('box-screen-count').style.display = 'block';
+                    document.getElementById('res-modal-persons').innerText = Number(data.person_count || 0).toLocaleString() + ' คน';
+                    document.getElementById('res-modal-screens').innerText = Number(data.screen_count || 0).toLocaleString() + ' รายการ';
+                } else {
+                    document.getElementById('box-person-count').style.display = 'none';
+                    document.getElementById('box-screen-count').style.display = 'none';
+                }
+
+                document.getElementById('btn-modal-retry').style.display = 'inline-flex';
+                document.getElementById('btn-modal-sync-now').style.display = 'inline-flex';
+
+                // Also update header badge & log console
+                document.getElementById('detected-hosp-name').innerText = `[${detectedPcu}] ${detectedName}`;
+                const badge = document.getElementById('detected-hosp-badge');
+                badge.style.display = 'inline-flex';
+                badge.className = 'stat-badge success';
+                badge.innerText = data.source === 'local_station' ? '🟢 เชื่อมต่อผ่าน Local Bridge (พอร์ต 18765)' : '🟢 เชื่อมต่อแล้ว';
+                logConsole(`✅ เชื่อมต่อสำเร็จ JHCIS PCU: [${detectedPcu}] ${detectedName} (Version: ${data.db_version})`);
+            }, 300);
+        }
+
+        function showConnectionErrorModal(errorMessage) {
+            if (testProgressTimer) clearInterval(testProgressTimer);
+            const pBar = document.getElementById('test-progress-bar');
+            const pTxt = document.getElementById('test-percent-text');
+            pBar.style.width = '100%';
+            pBar.style.background = '#EF4444';
+            pTxt.innerText = '100%';
+            pTxt.style.color = '#EF4444';
+
+            setTimeout(() => {
+                const icon = document.getElementById('modal-status-icon');
+                icon.innerText = '❌';
+                icon.style.background = 'rgba(239, 68, 68, 0.15)';
+                icon.style.color = '#EF4444';
+
+                document.getElementById('modal-title').innerText = 'เชื่อมต่อฐานข้อมูล JHCIS ไม่สำเร็จ';
+                document.getElementById('modal-subtitle').innerText = 'พบข้อผิดพลาดขณะตรวจสอบการเชื่อมต่อ';
+
+                document.getElementById('modal-testing-view').style.display = 'none';
+                document.getElementById('modal-success-view').style.display = 'none';
+                document.getElementById('modal-error-view').style.display = 'block';
+
+                document.getElementById('error-modal-msg').innerText = errorMessage || 'ไม่สามารถเชื่อมต่อไปยังฐานข้อมูลปลายทางได้';
+
+                document.getElementById('btn-modal-retry').style.display = 'inline-flex';
+                document.getElementById('btn-modal-sync-now').style.display = 'none';
+
+                logConsole(`❌ เชื่อมต่อล้มเหลว: ${errorMessage}`);
+            }, 300);
+        }
+
+        // Test Connection Entry Point
         async function testJHCISConnection() {
             logConsole('กำลังทดสอบการเชื่อมต่อไปยังฐานข้อมูล JHCIS...');
+            openTestConnectionModal();
+
             const host = document.getElementById('cfg-host') ? document.getElementById('cfg-host').value.trim() : '';
-            const isLocalTarget = host === 'localhost' || host === '127.0.0.1' || /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
+            const isLocalTarget = host === 'localhost' || host === '127.0.0.1' || /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host) || host === '';
 
             if (isLocalTarget) {
                 try {
                     const data = await localBridgeFetch('/test', { method: 'POST' });
-                    showConnectionSuccess(data);
+                    showConnectionSuccessModal(data);
                     return;
                 } catch (err) {
-                    logConsole(`❌ ไม่พบ Local Bridge: ${err.message}`);
-                    alert('ไม่พบ RedAlert Station V3 บนเครื่องนี้ หรือ Station ยังไม่ได้เปิด\n\nกรุณาเปิด Station V3 ตั้งค่าฐาน JHCIS ในโปรแกรม แล้วลองใหม่');
+                    showConnectionErrorModal('ไม่พบตัวเชื่อมต่อ Local Bridge (พอร์ต 18765) บนเครื่องนี้ หรือโปรแกรม RedAlert Station ยังไม่ได้เปิดใช้งาน\n\n(หากใช้เครื่องที่ รพ.สต. ให้เปิดโปรแกรม RedAlert Station แล้วกดทดสอบใหม่อีกครั้ง)');
                     return;
                 }
             }
+
             const formData = new FormData();
             formData.append('action', 'test_connection');
             formData.append('hoscode', currentHoscode);
@@ -725,29 +1158,14 @@ $active_tab = $_GET['tab'] ?? 'sync';
             })
             .then(data => {
                 if (data.status === 'success') {
-                    showConnectionSuccess(data);
+                    showConnectionSuccessModal(data);
                 } else {
-                    logConsole(`❌ เชื่อมต่อล้มเหลว: ${data.message}`);
-                    alert(`❌ เชื่อมต่อล้มเหลว:\n${data.message}`);
+                    showConnectionErrorModal(data.message);
                 }
             })
             .catch(err => {
-                logConsole(`❌ ข้อผิดพลาด: ${err.message}`);
-                alert('ไม่สามารถเชื่อมต่อฐานข้อมูลได้:\n' + err.message);
+                showConnectionErrorModal(err.message);
             });
-        }
-
-        function showConnectionSuccess(data) {
-            const detectedPcu = data.detected_pcucode || 'ไม่ระบุ';
-            const detectedName = data.detected_hosname || '';
-            document.getElementById('detected-hosp-name').innerText = `[${detectedPcu}] ${detectedName}`;
-            const badge = document.getElementById('detected-hosp-badge');
-            badge.style.display = 'inline-flex';
-            badge.className = 'stat-badge success';
-            badge.innerText = data.source === 'local_station' ? 'เชื่อมต่อผ่าน Station' : 'เชื่อมต่อแล้ว';
-            logConsole(`✅ เชื่อมต่อสำเร็จ JHCIS PCU: [${detectedPcu}] (Version: ${data.db_version})`);
-            const counts = data.source === 'local_station' ? `\n- บุคคล: ${Number(data.person_count || 0).toLocaleString()}\n- คัดกรอง NCD: ${Number(data.screen_count || 0).toLocaleString()}` : '';
-            alert(`✅ เชื่อมต่อสำเร็จ!\n- รหัสสถานบริการใน JHCIS: [${detectedPcu}] ${detectedName}\n- เวอร์ชัน MySQL: ${data.db_version}${counts}`);
         }
 
         // Load Sync Preview
@@ -989,12 +1407,24 @@ $active_tab = $_GET['tab'] ?? 'sync';
                     logConsole(`🟢 ตรวจพบ Local Bridge ทำงานอยู่บนเครื่องนี้ JHCIS PCU: [${detectedPcu}] พร้อมซิงค์ข้อมูลได้ทันที`);
                 })
                 .catch(() => {
-                    document.getElementById('detected-hosp-name').innerText = `รอการเปิด Local Bridge (เปิด RedAlert Station V3 บนเครื่องนี้)`;
+                    document.getElementById('detected-hosp-name').innerText = `รอการเปิด Local Bridge (เปิด RedAlert Station บนเครื่องนี้)`;
                     const badge = document.getElementById('detected-hosp-badge');
                     badge.style.display = 'inline-flex';
                     badge.className = 'stat-badge ready';
                     badge.innerText = '⚪ รอเปิด Local Bridge';
                 });
+
+            // Modal Backdrop and Escape Listeners
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeTestConnectionModal();
+            });
+
+            const testModal = document.getElementById('test-connection-modal');
+            if (testModal) {
+                testModal.addEventListener('click', (e) => {
+                    if (e.target === testModal) closeTestConnectionModal();
+                });
+            }
         });
     </script>
 </body>
