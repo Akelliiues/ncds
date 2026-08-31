@@ -257,6 +257,41 @@ namespace NCDsRedAlertStation
             return new JhcisConnectionResult { Version = version, PcuCode = pcu, PersonCount = persons, ScreenCount = screens, ClientPath = client };
         }
 
+        public static int ExecutePortalScript(AppConfig config, string sql)
+        {
+            if (string.IsNullOrWhiteSpace(sql) || !sql.Contains("-- NCDS-SCREENING-IDS:"))
+                throw new Exception("ไฟล์คำสั่งไม่ได้สร้างจากหน้า NCDs Portal");
+            string upper = sql.ToUpperInvariant();
+            string[] forbidden = { " DROP ", " DELETE ", " UPDATE ", " ALTER ", " TRUNCATE ", " CREATE ", " GRANT ", " REPLACE " };
+            foreach (string token in forbidden)
+                if (upper.Contains(token)) throw new Exception("พบคำสั่งที่ไม่ได้รับอนุญาต: " + token.Trim());
+
+            string client = FindMysqlClient();
+            var start = new ProcessStartInfo {
+                FileName = client,
+                Arguments = "--connect-timeout=5 --protocol=tcp -h " + Quote(config.JhcisHost) + " -P " + config.JhcisPort +
+                    " -u " + Quote(config.JhcisUser) + " --default-character-set=tis620 " + Quote(config.JhcisDbname),
+                UseShellExecute = false, RedirectStandardInput = true, RedirectStandardOutput = true,
+                RedirectStandardError = true, CreateNoWindow = true,
+                StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8
+            };
+            start.EnvironmentVariables["MYSQL_PWD"] = config.JhcisPass ?? "";
+            using (var process = Process.Start(start))
+            {
+                process.StandardInput.Write(sql);
+                process.StandardInput.Close();
+                string stderr = process.StandardError.ReadToEnd();
+                process.StandardOutput.ReadToEnd();
+                if (!process.WaitForExit(120000)) { process.Kill(); throw new TimeoutException("หมดเวลารอการบันทึก JHCIS"); }
+                if (process.ExitCode != 0) throw new Exception(string.IsNullOrWhiteSpace(stderr) ? "JHCIS ปฏิเสธคำสั่งนำเข้า" : stderr.Trim());
+            }
+            int count = 0;
+            const string markerText = "-- NCDS-SCREENING-IDS:";
+            int marker = sql.IndexOf(markerText, StringComparison.Ordinal);
+            if (marker >= 0) count = sql.Substring(marker + markerText.Length).Split('\n')[0].Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Length;
+            return count;
+        }
+
         private static bool HasColumn(string csv, string name)
         {
             foreach (string item in (csv ?? "").Split(','))
@@ -316,6 +351,89 @@ namespace NCDsRedAlertStation
         private static string Quote(string value)
         {
             return "\"" + (value ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+        }
+    }
+
+    public sealed class LocalBridgeServer
+    {
+        private readonly AppConfig _config;
+        private HttpListener _listener;
+        private Thread _thread;
+        public LocalBridgeServer(AppConfig config) { _config = config; }
+
+        public void Start()
+        {
+            _listener = new HttpListener();
+            _listener.Prefixes.Add("http://127.0.0.1:18765/");
+            _listener.Start();
+            _thread = new Thread(ListenLoop) { IsBackground = true };
+            _thread.Start();
+        }
+
+        public void Stop() { try { if (_listener != null) _listener.Stop(); } catch { } }
+
+        private void ListenLoop()
+        {
+            while (_listener != null && _listener.IsListening)
+            {
+                try { ThreadPool.QueueUserWorkItem(Handle, _listener.GetContext()); }
+                catch { if (_listener == null || !_listener.IsListening) return; }
+            }
+        }
+
+        private void Handle(object state)
+        {
+            var context = (HttpListenerContext)state;
+            try
+            {
+                string origin = context.Request.Headers["Origin"] ?? "";
+                Uri allowed;
+                if (!Uri.TryCreate(_config.ServerUrl, UriKind.Absolute, out allowed) ||
+                    !origin.Equals(allowed.GetLeftPart(UriPartial.Authority), StringComparison.OrdinalIgnoreCase))
+                    throw new Exception("Origin ไม่ได้รับอนุญาต");
+                context.Response.Headers["Access-Control-Allow-Origin"] = origin;
+                context.Response.Headers["Vary"] = "Origin";
+                context.Response.Headers["Access-Control-Allow-Methods"] = "POST, OPTIONS";
+                context.Response.Headers["Access-Control-Allow-Headers"] = "Content-Type";
+                if (context.Request.Headers["Access-Control-Request-Private-Network"] == "true")
+                    context.Response.Headers["Access-Control-Allow-Private-Network"] = "true";
+                if (context.Request.HttpMethod == "OPTIONS") { context.Response.StatusCode = 204; return; }
+                if (context.Request.HttpMethod != "POST") throw new Exception("Method not allowed");
+
+                object result;
+                if (context.Request.Url.AbsolutePath == "/test")
+                {
+                    var test = LocalJhcisBridge.Test(_config);
+                    result = new { status = "success", db_version = test.Version, detected_pcucode = test.PcuCode,
+                        person_count = test.PersonCount, screen_count = test.ScreenCount, source = "local_station" };
+                }
+                else if (context.Request.Url.AbsolutePath == "/sync")
+                {
+                    string body;
+                    using (var reader = new StreamReader(context.Request.InputStream, Encoding.UTF8)) body = reader.ReadToEnd();
+                    var payload = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(body);
+                    string sql = payload != null && payload.ContainsKey("sql") ? Convert.ToString(payload["sql"]) : "";
+                    string requestedHoscode = payload != null && payload.ContainsKey("hoscode") ? Convert.ToString(payload["hoscode"]) : "";
+                    JhcisConnectionResult connected = LocalJhcisBridge.Test(_config);
+                    if (string.IsNullOrWhiteSpace(requestedHoscode) || !requestedHoscode.Equals(connected.PcuCode, StringComparison.OrdinalIgnoreCase))
+                        throw new Exception("รหัส รพ.สต. ใน JHCIS (" + connected.PcuCode + ") ไม่ตรงกับหน้าที่เลือก (" + requestedHoscode + ")");
+                    int count = LocalJhcisBridge.ExecutePortalScript(_config, sql);
+                    result = new { status = "success", processed = count, detected_pcucode = connected.PcuCode };
+                }
+                else throw new Exception("Endpoint not found");
+                WriteJson(context, result, 200);
+            }
+            catch (Exception ex) { WriteJson(context, new { status = "error", message = ex.Message }, 400); }
+            finally { try { context.Response.Close(); } catch { } }
+        }
+
+        private static void WriteJson(HttpListenerContext context, object data, int status)
+        {
+            byte[] bytes = Encoding.UTF8.GetBytes(new JavaScriptSerializer().Serialize(data));
+            context.Response.StatusCode = status;
+            context.Response.ContentType = "application/json; charset=utf-8";
+            context.Response.ContentLength64 = bytes.Length;
+            context.Response.OutputStream.Write(bytes, 0, bytes.Length);
         }
     }
 
@@ -1646,6 +1764,7 @@ namespace NCDsRedAlertStation
         private int _lastAlertIdSeen = 0;
         private bool _isPolling = false;
         private SynchronizationContext _syncContext;
+        private LocalBridgeServer _localBridge;
 
         public RedAlertApplicationContext()
         {
@@ -1664,6 +1783,8 @@ namespace NCDsRedAlertStation
             _syncContext = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
             bool isFirstRun = !ConfigManager.ConfigExists();
             _config = ConfigManager.Load();
+            _localBridge = new LocalBridgeServer(_config);
+            try { _localBridge.Start(); } catch (Exception ex) { try { File.AppendAllText("red_alert_v3_debug.log", DateTime.Now + " - Local bridge: " + ex.Message + "\r\n"); } catch { } }
             bool needsHealthUnit = string.IsNullOrWhiteSpace(_config.Hoscode);
             _siren = new SirenPlayer();
             _popupForm = new AlertPopupForm(_config, _siren);
@@ -1822,6 +1943,7 @@ namespace NCDsRedAlertStation
 
         private void Exit()
         {
+            if (_localBridge != null) _localBridge.Stop();
             _pollTimer.Stop();
             _siren.Stop();
             _trayIcon.Visible = false;

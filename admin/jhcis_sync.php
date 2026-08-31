@@ -556,7 +556,7 @@ $active_tab = $_GET['tab'] ?? 'sync';
                         <div style="margin-bottom: 10px;">
                             <strong style="color: var(--text-primary);">2. กรณีเว็บรันบน Cloud / อินเทอร์เน็ตภายนอก:</strong><br>
                             • สามารถกดปุ่ม <strong style="color:#10B981;">"📥 ส่งออกไฟล์ SQL สำหรับนำเข้า JHCIS"</strong> จากแท็บซิงค์ด่วน เพื่อนำไฟล์ไปรันใน JHCIS ได้ทันที สะดวก ปลอดภัย ไม่ต้องเปิด Port ใน Router<br>
-                            • หรือใช้โปรแกรม <strong>RedAlert Station</strong> ที่ติดตั้งบนเครื่องใน รพ.สต. เพื่อช่วยเชื่อมโยงข้อมูลกับ JHCIS ท้องถิ่นอัตโนมัติ
+                            • เปิดโปรแกรม <strong>RedAlert Station V3</strong> บนเครื่องที่เข้าถึง JHCIS แล้วเปิดหน้านี้จากเครื่องเดียวกัน หน้าเว็บจะส่งข้อมูลผ่าน Local Bridge ที่ <code>127.0.0.1:18765</code> โดยไม่ต้องเปิดพอร์ต MySQL ออกสู่อินเทอร์เน็ต
                         </div>
                         <div>
                             <strong style="color: var(--text-primary);">3. การตรวจสอบเบื้องต้นเมื่อเชื่อมต่อไม่ได้:</strong><br>
@@ -643,6 +643,15 @@ $active_tab = $_GET['tab'] ?? 'sync';
             }
         }
 
+        async function localBridgeFetch(path, options = {}) {
+            const response = await fetch(`http://127.0.0.1:18765${path}`, options);
+            const data = await response.json();
+            if (!response.ok || data.status !== 'success') {
+                throw new Error(data.message || 'Local Bridge ทำงานไม่สำเร็จ');
+            }
+            return data;
+        }
+
         // Load Settings
         function loadJHCISSettings() {
             apiFetch(`../api/jhcis_sync.php?action=get_config&hoscode=${currentHoscode}`)
@@ -685,8 +694,22 @@ $active_tab = $_GET['tab'] ?? 'sync';
         }
 
         // Test Connection
-        function testJHCISConnection() {
+        async function testJHCISConnection() {
             logConsole('กำลังทดสอบการเชื่อมต่อไปยังฐานข้อมูล JHCIS...');
+            const host = document.getElementById('cfg-host') ? document.getElementById('cfg-host').value.trim() : '';
+            const isLocalTarget = host === 'localhost' || host === '127.0.0.1' || /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
+
+            if (isLocalTarget) {
+                try {
+                    const data = await localBridgeFetch('/test', { method: 'POST' });
+                    showConnectionSuccess(data);
+                    return;
+                } catch (err) {
+                    logConsole(`❌ ไม่พบ Local Bridge: ${err.message}`);
+                    alert('ไม่พบ RedAlert Station V3 บนเครื่องนี้ หรือ Station ยังไม่ได้เปิด\n\nกรุณาเปิด Station V3 ตั้งค่าฐาน JHCIS ในโปรแกรม แล้วลองใหม่');
+                    return;
+                }
+            }
             const formData = new FormData();
             formData.append('action', 'test_connection');
             formData.append('hoscode', currentHoscode);
@@ -702,17 +725,7 @@ $active_tab = $_GET['tab'] ?? 'sync';
             })
             .then(data => {
                 if (data.status === 'success') {
-                    const detectedPcu = data.detected_pcucode || 'ไม่ระบุ';
-                    const detectedName = data.detected_hosname || '';
-                    
-                    document.getElementById('detected-hosp-name').innerText = `[${detectedPcu}] ${detectedName}`;
-                    const badge = document.getElementById('detected-hosp-badge');
-                    badge.style.display = 'inline-flex';
-                    badge.className = 'stat-badge success';
-                    badge.innerText = 'เชื่อมต่อแล้ว';
-
-                    logConsole(`✅ เชื่อมต่อสำเร็จ! JHCIS PCU: [${detectedPcu}] ${detectedName} (Version: ${data.db_version})`);
-                    alert(`✅ เชื่อมต่อสำเร็จ!\n- รหัสสถานบริการใน JHCIS: [${detectedPcu}] ${detectedName}\n- เวอร์ชัน MySQL: ${data.db_version}\n- ตารางที่พบ: ${data.tables_found.join(', ')}`);
+                    showConnectionSuccess(data);
                 } else {
                     logConsole(`❌ เชื่อมต่อล้มเหลว: ${data.message}`);
                     alert(`❌ เชื่อมต่อล้มเหลว:\n${data.message}`);
@@ -722,6 +735,19 @@ $active_tab = $_GET['tab'] ?? 'sync';
                 logConsole(`❌ ข้อผิดพลาด: ${err.message}`);
                 alert('ไม่สามารถเชื่อมต่อฐานข้อมูลได้:\n' + err.message);
             });
+        }
+
+        function showConnectionSuccess(data) {
+            const detectedPcu = data.detected_pcucode || 'ไม่ระบุ';
+            const detectedName = data.detected_hosname || '';
+            document.getElementById('detected-hosp-name').innerText = `[${detectedPcu}] ${detectedName}`;
+            const badge = document.getElementById('detected-hosp-badge');
+            badge.style.display = 'inline-flex';
+            badge.className = 'stat-badge success';
+            badge.innerText = data.source === 'local_station' ? 'เชื่อมต่อผ่าน Station' : 'เชื่อมต่อแล้ว';
+            logConsole(`✅ เชื่อมต่อสำเร็จ JHCIS PCU: [${detectedPcu}] (Version: ${data.db_version})`);
+            const counts = data.source === 'local_station' ? `\n- บุคคล: ${Number(data.person_count || 0).toLocaleString()}\n- คัดกรอง NCD: ${Number(data.screen_count || 0).toLocaleString()}` : '';
+            alert(`✅ เชื่อมต่อสำเร็จ!\n- รหัสสถานบริการใน JHCIS: [${detectedPcu}] ${detectedName}\n- เวอร์ชัน MySQL: ${data.db_version}${counts}`);
         }
 
         // Load Sync Preview
@@ -803,7 +829,7 @@ $active_tab = $_GET['tab'] ?? 'sync';
         }
 
         // Start Sync Process
-        function startSyncProcess() {
+        async function startSyncProcess() {
             const crossPolicy = document.getElementById('select-cross-policy').value;
             const btn = document.getElementById('btn-start-sync');
             btn.disabled = true;
@@ -826,11 +852,6 @@ $active_tab = $_GET['tab'] ?? 'sync';
             progressDetail.innerText = 'กำลังประมวลผลข้อมูลตามนโยบายตรวจสอบ รพ.สต.';
             logConsole(`เริ่มกระบวนการซิงค์ข้อมูล (นโยบายข้าม รพ.สต.: ${crossPolicy})...`);
 
-            const formData = new FormData();
-            formData.append('action', 'execute_sync');
-            formData.append('hoscode', currentHoscode);
-            formData.append('cross_hospital_mode', crossPolicy);
-
             const timer = setInterval(() => {
                 if (progress < 85) {
                     progress += 15;
@@ -839,11 +860,37 @@ $active_tab = $_GET['tab'] ?? 'sync';
                 }
             }, 300);
 
-            apiFetch('../api/jhcis_sync.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(data => {
+            try {
+                const exportResponse = await fetch(`../api/jhcis_sync.php?action=export_sql&hoscode=${encodeURIComponent(currentHoscode)}`);
+                if (!exportResponse.ok) throw new Error('เตรียมข้อมูลจากโฮสต์ไม่สำเร็จ');
+                const sql = await exportResponse.text();
+                if (sql.startsWith('-- ERROR:')) throw new Error(sql.substring(9).trim());
+                const marker = sql.match(/^-- NCDS-SCREENING-IDS:\s*([0-9,]*)/m);
+                const ids = marker ? marker[1] : '';
+                if (!ids) {
+                    clearInterval(timer);
+                    progressText.innerText = 'สถานะ: ไม่มีรายการใหม่ที่รอซิงค์';
+                    progressDetail.innerText = 'ข้อมูลบนโฮสต์เป็นปัจจุบันแล้ว';
+                    return;
+                }
+                progressText.innerText = 'สถานะ: กำลังบันทึกผ่าน RedAlert Station V3...';
+                const localResult = await localBridgeFetch('/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sql, hoscode: currentHoscode })
+                });
+                const confirmData = new FormData();
+                confirmData.append('action', 'confirm_local_sync');
+                confirmData.append('hoscode', currentHoscode);
+                confirmData.append('screening_ids', ids);
+                const confirmed = await apiFetch('../api/jhcis_sync.php', { method: 'POST', body: confirmData });
+                if (confirmed.status !== 'success') throw new Error(confirmed.message || 'ยืนยันผลซิงค์บนโฮสต์ไม่สำเร็จ');
+                const data = {
+                    status: 'success', success: confirmed.confirmed,
+                    skipped: Math.max(0, localResult.processed - confirmed.confirmed),
+                    cross_hospital_skipped: 0, duration: 0,
+                    message: `Station บันทึกชุดข้อมูลลง JHCIS แล้ว และยืนยันบนโฮสต์ ${confirmed.confirmed} รายการ`
+                };
                 clearInterval(timer);
                 progressBar.style.width = '100%';
                 progressPercent.innerText = '100%';
@@ -872,17 +919,15 @@ $active_tab = $_GET['tab'] ?? 'sync';
                     logConsole(`❌ ${data.message}`);
                     alert('เกิดข้อผิดพลาด: ' + data.message);
                 }
-            })
-            .catch(err => {
+            } catch (err) {
                 clearInterval(timer);
                 progressText.innerText = 'สถานะ: เชื่อมต่อล้มเหลว';
                 logConsole(`❌ ${err.message}`);
-                alert('เชื่อมต่อล้มเหลว:\n' + err.message);
-            })
-            .finally(() => {
+                alert('ซิงค์ไม่สำเร็จ:\n' + err.message + '\n\nตรวจว่า RedAlert Station V3 เปิดอยู่บนเครื่องนี้และเชื่อมต่อ JHCIS ได้');
+            } finally {
                 btn.disabled = false;
                 btn.innerHTML = `<span>🚀</span> เริ่มซิงค์ข้อมูลเข้า JHCIS ทันที (Direct / Local)`;
-            });
+            }
         }
 
         // Export SQL Script
@@ -930,6 +975,26 @@ $active_tab = $_GET['tab'] ?? 'sync';
         document.addEventListener('DOMContentLoaded', () => {
             loadSyncPreview();
             loadJHCISSettings();
+
+            // Auto-check Local Bridge on local station
+            localBridgeFetch('/test', { method: 'POST' })
+                .then(data => {
+                    const detectedPcu = data.detected_pcucode || 'ไม่ระบุ';
+                    const detectedName = data.detected_hosname || '';
+                    document.getElementById('detected-hosp-name').innerText = `[${detectedPcu}] ${detectedName}`;
+                    const badge = document.getElementById('detected-hosp-badge');
+                    badge.style.display = 'inline-flex';
+                    badge.className = 'stat-badge success';
+                    badge.innerText = '🟢 เชื่อมต่อผ่าน Local Bridge (พอร์ต 18765)';
+                    logConsole(`🟢 ตรวจพบ Local Bridge ทำงานอยู่บนเครื่องนี้ JHCIS PCU: [${detectedPcu}] พร้อมซิงค์ข้อมูลได้ทันที`);
+                })
+                .catch(() => {
+                    document.getElementById('detected-hosp-name').innerText = `รอการเปิด Local Bridge (เปิด RedAlert Station V3 บนเครื่องนี้)`;
+                    const badge = document.getElementById('detected-hosp-badge');
+                    badge.style.display = 'inline-flex';
+                    badge.className = 'stat-badge ready';
+                    badge.innerText = '⚪ รอเปิด Local Bridge';
+                });
         });
     </script>
 </body>

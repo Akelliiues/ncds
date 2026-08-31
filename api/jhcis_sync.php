@@ -878,6 +878,7 @@ if ($action === 'export_sql') {
         echo "-- รพ.สต. / หน่วยบริการ: " . ($filterHoscode ? "[{$filterHoscode}] " . ($hc_names[$filterHoscode] ?? '') : "ทุก รพ.สต.") . "\n";
         echo "-- วันที่สร้าง: " . date('d/m/Y H:i:s') . "\n";
         echo "-- จำนวนรายการ: " . count($records) . " รายการ\n";
+        echo "-- NCDS-SCREENING-IDS: " . implode(',', array_column($records, 'screening_id')) . "\n";
         echo "-- วิธีใช้งาน:\n";
         echo "-- 1. เปิดโปรแกรมจัดการฐานข้อมูล เช่น HeidiSQL, Navicat หรือ JHCIS Query Tool\n";
         echo "-- 2. เชื่อมต่อฐานข้อมูล jhcisdb\n";
@@ -942,6 +943,34 @@ if ($action === 'export_sql') {
     }
 }
 
+// Confirm only records that the local Station has already committed to JHCIS.
+if ($action === 'confirm_local_sync') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['status' => 'error', 'message' => 'Method not allowed'], JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+    $filterHoscode = trim($_POST['hoscode'] ?? $admin_hoscode ?? '');
+    $rawIds = $_POST['screening_ids'] ?? '';
+    $ids = array_values(array_unique(array_filter(array_map('intval', explode(',', $rawIds)), function ($id) { return $id > 0; })));
+    if (!$filterHoscode || !$ids || count($ids) > 1000) {
+        echo json_encode(['status' => 'error', 'message' => 'ข้อมูลยืนยันการซิงค์ไม่ถูกต้อง'], JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+    try {
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $params = array_merge($ids, [$filterHoscode]);
+        $stmt = $pdo->prepare("UPDATE screening_results s
+            JOIN target_population p ON s.target_cid = p.cid
+            LEFT JOIN villages v ON p.sub_district_code = v.sub_district_code AND CAST(p.moo AS UNSIGNED) = v.moo
+            SET s.is_synced_jhcis = 1, s.jhcis_synced_at = NOW()
+            WHERE s.screening_id IN ({$placeholders}) AND COALESCE(v.hoscode, p.hoscode) = ?");
+        $stmt->execute($params);
+        echo json_encode(['status' => 'success', 'confirmed' => $stmt->rowCount()], JSON_UNESCAPED_UNICODE);
+    } catch (\Exception $e) {
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+    }
+    exit();
+}
+
 // Invalid action
 echo json_encode(['status' => 'error', 'message' => 'Invalid action specified'], JSON_UNESCAPED_UNICODE);
-
