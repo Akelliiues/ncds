@@ -1289,6 +1289,12 @@ try {
                     <span>จำลองส่งสัญญาณฉุกเฉิน</span>
                 </button>
 
+                <!-- Clear Test Alerts Button -->
+                <button type="button" onclick="clearAllTestAlerts()" class="btn-station-ctrl btn-clear-test" style="color: #7e22ce;" title="ลบเคสทดสอบและข้อมูลจำลองทั้งหมด">
+                    <span class="neu-disc-icon xs disc-purple-subtle" style="font-size: 13px;">🗑️</span>
+                    <span>ลบเคสทดสอบ</span>
+                </button>
+
                 <button type="button" onclick="openStationDownloadModal()" class="btn-station-ctrl btn-download-app" title="ดาวน์โหลด NCDs Red Alert Station">
                     <span class="neu-disc-icon xs disc-green-subtle">📥</span>
                     <span>ดาวน์โหลด</span>
@@ -2895,6 +2901,23 @@ try {
                 fetchActiveAlerts();
             } catch (error) {
                 alert('ทดสอบสัญญาณไม่สำเร็จ: ' + error.message);
+            }
+        }
+
+        // Clear All Test Alerts
+        async function clearAllTestAlerts() {
+            if (!confirm('ยืนยันการลบเคสทดสอบและข้อมูลจำลองทั้งหมดในระบบ?\n\n(ระบบจะลบเฉพาะเคสทดสอบและข้อมูลจำลอง โดยไม่กระทบกับข้อมูลจริงใดๆ)')) {
+                return;
+            }
+            try {
+                const formData = new FormData();
+                formData.append('action', 'clear_test_alerts');
+                const result = await fetch('../api/emergency_alert.php', { method: 'POST', body: formData }).then(r => r.json());
+                if (result.status !== 'success') throw new Error(result.message || 'ลบเคสทดสอบไม่สำเร็จ');
+                showStationToast(`🗑️ ${result.message}`);
+                fetchActiveAlerts();
+            } catch (error) {
+                alert('เกิดข้อผิดพลาด: ' + error.message);
             }
         }
 

@@ -500,4 +500,60 @@ if ($action === 'get_alert_details') {
     exit();
 }
 
+// -------------------------------------------------------------
+// 7. CLEAR ALL TEST ALERTS (Purge Mock / Test Alerts)
+// -------------------------------------------------------------
+if ($action === 'clear_test_alerts') {
+    requireStationAccess($stationToken, $isAdminSession, 'alerts:write', true);
+    
+    try {
+        $sql = "
+            DELETE FROM critical_alerts 
+            WHERE patient_name LIKE '%ทดสอบ%' 
+               OR patient_name LIKE '%จำลอง%' 
+               OR vhv_name LIKE '%ทดสอบ%' 
+               OR vhv_name LIKE '%จำลอง%' 
+               OR crisis_type LIKE '%ทดสอบ%' 
+               OR crisis_type LIKE '%จำลอง%' 
+               OR target_cid LIKE '003250000%' 
+               OR house_no = 'TEST-1' 
+               OR red_flags LIKE '%จำลอง%' 
+               OR red_flags LIKE '%ทดสอบ%'
+               OR screening_id = 999999
+        ";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute();
+        $deletedCount = $stmt->rowCount();
+
+        echo json_encode([
+            'status' => 'success',
+            'message' => "ลบเคสทดสอบและข้อมูลจำลองเรียบร้อยแล้ว ({$deletedCount} รายการ)",
+            'deleted_count' => $deletedCount
+        ], JSON_UNESCAPED_UNICODE);
+    } catch (\Throwable $e) {
+        echo json_encode(['status' => 'error', 'message' => 'เกิดข้อผิดพลาดในการลบเคสทดสอบ: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
+    }
+    exit();
+}
+
+// -------------------------------------------------------------
+// 8. DELETE SINGLE ALERT
+// -------------------------------------------------------------
+if ($action === 'delete_alert') {
+    requireStationAccess($stationToken, $isAdminSession, 'alerts:write', true);
+    $alertId = (int)($_POST['alert_id'] ?? $_GET['alert_id'] ?? 0);
+    if ($alertId <= 0) {
+        echo json_encode(['status' => 'error', 'message' => 'ไม่ระบุ alert_id'], JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+    try {
+        $stmt = $pdo->prepare("DELETE FROM critical_alerts WHERE alert_id = ?");
+        $stmt->execute([$alertId]);
+        echo json_encode(['status' => 'success', 'message' => 'ลบเคสเรียบร้อยแล้ว', 'alert_id' => $alertId], JSON_UNESCAPED_UNICODE);
+    } catch (\Throwable $e) {
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+    }
+    exit();
+}
+
 echo json_encode(['status' => 'error', 'message' => 'Invalid action'], JSON_UNESCAPED_UNICODE);

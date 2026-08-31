@@ -1296,4 +1296,156 @@ class DemoDataProvider {
             'is_demo' => true
         ];
     }
+
+    public static function processDemoScreening($postData) {
+        $action = $postData['action'] ?? 'save_screening';
+        $targetCid = trim($postData['target_cid'] ?? $postData['cid'] ?? '0032500000001');
+        $assignmentId = (int)($postData['assignment_id'] ?? 1);
+        $sys1 = !empty($postData['sys_bp1']) ? (int)$postData['sys_bp1'] : 120;
+        $dia1 = !empty($postData['dia_bp1']) ? (int)$postData['dia_bp1'] : 80;
+        $sys2 = !empty($postData['sys_bp2']) ? (int)$postData['sys_bp2'] : $sys1;
+        $dia2 = !empty($postData['dia_bp2']) ? (int)$postData['dia_bp2'] : $dia1;
+        $dtx = !empty($postData['dtx_value']) ? (int)$postData['dtx_value'] : null;
+        $dtxType = $postData['dtx_type'] ?? 'fpg';
+        $weight = !empty($postData['weight']) ? (float)$postData['weight'] : 60;
+        $height = !empty($postData['height']) ? (float)$postData['height'] : 160;
+        $waist = !empty($postData['waist']) ? (float)$postData['waist'] : 80;
+        $cvRiskScore = !empty($postData['cv_risk_score']) ? (float)$postData['cv_risk_score'] : 0.0;
+        $redFlags = $postData['red_flags'] ?? '';
+        if (is_array($redFlags)) $redFlags = implode(', ', $redFlags);
+
+        $residentName = 'สมชาย ใจดี (จำลอง)';
+        $age = 58;
+        $houseNo = '12/1';
+        $moo = '1';
+        $subDistrictCode = '341001';
+        $mockTargets = self::getMockTargets();
+        foreach ($mockTargets as $t) {
+            if ($t['cid'] === $targetCid) {
+                $residentName = $t['first_name'] . ' ' . $t['last_name'];
+                $age = $t['age'] ?? 58;
+                $houseNo = $t['house_no'] ?? '1';
+                $moo = $t['moo'] ?? '1';
+                break;
+            }
+        }
+
+        $bmi = ($height > 0) ? ($weight / (($height / 100) * ($height / 100))) : 22.5;
+        $isCritical = ($sys1 >= 180 || $dia1 >= 110 || ($dtx !== null && ($dtx >= 300 || ($dtx > 0 && $dtx < 70))));
+
+        if ($isCritical) {
+            $riskLevel = 'red';
+            $riskColor = '#DC2626';
+            $riskTitle = 'ระดับวิกฤต (ต้องพบแพทย์ทันที)';
+            $statusDesc = 'พบค่าสัญญาณชีพสูงวิกฤต เสี่ยงเกิดภาวะแทรกซ้อนอันตราย';
+        } elseif ($sys1 >= 140 || $dia1 >= 90 || ($dtx !== null && $dtx >= 126)) {
+            $riskLevel = 'orange';
+            $riskColor = '#EA580C';
+            $riskTitle = 'ระดับสงสัยป่วย (ส่งต่อ รพ.สต.)';
+            $statusDesc = 'ค่าความดันหรือน้ำตาลอยู่ในเกณฑ์สงสัยป่วย ควรพบเจ้าหน้าที่';
+        } elseif ($sys1 >= 120 || $dia1 >= 80 || ($dtx !== null && $dtx >= 100)) {
+            $riskLevel = 'yellow';
+            $riskColor = '#F59E0B';
+            $riskTitle = 'กลุ่มเสี่ยง (ปรับเปลี่ยนพฤติกรรม)';
+            $statusDesc = 'ค่าความดันหรือน้ำตาลเริ่มสูงกว่าปกติ แนะนำปรับเปลี่ยนพฤติกรรม 3อ. 2ส.';
+        } else {
+            $riskLevel = 'green';
+            $riskColor = '#10B981';
+            $riskTitle = 'กลุ่มปกติ (สุขภาพดี)';
+            $statusDesc = 'ค่าสัญญาณชีพอยู่ในเกณฑ์ปกติ รักษาสุขภาพต่อเนื่อง';
+        }
+
+        $adviceList = [
+            [
+                'icon' => '🥗',
+                'img' => '../assets/img/clay/nutrition.jpg',
+                'title' => 'ลดหวาน มัน เค็ม',
+                'desc' => 'หลีกเลี่ยงอาหารเค็มจัดและของทอด ดื่มน้ำสะอาดให้เพียงพอ'
+            ],
+            [
+                'icon' => '🏃',
+                'img' => '../assets/img/clay/exercise.jpg',
+                'title' => 'ขยับกาย ออกกำลังกายสม่ำเสมอ',
+                'desc' => 'เดินสะสมก้าวอย่างน้อยวันละ 30 นาที 5 วัน/สัปดาห์'
+            ]
+        ];
+
+        // Insert into critical_alerts so receiver station and desktop app can catch the simulated critical alert
+        $alertId = null;
+        if ($isCritical) {
+            try {
+                require_once __DIR__ . '/db.php';
+                global $pdo;
+                if ($pdo) {
+                    $crisisType = ($sys1 >= 180 || $dia1 >= 110) ? 'ความดันสูงวิกฤต (จำลอง)' : (($dtx >= 300) ? 'น้ำตาลสูงวิกฤต (จำลอง)' : 'น้ำตาลต่ำวิกฤต (จำลอง)');
+                    $stmtAlert = $pdo->prepare("
+                        INSERT INTO critical_alerts (
+                            screening_id, hoscode, target_cid,
+                            patient_name, age, house_no, moo, sub_district_code,
+                            latitude, longitude, crisis_type, sbp, dbp, dtx,
+                            red_flags, vhv_name, vhv_phone, contact_phone, contact_type, alert_status, created_at
+                        ) VALUES (
+                            999999, '00325', ?,
+                            ?, ?, ?, ?, ?,
+                            15.3456, 105.1234, ?, ?, ?, ?,
+                            ?, 'อสม. สมชาย ใจดี (จำลอง สสอ.ตาลสุม)', '081-234-5678', '081-234-5678', 'vhv', 'pending', NOW()
+                        )
+                    ");
+                    $stmtAlert->execute([
+                        $targetCid,
+                        $residentName, $age, $houseNo, $moo, $subDistrictCode,
+                        $crisisType, $sys1, $dia1, $dtx,
+                        $redFlags
+                    ]);
+                    $alertId = $pdo->lastInsertId();
+                }
+            } catch (\Throwable $ex) {
+                // Ignore DB error if table is busy
+            }
+        }
+
+        return [
+            'status' => 'success',
+            'message' => 'บันทึกผลการคัดกรองในโหมดจำลอง (Demo Sandbox) เรียบร้อยแล้ว',
+            'screening_id' => 999999,
+            'alert_id' => $alertId,
+            'reward_status' => 'approved',
+            'reward_points' => 20,
+            'round_number' => 1,
+            'hl_risk_level' => $riskLevel,
+            'is_hl_coach' => true,
+            'is_demo' => true,
+            'summary_metadata' => [
+                'resident_name' => $residentName,
+                'target_cid' => $targetCid,
+                'age' => $age,
+                'house_no' => $houseNo,
+                'moo' => $moo,
+                'sub_district_code' => $subDistrictCode,
+                'latitude' => 15.3456,
+                'longitude' => 105.1234,
+                'round_number' => 1,
+                'reward_points' => 20,
+                'sbp' => $sys1,
+                'dbp' => $dia1,
+                'dtx' => $dtx,
+                'dtx_type' => $dtxType,
+                'bmi' => round($bmi, 1),
+                'waist' => $waist,
+                'cv_risk' => $cvRiskScore,
+                'risk_level' => $riskLevel,
+                'risk_color' => $riskColor,
+                'risk_title' => $riskTitle,
+                'status_desc' => $statusDesc,
+                'has_history' => false,
+                'trend_status' => 'stable',
+                'trend_title' => 'ตรวจครั้งแรก',
+                'trend_color' => '#3B82F6',
+                'trend_details' => 'บันทึกเป็นข้อมูลตั้งต้นสำหรับเปรียบเทียบในรอบถัดไป',
+                'advice_list' => $adviceList,
+                'red_flags' => $redFlags,
+                'next_appointment' => date('d/m/Y', strtotime('+3 months'))
+            ]
+        ];
+    }
 }
