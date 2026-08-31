@@ -833,6 +833,12 @@ if ($action === 'get_logs') {
             'status' => 'success',
             'logs' => $logs
         ], JSON_UNESCAPED_UNICODE);
+    } catch (\Exception $e) {
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+    }
+    exit();
+}
+
 // -------------------------------------------------------------
 // 7. EXPORT SQL SCRIPT (FOR JHCIS QUERY CENTER / HEIDISQL / NAVICAT)
 // -------------------------------------------------------------
