@@ -2823,7 +2823,7 @@ try {
             const unitCodes = <?= json_encode(array_values(array_keys($hc_names)), JSON_UNESCAPED_UNICODE) ?>;
             const testHoscode = (currentHoscode && !['ALL', 'GLOBAL', '99999'].includes(currentHoscode))
                 ? currentHoscode
-                : (unitCodes[0] || '');
+                : '00325';
             if (!/^\d{5}$/.test(testHoscode)) {
                 alert('ไม่พบรหัสหน่วยบริการสำหรับการทดสอบ');
                 return;
@@ -2832,8 +2832,8 @@ try {
                 const formData = new FormData();
                 formData.append('action', 'trigger_alert');
                 formData.append('hoscode', testHoscode);
-                formData.append('target_cid', '9000000000001');
-                formData.append('patient_name', 'เคสทดสอบสัญญาณฉุกเฉิน');
+                formData.append('target_cid', '0032500000001');
+                formData.append('patient_name', 'เคสทดสอบสัญญาณฉุกเฉิน (สสอ.ตาลสุม)');
                 formData.append('age', '67');
                 formData.append('house_no', 'TEST-1');
                 formData.append('moo', '1');
@@ -2841,8 +2841,8 @@ try {
                 formData.append('sbp', '215');
                 formData.append('dbp', '120');
                 formData.append('dtx', '340');
-                formData.append('red_flags', 'ข้อมูลจำลองสำหรับทดสอบสัญญาณ ห้ามส่งเข้า JHCIS');
-                formData.append('vhv_name', 'ผู้ทดสอบระบบ');
+                formData.append('red_flags', 'ชุดข้อมูลจำลองสำหรับทดสอบสัญญาณ สังกัด สสอ.ตาลสุม (00325)');
+                formData.append('vhv_name', 'ผู้ทดสอบระบบ (สสอ.)');
                 const result = await fetch('../api/emergency_alert.php', { method: 'POST', body: formData }).then(r => r.json());
                 if (result.status !== 'success') throw new Error(result.message || 'สร้างเคสทดสอบไม่สำเร็จ');
                 fetchActiveAlerts();

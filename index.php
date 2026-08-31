@@ -20,10 +20,10 @@ if (isset($_GET['demo_role']) || isset($_POST['demo_role'])) {
 
     if ($demoRole === 'vhv') {
         $_SESSION['vhv_id'] = 'DEMO_1001';
-        $_SESSION['vhv_name'] = 'อสม. ใจดี มีสุข (โหมดจำลอง)';
+        $_SESSION['vhv_name'] = 'อสม. ใจดี มีสุข (จำลอง สสอ.)';
         $_SESSION['vhv_moo'] = 1;
         $_SESSION['vhid_code'] = '34100101';
-        $_SESSION['hoscode'] = '99999';
+        $_SESSION['hoscode'] = '00325';
         $_SESSION['is_leader'] = 0;
         $_SESSION['is_hl_coach'] = 0;
         header("Location: vhv/index.php");
@@ -31,7 +31,7 @@ if (isset($_GET['demo_role']) || isset($_POST['demo_role'])) {
     } elseif ($demoRole === 'staff') {
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['admin_username'] = 'demo_staff';
-        $_SESSION['admin_hoscode'] = '99999';
+        $_SESSION['admin_hoscode'] = '00325';
         $_SESSION['is_visitor'] = false;
         header("Location: admin/index.php");
         exit();

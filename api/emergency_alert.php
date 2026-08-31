@@ -71,7 +71,7 @@ if ($action === 'stream_alerts') {
             $params = [];
 
             if (!empty($hoscode) && $hoscode !== 'ALL' && $hoscode !== 'GLOBAL') {
-                $sql .= " AND (hoscode = ? OR hoscode = 'ALL' OR hoscode = '99999') ";
+                $sql .= " AND (hoscode = ? OR hoscode = 'ALL' OR hoscode = '00325' OR hoscode = '99999') ";
                 $params[] = $hoscode;
             }
 
@@ -221,7 +221,7 @@ if ($action === 'get_active_alerts') {
         $params = [];
 
         if (!empty($hoscode) && $hoscode !== 'ALL' && $hoscode !== 'GLOBAL') {
-            $sql .= " AND (hoscode = ? OR hoscode = 'ALL' OR hoscode = '99999') ";
+            $sql .= " AND (hoscode = ? OR hoscode = 'ALL' OR hoscode = '00325' OR hoscode = '99999') ";
             $params[] = $hoscode;
         }
 
