@@ -18,6 +18,7 @@ if (DemoDataProvider::isDemoMode()) {
             parse_str($parsed['query'], $q);
             if (!empty($q['cid'])) $hid = $q['cid'];
             elseif (!empty($q['hid'])) $hid = $q['hid'];
+            elseif (!empty($q['code'])) $hid = $q['code'];
         }
     }
     
@@ -30,6 +31,10 @@ if (DemoDataProvider::isDemoMode()) {
     }
     
     // 3. ตัดคำนำหน้าภาษาไทย e.g. "บ้าน 12/1", "บ้านเลขที่ 88"
+    $vinylScenario = DemoDataProvider::resolveVinylQrCode($hid);
+    if ($vinylScenario) {
+        $hid = $vinylScenario['canonical_code'];
+    }
     $cleanHid = trim(preg_replace('/^(บ้านเลขที่|บ้าน|ม\.)\s*/u', '', $hid));
     
     $targets = DemoDataProvider::getMockTargets();

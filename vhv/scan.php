@@ -10,6 +10,7 @@ if (!isset($_SESSION['vhv_id'])) {
 }
 
 $presetHid = $_GET['hid'] ?? '';
+$autoCheckPreset = !empty($presetHid) && ($_GET['auto_check'] ?? '') === '1';
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -742,7 +743,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // โหลดพิกัด GPS แบบเบื้องหลังพร้อมหน่วงเวลา 1.5 วินาที เพื่อเลี่ยงการแย่งสิทธิ์กับกล้องตอนโหลดหน้าแรก
     setTimeout(startGpsTracking, 1500);
 
-    if (typeof Html5Qrcode !== 'undefined') {
+    const shouldAutoCheckPreset = <?= $autoCheckPreset ? 'true' : 'false' ?>;
+    if (shouldAutoCheckPreset) {
+        hideReader();
+        setStatus('loading',
+            '<div class="spinner"></div>',
+            'กำลังตรวจสอบสิทธิ์จาก QR Code…',
+            'กรุณารอสักครู่'
+        );
+        setTimeout(() => validateHouseAssignment(<?= json_encode($presetHid, JSON_UNESCAPED_UNICODE) ?>), 250);
+    } else if (typeof Html5Qrcode !== 'undefined') {
         libLoaded = true;
         startCamera();
     } else {

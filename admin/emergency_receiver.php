@@ -1082,11 +1082,11 @@ try {
         .station-table th:nth-child(6),
         .station-table td:nth-child(6) { width: 11%; }
         .station-table th:nth-child(7),
-        .station-table td:nth-child(7) { width: 18%; }
+        .station-table td:nth-child(7) { width: 16%; }
         .station-table th:nth-child(8),
-        .station-table td:nth-child(8) { width: 14%; }
+        .station-table td:nth-child(8) { width: 12%; }
         .station-table th:nth-child(9),
-        .station-table td:nth-child(9) { width: 9.5%; }
+        .station-table td:nth-child(9) { width: 13.5%; }
 
         .station-table td:nth-child(3) > div:first-child,
         .station-table td:nth-child(8) > div:first-child {
@@ -1094,50 +1094,46 @@ try {
         }
 
         .station-table-actions {
-            display: grid;
-            grid-template-columns: 38px 104px;
+            display: flex;
             align-items: center;
             justify-content: end;
-            gap: 7px;
+            flex-wrap: nowrap;
+            gap: 4px;
             width: 100%;
         }
 
-        .station-table-actions .station-map-action {
-            width: 38px;
+        .station-table-actions .station-action-icon {
+            width: 34px;
             height: 34px;
-            padding: 0;
+            min-width: 34px;
+            padding: 0 !important;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             box-sizing: border-box;
-            font-size: 15px;
+            border-radius: 10px;
+            font-size: 16px !important;
             line-height: 1;
+            cursor: pointer;
+            text-decoration: none;
         }
 
-        .station-table-actions .station-refer-action {
-            width: 104px;
-            min-height: 34px;
-            padding: 5px 8px !important;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            box-sizing: border-box;
+        .station-table .cell-clamp-1 {
+            display: block;
             white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
         }
 
-        .station-row-operations {
-            width: 104px;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 5px;
-        }
-
-        .station-row-operations > button {
-            width: 104px;
-            min-height: 34px;
-            justify-content: center;
-            box-sizing: border-box;
+        .station-table .cell-clamp-2 {
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            overflow: hidden;
+            line-height: 1.35;
+            max-height: 2.7em;
         }
 
         @media (max-width: 1400px) {
@@ -1160,10 +1156,11 @@ try {
 
         .station-table td {
             box-sizing: border-box;
-            padding: 12px 14px;
+            padding: 10px 12px;
             border-bottom: 1px solid var(--border-color, rgba(0,0,0,0.05));
             color: var(--text-primary);
             vertical-align: middle;
+            overflow: hidden;
         }
 
         .station-table tr:hover td {
@@ -2492,7 +2489,7 @@ try {
                                 <th>ที่อยู่ / หมู่</th>
                                 <th>ภาวะวิกฤต / สัญญาณเตือน</th>
                                 <th>ผู้แจ้ง / เบอร์ติดต่อ</th>
-                                <th style="text-align: right; padding-right: 18px;">การจัดการ</th>
+                                <th style="text-align: center;">การจัดการ</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -2528,8 +2525,8 @@ try {
                         </td>
                         <td>${statusBadge}</td>
                         <td>
-                            <div style="font-weight: 600; color: var(--text-primary);">${a.patient_name}</div>
-                            <div style="font-size: 11.5px; font-weight: 400; color: var(--text-muted);">
+                            <div class="cell-clamp-1" style="font-weight: 700; color: var(--text-primary);" title="${a.patient_name}">${a.patient_name}</div>
+                            <div class="cell-clamp-1" style="font-size: 11.5px; font-weight: 400; color: var(--text-muted);">
                                 ${a.age ? `อายุ ${a.age} ปี • ` : ''}${a.target_cid ? `CID: ${a.target_cid}` : ''}
                             </div>
                         </td>
@@ -2544,49 +2541,46 @@ try {
                             </div>
                         </td>
                         <td>
-                            <div style="font-weight: 500; color: var(--text-primary);">บ.${a.house_no || '-'} ม.${a.moo || '-'}${vInfo.villageName ? ` บ้าน${vInfo.villageName}` : ''}</div>
-                            <div style="font-size: 11px; font-weight: 400; color: var(--text-muted);">${vInfo.subDistrictName ? `ต.${vInfo.subDistrictName} • ` : ''}รพ.สต. ${a.hoscode}</div>
+                            <div class="cell-clamp-1" style="font-weight: 500; color: var(--text-primary);" title="บ.${a.house_no || '-'} ม.${a.moo || '-'}${vInfo.villageName ? ` บ้าน${vInfo.villageName}` : ''}">บ.${a.house_no || '-'} ม.${a.moo || '-'}${vInfo.villageName ? ` บ้าน${vInfo.villageName}` : ''}</div>
+                            <div class="cell-clamp-1" style="font-size: 11px; font-weight: 400; color: var(--text-muted);">${vInfo.subDistrictName ? `ต.${vInfo.subDistrictName} • ` : ''}รพ.สต. ${a.hoscode}</div>
                         </td>
                         <td>
-                            <div style="color: #DC2626; font-weight: 650; max-width: none; white-space: normal; line-height: 1.3;">
-                                ${a.crisis_type}
+                            <div class="cell-clamp-2" style="color: #DC2626; font-weight: 700;" title="${a.crisis_type}${a.red_flags ? ` • ${a.red_flags}` : ''}">
+                                ${a.crisis_type}${a.red_flags ? ` • <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 500;">${a.red_flags}</span>` : ''}
                             </div>
-                            ${a.red_flags ? `<div style="font-size: 11.5px; color: var(--text-muted); max-width: none; white-space: normal; line-height: 1.35;">${a.red_flags}</div>` : ''}
                         </td>
                         <td>
-                            <div style="font-size: 12px; color: var(--text-primary); font-weight: 500;">${a.vhv_name || '-'}</div>
+                            <div class="cell-clamp-1" style="font-size: 12px; color: var(--text-primary); font-weight: 500;" title="${a.vhv_name || '-'}">${a.vhv_name || '-'}</div>
                             ${phone ? `
-                                <a href="tel:${phone}" style="font-size: 11.5px; color: #059669; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                                <a href="tel:${phone}" onclick="event.stopPropagation();" class="cell-clamp-1" style="font-size: 11.5px; color: #059669; font-weight: 700; text-decoration: none;">
                                     <span>📞 ${phone}</span>
                                 </a>
                             ` : '<span style="font-size: 11px; color: var(--text-muted);">-</span>'}
                         </td>
-                        <td style="text-align: right; white-space: nowrap;">
+                        <td style="text-align: center; white-space: nowrap;">
                             <div class="station-table-actions">
                                 ${IS_MAIN_ADMIN ? `
-                                    <button type="button" onclick="event.stopPropagation(); deleteAlertRecord(${a.alert_id}, '${(a.patient_name || '').replace(/'/g, "\\'")}')" class="btn-station-ctrl" style="padding: 6px 8px; color: #DC2626; background: #FEF2F2; border: 1px solid rgba(220,38,38,0.3); border-radius: 8px; font-size: 12px; cursor: pointer;" title="ลบเคส #${a.alert_id} (สิทธิ์เฉพาะแอดมินหลัก)">
+                                    <button type="button" onclick="event.stopPropagation(); deleteAlertRecord(${a.alert_id}, '${(a.patient_name || '').replace(/'/g, "\\'")}')" class="btn-station-ctrl station-action-icon" style="color: #DC2626; background: #FEF2F2; border: 1px solid rgba(220,38,38,0.3);" title="ลบเคส #${a.alert_id}" aria-label="ลบเคส #${a.alert_id}">
                                         <span>🗑️</span>
                                     </button>
                                 ` : ''}
-                                <a href="${mapLink}" target="_blank" class="btn-station-ctrl station-map-action" title="เปิดตำแหน่งบนแผนที่">
-                                    <span>⚓️</span>
+                                <a href="${mapLink}" target="_blank" onclick="event.stopPropagation();" class="btn-station-ctrl station-action-icon station-map-action" title="เปิดตำแหน่งบนแผนที่" aria-label="เปิดตำแหน่งบนแผนที่">
+                                    <span>📍</span>
                                 </a>
-                                <div class="station-row-operations">
-                                    ${isPending ? `
-                                        <button type="button" onclick="ackAlertById(${a.alert_id})" style="background: #DC2626; color: white; border: none; padding: 6px 10px; border-radius: 8px; font-weight: 800; font-size: 11.5px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
-                                            <span>🔕 รับเรื่อง</span>
-                                        </button>
-                                    ` : ''}
-                                    ${isReferred ? `
-                                        <a href="critical_referrals.php?alert_id=${a.alert_id}" onclick="openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" class="btn-station-ctrl station-refer-action" style="font-size: 11.5px; background: #059669; color: white; border: none;" title="เปิดดูประวัติการส่งต่อ">
-                                            <span>✅ ส่งต่อแล้ว</span>
-                                        </a>
-                                    ` : `
-                                        <a href="critical_referrals.php?alert_id=${a.alert_id}" onclick="openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" class="btn-station-ctrl station-refer-action" style="font-size: 11.5px; background: #2563EB; color: white; border: none;" title="ส่งต่อ รพ.">
-                                            <span>🏥 ส่งต่อ</span>
-                                        </a>
-                                    `}
-                                </div>
+                                ${isPending ? `
+                                    <button type="button" onclick="event.stopPropagation(); ackAlertById(${a.alert_id})" class="station-action-icon" style="background: #DC2626; color: white; border: none;" title="รับเรื่องและหยุดเสียงแจ้งเตือน" aria-label="รับเรื่องและหยุดเสียงแจ้งเตือน">
+                                        <span>✓</span>
+                                    </button>
+                                ` : ''}
+                                ${isReferred ? `
+                                    <a href="critical_referrals.php?alert_id=${a.alert_id}" onclick="event.stopPropagation(); openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" class="btn-station-ctrl station-action-icon" style="background: #059669; color: white; border: none;" title="เปิดดูประวัติการส่งต่อ" aria-label="เปิดดูประวัติการส่งต่อ">
+                                        <span>✅</span>
+                                    </a>
+                                ` : `
+                                    <a href="critical_referrals.php?alert_id=${a.alert_id}" onclick="event.stopPropagation(); openOrFocusTab(this.href, 'ncd_critical_referrals_tab'); return false;" class="btn-station-ctrl station-action-icon" style="background: #2563EB; color: white; border: none;" title="ส่งต่อโรงพยาบาล" aria-label="ส่งต่อโรงพยาบาล">
+                                        <span>🏥</span>
+                                    </a>
+                                `}
                             </div>
                         </td>
                     </tr>

@@ -98,6 +98,54 @@ function renderRankTitleHeader($rank, $compact = false)
     </div>';
 }
 
+// Titles for ranking inside the VHV's own health-service unit.
+// Kept separate from district titles so the two ranking scopes are unambiguous.
+function getStationPositiveTitle($rank)
+{
+    $rank = (int)$rank;
+    if ($rank <= 0 || $rank > 50) return '';
+
+    $topTitles = [
+        1 => '🏥 ผู้นำคัดกรองประจำหน่วย',
+        2 => '🩺 รองผู้นำดูแลชุมชน',
+        3 => '📍 นักลงพื้นที่แนวหน้าประจำหน่วย',
+        4 => '🤝 กำลังหลักทีมสุขภาพประจำหน่วย',
+        5 => '🌱 ดาวเด่นเครือข่ายประจำหน่วย'
+    ];
+    if (isset($topTitles[$rank])) return $topTitles[$rank];
+
+    $families = [
+        1 => 'มือคัดกรองประจำหน่วย',
+        2 => 'สายติดตามประจำหน่วย',
+        3 => 'ผู้ประสานชุมชนประจำหน่วย',
+        4 => 'ทีมเฝ้าระวังประจำหน่วย',
+        5 => 'ผู้ดูแลกลุ่มเสี่ยงประจำหน่วย',
+        6 => 'นักสร้างเสริมประจำหน่วย',
+        7 => 'กำลังสนับสนุนประจำหน่วย',
+        8 => 'เครือข่ายเข้มแข็งประจำหน่วย',
+        9 => 'สมาชิกขับเคลื่อนประจำหน่วย'
+    ];
+    $levels = ['ระดับแนวหน้า', 'ระดับโดดเด่น', 'ระดับก้าวหน้า', 'ระดับเข้มแข็ง', 'ระดับพัฒนา'];
+    $familyIndex = (int)floor(($rank - 6) / 5) + 1;
+    $levelIndex = ($rank - 6) % 5;
+
+    return isset($families[$familyIndex])
+        ? '🏥 ' . $families[$familyIndex] . ' ' . $levels[$levelIndex]
+        : '';
+}
+
+function renderStationRankTitleHeader($rank, $compact = false)
+{
+    $title = getStationPositiveTitle($rank);
+    if ($title === '') return '';
+
+    $sizeClass = $compact ? ' rank-title-header--compact' : '';
+    return '<div class="rank-title-header rank-title-header--' . getRankTitleTheme($rank) . $sizeClass . '" aria-label="ฉายาระดับหน่วยบริการ ' . htmlspecialchars($title) . '">
+        <img class="rank-title-header__icon" src="rank_icon.php?rank=' . (int)$rank . '" alt="" aria-hidden="true">
+        <span class="rank-title-header__title">' . htmlspecialchars($title) . '</span>
+    </div>';
+}
+
 // 🎖️ Points Milestone Badges (Starting at 6 points after 5-pt base assessment, progressing every 5 pts)
 function getPointsMilestonesList()
 {
@@ -830,9 +878,11 @@ try {
         .rank-title-header__title {
             position: relative;
             z-index: 1;
+            display: block;
             font-size: 13.5px;
             font-weight: 800;
-            line-height: 1.25;
+            line-height: 1.55;
+            padding: 3px 1px 2px;
         }
         .rank-title-header--compact {
             margin-top: 5px;
@@ -851,6 +901,9 @@ try {
         .rank-title-header--compact .rank-title-header__title {
             font-size: 11.5px;
             font-weight: 800;
+            line-height: 1.6;
+            padding-top: 3px;
+            padding-bottom: 2px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -1379,10 +1432,10 @@ try {
                     </div>
                     <div style="margin-top: 10px; display: flex; justify-content: center; align-items: center; min-height: 42px; width: 100%;">
                         <?php
-                        $myZoneTitle = getPositiveTitle($currentVhvZoneRank);
+                        $myZoneTitle = getStationPositiveTitle($currentVhvZoneRank);
                         if ($myZoneTitle):
                         ?>
-                            <?= renderRankTitleHeader($currentVhvZoneRank) ?>
+                            <?= renderStationRankTitleHeader($currentVhvZoneRank) ?>
                         <?php else: ?>
                             <div class="rank-title-header rank-title-header--sunrise" aria-label="สมาชิก อสม. คุณภาพ">
                                 <span class="rank-title-header__title">🌱 อสม. นักขับเคลื่อนสุขภาพชุมชน</span>
@@ -1500,10 +1553,10 @@ try {
                                             หมู่ที่ <?= $leader['vhv_moo'] ?><?= !empty($leader['village_name']) ? ' ' . htmlspecialchars($leader['village_name']) : '' ?>
                                         </p>
                                         <?php
-                                        $rowTitle = getPositiveTitle($zRank);
+                                        $rowTitle = getStationPositiveTitle($zRank);
                                         if ($rowTitle):
                                         ?>
-                                            <?= renderRankTitleHeader($zRank, true) ?>
+                                            <?= renderStationRankTitleHeader($zRank, true) ?>
                                         <?php endif; ?>
                                     </div>
 

@@ -10,6 +10,15 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 require_once __DIR__ . '/../config/db.php';
 
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
+$can_correct_screening = empty($admin_hoscode)
+    && !empty($_SESSION['admin_username'])
+    && $_SESSION['admin_username'] !== 'adminsso'
+    && ($_SESSION['admin_role'] ?? 'admin') === 'admin'
+    && empty($_SESSION['is_visitor'])
+    && empty($_SESSION['is_executive']);
+if ($can_correct_screening && empty($_SESSION['screening_correction_csrf'])) {
+    $_SESSION['screening_correction_csrf'] = bin2hex(random_bytes(24));
+}
 
 $hc_names = get_health_units();
 
@@ -121,7 +130,7 @@ $params = [];
 if ($filter_source === 'screened') {
     // Query VHV screened results
     $sql = "
-        SELECT p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.sub_district_code, COALESCE(v.hoscode, p.hoscode) as hoscode,
+        SELECT s.screening_id, p.cid, p.first_name, p.last_name, p.house_no, p.moo, p.sub_district_code, COALESCE(v.hoscode, p.hoscode) as hoscode,
                s.sys_bp1, s.dia_bp1, s.dtx_value, s.weight, s.height, s.waist, s.bmi, s.cv_risk_score, s.created_at, IFNULL(s.round_number, a.round_number) as round_number
         FROM screening_results s
         LEFT JOIN task_assignments a ON s.assignment_id = a.assignment_id
@@ -1201,6 +1210,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                                     <th>ดัชนีมวลกาย (BMI)</th>
                                     <th>ความเสี่ยง (CV Risk)</th>
                                     <th>วันที่ตรวจคัดกรอง</th>
+                                    <?php if ($can_correct_screening): ?><th class="no-print" style="text-align:center;">แก้ไข</th><?php endif; ?>
                                 </tr>
                             <?php elseif ($filter_source === 'baseline'): ?>
                                 <tr>
@@ -1284,7 +1294,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                             <?php if (empty($reportData)): ?>
                                 <tr>
                                     <?php
-                                    $colspan = 16;
+                                    $colspan = 16 + (($filter_source === 'screened' && $can_correct_screening) ? 1 : 0);
                                      if ($filter_source === 'baseline')
                                          $colspan = 11;
                                      elseif ($filter_source === 'unscreened')
@@ -1334,6 +1344,13 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
                                             <td><?= $row['bmi'] ?: '-' ?></td>
                                             <td><?= ($row['cv_risk_score'] !== null ? $row['cv_risk_score'] . '%' : '-') ?></td>
                                             <td style="font-size: 11px; color: var(--text-muted);"><?= $row['created_at'] ?></td>
+                                            <?php if ($can_correct_screening): ?>
+                                                <td class="no-print" style="text-align:center;">
+                                                    <button type="button" onclick="openScreeningCorrection(<?= (int)$row['screening_id'] ?>)"
+                                                        title="แก้ไขผลคัดกรองรายการนี้"
+                                                        style="width:34px;height:34px;border:none;border-radius:10px;background:#2563EB;color:#fff;cursor:pointer;font-size:16px;box-shadow:0 4px 10px rgba(37,99,235,.25);">✏️</button>
+                                                </td>
+                                            <?php endif; ?>
                                         </tr>
                                     <?php elseif ($filter_source === 'baseline'): ?>
                                         <?php
@@ -1571,8 +1588,175 @@ if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
         </div>
     </div>
 
+    <?php if ($can_correct_screening): ?>
+    <div id="screening-correction-modal" class="no-print" style="display:none;position:fixed;inset:0;z-index:6000;background:rgba(15,23,42,.58);backdrop-filter:blur(6px);padding:20px;align-items:center;justify-content:center;">
+        <div style="width:min(760px,100%);max-height:calc(100vh - 40px);overflow:auto;background:var(--bg-card);border-radius:24px;padding:24px;box-shadow:0 24px 70px rgba(15,23,42,.28);">
+            <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:18px;">
+                <div>
+                    <h3 style="margin:0;color:var(--color-primary);font-size:20px;">แก้ไขผลการคัดกรอง</h3>
+                    <div id="correction-person" style="margin-top:5px;color:var(--text-secondary);font-size:13px;"></div>
+                </div>
+                <button type="button" onclick="closeScreeningCorrection()" style="width:36px;height:36px;border:0;border-radius:10px;background:var(--bg-darker);color:var(--text-primary);cursor:pointer;font-size:18px;">✕</button>
+            </div>
+            <div style="padding:12px 14px;border-radius:14px;background:rgba(245,158,11,.11);color:#92400E;font-size:13px;margin-bottom:18px;">ตรวจสอบชื่อบุคคลและรอบคัดกรองก่อนบันทึก การแก้ไขจะทับค่าที่ผิด แต่ระบบจะเก็บค่าเดิมและเหตุผลไว้ในประวัติการทำงาน</div>
+            <form id="screening-correction-form" onsubmit="submitScreeningCorrection(event)">
+                <input type="hidden" name="screening_id" id="correction-screening-id">
+                <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['screening_correction_csrf'] ?? '') ?>">
+                <div class="correction-field-grid">
+                    <label>ความดันครั้งที่ 1 ตัวบน<input name="sys_bp1" type="number" min="0" max="300" required></label>
+                    <label>ความดันครั้งที่ 1 ตัวล่าง<input name="dia_bp1" type="number" min="0" max="200" required></label>
+                    <label>ความดันครั้งที่ 2 ตัวบน<input name="sys_bp2" type="number" min="60" max="300"></label>
+                    <label>ความดันครั้งที่ 2 ตัวล่าง<input name="dia_bp2" type="number" min="30" max="200"></label>
+                    <label>ระดับน้ำตาล DTX<input name="dtx_value" type="number" min="20" max="700"></label>
+                    <label>ประเภทการตรวจน้ำตาล<select name="dtx_type"><option value="fpg">อดอาหาร (FPG)</option><option value="rpg">ไม่อดอาหาร (RPG)</option></select></label>
+                    <label>น้ำหนัก (กก.)<input name="weight" type="number" min="20" max="300" step="0.1"></label>
+                    <label>ส่วนสูง (ซม.)<input name="height" type="number" min="80" max="250" step="0.1"></label>
+                    <label>รอบเอว (นิ้ว)<input name="waist" type="number" min="10" max="100" step="0.1"></label>
+                    <div class="correction-cv-card">
+                        <span>ความเสี่ยง CV ที่ระบบคำนวณ</span>
+                        <strong id="correction-cv-risk">-</strong>
+                        <small>คำนวณใหม่จากข้อมูลที่แก้ไข อายุ เพศ เบาหวาน และการสูบบุหรี่</small>
+                    </div>
+                </div>
+                <label style="display:block;margin-top:14px;font-size:13px;font-weight:800;color:var(--text-primary);">เหตุผลการแก้ไข <span style="color:#DC2626;">*</span>
+                    <textarea name="correction_reason" minlength="5" required rows="3" placeholder="เช่น อสม. ลงค่าความดันสลับช่อง ตรวจสอบจากสมุดบันทึกประจำตัวแล้ว" style="width:100%;box-sizing:border-box;margin-top:7px;padding:11px 12px;border:1px solid var(--border-color);border-radius:12px;background:var(--bg-darker);color:var(--text-primary);font:inherit;resize:vertical;"></textarea>
+                </label>
+                <div id="correction-feedback" style="display:none;margin-top:12px;padding:10px 12px;border-radius:10px;font-size:13px;"></div>
+                <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;">
+                    <button type="button" onclick="closeScreeningCorrection()" class="btn-secondary" style="padding:10px 20px;">ยกเลิก</button>
+                    <button type="submit" id="correction-submit" style="padding:10px 22px;border:0;border-radius:12px;background:#2563EB;color:#fff;font-weight:800;cursor:pointer;">💾 บันทึกค่าที่แก้ไข</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <style>
+        .correction-field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}.correction-field-grid label{font-size:13px;font-weight:800;color:var(--text-primary)}.correction-field-grid input,.correction-field-grid select{width:100%;box-sizing:border-box;margin-top:6px;padding:10px 12px;border:1px solid var(--border-color);border-radius:12px;background:var(--bg-darker);color:var(--text-primary);font:inherit}.correction-cv-card{display:flex;flex-direction:column;justify-content:center;padding:10px 14px;border-radius:12px;background:rgba(37,99,235,.1);color:var(--text-primary)}.correction-cv-card span{font-size:13px;font-weight:800}.correction-cv-card strong{margin:3px 0;color:#2563EB;font-size:24px}.correction-cv-card small{color:var(--text-secondary);font-size:11px}@media(max-width:640px){.correction-field-grid{grid-template-columns:1fr}}
+    </style>
+    <?php endif; ?>
+
     <script>
         const relations = <?= json_encode($relations, JSON_UNESCAPED_UNICODE) ?>;
+        let correctionCvContext = null;
+
+        function calculateCorrectionCvRisk() {
+            const form = document.getElementById('screening-correction-form');
+            const display = document.getElementById('correction-cv-risk');
+            if (!form || !display || !correctionCvContext) return;
+
+            const r = correctionCvContext;
+            const sys1 = Number(form.elements.sys_bp1.value) || 0;
+            const sys2 = Number(form.elements.sys_bp2.value) || 0;
+            const dtxInput = Number(form.elements.dtx_value.value) || 0;
+            let sbp = 120;
+            if (sys1 > 0 && sys2 > 0) sbp = (sys1 + sys2) / 2;
+            else if (sys1 > 0) sbp = sys1;
+            else if (sys2 > 0) sbp = sys2;
+            else if (Number(r.previous_sys_bp1) > 0) sbp = Number(r.previous_sys_bp1);
+
+            const dtx = dtxInput > 0 ? dtxInput : (Number(r.previous_dtx_value) || 90);
+            const dtxType = dtxInput > 0 ? form.elements.dtx_type.value : (r.previous_dtx_type || 'fpg');
+            const hasDm = ['DM_ONLY', 'BOTH'].includes(r.health_status_origin)
+                || (Number(r.need_screen_dm) === 1 && (dtxType === 'fpg' ? dtx >= 126 : dtx >= 200));
+
+            let risk = 1.2;
+            const age = Number(r.age) || 0;
+            if (age >= 40 && age < 50) risk += 2.0;
+            else if (age >= 50 && age < 60) risk += 5.5;
+            else if (age >= 60) risk += 12.0;
+
+            const smoker = r.smoking_risk === 'red';
+            if (String(r.sex) === '1') {
+                risk += 1.5;
+                if (smoker) risk += 4.5;
+            } else if (smoker) risk += 2.5;
+            if (hasDm) risk += 6.0;
+            if (sbp >= 140 && sbp < 160) risk += 2.5;
+            else if (sbp >= 160) risk += 7.0;
+
+            display.textContent = `${Math.min(100, Math.max(.5, risk)).toFixed(2)}%`;
+        }
+
+        async function openScreeningCorrection(screeningId) {
+            const modal = document.getElementById('screening-correction-modal');
+            const form = document.getElementById('screening-correction-form');
+            const feedback = document.getElementById('correction-feedback');
+            if (!modal || !form) return;
+            modal.style.display = 'flex';
+            feedback.style.display = 'block';
+            feedback.style.background = 'var(--bg-darker)';
+            feedback.style.color = 'var(--text-secondary)';
+            feedback.textContent = 'กำลังโหลดค่าล่าสุด…';
+            try {
+                const response = await fetch(`../api/update_screening_result.php?screening_id=${encodeURIComponent(screeningId)}`, {credentials: 'same-origin', cache: 'no-store'});
+                const data = await response.json();
+                if (data.status !== 'success') throw new Error(data.message || 'โหลดข้อมูลไม่สำเร็จ');
+                const r = data.record;
+                form.elements.screening_id.value = r.screening_id;
+                ['sys_bp1','dia_bp1','sys_bp2','dia_bp2','dtx_value','weight','height','waist'].forEach(key => {
+                    form.elements[key].value = r[key] ?? '';
+                });
+                ['sys_bp2','dia_bp2','dtx_value','weight','height','waist'].forEach(key => {
+                    if (Number(form.elements[key].value) === 0) form.elements[key].value = '';
+                });
+                form.elements.dtx_type.value = ['rpg', 'random'].includes(r.dtx_type) ? 'rpg' : 'fpg';
+                correctionCvContext = r;
+                calculateCorrectionCvRisk();
+                form.elements.correction_reason.value = '';
+                document.getElementById('correction-person').textContent = `${r.first_name || ''} ${r.last_name || ''} • รอบที่ ${r.round_number || 1} • ผลรายการ #${r.screening_id}`;
+                if (Number(r.is_synced_jhcis) === 1) {
+                    feedback.style.display = 'block';
+                    feedback.style.background = 'rgba(245,158,11,.12)';
+                    feedback.style.color = '#92400E';
+                    feedback.textContent = 'รายการนี้ส่งเข้า JHCIS แล้ว จึงเปิดดูได้อย่างเดียวและไม่อนุญาตให้แก้ไขจากหน้าเว็บ';
+                    document.getElementById('correction-submit').disabled = true;
+                } else {
+                    feedback.style.display = 'none';
+                    document.getElementById('correction-submit').disabled = false;
+                }
+            } catch (error) {
+                feedback.style.background = 'rgba(220,38,38,.12)';
+                feedback.style.color = '#DC2626';
+                feedback.textContent = error.message;
+            }
+        }
+
+        function closeScreeningCorrection() {
+            const modal = document.getElementById('screening-correction-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        document.querySelectorAll('#screening-correction-form input[name="sys_bp1"], #screening-correction-form input[name="sys_bp2"], #screening-correction-form input[name="dtx_value"], #screening-correction-form select[name="dtx_type"]').forEach(element => {
+            element.addEventListener('input', calculateCorrectionCvRisk);
+            element.addEventListener('change', calculateCorrectionCvRisk);
+        });
+
+        async function submitScreeningCorrection(event) {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const button = document.getElementById('correction-submit');
+            const feedback = document.getElementById('correction-feedback');
+            if (!confirm('ยืนยันบันทึกค่าใหม่แทนค่าที่ผิดของผลคัดกรองรายการนี้?')) return;
+            button.disabled = true;
+            button.textContent = 'กำลังบันทึก…';
+            feedback.style.display = 'none';
+            try {
+                const response = await fetch('../api/update_screening_result.php', {method: 'POST', body: new FormData(form), credentials: 'same-origin'});
+                const data = await response.json();
+                if (data.status !== 'success') throw new Error(data.message || 'บันทึกไม่สำเร็จ');
+                feedback.style.display = 'block';
+                feedback.style.background = 'rgba(16,185,129,.12)';
+                feedback.style.color = '#047857';
+                feedback.textContent = data.message;
+                setTimeout(() => window.location.reload(), 900);
+            } catch (error) {
+                feedback.style.display = 'block';
+                feedback.style.background = 'rgba(220,38,38,.12)';
+                feedback.style.color = '#DC2626';
+                feedback.textContent = error.message;
+                button.disabled = false;
+                button.textContent = '💾 บันทึกค่าที่แก้ไข';
+            }
+        }
 
         function onHoscodeChange() {
             const hSelect = document.getElementById('hoscode');

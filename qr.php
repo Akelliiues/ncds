@@ -2,20 +2,31 @@
 // qr.php - Dual-Role Adaptive QR Router & Family Health Portal (PDPA Safe)
 require_once __DIR__ . '/config/session.php';
 require_once __DIR__ . '/config/db.php';
-require_once __DIR__ . '/config/demo_banner.php';
 require_once __DIR__ . '/config/demo_data.php';
 
 $code = $_GET['code'] ?? $_GET['hid'] ?? $_GET['cid'] ?? '';
 $isVhvLoggedIn = isset($_SESSION['vhv_id']);
 $isDemo = DemoDataProvider::isDemoMode();
+$vinylScenario = DemoDataProvider::resolveVinylQrCode($code);
+$lookupCode = $vinylScenario['canonical_code'] ?? $code;
+$useMockQrData = $isDemo || $vinylScenario !== null;
 
 // -------------------------------------------------------------
 // 1. DUAL-ROLE ROUTING: If logged in as VHV -> Redirect to screening form
 // -------------------------------------------------------------
-if ($isVhvLoggedIn && !empty($code)) {
-    header("Location: vhv/screening_form.php?code=" . urlencode($code));
+if ($isVhvLoggedIn && !empty($code) && (($vinylScenario['scenario'] ?? '') !== 'public_privacy')) {
+    if ($isDemo) {
+        // A printed QR must pass the same assignment and territory checks as a
+        // camera scan before a screening form can be opened.
+        header("Location: vhv/scan.php?hid=" . urlencode($code) . "&auto_check=1");
+    } else {
+        header("Location: vhv/screening_form.php?code=" . urlencode($code));
+    }
     exit();
 }
+
+// Render the demo banner only after all header redirects have completed.
+require_once __DIR__ . '/config/demo_banner.php';
 
 // -------------------------------------------------------------
 // 2. PUBLIC MODE: Look up House Residents & Positive Health Cards
@@ -24,19 +35,19 @@ $residents = [];
 $houseDisplay = 'บ้านเลขที่ประจำครอบครัว';
 $villageDisplay = 'อำเภอ' . (defined('DISTRICT_NAME') ? DISTRICT_NAME : 'ตาลสุม');
 
-if ($isDemo) {
+if ($useMockQrData) {
     $allTargets = DemoDataProvider::getMockTargets();
-    if (!empty($code)) {
-        $cleanHid = trim(preg_replace('/^(บ้านเลขที่|บ้าน|ม\.)\s*/u', '', $code));
-        if ($code === 'DEMO_HOUSE_12_1' || $code === 'DEMO_HID_1') $cleanHid = '12/1';
-        elseif ($code === 'DEMO_HOUSE_88_2') $cleanHid = '88';
-        elseif ($code === 'DEMO_HOUSE_101_2') $cleanHid = '101';
-        elseif ($code === 'DEMO_HOUSE_15_3') $cleanHid = '15/3';
-        elseif ($code === 'DEMO_HOUSE_54_4') $cleanHid = '54';
-        elseif ($code === 'DEMO_HOUSE_9_5') $cleanHid = '9/1';
+    if (!empty($lookupCode)) {
+        $cleanHid = trim(preg_replace('/^(บ้านเลขที่|บ้าน|ม\.)\s*/u', '', $lookupCode));
+        if ($lookupCode === 'DEMO_HOUSE_12_1' || $lookupCode === 'DEMO_HID_1') $cleanHid = '12/1';
+        elseif ($lookupCode === 'DEMO_HOUSE_88_2') $cleanHid = '88';
+        elseif ($lookupCode === 'DEMO_HOUSE_101_2') $cleanHid = '101';
+        elseif ($lookupCode === 'DEMO_HOUSE_15_3') $cleanHid = '15/3';
+        elseif ($lookupCode === 'DEMO_HOUSE_54_4') $cleanHid = '54';
+        elseif ($lookupCode === 'DEMO_HOUSE_9_5') $cleanHid = '9/1';
 
-        $residents = array_values(array_filter($allTargets, function($r) use ($code, $cleanHid) {
-            return ($r['cid'] === $code || $r['house_no'] === $code || $r['house_no'] === $cleanHid || (isset($r['hid']) && $r['hid'] === $code));
+        $residents = array_values(array_filter($allTargets, function($r) use ($lookupCode, $cleanHid) {
+            return ($r['cid'] === $lookupCode || $r['house_no'] === $lookupCode || $r['house_no'] === $cleanHid || (isset($r['hid']) && $r['hid'] === $lookupCode));
         }));
     }
     if (empty($residents)) {
@@ -87,7 +98,7 @@ function maskNamePDPA($firstName, $lastName, $gender, $age) {
     $lLen = mb_strlen($lastName, 'UTF-8');
     $maskedL = ($lLen > 1) ? mb_substr($lastName, 0, 1, 'UTF-8') . str_repeat('*', min($lLen - 1, 4)) : $lastName;
 
-    return "{$title}{$firstName} ({$maskedF} {$maskedL})";
+    return "{$title}{$maskedF} {$maskedL}";
 }
 
 /**
@@ -186,7 +197,7 @@ foreach ($residents as $res) {
     $cid = $res['cid'];
     $screenings = [];
 
-    if ($isDemo) {
+    if ($useMockQrData) {
         // Mock history screenings for demo
         $screenings = [
             [

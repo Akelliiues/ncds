@@ -14,6 +14,31 @@ class DemoDataProvider {
         return $_SESSION['demo_role'] ?? 'vhv';
     }
 
+    /**
+     * Resolve the permanent QR codes printed on the demo vinyl to the current
+     * mock dataset. Keeping this mapping in one place lets the printed vinyl
+     * remain usable when mock record identifiers change.
+     */
+    public static function resolveVinylQrCode($code) {
+        $normalizedCode = trim((string)$code);
+        $scenarios = [
+            '9999900000001' => [
+                'scenario' => 'assigned',
+                'canonical_code' => '0032500000001'
+            ],
+            '1008' => [
+                'scenario' => 'out_of_territory',
+                'canonical_code' => '1008'
+            ],
+            '9999900000003' => [
+                'scenario' => 'public_privacy',
+                'canonical_code' => '0032500000003'
+            ]
+        ];
+
+        return $scenarios[$normalizedCode] ?? null;
+    }
+
     // 1. รายชื่อประชากรจำลอง 10 คน (CID สมมติ ปลอดภัยจากข้อมูลจริง 100% ครอบคลุมหมู่ 1 ถึง 5)
     public static function getMockTargets() {
         return [
