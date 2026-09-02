@@ -1149,8 +1149,8 @@ try {
         `hoscode` VARCHAR(10) DEFAULT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
 
-    // Auto-create staging_jhcis_person table if it doesn't exist
-    $pdo->exec("DROP TABLE IF EXISTS `staging_jhcis_person`;");
+    // Keep the imported PERSON snapshot until an explicit import or reviewed ETL
+    // replaces it. Never clear staging data merely because a page loads.
     $pdo->exec("CREATE TABLE IF NOT EXISTS `staging_jhcis_person` (
         `staging_id` INT AUTO_INCREMENT PRIMARY KEY,
         `hoscode` VARCHAR(5) NOT NULL,
@@ -1167,6 +1167,60 @@ try {
         `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY `uq_hos_pid` (`hoscode`, `pid`),
         UNIQUE KEY `uq_cid` (`cid`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+    // Shadow ETL review lives in the NCDs Portal database only. It does not add
+    // or alter any table in JHCIS and cannot affect operational data until an
+    // authorized reviewer explicitly approves and applies a proposal.
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `etl_review_runs` (
+        `run_id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `status` VARCHAR(20) NOT NULL DEFAULT 'reviewing',
+        `snapshot_hash` CHAR(64) NULL,
+        `source_hoscodes` TEXT NULL,
+        `total_source` INT NOT NULL DEFAULT 0,
+        `proposed_count` INT NOT NULL DEFAULT 0,
+        `unchanged_count` INT NOT NULL DEFAULT 0,
+        `transfer_count` INT NOT NULL DEFAULT 0,
+        `conflict_count` INT NOT NULL DEFAULT 0,
+        `created_by` VARCHAR(100) NULL,
+        `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `applied_by` VARCHAR(100) NULL,
+        `applied_at` DATETIME NULL,
+        KEY `idx_etl_review_runs_status` (`status`, `created_at`),
+        KEY `idx_etl_review_runs_snapshot` (`snapshot_hash`, `status`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+    // Upgrade installations created before snapshot de-duplication was added.
+    try {
+        $hasSnapshotHash = $pdo->query("SHOW COLUMNS FROM etl_review_runs LIKE 'snapshot_hash'")->fetchColumn();
+        if (!$hasSnapshotHash) {
+            $pdo->exec("ALTER TABLE etl_review_runs ADD COLUMN snapshot_hash CHAR(64) NULL AFTER status,
+                ADD KEY idx_etl_review_runs_snapshot (snapshot_hash, status)");
+        }
+    } catch (\Throwable $e) {}
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `etl_review_items` (
+        `item_id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `run_id` BIGINT UNSIGNED NOT NULL,
+        `hoscode` VARCHAR(10) NULL,
+        `source_cid` VARCHAR(20) NULL,
+        `target_cid` VARCHAR(20) NULL,
+        `match_key` VARCHAR(80) NOT NULL,
+        `item_type` VARCHAR(30) NOT NULL,
+        `before_data` LONGTEXT NULL,
+        `after_data` LONGTEXT NULL,
+        `change_summary` TEXT NULL,
+        `review_status` VARCHAR(20) NOT NULL DEFAULT 'pending',
+        `reviewed_by` VARCHAR(100) NULL,
+        `reviewed_at` DATETIME NULL,
+        `apply_status` VARCHAR(20) NOT NULL DEFAULT 'not_applied',
+        `applied_by` VARCHAR(100) NULL,
+        `applied_at` DATETIME NULL,
+        `error_message` TEXT NULL,
+        `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY `uq_etl_review_item` (`run_id`, `item_type`, `match_key`),
+        KEY `idx_etl_review_scope` (`run_id`, `hoscode`, `review_status`),
+        KEY `idx_etl_review_apply` (`run_id`, `apply_status`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
 
     // Auto-create system_settings table early if it doesn't exist
@@ -1951,45 +2005,8 @@ try {
         $pdo->exec("ALTER TABLE `target_population` MODIFY `need_screen_ht` TINYINT(1) DEFAULT 0");
         $pdo->exec("ALTER TABLE `target_population` MODIFY `health_status_origin` VARCHAR(20) DEFAULT 'NORMAL'");
 
-        // Fix existing records in target_population
-        // Set all to 0 / NORMAL first
-        $pdo->exec("UPDATE `target_population` SET `need_screen_dm` = 0, `need_screen_ht` = 0, `health_status_origin` = 'NORMAL'");
-
-        // Restore correct DM target status based on staging table
-        $pdo->exec("
-            UPDATE `target_population` t
-            JOIN `staging_hdc_dm` dm ON t.cid = dm.cid
-            SET t.need_screen_dm = CASE 
-                WHEN dm.risk = '5' OR dm.result LIKE '%ผู้ป่วย%' THEN 0 
-                ELSE 1 
-            END
-        ");
-
-        // Restore correct HT target status based on staging table
-        $pdo->exec("
-            UPDATE `target_population` t
-            JOIN `staging_hdc_ht` ht ON t.cid = ht.cid
-            SET t.need_screen_ht = CASE 
-                WHEN ht.risk = '5' THEN 0 
-                ELSE 1 
-            END
-        ");
-
-        // Recalculate health_status_origin based on staging tables risk levels
-        $pdo->exec("
-            UPDATE `target_population` t
-            LEFT JOIN `staging_hdc_dm` dm ON t.cid = dm.cid
-            LEFT JOIN `staging_hdc_ht` ht ON t.cid = ht.cid
-            SET t.health_status_origin = CASE 
-                WHEN (dm.risk = '2' OR ht.risk = '2') THEN 'HIGH_RISK'
-                WHEN (dm.risk = '1' AND ht.risk = '1') THEN 'BOTH'
-                WHEN (dm.risk = '1') THEN 'DM_ONLY'
-                WHEN (ht.risk = '1') THEN 'HT_ONLY'
-                WHEN (dm.risk = '3' OR ht.risk = '3') THEN 'SUSPECT'
-                ELSE 'NORMAL'
-            END
-            WHERE dm.cid IS NOT NULL OR ht.cid IS NOT NULL
-        ");
+        // Existing rows are intentionally left untouched. Imported staging data
+        // may change operational targets only through the reviewed shadow ETL.
     }
 } catch (\PDOException $e) {
     // Fail silently
@@ -1999,11 +2016,17 @@ try {
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS sys_migrations (migration_name VARCHAR(255) PRIMARY KEY, run_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
+    // Legacy reconciliation routines below changed operational records as a
+    // side effect of loading config/db.php. Keep their code for audit/history,
+    // but never run an unfinished one automatically. Shadow ETL now owns these
+    // decisions and requires explicit review.
+    $allowLegacyDataReconciliation = false;
+
     // Migration: Strip leading zeros from pid in target_population, staging_hdc_dm, staging_hdc_ht to improve performance of equality joins
     try {
         $stmtMigrationCheck2 = $pdo->prepare("SELECT 1 FROM sys_migrations WHERE migration_name = ?");
         $stmtMigrationCheck2->execute(['strip_pid_leading_zeros_20260612']);
-        if (!$stmtMigrationCheck2->fetch()) {
+        if ($allowLegacyDataReconciliation && !$stmtMigrationCheck2->fetch()) {
             $pdo->exec("UPDATE target_population SET pid = TRIM(LEADING '0' FROM pid) WHERE pid LIKE '0%'");
             $pdo->exec("UPDATE staging_hdc_dm SET pid = TRIM(LEADING '0' FROM pid) WHERE pid LIKE '0%'");
             $pdo->exec("UPDATE staging_hdc_ht SET pid = TRIM(LEADING '0' FROM pid) WHERE pid LIKE '0%'");
@@ -2019,7 +2042,7 @@ try {
     try {
         $stmtMigrationCheck3 = $pdo->prepare("SELECT 1 FROM sys_migrations WHERE migration_name = ?");
         $stmtMigrationCheck3->execute(['normalize_hoscode_pid_20260701']);
-        if (!$stmtMigrationCheck3->fetch()) {
+        if ($allowLegacyDataReconciliation && !$stmtMigrationCheck3->fetch()) {
             $pdo->exec("UPDATE target_population SET hoscode = LPAD(hoscode, 5, '0') WHERE LENGTH(hoscode) < 5");
             $pdo->exec("UPDATE staging_hdc_dm SET hoscode = LPAD(hoscode, 5, '0') WHERE LENGTH(hoscode) < 5");
             $pdo->exec("UPDATE staging_hdc_ht SET hoscode = LPAD(hoscode, 5, '0') WHERE LENGTH(hoscode) < 5");
@@ -2064,7 +2087,7 @@ try {
     try {
         $stmtMigrationCheck5 = $pdo->prepare("SELECT 1 FROM sys_migrations WHERE migration_name = ?");
         $stmtMigrationCheck5->execute(['auto_approve_waiting_rewards_20260702']);
-        if (!$stmtMigrationCheck5->fetch()) {
+        if ($allowLegacyDataReconciliation && !$stmtMigrationCheck5->fetch()) {
             $pdo->exec("UPDATE vhv_rewards SET approval_status = 'approved', approved_at = NOW() WHERE approval_status = 'waiting'");
             $stmtInsert5 = $pdo->prepare("INSERT INTO sys_migrations (migration_name) VALUES (?)");
             $stmtInsert5->execute(['auto_approve_waiting_rewards_20260702']);
@@ -2076,7 +2099,7 @@ try {
     // Check if run
     $stmtMigrationCheck = $pdo->prepare("SELECT 1 FROM sys_migrations WHERE migration_name = ?");
     $stmtMigrationCheck->execute(['merge_masked_duplicates_20260611_v2']);
-    if (!$stmtMigrationCheck->fetch()) {
+    if ($allowLegacyDataReconciliation && !$stmtMigrationCheck->fetch()) {
         // Find duplicate pairs where t1 is masked/dummy and t2 is unmasked JHCIS record
         // t1 is duplicate if CID or name has '*' OR CID starts with '0' (dummy CID) OR CID matches the dummy pattern of hoscode+pid
         // t2 is real if CID/name has no '*' AND CID does not start with '0' (Thai citizen ID starts with 1-8, never 0)

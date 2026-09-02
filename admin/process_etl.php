@@ -32,6 +32,12 @@ if ($admin_hoscode !== null || $admin_username === 'adminsso') {
 
 require_once __DIR__ . '/../config/db.php';
 
+// Stable 3.5 safety boundary: direct ETL has been replaced by the shadow
+// review workflow. Keep this route as a compatibility redirect so old links
+// cannot accidentally write staging data into operational records.
+header('Location: etl_review.php');
+exit();
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────

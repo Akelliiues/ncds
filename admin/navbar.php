@@ -30,7 +30,7 @@ $is_core_active = in_array($current_page, ['index.php', 'profile.php', 'leaderbo
 $is_targets_active = in_array($current_page, ['target_manager.php', 'dpac_manager.php']);
 $is_work_active = in_array($current_page, ['assignment.php', 'vhv_approval.php', 'print_qr.php', 'vhv_tasks.php', 'critical_referrals.php', 'rewards_management.php']);
 $is_reports_active = in_array($current_page, ['analytics.php', 'citizen_health_dashboard.php', 'reports.php', 'security_log.php', 'surveillance_reports.php', 'activity_logs.php']);
-$is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php', 'db_manager.php', 'user_manager.php', 'unit_house_manager.php', 'station_tokens.php', 'update.php', 'messages.php', 'jhcis_sync.php', 'emergency_receiver.php']);
+$is_system_active = in_array($current_page, ['import_hdc.php', 'process_etl.php', 'etl_review.php', 'db_manager.php', 'user_manager.php', 'unit_house_manager.php', 'station_tokens.php', 'update.php', 'messages.php', 'jhcis_sync.php', 'emergency_receiver.php']);
 
 $pendingAlertsCount = 0;
 try {
@@ -584,13 +584,13 @@ try {
                         </svg>
                         นำเข้าข้อมูล HDC
                     </a>
-                    <a href="process_etl.php" onclick="showPageLoading('ประมวลผล ETL', 'กำลังเปิดระบบประมวลผลข้อมูล...', '⚙️');" class="<?= $current_page == 'process_etl.php' ? 'active' : '' ?>">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                            <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5"></path>
-                        </svg>
-                        ประมวลผล ETL
-                    </a>
                 <?php endif; ?>
+                <a href="etl_review.php" onclick="showPageLoading('ตรวจสอบข้อมูลนำเข้า', 'กำลังเปิดรายการตรวจสอบ...', '🛡️');" class="<?= $current_page == 'etl_review.php' ? 'active' : '' ?>">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path d="M12 3l7 3v5c0 4.6-2.9 8.7-7 10-4.1-1.3-7-5.4-7-10V6l7-3z"></path><path d="M9 12l2 2 4-4"></path>
+                    </svg>
+                    ตรวจสอบข้อมูลนำเข้า
+                </a>
                 <a href="jhcis_sync.php" onclick="showPageLoading('ซิงค์ฐานข้อมูล JHCIS', 'กำลังตรวจสอบการเชื่อมต่อ JHCIS...', '🔄');" class="<?= $current_page == 'jhcis_sync.php' ? 'active' : '' ?>">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5M8 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />

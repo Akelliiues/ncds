@@ -1024,11 +1024,16 @@ if (isset($_POST['action_confirm'])) {
                                 </span>
                             </div>
                         </div>
-                        <form action="" method="POST" style="margin: 0;" onsubmit="return confirm('คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลบุคคลในระบบพักทั้งหมด? ข้อมูลเดิมที่รอ ETL จะถูกลบออก');">
-                            <button type="submit" name="action_clear_person" value="1" class="btn-giant" style="background: rgba(239, 68, 68, 0.1); color: var(--color-red); border: 1px solid rgba(239, 68, 68, 0.2); padding: 8px 16px; font-size: 13px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: all 0.2s;">
-                                🗑️ ล้างข้อมูลพักเดิม
-                            </button>
-                        </form>
+                        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                            <a href="etl_review.php" class="btn-giant" style="text-decoration:none;background:#2563eb;color:#fff;padding:9px 16px;font-size:13px;font-weight:bold;border-radius:8px;box-shadow:none;">
+                                🛡️ ตรวจสอบก่อนนำเข้า
+                            </a>
+                            <form action="" method="POST" style="margin: 0;" onsubmit="return confirm('คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลบุคคลในระบบพักทั้งหมด? ข้อมูลเดิมที่รอการตรวจสอบจะถูกลบออก');">
+                                <button type="submit" name="action_clear_person" value="1" class="btn-giant" style="background: rgba(239, 68, 68, 0.1); color: var(--color-red); border: 1px solid rgba(239, 68, 68, 0.2); padding: 8px 16px; font-size: 13px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+                                    🗑️ ล้างข้อมูลพักเดิม
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 <?php endif; ?>
 
