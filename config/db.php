@@ -609,6 +609,30 @@ try {
     // Fail silently
 }
 
+// Keep the ownership scope of cancelled assignments without leaving them in
+// the operational task queue. Screening history can then remain visible to
+// the VHV who was assigned the person, even after a pending task is cancelled.
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `task_assignment_archive` (
+        `archive_id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `assignment_id` INT NOT NULL,
+        `target_cid` VARCHAR(13) NOT NULL,
+        `vhv_id` VARCHAR(50) NOT NULL,
+        `budget_year` INT NOT NULL,
+        `round_number` INT NOT NULL DEFAULT 1,
+        `assignment_status` VARCHAR(20) NOT NULL DEFAULT 'pending',
+        `is_sandbox` TINYINT(1) NOT NULL DEFAULT 0,
+        `assigned_at` DATETIME NULL,
+        `cancelled_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `cancelled_by` VARCHAR(100) NULL,
+        `cancel_note` VARCHAR(255) NULL,
+        UNIQUE KEY `udx_task_assignment_archive_assignment` (`assignment_id`),
+        KEY `idx_task_assignment_archive_scope` (`vhv_id`, `target_cid`, `is_sandbox`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+} catch (\PDOException $e) {
+    // Cancellation still fails safely if this audit table cannot be prepared.
+}
+
 // Auto-create dpac_enrollments table if it doesn't exist
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS `dpac_enrollments` (
@@ -832,91 +856,16 @@ try {
         $pdo->exec("ALTER TABLE `vhv_rewards` ADD INDEX `idx_rewards_assign_id` (`assignment_id`)");
     }
 
-    // Auto-reconciliation: Sync round_number from task_assignments into screening_results for linked screenings
-    try {
-        $pdo->exec("
-            UPDATE screening_results s
-            JOIN task_assignments a ON s.assignment_id = a.assignment_id
-            SET s.round_number = a.round_number
-            WHERE a.round_number IS NOT NULL AND a.round_number > 0 AND s.round_number != a.round_number
-        ");
-    } catch (\PDOException $e) {}
+    // Historical screening rows and assignment states are immutable here.
+    // Reconciliation must never run as a side effect of opening a page because
+    // it can relabel an old result, attach it to a later task, or reopen work.
+    // New records receive their target, round and status in the transactional
+    // screening/assignment endpoints. Legacy corrections require an explicit,
+    // audited administrator action after the affected records are verified.
 
-    // Auto-reconciliation: Normalize round_numbers in screening_results and task_assignments
-    try {
-        $pdo->exec("UPDATE screening_results SET round_number = 1 WHERE round_number IS NULL OR round_number = 0");
-        $pdo->exec("UPDATE task_assignments SET round_number = 1 WHERE round_number IS NULL OR round_number = 0");
-    } catch (\PDOException $e) {}
-
-    // Auto-reconciliation: Break invalid links where screening_results.assignment_id points to a task_assignments with DIFFERENT target_cid
-    try {
-        $pdo->exec("
-            UPDATE screening_results s
-            JOIN task_assignments a ON s.assignment_id = a.assignment_id
-            SET s.assignment_id = NULL
-            WHERE a.target_cid != s.target_cid
-        ");
-    } catch (\PDOException $e) {}
-
-    // Auto-reconciliation: Link unlinked screening_results to task_assignments ONLY when target_cid AND round_number MATCH exactly
-    try {
-        $pdo->exec("
-            UPDATE screening_results s
-            JOIN task_assignments a ON s.target_cid = a.target_cid AND s.round_number = a.round_number AND COALESCE(s.is_sandbox, 0) = COALESCE(a.is_sandbox, 0)
-            SET s.assignment_id = a.assignment_id
-            WHERE s.assignment_id IS NULL OR s.assignment_id NOT IN (SELECT assignment_id FROM task_assignments)
-        ");
-    } catch (\PDOException $e) {}
-
-    // Auto-reconciliation: Sync task_assignments status to 'completed' ONLY when screening exists for that target_cid AND exact same round_number
-    try {
-        $pdo->exec("
-            UPDATE task_assignments a
-            JOIN screening_results s ON a.target_cid = s.target_cid AND a.round_number = s.round_number AND COALESCE(a.is_sandbox, 0) = COALESCE(s.is_sandbox, 0)
-            SET a.assignment_status = 'completed'
-            WHERE a.assignment_status != 'completed'
-        ");
-    } catch (\PDOException $e) {}
-
-    // Auto-reconciliation: Revert task_assignments with status 'completed' to 'pending' if NO screening_results exist for that exact round and CID
-    try {
-        $pdo->exec("
-            UPDATE task_assignments a
-            LEFT JOIN screening_results s ON a.target_cid = s.target_cid AND a.round_number = s.round_number AND COALESCE(a.is_sandbox, 0) = COALESCE(s.is_sandbox, 0)
-            SET a.assignment_status = 'pending'
-            WHERE a.assignment_status = 'completed'
-              AND s.screening_id IS NULL
-        ");
-    } catch (\PDOException $e) {}
-
-    // Auto-reconciliation: Automatically purge ANY invalid pending task assignments
-    // (Only purges 'pending' assignments where no screening results exist)
-    try {
-        // 1. Purge non-targets and under-35 non-risk individuals
-        $pdo->exec("
-            DELETE ta FROM task_assignments ta
-            JOIN target_population tp ON ta.target_cid = tp.cid
-            WHERE ta.assignment_status = 'pending'
-              AND NOT EXISTS (SELECT 1 FROM screening_results sr WHERE sr.assignment_id = ta.assignment_id OR sr.target_cid = ta.target_cid)
-              AND (
-                  (TIMESTAMPDIFF(YEAR, tp.birth, CURDATE()) < 35 AND COALESCE(tp.is_manual, 0) = 0 AND tp.health_status_origin NOT IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH'))
-                  OR
-                  (tp.need_screen_dm = 0 AND tp.need_screen_ht = 0 AND COALESCE(tp.is_manual, 0) = 0 AND tp.health_status_origin NOT IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH'))
-              )
-        ");
-
-        // 2. Purge pending assignments where resident belongs to a different village than the VHV
-        $pdo->exec("
-            DELETE ta FROM task_assignments ta
-            JOIN target_population tp ON ta.target_cid = tp.cid
-            JOIN vhv_users vu ON ta.vhv_id = vu.vhv_id
-            WHERE ta.assignment_status = 'pending'
-              AND NOT EXISTS (SELECT 1 FROM screening_results sr WHERE sr.assignment_id = ta.assignment_id OR sr.target_cid = ta.target_cid)
-              AND vu.vhv_moo IS NOT NULL AND vu.vhv_moo != '' AND tp.moo IS NOT NULL AND tp.moo != ''
-              AND CAST(tp.moo AS UNSIGNED) != CAST(vu.vhv_moo AS UNSIGNED)
-              AND tp.vhid_code != vu.vhid_code
-        ");
-    } catch (\PDOException $e) {}
+    // Pending assignments are operational records. Never delete them as a side
+    // effect of loading the shared database configuration. Eligibility or area
+    // conflicts must be reviewed explicitly by an authorized administrator.
 
     // Backfill assignment_id in vhv_rewards from screening_results or task_assignments
     try {
@@ -983,33 +932,9 @@ try {
     // Duplicate prevention is handled by the per-round unique index
     // (target_cid, budget_year, round_number, is_sandbox).
 
-    // Auto-cleanup orphaned task assignments (where target_cid is not in target_population)
-    $pdo->exec("
-        DELETE a FROM task_assignments a
-        LEFT JOIN target_population p ON a.target_cid = p.cid
-        WHERE p.cid IS NULL
-    ");
-
-    // Auto-cleanup orphaned rewards (where assignment_id is not null but does not exist in task_assignments)
-    $pdo->exec("
-        DELETE r FROM vhv_rewards r
-        LEFT JOIN task_assignments a ON r.assignment_id = a.assignment_id
-        WHERE r.assignment_id IS NOT NULL AND a.assignment_id IS NULL
-    ");
-
-    // Auto-cleanup orphaned rewards (where screening_id is not null but does not exist in screening_results)
-    $pdo->exec("
-        DELETE r FROM vhv_rewards r
-        LEFT JOIN screening_results s ON r.screening_id = s.screening_id
-        WHERE r.screening_id IS NOT NULL AND s.screening_id IS NULL
-    ");
-
-    // Auto-cleanup orphaned rewards (where followup_id is not null but does not exist in dpac_followups)
-    $pdo->exec("
-        DELETE r FROM vhv_rewards r
-        LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id
-        WHERE r.followup_id IS NOT NULL AND f.followup_id IS NULL
-    ");
+    // Do not delete assignments or rewards automatically while loading the
+    // shared configuration. They are audit/history records and a temporary
+    // missing relation after an import must not erase a VHV's completed work.
 
     // Retroactively mark existing manual targets (where pid is null or empty) as is_manual = 1
     $pdo->exec("
@@ -1066,6 +991,16 @@ try {
             }
         } catch (\Throwable $e) {}
     }
+
+    // One operational assignment can produce exactly one durable result.
+    // MySQL permits multiple NULL values, so legacy results without an
+    // assignment remain valid while duplicate submissions are rejected.
+    try {
+        $checkUniqueScreenAssignment = $pdo->query("SHOW INDEX FROM `screening_results` WHERE Key_name = 'udx_screening_assignment'");
+        if ($checkUniqueScreenAssignment && $checkUniqueScreenAssignment->rowCount() === 0) {
+            $pdo->exec("ALTER TABLE `screening_results` ADD UNIQUE KEY `udx_screening_assignment` (`assignment_id`)");
+        }
+    } catch (\Throwable $e) {}
 } catch (\Throwable $e) {
     // Fail gracefully without interrupting live traffic
 }
@@ -2358,11 +2293,55 @@ try {
             }
         } catch (\PDOException $e) {}
 
-        // 5. Data Durability Migration: Add target_cid directly to screening_results and drop CASCADE constraint
+        // 5. Data durability: keep a completed screening even if its old
+        // assignment is later cancelled, merged or removed.
         try {
             $checkSrCid = $pdo->query("SHOW COLUMNS FROM `screening_results` LIKE 'target_cid'")->fetchAll();
             if (empty($checkSrCid)) {
                 $pdo->exec("ALTER TABLE `screening_results` ADD COLUMN `target_cid` VARCHAR(13) NULL AFTER `assignment_id`");
+            }
+
+            $pdo->exec("
+                UPDATE screening_results s
+                JOIN task_assignments a ON s.assignment_id = a.assignment_id
+                SET s.target_cid = a.target_cid
+                WHERE s.target_cid IS NULL OR s.target_cid = ''
+            ");
+
+            $assignmentCol = $pdo->query("SHOW COLUMNS FROM `screening_results` LIKE 'assignment_id'")->fetch(PDO::FETCH_ASSOC);
+            if ($assignmentCol && strtoupper((string)($assignmentCol['Null'] ?? 'NO')) !== 'YES') {
+                $pdo->exec("ALTER TABLE `screening_results` MODIFY COLUMN `assignment_id` INT NULL");
+            }
+
+            $fkStmt = $pdo->query("
+                SELECT k.CONSTRAINT_NAME, r.DELETE_RULE
+                FROM information_schema.KEY_COLUMN_USAGE k
+                JOIN information_schema.REFERENTIAL_CONSTRAINTS r
+                  ON r.CONSTRAINT_SCHEMA = k.CONSTRAINT_SCHEMA
+                 AND r.CONSTRAINT_NAME = k.CONSTRAINT_NAME
+                 AND r.TABLE_NAME = k.TABLE_NAME
+                WHERE k.CONSTRAINT_SCHEMA = DATABASE()
+                  AND k.TABLE_NAME = 'screening_results'
+                  AND k.COLUMN_NAME = 'assignment_id'
+                  AND k.REFERENCED_TABLE_NAME = 'task_assignments'
+            ");
+            $screeningFks = $fkStmt->fetchAll(PDO::FETCH_ASSOC);
+            $hasSetNull = false;
+            foreach ($screeningFks as $screeningFk) {
+                if (strtoupper((string)$screeningFk['DELETE_RULE']) === 'SET NULL') {
+                    $hasSetNull = true;
+                    continue;
+                }
+                $safeConstraint = str_replace('`', '``', (string)$screeningFk['CONSTRAINT_NAME']);
+                $pdo->exec("ALTER TABLE `screening_results` DROP FOREIGN KEY `{$safeConstraint}`");
+            }
+            if (!$hasSetNull) {
+                $pdo->exec("
+                    ALTER TABLE `screening_results`
+                    ADD CONSTRAINT `fk_screen_assignment`
+                    FOREIGN KEY (`assignment_id`) REFERENCES `task_assignments` (`assignment_id`)
+                    ON DELETE SET NULL
+                ");
             }
         } catch (\PDOException $e) {}
 

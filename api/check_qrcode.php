@@ -126,9 +126,37 @@ $vhvId = $_SESSION['vhv_id'];
 $vhidCode = $_SESSION['vhid_code'];
 $hoscode = $_SESSION['hoscode'];
 
-$hid = $_POST['hid'] ?? '';
+$hid = trim((string)($_POST['hid'] ?? ''));
 $lat = (float)($_POST['lat'] ?? 0);
 $lng = (float)($_POST['lng'] ?? 0);
+
+// Printed house QR codes contain a URL such as qr.php?code=...
+// Normalize all supported QR formats again on the server so authorization
+// never depends on which scanner/client version sent the request.
+if ($hid !== '' && (strpos($hid, '?') !== false || preg_match('#^https?://#i', $hid))) {
+    $parsed = parse_url($hid);
+    if (!empty($parsed['query'])) {
+        parse_str($parsed['query'], $queryParams);
+        foreach (['cid', 'hid', 'code'] as $key) {
+            if (isset($queryParams[$key]) && is_scalar($queryParams[$key]) && trim((string)$queryParams[$key]) !== '') {
+                $hid = trim((string)$queryParams[$key]);
+                break;
+            }
+        }
+    }
+}
+
+if ($hid !== '' && strpos($hid, '{') === 0) {
+    $decoded = json_decode($hid, true);
+    if (is_array($decoded)) {
+        foreach (['cid', 'hid', 'code'] as $key) {
+            if (isset($decoded[$key]) && is_scalar($decoded[$key]) && trim((string)$decoded[$key]) !== '') {
+                $hid = trim((string)$decoded[$key]);
+                break;
+            }
+        }
+    }
+}
 
 if (empty($hid)) {
     echo json_encode([
@@ -147,7 +175,8 @@ try {
     if ($isCid) {
         // 1. Check assignments mapping to this specific CID
         $stmt = $pdo->prepare("
-            SELECT a.assignment_id, p.vhid_code, p.hoscode, p.first_name, p.last_name
+            SELECT a.assignment_id, a.target_cid, a.assignment_status, a.round_number,
+                   p.hid, p.vhid_code, p.hoscode, p.first_name, p.last_name
             FROM task_assignments a
             JOIN target_population p ON a.target_cid = p.cid
             WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = ? AND a.is_sandbox = ?
@@ -176,7 +205,8 @@ try {
     } else {
         // 1. Check assignments mapping to targets in JHCIS house
         $stmt = $pdo->prepare("
-            SELECT a.assignment_id, p.vhid_code, p.hoscode, p.first_name, p.last_name
+            SELECT a.assignment_id, a.target_cid, a.assignment_status, a.round_number,
+                   p.hid, p.vhid_code, p.hoscode, p.first_name, p.last_name
             FROM task_assignments a
             JOIN target_population p ON a.target_cid = p.cid
             WHERE CAST(p.hid AS UNSIGNED) = CAST(? AS UNSIGNED) AND a.vhv_id = ? AND a.budget_year = ? AND a.is_sandbox = ?
@@ -398,6 +428,8 @@ try {
 
     echo json_encode([
         'status' => 'success',
+        'hid' => $isCid ? null : $hid,
+        'cid' => $isCid ? $hid : null,
         'data' => $assignments
     ]);
     exit();

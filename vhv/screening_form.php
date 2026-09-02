@@ -125,18 +125,7 @@ if (DemoDataProvider::isDemoMode()) {
                    ) AS last_dtx_type
             FROM task_assignments a
             JOIN target_population p ON a.target_cid = p.cid
-            LEFT JOIN vhv_users v ON a.vhv_id = v.vhv_id
             WHERE CAST(p.hid AS UNSIGNED) = CAST(? AS UNSIGNED) AND a.vhv_id = ? AND a.budget_year = ? AND a.assignment_status IN ('pending', 'skipped') AND a.is_sandbox = ?
-              AND (
-                  ((p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35 OR COALESCE(p.is_manual, 0) = 1))
-                  OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
-                  OR COALESCE(p.is_manual, 0) = 1
-              )
-              AND (
-                  v.vhv_moo IS NULL OR v.vhv_moo = '' OR p.moo IS NULL OR p.moo = ''
-                  OR CAST(p.moo AS UNSIGNED) = CAST(v.vhv_moo AS UNSIGNED)
-                  OR p.vhid_code = v.vhid_code
-              )
         ");
         $residentsStmt->execute([$hid, $vhvId, $currentBudgetYear, $isSandboxVal]);
         $residents = $residentsStmt->fetchAll();
@@ -146,18 +135,7 @@ if (DemoDataProvider::isDemoMode()) {
                 SELECT p.*, a.assignment_status
                 FROM task_assignments a
                 JOIN target_population p ON a.target_cid = p.cid
-                LEFT JOIN vhv_users v ON a.vhv_id = v.vhv_id
                 WHERE CAST(p.hid AS UNSIGNED) = CAST(? AS UNSIGNED) AND a.vhv_id = ? AND a.budget_year = ? AND a.is_sandbox = ?
-                  AND (
-                      ((p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35 OR COALESCE(p.is_manual, 0) = 1))
-                      OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
-                      OR COALESCE(p.is_manual, 0) = 1
-                  )
-                  AND (
-                      v.vhv_moo IS NULL OR v.vhv_moo = '' OR p.moo IS NULL OR p.moo = ''
-                      OR CAST(p.moo AS UNSIGNED) = CAST(v.vhv_moo AS UNSIGNED)
-                      OR p.vhid_code = v.vhid_code
-                  )
             ");
             $historyStmt->execute([$hid, $vhvId, $currentBudgetYear, $isSandboxVal]);
             $history = $historyStmt->fetchAll();
@@ -183,18 +161,7 @@ if (DemoDataProvider::isDemoMode()) {
                    ) AS last_dtx_type
             FROM task_assignments a
             JOIN target_population p ON a.target_cid = p.cid
-            LEFT JOIN vhv_users v ON a.vhv_id = v.vhv_id
             WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = ? AND a.assignment_status IN ('pending', 'skipped') AND a.is_sandbox = ?
-              AND (
-                  ((p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35 OR COALESCE(p.is_manual, 0) = 1))
-                  OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
-                  OR COALESCE(p.is_manual, 0) = 1
-              )
-              AND (
-                  v.vhv_moo IS NULL OR v.vhv_moo = '' OR p.moo IS NULL OR p.moo = ''
-                  OR CAST(p.moo AS UNSIGNED) = CAST(v.vhv_moo AS UNSIGNED)
-                  OR p.vhid_code = v.vhid_code
-              )
         ");
         $residentsStmt->execute([$cid, $vhvId, $currentBudgetYear, $isSandboxVal]);
         $residents = $residentsStmt->fetchAll();
@@ -204,18 +171,7 @@ if (DemoDataProvider::isDemoMode()) {
                 SELECT p.*, a.assignment_status
                 FROM task_assignments a
                 JOIN target_population p ON a.target_cid = p.cid
-                LEFT JOIN vhv_users v ON a.vhv_id = v.vhv_id
                 WHERE p.cid = ? AND a.vhv_id = ? AND a.budget_year = ? AND a.is_sandbox = ?
-                  AND (
-                      ((p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35 OR COALESCE(p.is_manual, 0) = 1))
-                      OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
-                      OR COALESCE(p.is_manual, 0) = 1
-                  )
-                  AND (
-                      v.vhv_moo IS NULL OR v.vhv_moo = '' OR p.moo IS NULL OR p.moo = ''
-                      OR CAST(p.moo AS UNSIGNED) = CAST(v.vhv_moo AS UNSIGNED)
-                      OR p.vhid_code = v.vhid_code
-                  )
             ");
             $historyStmt->execute([$cid, $vhvId, $currentBudgetYear, $isSandboxVal]);
             $history = $historyStmt->fetchAll();

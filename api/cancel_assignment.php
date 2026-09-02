@@ -95,7 +95,8 @@ try {
 
     if ($assignmentId > 0) {
         $stmt = $pdo->prepare("
-            SELECT ta.assignment_id, ta.vhv_id, ta.assignment_status, ta.target_cid, tp.hoscode
+            SELECT ta.assignment_id, ta.vhv_id, ta.assignment_status, ta.target_cid,
+                   ta.budget_year, ta.round_number, ta.is_sandbox, ta.assigned_at, tp.hoscode
             FROM task_assignments ta
             JOIN target_population tp ON ta.target_cid = tp.cid
             WHERE ta.assignment_id = ?
@@ -106,7 +107,8 @@ try {
     } else {
         // Fetch ONLY latest PENDING assignment for this CID
         $stmt = $pdo->prepare("
-            SELECT ta.assignment_id, ta.vhv_id, ta.assignment_status, ta.target_cid, tp.hoscode
+            SELECT ta.assignment_id, ta.vhv_id, ta.assignment_status, ta.target_cid,
+                   ta.budget_year, ta.round_number, ta.is_sandbox, ta.assigned_at, tp.hoscode
             FROM task_assignments ta
             JOIN target_population tp ON ta.target_cid = tp.cid
             WHERE ta.target_cid = ? AND ta.budget_year = ? AND ta.assignment_status = 'pending'
@@ -134,6 +136,38 @@ try {
     }
 
     $pdo->beginTransaction();
+
+    // Preserve the assignment scope before removing it from the active queue.
+    // This is audit/ownership data only; it is never returned as pending work.
+    $archiveStmt = $pdo->prepare("
+        INSERT INTO task_assignment_archive
+            (assignment_id, target_cid, vhv_id, budget_year, round_number,
+             assignment_status, is_sandbox, assigned_at, cancelled_by, cancel_note)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+            target_cid = VALUES(target_cid),
+            vhv_id = VALUES(vhv_id),
+            budget_year = VALUES(budget_year),
+            round_number = VALUES(round_number),
+            assignment_status = VALUES(assignment_status),
+            is_sandbox = VALUES(is_sandbox),
+            assigned_at = VALUES(assigned_at),
+            cancelled_at = CURRENT_TIMESTAMP,
+            cancelled_by = VALUES(cancelled_by),
+            cancel_note = VALUES(cancel_note)
+    ");
+    $archiveStmt->execute([
+        $assignment['assignment_id'],
+        $assignment['target_cid'],
+        $assignment['vhv_id'],
+        $assignment['budget_year'],
+        $assignment['round_number'],
+        $assignment['assignment_status'],
+        $assignment['is_sandbox'] ?? 0,
+        $assignment['assigned_at'] ?? null,
+        $_SESSION['admin_username'] ?? $_SESSION['username'] ?? 'admin',
+        'ยกเลิกการมอบหมายงานโดยผู้ดูแลระบบ'
+    ]);
 
     // 1. บันทึก log ก่อนการยกเลิก
     $logStmt = $pdo->prepare("

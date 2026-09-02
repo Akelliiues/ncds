@@ -155,10 +155,11 @@ try {
         LEFT JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id
         LEFT JOIN vhv_users v ON ta.vhv_id = v.vhv_id
         WHERE (sr.target_cid IN ($cidPlaceholders) OR ta.target_cid IN ($cidPlaceholders))
+          AND ta.budget_year = ?
           AND COALESCE(sr.is_sandbox, 0) = ?
         ORDER BY sr.round_number ASC, sr.created_at ASC
     ";
-    $scrParams = array_merge($cids, $cids, [$isSandboxVal]);
+    $scrParams = array_merge($cids, $cids, [$selectedBudgetYear, $isSandboxVal]);
     $scrStmt = $pdo->prepare($scrSql);
     $scrStmt->execute($scrParams);
     $allScreenings = $scrStmt->fetchAll(PDO::FETCH_ASSOC);

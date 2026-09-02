@@ -1188,7 +1188,8 @@ if (DemoDataProvider::isDemoMode()) {
             }
 
             if (confirm(confirmMsg)) {
-                fetch('../api/assign_tasks.php', {
+                const submitAssignment = (reassignmentReason = '') => {
+                    fetch('../api/assign_tasks.php', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -1197,7 +1198,8 @@ if (DemoDataProvider::isDemoMode()) {
                             vhv_id: vhvId,
                             target_cids: cids,
                             round_number: roundVal,
-                            budget_year: <?= $selectedBudgetYear ?>
+                            budget_year: <?= $selectedBudgetYear ?>,
+                            reassignment_reason: reassignmentReason
                         })
                     })
                     .then(r => r.json())
@@ -1206,11 +1208,23 @@ if (DemoDataProvider::isDemoMode()) {
                             alert("มอบหมายงานสำเร็จ!");
                             selectedCids.clear(); // ล้างรายการที่เลือก
                             fetchData(); // Refresh lists
+                        } else if (data.requires_reassignment_reason) {
+                            const reason = prompt(
+                                `กำลังเปลี่ยน อสม. ผู้รับผิดชอบ${data.resident_name ? `ของ ${data.resident_name}` : ''}\n\nกรุณาระบุเหตุผลในการเปลี่ยน (อย่างน้อย 5 ตัวอักษร)`
+                            );
+                            if (reason === null) return;
+                            if (reason.trim().length < 5) {
+                                alert('กรุณาระบุเหตุผลอย่างน้อย 5 ตัวอักษร');
+                                return;
+                            }
+                            submitAssignment(reason.trim());
                         } else {
                             alert("เกิดข้อผิดพลาด: " + data.message);
                         }
-                    })
-                    .catch(err => alert("เกิดข้อผิดพลาดในการเชื่อมต่อ"));
+                        })
+                        .catch(err => alert("เกิดข้อผิดพลาดในการเชื่อมต่อ"));
+                };
+                submitAssignment();
             }
         }
 

@@ -34,7 +34,10 @@ $vhvId = $data['vhv_id'];
 $cids = $data['target_cids'];
 $currentYear = isset($data['budget_year']) && is_numeric($data['budget_year']) ? (int)$data['budget_year'] : (isset($_SESSION['active_budget_year']) ? (int)$_SESSION['active_budget_year'] : (function_exists('get_current_budget_year') ? get_current_budget_year() : 2026));
 $staffName = "ผู้ดูแลระบบ (Smart Assignment)";
-$reason = "แอดมินจัดสรรแบบระบุตัว";
+$reassignmentReason = trim((string)($data['reassignment_reason'] ?? ''));
+$reassignmentReasonLength = function_exists('mb_strlen')
+    ? mb_strlen($reassignmentReason, 'UTF-8')
+    : strlen($reassignmentReason);
 
 // Fetch VHV details for verification
 $vhvCheckStmt = $pdo->prepare("SELECT hoscode, vhid_code, vhv_moo FROM vhv_users WHERE vhv_id = ?");
@@ -114,6 +117,9 @@ try {
 
             // Update VHV for existing pending assignment
             if ($existingPending['vhv_id'] !== $vhvId) {
+                if ($reassignmentReasonLength < 5) {
+                    throw new \RuntimeException("REASSIGN_REASON_REQUIRED|{$residentName}|{$existingPending['vhv_id']}|{$vhvId}");
+                }
                 $oldVhvId = $existingPending['vhv_id'];
                 $targetRound = $existingPending['round_number'];
 
@@ -125,7 +131,7 @@ try {
                 $updateStmt->execute([$vhvId, $existingPending['assignment_id']]);
 
                 // Log history
-                $note = "เปลี่ยนจาก VHV: $oldVhvId เป็น $vhvId โดย $staffName ($reason) - รอบที่ $targetRound";
+                $note = "เปลี่ยนจาก VHV: $oldVhvId เป็น $vhvId โดย $staffName เหตุผล: $reassignmentReason - รอบที่ $targetRound";
                 $logStmt = $pdo->prepare("
                     INSERT INTO assignment_history_log (assignment_id, action, note)
                     VALUES (?, 'REASSIGN', ?)
@@ -144,6 +150,21 @@ try {
             $maxExistingRound = (int)$maxRoundStmt->fetchColumn();
             $nextRound = $maxExistingRound + 1;
 
+            $lastOwnerStmt = $pdo->prepare("
+                SELECT vhv_id, round_number
+                FROM task_assignments
+                WHERE target_cid = ? AND budget_year = ? AND is_sandbox = ?
+                  AND assignment_status IN ('completed', 'skipped')
+                ORDER BY round_number DESC, assignment_id DESC
+                LIMIT 1
+            ");
+            $lastOwnerStmt->execute([$cid, $currentYear, $isSandboxVal]);
+            $lastOwner = $lastOwnerStmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($lastOwner && $lastOwner['vhv_id'] !== $vhvId && $reassignmentReasonLength < 5) {
+                throw new \RuntimeException("REASSIGN_REASON_REQUIRED|{$residentName}|{$lastOwner['vhv_id']}|{$vhvId}");
+            }
+
             if ($requestedRound > 0) {
                 if ($requestedRound !== $nextRound) {
                     throw new \Exception("ไม่สามารถสร้างรอบที่ {$requestedRound} สำหรับ {$residentName} ได้ รอบถัดไปที่ถูกต้องคือรอบที่ {$nextRound}");
@@ -159,6 +180,16 @@ try {
                 VALUES (?, ?, ?, ?, 'pending', ?)
             ");
             $insertStmt->execute([$cid, $vhvId, $currentYear, $targetRound, $isSandboxVal]);
+
+            if ($lastOwner && $lastOwner['vhv_id'] !== $vhvId) {
+                $newAssignmentId = (int)$pdo->lastInsertId();
+                $note = "เปิดรอบที่ {$targetRound} โดยเปลี่ยนจาก VHV: {$lastOwner['vhv_id']} เป็น {$vhvId} โดย {$staffName} เหตุผล: {$reassignmentReason}";
+                $logStmt = $pdo->prepare("
+                    INSERT INTO assignment_history_log (assignment_id, action, note)
+                    VALUES (?, 'REASSIGN', ?)
+                ");
+                $logStmt->execute([$newAssignmentId, $note]);
+            }
         }
     }
 
@@ -177,5 +208,16 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    $message = $e->getMessage();
+    if (strpos($message, 'REASSIGN_REASON_REQUIRED|') === 0) {
+        $parts = explode('|', $message, 4);
+        echo json_encode([
+            'status' => 'error',
+            'requires_reassignment_reason' => true,
+            'message' => 'การเปลี่ยน อสม. ผู้รับผิดชอบต้องระบุเหตุผลอย่างน้อย 5 ตัวอักษร',
+            'resident_name' => $parts[1] ?? '',
+        ], JSON_UNESCAPED_UNICODE);
+    } else {
+        echo json_encode(['status' => 'error', 'message' => $message], JSON_UNESCAPED_UNICODE);
+    }
 }

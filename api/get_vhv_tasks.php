@@ -132,20 +132,7 @@ try {
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
         LEFT JOIN screening_results sr ON a.assignment_id = sr.assignment_id
-        LEFT JOIN vhv_users v ON a.vhv_id = v.vhv_id
-        WHERE a.vhv_id = ? AND a.budget_year = ?
-          AND (
-              ((p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35 OR COALESCE(p.is_manual, 0) = 1))
-              OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
-              OR COALESCE(p.is_manual, 0) = 1
-              OR sr.screening_id IS NOT NULL
-          )
-          AND (
-              sr.screening_id IS NOT NULL
-              OR v.vhv_moo IS NULL OR v.vhv_moo = '' OR p.moo IS NULL OR p.moo = ''
-              OR CAST(p.moo AS UNSIGNED) = CAST(v.vhv_moo AS UNSIGNED)
-              OR p.vhid_code = v.vhid_code
-          )
+        WHERE a.vhv_id = ? AND a.budget_year = ? AND a.is_sandbox = ?
         
         UNION ALL
         
@@ -174,12 +161,88 @@ try {
         FROM dpac_followups f
         JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
         JOIN target_population p ON e.cid = p.cid
-        WHERE f.vhv_id = ?
+        WHERE f.vhv_id = ? AND f.is_sandbox = ? AND e.is_sandbox = ?
         
         ORDER BY CAST(house_no AS UNSIGNED) ASC, house_no ASC, cid ASC, round_number ASC
     ");
-    $tStmt->execute([$vhvId, $currentBudgetYear, $vhvId]);
+    $tStmt->execute([$vhvId, $currentBudgetYear, $isSandboxVal, $vhvId, $isSandboxVal, $isSandboxVal]);
     $tasks = $tStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Completed screening history is independent from the currently selected
+    // budget year and sandbox mode. screening_results is the durable source;
+    // task_assignments/rewards are used only to identify the VHV owner.
+    $historyStmt = $pdo->prepare("
+        SELECT
+            'screen' AS task_type,
+            COALESCE(a.assignment_id, -sr.screening_id) AS task_id,
+            CASE WHEN sr.skipped_reason IS NOT NULL AND sr.skipped_reason != '' THEN 'skipped' ELSE 'completed' END AS assignment_status,
+            COALESCE(sr.is_sandbox, a.is_sandbox, 0) AS is_sandbox,
+            COALESCE(a.assigned_at, sr.created_at) AS assigned_at,
+            COALESCE(NULLIF(sr.round_number, 0), NULLIF(a.round_number, 0), 1) AS round_number,
+            NULL AS risk_type,
+            CASE
+                WHEN a.vhv_id = ? OR reward_owner.vhv_id = ? THEN 'recorded_owner'
+                ELSE 'assigned_person_history'
+            END AS history_scope,
+            p.cid, p.first_name, p.last_name, p.house_no, p.moo,
+            TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) AS age,
+            1 AS is_valid_target,
+            sr.screening_id,
+            sr.sys_bp1, sr.dia_bp1, sr.sys_bp2, sr.dia_bp2,
+            sr.dtx_value, sr.dtx_type,
+            sr.weight, sr.height, sr.waist, sr.bmi,
+            sr.cv_risk_score,
+            sr.diet_risk, sr.exercise_risk, sr.stress_risk, sr.smoking_risk, sr.alcohol_risk,
+            sr.skipped_reason,
+            sr.advice_given,
+            sr.created_at AS screened_at,
+            sr.screening_lat, sr.screening_lng,
+            NULL AS prev_sys_bp1, NULL AS prev_dia_bp1, NULL AS prev_dtx_value, NULL AS prev_round_number
+        FROM screening_results sr
+        LEFT JOIN task_assignments a ON sr.assignment_id = a.assignment_id
+        LEFT JOIN (
+            SELECT screening_id, MAX(vhv_id) AS vhv_id
+            FROM vhv_rewards
+            WHERE screening_id IS NOT NULL
+            GROUP BY screening_id
+        ) reward_owner ON reward_owner.screening_id = sr.screening_id
+        JOIN target_population p ON p.cid = COALESCE(NULLIF(sr.target_cid, ''), a.target_cid)
+        WHERE (
+            a.vhv_id = ?
+            OR reward_owner.vhv_id = ?
+            OR EXISTS (
+                SELECT 1
+                FROM task_assignments current_scope
+                WHERE current_scope.target_cid = p.cid
+                  AND current_scope.vhv_id = ?
+            )
+            OR EXISTS (
+                SELECT 1
+                FROM task_assignment_archive archived_scope
+                WHERE archived_scope.target_cid = p.cid
+                  AND archived_scope.vhv_id = ?
+            )
+        )
+        ORDER BY sr.created_at DESC, sr.screening_id DESC
+    ");
+    $historyStmt->execute([$vhvId, $vhvId, $vhvId, $vhvId, $vhvId, $vhvId]);
+    $historyTasks = $historyStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Avoid a duplicate when a completed result was already returned through
+    // its still-existing assignment in the current-year query.
+    $knownScreeningIds = [];
+    foreach ($tasks as $task) {
+        if (!empty($task['screening_id'])) {
+            $knownScreeningIds[(string)$task['screening_id']] = true;
+        }
+    }
+    foreach ($historyTasks as $historyTask) {
+        $screeningId = (string)($historyTask['screening_id'] ?? '');
+        if ($screeningId !== '' && !isset($knownScreeningIds[$screeningId])) {
+            $tasks[] = $historyTask;
+            $knownScreeningIds[$screeningId] = true;
+        }
+    }
 
     echo json_encode([
         'status' => 'success',

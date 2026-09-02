@@ -511,11 +511,13 @@ function onScanSuccess(decodedText) {
             const urlObj = new URL(hid, window.location.origin);
             if (urlObj.searchParams.get('cid')) hid = urlObj.searchParams.get('cid');
             else if (urlObj.searchParams.get('hid')) hid = urlObj.searchParams.get('hid');
+            else if (urlObj.searchParams.get('code')) hid = urlObj.searchParams.get('code');
         } catch(e) {
             const qs = hid.split('?')[1];
             const params = new URLSearchParams(qs);
             if (params.get('cid')) hid = params.get('cid');
             else if (params.get('hid')) hid = params.get('hid');
+            else if (params.get('code')) hid = params.get('code');
         }
     } else if (hid.startsWith('{')) {
         try {

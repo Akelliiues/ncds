@@ -74,53 +74,60 @@ if (DemoDataProvider::isDemoMode()) {
                (SELECT sr.sleep_quality FROM screening_results sr LEFT JOIN task_assignments ta ON sr.assignment_id = ta.assignment_id WHERE (sr.target_cid = p.cid OR ta.target_cid = p.cid) ORDER BY sr.created_at DESC, sr.screening_id DESC LIMIT 1) AS last_sleep_quality
         FROM task_assignments a
         JOIN target_population p ON a.target_cid = p.cid
-        LEFT JOIN vhv_users v ON a.vhv_id = v.vhv_id
         WHERE a.vhv_id = ? AND a.budget_year = ? AND a.assignment_status = 'pending' AND COALESCE(a.is_sandbox, 0) = ?
-          AND (
-              ((p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35 OR COALESCE(p.is_manual, 0) = 1))
-              OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
-              OR COALESCE(p.is_manual, 0) = 1
-          )
-          AND (
-              v.vhv_moo IS NULL OR v.vhv_moo = '' OR p.moo IS NULL OR p.moo = ''
-              OR CAST(p.moo AS UNSIGNED) = CAST(v.vhv_moo AS UNSIGNED)
-              OR p.vhid_code = v.vhid_code
-          )
         ORDER BY LENGTH(p.house_no), p.house_no
     ");
     $pendingStmt->execute([$vhvId, $currentBudgetYear, $isSandboxVal]);
     $pendingTasks = $pendingStmt->fetchAll();
 
     $completedStmt = $pdo->prepare("
-        SELECT a.assignment_id, a.assignment_status, a.round_number, p.cid, p.hid, p.first_name, p.last_name, p.house_no, p.moo, p.sex, p.birth,
+        SELECT COALESCE(a.assignment_id, sr.assignment_id) AS assignment_id,
+               CASE WHEN sr.skipped_reason IS NOT NULL AND sr.skipped_reason != '' THEN 'skipped' ELSE 'completed' END AS assignment_status,
+               COALESCE(NULLIF(sr.round_number, 0), NULLIF(a.round_number, 0), 1) AS round_number,
+               a.budget_year,
+               COALESCE(sr.is_sandbox, a.is_sandbox, 0) AS is_sandbox,
+               CASE
+                   WHEN a.vhv_id = ? OR reward_owner.vhv_id = ? THEN 'recorded_owner'
+                   ELSE 'assigned_person_history'
+               END AS history_scope,
+               p.cid, p.hid, p.first_name, p.last_name, p.house_no, p.moo, p.sex, p.birth,
                sr.sys_bp1, sr.dia_bp1, sr.sys_bp2, sr.dia_bp2, sr.dtx_value, sr.dtx_type,
                sr.weight, sr.height, sr.waist, sr.bmi, sr.diet_risk, sr.exercise_risk,
                sr.stress_risk, sr.smoking_risk, sr.alcohol_risk, sr.cv_risk_score,
                sr.skipped_reason, sr.advice_given,
                sr.sleep_quality, sr.care_level, sr.next_visit_date, sr.guidance_summary, sr.health_progress,
-               ht.sbp as base_sbp, ht.dbp as base_dbp, dm.bslevel as base_bslevel
-        FROM task_assignments a
-        JOIN target_population p ON a.target_cid = p.cid
-        LEFT JOIN vhv_users v ON a.vhv_id = v.vhv_id
-        LEFT JOIN screening_results sr ON a.assignment_id = sr.assignment_id
-        LEFT JOIN staging_hdc_ht ht ON p.cid = ht.cid
-        LEFT JOIN staging_hdc_dm dm ON p.cid = dm.cid
-        WHERE a.vhv_id = ? AND a.budget_year = ? AND a.assignment_status IN ('completed', 'skipped') AND COALESCE(a.is_sandbox, 0) = ?
-          AND (
-              ((p.need_screen_dm = 1 OR p.need_screen_ht = 1) AND (TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 35 OR COALESCE(p.is_manual, 0) = 1))
-              OR p.health_status_origin IN ('RISK', 'HIGH_RISK', 'SUSPECT', 'HT', 'DM', 'BOTH')
-              OR COALESCE(p.is_manual, 0) = 1
-              OR sr.screening_id IS NOT NULL
-          )
-          AND (
-              sr.screening_id IS NOT NULL
-              OR v.vhv_moo IS NULL OR v.vhv_moo = '' OR p.moo IS NULL OR p.moo = ''
-              OR CAST(p.moo AS UNSIGNED) = CAST(v.vhv_moo AS UNSIGNED)
-              OR p.vhid_code = v.vhid_code
-          )
-        ORDER BY a.assigned_at DESC
+               sr.created_at AS screened_at,
+               (SELECT ht.sbp FROM staging_hdc_ht ht WHERE ht.cid = p.cid ORDER BY ht.imported_at DESC LIMIT 1) AS base_sbp,
+               (SELECT ht.dbp FROM staging_hdc_ht ht WHERE ht.cid = p.cid ORDER BY ht.imported_at DESC LIMIT 1) AS base_dbp,
+               (SELECT dm.bslevel FROM staging_hdc_dm dm WHERE dm.cid = p.cid ORDER BY dm.imported_at DESC LIMIT 1) AS base_bslevel
+        FROM screening_results sr
+        LEFT JOIN task_assignments a ON sr.assignment_id = a.assignment_id
+        LEFT JOIN (
+            SELECT screening_id, MAX(vhv_id) AS vhv_id
+            FROM vhv_rewards
+            WHERE screening_id IS NOT NULL
+            GROUP BY screening_id
+        ) reward_owner ON reward_owner.screening_id = sr.screening_id
+        JOIN target_population p ON p.cid = COALESCE(NULLIF(sr.target_cid, ''), a.target_cid)
+        WHERE (
+            a.vhv_id = ?
+            OR reward_owner.vhv_id = ?
+            OR EXISTS (
+                SELECT 1
+                FROM task_assignments current_scope
+                WHERE current_scope.target_cid = p.cid
+                  AND current_scope.vhv_id = ?
+            )
+            OR EXISTS (
+                SELECT 1
+                FROM task_assignment_archive archived_scope
+                WHERE archived_scope.target_cid = p.cid
+                  AND archived_scope.vhv_id = ?
+            )
+        )
+        ORDER BY sr.created_at DESC, sr.screening_id DESC
     ");
-    $completedStmt->execute([$vhvId, $currentBudgetYear, $isSandboxVal]);
+    $completedStmt->execute([$vhvId, $vhvId, $vhvId, $vhvId, $vhvId, $vhvId]);
     $completedTasks = $completedStmt->fetchAll();
 
     // Fetch DPAC followups
@@ -144,10 +151,10 @@ if (DemoDataProvider::isDemoMode()) {
         FROM dpac_followups f
         JOIN dpac_enrollments e ON f.enrollment_id = e.enrollment_id
         JOIN target_population p ON e.cid = p.cid
-        WHERE f.vhv_id = ? AND f.status = 'completed' AND COALESCE(f.is_sandbox, 0) = ?
+        WHERE f.vhv_id = ? AND f.status = 'completed'
         ORDER BY f.completed_at DESC
     ");
-    $completedDpacStmt->execute([$vhvId, $isSandboxVal]);
+    $completedDpacStmt->execute([$vhvId]);
     $completedDpacTasks = $completedDpacStmt->fetchAll();
 
     // Check if the current VHV has submitted the satisfaction survey
@@ -353,6 +360,298 @@ if (DemoDataProvider::isDemoMode()) {
             font-weight: 800;
             box-shadow: var(--neumorph-flat);
         }
+        .screening-task-card {
+            display: block;
+            padding: 18px;
+        }
+        .screening-card-watermark {
+            position: absolute;
+            z-index: 1;
+            width: auto;
+            height: 100%;
+            right: 0;
+            top: 50%;
+            transform: translate(30%, -50%);
+            color: var(--text-primary);
+            opacity: 0.038;
+            pointer-events: none;
+            user-select: none;
+        }
+        .screening-card-top {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+        }
+        .screening-card-person {
+            min-width: 0;
+            flex: 1;
+        }
+        .screening-card-person h4 {
+            margin-bottom: 7px;
+            line-height: 1.25;
+        }
+        .screening-card-person p {
+            line-height: 1.4;
+            overflow-wrap: anywhere;
+        }
+        .screening-care-badges {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 7px;
+        }
+        .screening-meta-row {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(148, 163, 184, 0.18);
+        }
+        .screening-rights {
+            display: inline-flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            min-width: 0;
+        }
+        .screening-rights-label {
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .screening-right-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            padding: 3px 7px;
+            border-radius: 9px;
+            font-size: 11px;
+            font-weight: 900;
+            line-height: 1;
+            white-space: nowrap;
+        }
+        .screening-round-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: auto;
+            padding: 4px 8px;
+            border-radius: 10px;
+            background: rgba(99, 102, 241, 0.14);
+            color: #4f46e5;
+            border: 1px solid rgba(99, 102, 241, 0.28);
+            font-size: 11px;
+            font-weight: 800;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+        @media (max-width: 380px) {
+            .screening-task-card {
+                padding: 15px;
+            }
+            .screening-card-top {
+                gap: 9px;
+            }
+            .screening-round-chip {
+                margin-left: 0;
+            }
+        }
+        .history-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            box-sizing: border-box;
+            background: rgba(15, 23, 42, 0.52);
+            backdrop-filter: blur(7px);
+            -webkit-backdrop-filter: blur(7px);
+        }
+        .history-modal-card {
+            width: 100%;
+            max-width: 460px;
+            max-height: calc(100dvh - 24px);
+            overflow: hidden;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 16px;
+            margin: 0;
+            color: var(--text-primary);
+            background: var(--bg-main);
+            border: 0;
+            outline: 0;
+            border-radius: 24px;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.32);
+        }
+        .history-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 34px;
+            padding-bottom: 7px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+        }
+        .history-modal-header h3 {
+            margin: 0;
+            color: var(--color-accent);
+            font-size: 22px;
+            font-weight: 900;
+            line-height: 1.3;
+            text-align: center;
+        }
+        .history-section {
+            margin: 0;
+            padding: 9px 10px;
+            border: 0;
+            border-radius: 14px;
+            background: var(--bg-card);
+        }
+        .history-person-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .history-person-row strong {
+            min-width: 0;
+            font-size: 15px;
+            line-height: 1.3;
+        }
+        .history-round-pill {
+            flex: 0 0 auto;
+            padding: 3px 8px;
+            border-radius: 999px;
+            color: #4f46e5;
+            background: rgba(99, 102, 241, 0.12);
+            font-size: 10.5px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+        .history-subline {
+            margin: 0;
+            color: var(--text-primary);
+            font-size: 16px;
+            font-weight: 800;
+            line-height: 1.4;
+            text-align: center;
+        }
+        .history-section-title {
+            margin: 0 0 6px;
+            color: var(--color-accent);
+            font-size: 12px;
+            font-weight: 900;
+        }
+        .history-vitals-grid,
+        .history-mini-grid {
+            display: grid;
+            gap: 6px;
+        }
+        .history-vitals-grid {
+            grid-template-columns: 1fr;
+        }
+        .history-mini-grid {
+            margin-top: 6px;
+            grid-template-columns: repeat(3, 1fr);
+        }
+        .history-vital,
+        .history-mini {
+            min-width: 0;
+            padding: 6px 7px;
+            border-radius: 10px;
+            background: var(--bg-darker);
+        }
+        .history-vital span,
+        .history-mini span {
+            display: block;
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+        .history-vital strong {
+            display: block;
+            margin-top: 4px;
+            color: var(--text-primary);
+            font-size: 22px;
+            font-weight: 900;
+            line-height: 1.2;
+            overflow-wrap: anywhere;
+        }
+        .history-mini strong {
+            display: block;
+            margin-top: 3px;
+            color: var(--text-primary);
+            font-size: 16px;
+            font-weight: 900;
+            line-height: 1.25;
+            overflow-wrap: anywhere;
+        }
+        .history-comparison-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 3px 0;
+            color: var(--text-primary);
+            font-size: 14px;
+            line-height: 1.3;
+        }
+        .history-comparison-summary {
+            margin-top: 5px;
+            padding: 5px 7px;
+            border-radius: 9px;
+            text-align: center;
+            background: var(--bg-darker);
+            font-size: 14px;
+            font-weight: 900;
+            line-height: 1.3;
+        }
+        .history-advice {
+            background: rgba(16, 185, 129, 0.09);
+        }
+        .history-advice strong {
+            display: block;
+            margin-bottom: 2px;
+            color: var(--color-green);
+            font-size: 13px;
+        }
+        .history-advice p {
+            margin: 0;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+        }
+        .history-close-button {
+            width: 100%;
+            min-height: 40px;
+            margin: 0;
+            border-radius: 13px;
+            font-size: 16px;
+        }
+        @media (max-height: 680px) {
+            .history-modal-card { gap: 6px; padding: 12px; }
+            .history-section { padding: 7px 8px; }
+            .history-vital, .history-mini { padding: 4px 6px; }
+            .history-modal-header { min-height: 30px; padding-bottom: 4px; }
+            .history-close-button { min-height: 36px; }
+        }
 
         @keyframes float-bubble {
             0%, 100% { transform: translateY(0) rotate(0deg); }
@@ -478,9 +777,9 @@ if (DemoDataProvider::isDemoMode()) {
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 8px;">
                     <div style="padding: 8px; border-radius: 8px; background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.3);">
-                        <strong style="color: var(--color-green); font-size: 12px; display: block; margin-bottom: 2px;">แบบที่ 1: เข้าคัดกรองทันที</strong>
-                        <p style="font-size: 11px; color: var(--text-muted); margin: 0 0 4px 0;">แตะที่การ์ดรายชื่อเป้าหมายด้านล่างเพื่อตรวจคัดกรอง</p>
-                        <span style="font-size: 10.5px; color: var(--color-green); font-weight: bold;">👉 แตะรายการด้านล่าง</span>
+                        <strong style="color: var(--color-green); font-size: 12px; display: block; margin-bottom: 2px;">แบบที่ 1: เลือกงานจากรายการ</strong>
+                        <p style="font-size: 11px; color: var(--text-muted); margin: 0 0 4px 0;">แตะการ์ดผู้รับคัดกรอง แล้วเลือกสแกน QR Code</p>
+                        <span style="font-size: 10.5px; color: var(--color-green); font-weight: bold;">👉 แตะงานค้างด้านล่าง</span>
                     </div>
                     <div style="padding: 8px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.3);">
                         <strong style="color: #3b82f6; font-size: 12px; display: block; margin-bottom: 2px;">แบบที่ 2: สแกน QR จำลอง</strong>
@@ -500,10 +799,10 @@ if (DemoDataProvider::isDemoMode()) {
                     งานค้าง (<?= count($pendingTasks) ?>)
                 </button>
                 <button class="tab-btn" id="tab-btn-dpac" onclick="switchTab('dpac-list', this)" style="color: #b91c1c;">
-                    DPAC (<?= count($dpacTasks) ?>)
+                    DPAC (<?= count($dpacTasks) + count($completedDpacTasks) ?>)
                 </button>
                 <button class="tab-btn" id="tab-btn-completed" onclick="switchTab('completed-list', this)">
-                    เสร็จสิ้น/ข้าม (<?= count($completedTasks) + count($completedDpacTasks) ?>)
+                    ประวัติ (<?= count($completedTasks) ?>)
                 </button>
             </div>
         </div>
@@ -537,13 +836,21 @@ if (DemoDataProvider::isDemoMode()) {
                 </div>
             <?php else: ?>
                 <?php foreach ($pendingTasks as $pt): ?>
-                    <div class="task-card" data-assignment-id="<?= $pt['assignment_id'] ?>" data-hid="<?= htmlspecialchars($pt['hid'] ?? '') ?>" data-cid="<?= htmlspecialchars($pt['cid']) ?>" onclick="openTestModal('<?= htmlspecialchars($pt['house_no']) ?>', '<?= htmlspecialchars($pt['hid'] ?? '') ?>', '<?= htmlspecialchars($pt['cid']) ?>')">
-                        <div class="task-info">
-                            <h4>บ้านเลขที่ <?= htmlspecialchars($pt['house_no']) ?></h4>
-                            <p>ผู้รับคัดกรอง: <?= htmlspecialchars($pt['first_name'] . ' ' . $pt['last_name']) ?></p>
-                            
-                            <!-- Badges: Care Level, Next Visit, Progress, Sleep -->
-                            <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">
+                    <?php $screeningRecipientName = trim(($pt['first_name'] ?? '') . ' ' . ($pt['last_name'] ?? '')); ?>
+                    <div class="task-card screening-task-card" data-assignment-id="<?= $pt['assignment_id'] ?>" data-hid="<?= htmlspecialchars($pt['hid'] ?? '') ?>" data-cid="<?= htmlspecialchars($pt['cid']) ?>" onclick="openScreeningChoiceModal(<?= htmlspecialchars(json_encode($screeningRecipientName, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)">
+                        <svg class="screening-card-watermark" viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M60 101C47 91 20 73 20 46C20 29 31 19 46 19C54 19 59 23 60 29C63 23 68 19 76 19C91 19 101 30 101 46C101 73 73 92 60 101Z"/>
+                            <path d="M12 59H38L47 43L58 75L69 50L77 59H108"/>
+                        </svg>
+                        <div class="screening-card-top">
+                            <div class="task-info screening-card-person">
+                                <h4>บ้านเลขที่ <?= htmlspecialchars($pt['house_no']) ?></h4>
+                                <p>ผู้รับคัดกรอง: <?= htmlspecialchars($pt['first_name'] . ' ' . $pt['last_name']) ?></p>
+                            </div>
+                        </div>
+
+                        <!-- Badges: Care Level, Next Visit, Progress, Sleep -->
+                        <div class="screening-care-badges">
                                 <?php if (!empty($pt['last_care_level'])): ?>
                                     <?php 
                                         $cl = $pt['last_care_level'];
@@ -589,27 +896,21 @@ if (DemoDataProvider::isDemoMode()) {
                                         }
                                     ?>
                                 <?php endif; ?>
-                            </div>
+                        </div>
 
-                            <p style="font-size: 12px; margin-top: 4px; color: var(--text-muted);">
-                                สิทธิ์การคัดกรอง: 
+                        <div class="screening-meta-row">
+                            <div class="screening-rights">
+                                <span class="screening-rights-label">สิทธิ์คัดกรอง</span>
                                 <?php if ($pt['need_screen_dm']): ?>
-                                    <span style="color: var(--color-accent);">DM</span>
+                                    <span class="screening-right-chip" style="color:#b45309;background:rgba(245,158,11,.12);">DM</span>
                                 <?php endif; ?>
                                 <?php if ($pt['need_screen_ht']): ?>
-                                    <span style="color: var(--color-primary); margin-left: 5px;">HT</span>
+                                    <span class="screening-right-chip" style="color:#2563eb;background:rgba(37,99,235,.1);">HT</span>
                                 <?php endif; ?>
-                                <?php if (intval($pt['round_number'] ?? 1) > 1): ?>
-                                    <span style="background-color: rgba(99, 102, 241, 0.15); color: #6366f1; border: 1px solid rgba(99, 102, 241, 0.3); padding: 2px 6px; border-radius: 10px; font-size: 11px; font-weight: bold; margin-left: 6px;">
-                                        🔄 คัดกรองซ้ำ ครั้งที่ <?= $pt['round_number'] ?>
-                                    </span>
-                                <?php endif; ?>
-                            </p>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 4px;">
-                            <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: var(--color-green, #10B981); font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px; box-shadow: none;">
-                                📋 คัดกรอง ➔
-                            </span>
+                            </div>
+                            <?php if (intval($pt['round_number'] ?? 1) > 1): ?>
+                                <span class="screening-round-chip">🔄 คัดกรองซ้ำ • รอบ <?= (int)$pt['round_number'] ?></span>
+                            <?php endif; ?>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -618,7 +919,7 @@ if (DemoDataProvider::isDemoMode()) {
 
         <!-- Completed Tasks List -->
         <div id="completed-list" class="tab-content" style="display: none;">
-            <?php if (empty($completedTasks) && empty($completedDpacTasks)): ?>
+            <?php if (empty($completedTasks)): ?>
                 <div style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
                     ยังไม่มีประวัติการคัดกรองที่บันทึก
                 </div>
@@ -632,6 +933,16 @@ if (DemoDataProvider::isDemoMode()) {
                         <div class="task-info">
                             <h4>บ้านเลขที่ <?= htmlspecialchars($ct['house_no']) ?></h4>
                             <p>ผู้รับคัดกรอง: <?= htmlspecialchars($ct['first_name'] . ' ' . $ct['last_name']) ?></p>
+                            <p style="font-size: 12px; color: #2563eb; margin-top: 3px; font-weight: 700;">ประวัติการคัดกรองทั่วไป • รอบที่ <?= (int)($ct['round_number'] ?? 1) ?></p>
+                            <?php if (($ct['history_scope'] ?? '') === 'assigned_person_history'): ?>
+                                <p style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">ประวัติเดิมของผู้รับคัดกรองที่ได้รับมอบหมาย</p>
+                            <?php endif; ?>
+                            <?php if (!empty($ct['screened_at'])): ?>
+                                <p style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">บันทึกเมื่อ <?= htmlspecialchars($ct['screened_at']) ?></p>
+                            <?php endif; ?>
+                            <?php if (!empty($ct['is_sandbox'])): ?>
+                                <p style="font-size: 11px; color: #b45309; margin-top: 3px;">ประวัติที่บันทึกขณะเปิดโหมดทดสอบ</p>
+                            <?php endif; ?>
                             <?php if ($ct['assignment_status'] === 'completed'): ?>
                                 <p style="color: var(--color-green); font-size: 13px; font-weight: bold;">
                                     ✅ คัดกรองสำเร็จเรียบร้อย (คลิกเพื่อดูรายละเอียด)
@@ -651,30 +962,12 @@ if (DemoDataProvider::isDemoMode()) {
                         </div>
                     </div>
                 <?php endforeach; ?>
-                <?php foreach ($completedDpacTasks as $cdt): ?>
-                    <div class="task-card" onclick="showDpacDetail(<?= htmlspecialchars(json_encode($cdt, JSON_UNESCAPED_UNICODE)) ?>)" style="opacity: 0.9; border-left: 4px solid #b91c1c; cursor: pointer;">
-                        <div class="task-card-watermark"><?= $cdt['round_number'] ?></div>
-                        <div class="task-info">
-                            <h4>บ้านเลขที่ <?= htmlspecialchars($cdt['house_no']) ?></h4>
-                            <p>ผู้รับการติดตาม: <?= htmlspecialchars($cdt['first_name'] . ' ' . $cdt['last_name']) ?></p>
-                            <p style="color: var(--color-green); font-size: 13px; font-weight: bold;">
-                                ✅ ติดตาม DPAC รอบที่ <?= $cdt['round_number'] ?> สำเร็จเรียบร้อย (คลิกเพื่อดูรายละเอียด)
-                            </p>
-                            <p style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
-                                วันที่ติดตาม: <?= htmlspecialchars($cdt['completed_at']) ?>
-                            </p>
-                        </div>
-                        <div>
-                            <span class="badge" style="background-color: rgba(16,185,129,0.2); color: var(--color-green); box-shadow: none;">สำเร็จ (DPAC)</span>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
             <?php endif; ?>
         </div>
 
         <!-- DPAC Followup List -->
         <div id="dpac-list" class="tab-content" style="display: none;">
-            <?php if (empty($dpacTasks)): ?>
+            <?php if (empty($dpacTasks) && empty($completedDpacTasks)): ?>
                 <div style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
                     ไม่มีงานติดตามปรับเปลี่ยนพฤติกรรม (DPAC) ในขณะนี้
                 </div>
@@ -696,6 +989,24 @@ if (DemoDataProvider::isDemoMode()) {
                         </div>
                         <div>
                             <svg width="24" height="24" fill="none" stroke="#b91c1c" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"></path></svg>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+                <?php foreach ($completedDpacTasks as $cdt): ?>
+                    <div class="task-card" onclick="showDpacDetail(<?= htmlspecialchars(json_encode($cdt, JSON_UNESCAPED_UNICODE)) ?>)" style="opacity: 0.9; border-left: 4px solid #b91c1c; cursor: pointer;">
+                        <div class="task-card-watermark"><?= $cdt['round_number'] ?></div>
+                        <div class="task-info">
+                            <h4>บ้านเลขที่ <?= htmlspecialchars($cdt['house_no']) ?></h4>
+                            <p>ผู้รับการติดตาม: <?= htmlspecialchars($cdt['first_name'] . ' ' . $cdt['last_name']) ?></p>
+                            <p style="color: var(--color-green); font-size: 13px; font-weight: bold;">
+                                ✅ ติดตาม DPAC รอบที่ <?= $cdt['round_number'] ?> สำเร็จเรียบร้อย (คลิกเพื่อดูรายละเอียด)
+                            </p>
+                            <p style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                                วันที่ติดตาม: <?= htmlspecialchars($cdt['completed_at']) ?>
+                            </p>
+                        </div>
+                        <div>
+                            <span class="badge" style="background-color: rgba(16,185,129,0.2); color: var(--color-green); box-shadow: none;">สำเร็จ (DPAC)</span>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -873,49 +1184,57 @@ if (DemoDataProvider::isDemoMode()) {
         </div>
     </div>
 
-    <!-- Test Modal -->
-    <div id="test-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
-        <div class="card-dark" style="width: 90%; max-width: 400px; padding: 24px;">
-            <h3 style="color: var(--color-accent); margin-top: 0; display: flex; align-items: center; gap: 8px;">
-                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
-                โหมดทดสอบคัดกรอง
+    <!-- Screening entry choice -->
+    <div id="screening-choice-modal" onclick="if(event.target===this) closeScreeningChoiceModal()" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.58);z-index:9999;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);">
+        <div class="card-dark" role="dialog" aria-modal="true" aria-labelledby="screening-choice-title" style="width:100%;max-width:390px;padding:24px;border:0;outline:0;border-radius:24px;text-align:center;background:var(--bg-card);box-shadow:0 24px 60px rgba(15,23,42,.3);margin-bottom:0;">
+            <div style="width:62px;height:62px;margin:0 auto 15px;border:0;border-radius:50%;background:var(--bg-card);color:#29445f;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 24px rgba(15,23,42,.18);">
+                <svg width="36" height="36" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M15 8h18a3 3 0 0 1 3 3v25a3 3 0 0 1-3 3H15a3 3 0 0 1-3-3V11a3 3 0 0 1 3-3Z"/>
+                    <path d="M19 6h10v6H19z" fill="var(--bg-card)"/>
+                    <path d="M18 19h12M18 25h8"/>
+                    <circle cx="34" cy="34" r="8" fill="var(--bg-card)"/>
+                    <path d="M34 30v8M30 34h8"/>
+                </svg>
+            </div>
+            <h3 id="screening-choice-title" style="color:var(--text-primary);margin:0;font-size:19px;font-weight:900;line-height:1.4;overflow-wrap:anywhere;">
+                คัดกรอง
             </h3>
-            <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 15px; line-height: 1.5;">
-                คุณต้องการเข้าสู่หน้าคัดกรองของ บ้านเลขที่ <span id="test-house-no" style="color: white; font-weight: 800; font-size: 16px;"></span> โดยไม่ผ่านการสแกน QR Code ใช่หรือไม่?
+            <p style="color:var(--text-secondary);margin:10px 0 20px;font-size:13px;line-height:1.5;">
+                สแกน QR Code ประจำบ้านเพื่อยืนยันสิทธิ์ก่อนเข้าสู่แบบคัดกรอง
             </p>
-            <div style="display: flex; gap: 12px;">
-                <button type="button" onclick="closeTestModal()" class="btn-giant btn-giant-secondary" style="flex: 1; margin: 0; font-size: 16px;">ยกเลิก</button>
-                <button type="button" id="btn-enter-test" class="btn-giant btn-giant-primary" style="flex: 1; margin: 0; font-size: 16px;">เข้าคัดกรอง</button>
+            <div style="display:grid;grid-template-columns:1fr 1.35fr;gap:10px;">
+                <button type="button" onclick="closeScreeningChoiceModal()" class="btn-giant btn-giant-secondary" style="margin:0;font-size:14px;white-space:nowrap;">ยกเลิก</button>
+                <button type="button" onclick="goToScreeningScanner()" class="btn-giant btn-giant-primary" style="margin:0;font-size:14px;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:7px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM15 15h2M21 15v2M15 21h2M19 19h2v2"/></svg>
+                    สแกน QR Code
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        const isSandboxMode = <?= (isSandboxMode($hoscode) || DemoDataProvider::isDemoMode()) ? 'true' : 'false' ?>;
-        let currentTestHid = '';
-        let currentTestCid = '';
-        function openTestModal(houseNo, hid, cid) {
-            if (isSandboxMode) {
-                // โหมดจำลอง / แซนด์บ็อกซ์: เข้าสู่หน้าตรวจคัดกรองได้ทันทีโดยตรง
-                if (cid) {
-                    window.location.href = 'screening_form.php?cid=' + encodeURIComponent(cid);
-                } else if (hid) {
-                    window.location.href = 'screening_form.php?hid=' + encodeURIComponent(hid);
-                }
-                return;
-            }
-            alert("⚠️ ระบบทำงานในโหมดใช้งานจริง: กรุณากดปุ่ม 'สแกนบ้าน' ด้านล่างเพื่อสแกน QR Code ประจำบ้านเป้าหมายและเริ่มทำการคัดกรอง");
+        function openScreeningChoiceModal(recipientName) {
+            const modal = document.getElementById('screening-choice-modal');
+            const title = document.getElementById('screening-choice-title');
+            title.textContent = `คัดกรอง (${recipientName || 'ผู้รับการคัดกรอง'})`;
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
         }
-        const enterTestBtn = document.getElementById('btn-enter-test');
-        if (enterTestBtn) {
-            enterTestBtn.onclick = function() {
-                if (currentTestHid) {
-                    window.location.href = 'screening_form.php?hid=' + encodeURIComponent(currentTestHid);
-                } else if (currentTestCid) {
-                    window.location.href = 'screening_form.php?cid=' + encodeURIComponent(currentTestCid);
-                }
-            };
+        function closeScreeningChoiceModal() {
+            const modal = document.getElementById('screening-choice-modal');
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
         }
+        function goToScreeningScanner() {
+            closeScreeningChoiceModal();
+            window.location.href = 'scan.php';
+        }
+        function openTestModal(houseNo) {
+            openScreeningChoiceModal(houseNo ? `บ้านเลขที่ ${houseNo}` : 'ผู้รับการคัดกรอง');
+        }
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') closeScreeningChoiceModal();
+        });
         function switchTab(tabId, btn) {
             // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(content => {
@@ -1019,18 +1338,53 @@ if (DemoDataProvider::isDemoMode()) {
 
         function openHistoryDetailModal() {
             document.getElementById('history-detail-modal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
         }
         function closeHistoryDetailModal() {
             document.getElementById('history-detail-modal').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function formatHistoryDateTime(value) {
+            if (!value) return 'ไม่พบวันและเวลาที่บันทึก';
+            const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
+            if (!match) return String(value);
+            const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+            const dateText = `${Number(match[3])} ${thaiMonths[Number(match[2]) - 1]} ${Number(match[1]) + 543}`;
+            return match[4] ? `วันที่ ${dateText} เวลา ${match[4]}:${match[5]} น.` : `วันที่ ${dateText}`;
+        }
+
+        function getScreeningRiskSummary(data) {
+            let careLevel = data.care_level || '';
+
+            // รองรับประวัติเก่าที่บันทึกก่อนมี care_level โดยใช้เกณฑ์เดียวกับหน้าคัดกรอง
+            if (!careLevel) {
+                const sys = Math.max(Number(data.sys_bp1) || 0, Number(data.sys_bp2) || 0);
+                const dia = Math.max(Number(data.dia_bp1) || 0, Number(data.dia_bp2) || 0);
+                const dtx = Number(data.dtx_value) || 0;
+                const bmi = Number(data.bmi) || 0;
+
+                if (sys >= 180 || dia >= 110 || (dtx > 0 && (dtx >= 200 || dtx < 70))) {
+                    careLevel = 'critical';
+                } else if (sys >= 140 || dia >= 90 || dtx >= 126) {
+                    careLevel = 'poor';
+                } else if (sys >= 120 || dia >= 80 || dtx >= 100 || bmi >= 25) {
+                    careLevel = 'fair';
+                } else {
+                    careLevel = 'good';
+                }
+            }
+
+            if (careLevel === 'fair') return { label: 'เสี่ยง', color: '#d97706' };
+            if (careLevel === 'poor' || careLevel === 'critical') return { label: 'เสี่ยงสูง', color: 'var(--color-red)' };
+            return { label: 'ปกติ', color: 'var(--color-green)' };
         }
 
         function showScreeningDetail(data) {
-            document.getElementById('modal-type-title').innerText = '📊 รายละเอียดผลการคัดกรอง';
+            document.getElementById('modal-type-title').innerText = `รอบการคัดกรองที่ ${data.round_number || 1}`;
             
             let infoHtml = `
-                <strong style="color: var(--text-primary); font-size: 16px;">${data.first_name} ${data.last_name}</strong>
-                <p style="margin: 4px 0 0; font-size: 14px; color: var(--text-secondary);">บ้านเลขที่ ${data.house_no} หมู่ที่ ${data.moo}</p>
-                <p style="margin: 4px 0 0; font-size: 12px; color: var(--text-muted);">วันที่คัดกรอง: ${data.completed_at || '-'}</p>
+                <div class="history-subline">${formatHistoryDateTime(data.screened_at || data.completed_at)}</div>
             `;
             document.getElementById('modal-resident-info').innerHTML = infoHtml;
             
@@ -1038,24 +1392,25 @@ if (DemoDataProvider::isDemoMode()) {
             if (data.sys_bp2) bpText += ` (ครั้งที่ 2: ${data.sys_bp2}/${data.dia_bp2})`;
             
             let dtxText = data.dtx_value ? `${data.dtx_value} mg/dL (${data.dtx_type === 'fpg' ? 'งดอาหาร (FPG)' : 'ไม่ได้งด (RPG)'})` : 'ไม่ได้ตรวจ';
+            const riskSummary = getScreeningRiskSummary(data);
             
             let measHtml = `
-                <h4 style="margin: 0 0 8px 0; color: var(--color-accent); font-size: 15px;">📏 ผลการวัดร่างกาย</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 14px; color: var(--text-primary);">
-                    <div>น้ำหนัก: <strong>${data.weight || '-'} กก.</strong></div>
-                    <div>ส่วนสูง: <strong>${data.height || '-'} ซม.</strong></div>
-                    <div>รอบเอว: <strong>${data.waist || '-'} นิ้ว</strong></div>
-                    <div>BMI: <strong>${data.bmi || '-'}</strong></div>
+                <div class="history-vitals-grid">
+                    <div class="history-vital"><span>ความดันโลหิต</span><strong>${bpText} mmHg</strong></div>
+                    <div class="history-vital"><span>น้ำตาล DTX</span><strong>${dtxText}</strong></div>
                 </div>
-                <div style="margin-top: 10px; font-size: 14px; color: var(--text-primary);">
-                    <div>ความดันโลหิต: <strong>${bpText} mmHg</strong></div>
-                    <div>ระดับน้ำตาล (DTX): <strong>${dtxText}</strong></div>
-                    <div style="margin-top: 4px;">Thai CV Risk: <strong style="color: var(--color-primary);">${data.cv_risk_score || '0'}%</strong></div>
+                <div class="history-mini-grid">
+                    <div class="history-mini"><span>น้ำหนัก</span><strong>${data.weight || '-'} กก.</strong></div>
+                    <div class="history-mini"><span>ส่วนสูง</span><strong>${data.height || '-'} ซม.</strong></div>
+                    <div class="history-mini"><span>รอบเอว</span><strong>${data.waist || '-'} นิ้ว</strong></div>
+                    <div class="history-mini"><span>BMI</span><strong>${data.bmi || '-'}</strong></div>
+                    <div class="history-mini"><span>CV Risk</span><strong style="color:var(--color-primary);">${data.cv_risk_score || '0'}%</strong></div>
+                    <div class="history-mini"><span>ผลรอบนี้</span><strong style="color:${riskSummary.color};">${riskSummary.label}</strong></div>
                 </div>
             `;
             document.getElementById('modal-measurements').innerHTML = measHtml;
             
-            let compHtml = '<h4 style="margin: 12px 0 8px 0; color: var(--color-accent); font-size: 15px; border-top: 1px solid var(--border-color); padding-top: 12px;">🔄 เปรียบเทียบกับค่าตั้งต้น</h4>';
+            let compHtml = '<h4 class="history-section-title">เทียบค่าตั้งต้น</h4>';
             let improvements = 0;
             let worsenings = 0;
             let comparedAny = false;
@@ -1067,7 +1422,7 @@ if (DemoDataProvider::isDemoMode()) {
                 let status = diff < 0 ? '🟢 ดีขึ้น' : (diff > 0 ? '🔴 แย่ลง' : '⚪ คงที่');
                 if (diff < 0) improvements++;
                 if (diff > 0) worsenings++;
-                compHtml += `<div style="font-size: 13.5px; margin-bottom: 6px; color: var(--text-primary);">ตัวบนความดัน (SYS): ${data.base_sbp} -> ${data.sys_bp1} mmHg (${diffText}) | <strong>${status}</strong></div>`;
+                compHtml += `<div class="history-comparison-row"><span>SYS ${data.base_sbp} → ${data.sys_bp1}</span><strong>${diffText} • ${status}</strong></div>`;
             }
             
             if (data.dtx_value && data.base_bslevel) {
@@ -1077,11 +1432,11 @@ if (DemoDataProvider::isDemoMode()) {
                 let status = diff < 0 ? '🟢 ดีขึ้น' : (diff > 0 ? '🔴 แย่ลง' : '⚪ คงที่');
                 if (diff < 0) improvements++;
                 if (diff > 0) worsenings++;
-                compHtml += `<div style="font-size: 13.5px; margin-bottom: 6px; color: var(--text-primary);">ระดับน้ำตาล: ${data.base_bslevel} -> ${data.dtx_value} mg/dL (${diffText}) | <strong>${status}</strong></div>`;
+                compHtml += `<div class="history-comparison-row"><span>DTX ${data.base_bslevel} → ${data.dtx_value}</span><strong>${diffText} • ${status}</strong></div>`;
             }
             
             if (!comparedAny) {
-                compHtml += `<div style="font-size: 13.5px; margin-bottom: 6px; color: var(--text-muted); font-style: italic;">ไม่มีข้อมูลค่าตั้งต้นสำหรับการเปรียบเทียบ</div>`;
+                compHtml += `<div class="history-comparison-row" style="color:var(--text-muted);"><span>ไม่มีค่าตั้งต้นสำหรับเปรียบเทียบ</span></div>`;
             }
             
             let summaryText = '⚪ ทรงตัว (ไม่มีการเปลี่ยนแปลงมีนัยสำคัญ)';
@@ -1095,27 +1450,23 @@ if (DemoDataProvider::isDemoMode()) {
             }
             
             compHtml += `
-                <div style="margin-top: 12px; padding: 10px; background-color: var(--bg-darker); border-radius: 8px; text-align: center; font-weight: bold; color: ${summaryColor}; font-size: 15px; border: 1px solid var(--border-color);">
-                    สรุปผลการประเมิน: ${summaryText}
-                </div>
+                <div class="history-comparison-summary" style="color:${summaryColor};">${summaryText}</div>
             `;
             document.getElementById('modal-comparison').innerHTML = compHtml;
             
             document.getElementById('modal-advice').innerHTML = `
-                <strong style="color: var(--color-green); font-size: 14px; display: block; margin-bottom: 4px;">💡 คำแนะนำโดย อสม.:</strong>
-                <p style="margin: 0; font-size: 14px; color: var(--text-primary); line-height: 1.5; font-weight: 700;">${data.advice_given || 'ไม่ระบุ/ไม่มีคำแนะนำเพิ่มเติม'}</p>
+                <strong>คำแนะนำโดย อสม.</strong>
+                <p>${data.advice_given || 'ไม่ระบุคำแนะนำเพิ่มเติม'}</p>
             `;
             
             openHistoryDetailModal();
         }
 
         function showDpacDetail(data) {
-            document.getElementById('modal-type-title').innerText = `📈 ติดตาม DPAC (รอบที่ ${data.round_number})`;
+            document.getElementById('modal-type-title').innerText = `รอบติดตาม DPAC ที่ ${data.round_number || 1}`;
             
             let infoHtml = `
-                <strong style="color: var(--text-primary); font-size: 16px;">${data.first_name} ${data.last_name}</strong>
-                <p style="margin: 4px 0 0; font-size: 14px; color: var(--text-secondary);">บ้านเลขที่ ${data.house_no} หมู่ที่ ${data.moo}</p>
-                <p style="margin: 4px 0 0; font-size: 12px; color: var(--text-muted);">วันที่ติดตาม: ${data.completed_at || '-'}</p>
+                <div class="history-subline">${formatHistoryDateTime(data.completed_at)}</div>
             `;
             document.getElementById('modal-resident-info').innerHTML = infoHtml;
             
@@ -1123,21 +1474,22 @@ if (DemoDataProvider::isDemoMode()) {
             let fbsText = data.fbs ? `${data.fbs} mg/dL` : 'ไม่ได้ตรวจ';
             
             let measHtml = `
-                <h4 style="margin: 0 0 8px 0; color: var(--color-accent); font-size: 15px;">📏 ผลการติดตามร่างกาย</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 14px; color: var(--text-primary);">
-                    <div>น้ำหนัก: <strong>${data.weight || '-'} กก.</strong></div>
-                    <div>ส่วนสูง: <strong>${data.height || '-'} ซม.</strong></div>
-                    <div>รอบเอว: <strong>${data.waist || '-'} นิ้ว</strong></div>
+                <div class="history-vitals-grid">
+                    <div class="history-vital"><span>ความดันโลหิต</span><strong>${bpText} mmHg</strong></div>
+                    <div class="history-vital"><span>น้ำตาล FBS</span><strong>${fbsText}</strong></div>
                 </div>
-                <div style="margin-top: 10px; font-size: 14px; color: var(--text-primary);">
-                    <div>ความดันโลหิต: <strong>${bpText} mmHg</strong></div>
-                    <div>ระดับน้ำตาล (FBS): <strong>${fbsText}</strong></div>
-                    <div style="margin-top: 4px;">ผลการประเมิน: <strong style="color: var(--color-primary);">${data.health_risk_level || '-'}</strong></div>
+                <div class="history-mini-grid">
+                    <div class="history-mini"><span>น้ำหนัก</span><strong>${data.weight || '-'} กก.</strong></div>
+                    <div class="history-mini"><span>ส่วนสูง</span><strong>${data.height || '-'} ซม.</strong></div>
+                    <div class="history-mini"><span>รอบเอว</span><strong>${data.waist || '-'} นิ้ว</strong></div>
+                    <div class="history-mini"><span>ระดับความเสี่ยง</span><strong style="color:var(--color-primary);">${data.health_risk_level || '-'}</strong></div>
+                    <div class="history-mini"><span>การนอน</span><strong>${data.sleep_quality || '-'}</strong></div>
+                    <div class="history-mini"><span>ความก้าวหน้า</span><strong>${data.health_progress || '-'}</strong></div>
                 </div>
             `;
             document.getElementById('modal-measurements').innerHTML = measHtml;
             
-            let compHtml = '<h4 style="margin: 12px 0 8px 0; color: var(--color-accent); font-size: 15px; border-top: 1px solid var(--border-color); padding-top: 12px;">🔄 เปรียบเทียบกับค่าตั้งต้น</h4>';
+            let compHtml = '<h4 class="history-section-title">เทียบค่าตั้งต้น</h4>';
             let improvements = 0;
             let worsenings = 0;
             let comparedAny = false;
@@ -1149,7 +1501,7 @@ if (DemoDataProvider::isDemoMode()) {
                 let status = diff < 0 ? '🟢 ดีขึ้น' : (diff > 0 ? '🔴 แย่ลง' : '⚪ คงที่');
                 if (diff < 0) improvements++;
                 if (diff > 0) worsenings++;
-                compHtml += `<div style="font-size: 13.5px; margin-bottom: 6px; color: var(--text-primary);">ตัวบนความดัน (SYS): ${data.base_sbp} -> ${data.bp_sys} mmHg (${diffText}) | <strong>${status}</strong></div>`;
+                compHtml += `<div class="history-comparison-row"><span>SYS ${data.base_sbp} → ${data.bp_sys}</span><strong>${diffText} • ${status}</strong></div>`;
             }
             
             if (data.fbs && data.base_bslevel) {
@@ -1159,11 +1511,11 @@ if (DemoDataProvider::isDemoMode()) {
                 let status = diff < 0 ? '🟢 ดีขึ้น' : (diff > 0 ? '🔴 แย่ลง' : '⚪ คงที่');
                 if (diff < 0) improvements++;
                 if (diff > 0) worsenings++;
-                compHtml += `<div style="font-size: 13.5px; margin-bottom: 6px; color: var(--text-primary);">ระดับน้ำตาล: ${data.base_bslevel} -> ${data.fbs} mg/dL (${diffText}) | <strong>${status}</strong></div>`;
+                compHtml += `<div class="history-comparison-row"><span>FBS ${data.base_bslevel} → ${data.fbs}</span><strong>${diffText} • ${status}</strong></div>`;
             }
             
             if (!comparedAny) {
-                compHtml += `<div style="font-size: 13.5px; margin-bottom: 6px; color: var(--text-muted); font-style: italic;">ไม่มีข้อมูลค่าตั้งต้นสำหรับการเปรียบเทียบ</div>`;
+                compHtml += `<div class="history-comparison-row" style="color:var(--text-muted);"><span>ไม่มีค่าตั้งต้นสำหรับเปรียบเทียบ</span></div>`;
             }
             
             let summaryText = '⚪ ทรงตัว (ไม่มีการเปลี่ยนแปลงมีนัยสำคัญ)';
@@ -1177,15 +1529,13 @@ if (DemoDataProvider::isDemoMode()) {
             }
             
             compHtml += `
-                <div style="margin-top: 12px; padding: 10px; background-color: var(--bg-darker); border-radius: 8px; text-align: center; font-weight: bold; color: ${summaryColor}; font-size: 15px; border: 1px solid var(--border-color);">
-                    สรุปผลการประเมิน: ${summaryText}
-                </div>
+                <div class="history-comparison-summary" style="color:${summaryColor};">${summaryText}</div>
             `;
             document.getElementById('modal-comparison').innerHTML = compHtml;
             
             document.getElementById('modal-advice').innerHTML = `
-                <strong style="color: var(--color-green); font-size: 14px; display: block; margin-bottom: 4px;">💡 คำแนะนำโดย อสม.:</strong>
-                <p style="margin: 0; font-size: 14px; color: var(--text-primary); line-height: 1.5; font-weight: 700;">${data.advice_given || 'ไม่ระบุ/ไม่มีคำแนะนำเพิ่มเติม'}</p>
+                <strong>คำแนะนำโดย อสม.</strong>
+                <p>${data.advice_given || 'ไม่ระบุคำแนะนำเพิ่มเติม'}</p>
             `;
             
             openHistoryDetailModal();
@@ -1193,26 +1543,25 @@ if (DemoDataProvider::isDemoMode()) {
     </script>
 
     <!-- History Detail Modal Overlay -->
-    <div id="history-detail-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(13, 44, 84, 0.4); backdrop-filter: blur(5px); z-index: 9999; align-items: center; justify-content: center;">
-        <div class="card-dark" style="width: 90%; max-width: 460px; max-height: 90vh; overflow-y: auto; background: var(--bg-main); box-shadow: var(--neumorph-flat); border-radius: 28px; padding: 24px; color: var(--text-primary);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1.5px solid var(--border-color); padding-bottom: 12px;">
-                <h3 id="modal-type-title" style="color: var(--color-accent); font-size: 20px; font-weight: 800; margin: 0;">รายละเอียด</h3>
-                <button type="button" onclick="closeHistoryDetailModal()" style="background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; font-weight: bold; line-height: 1;">✕</button>
+    <div id="history-detail-modal" class="history-modal-overlay" onclick="if(event.target===this) closeHistoryDetailModal()">
+        <div class="card-dark history-modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-type-title">
+            <div class="history-modal-header">
+                <h3 id="modal-type-title">รายละเอียด</h3>
             </div>
             
-            <div id="modal-resident-info" style="margin-bottom: 16px; background-color: var(--bg-darker); padding: 14px; border-radius: var(--border-radius); border: 1px solid var(--border-color);">
+            <div id="modal-resident-info" class="history-section">
             </div>
 
-            <div id="modal-measurements" style="margin-bottom: 16px; background-color: var(--bg-card); padding: 14px; border-radius: var(--border-radius); border: 1px solid var(--border-color);">
+            <div id="modal-measurements" class="history-section">
             </div>
 
-            <div id="modal-comparison" style="margin-bottom: 16px; background-color: var(--bg-card); padding: 14px; border-radius: var(--border-radius); border: 1px solid var(--border-color);">
+            <div id="modal-comparison" class="history-section">
             </div>
 
-            <div id="modal-advice" style="margin-bottom: 24px; background: rgba(16, 185, 129, 0.1); border-left: 4px solid var(--color-green); padding: 14px; border-radius: var(--border-radius);">
+            <div id="modal-advice" class="history-section history-advice">
             </div>
 
-            <button type="button" onclick="closeHistoryDetailModal()" class="btn-giant btn-giant-primary" style="margin: 0; width: 100%; border-radius: var(--border-radius);">ปิดหน้าต่าง</button>
+            <button type="button" onclick="closeHistoryDetailModal()" class="btn-giant btn-giant-primary history-close-button">ปิดหน้าต่าง</button>
         </div>
     </div>
 

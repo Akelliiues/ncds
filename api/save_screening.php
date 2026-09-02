@@ -86,6 +86,36 @@ function sendLineFlexMessage($lineUserId, $flexData) {
     return $response;
 }
 
+function lockPendingScreeningAssignment(PDO $pdo, int $assignmentId, string $vhvId): array {
+    $lockStmt = $pdo->prepare("
+        SELECT assignment_id, target_cid, vhv_id, budget_year, round_number,
+               assignment_status, COALESCE(is_sandbox, 0) AS is_sandbox
+        FROM task_assignments
+        WHERE assignment_id = ? AND vhv_id = ?
+        FOR UPDATE
+    ");
+    $lockStmt->execute([$assignmentId, $vhvId]);
+    $locked = $lockStmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$locked) {
+        throw new Exception('ไม่พบใบงานหรือผู้รับผิดชอบใบงานมีการเปลี่ยนแปลง กรุณาโหลดหน้าใหม่');
+    }
+    if ($locked['assignment_status'] !== 'pending') {
+        throw new Exception('ใบงานนี้ดำเนินการแล้ว ไม่สามารถบันทึกซ้ำหรือเขียนทับผลเดิมได้');
+    }
+    if ((int)$locked['round_number'] < 1) {
+        throw new Exception('เลขรอบของใบงานไม่ถูกต้อง ระบบยกเลิกการบันทึกเพื่อป้องกันประวัติผิดเพี้ยน');
+    }
+
+    $existingStmt = $pdo->prepare('SELECT screening_id FROM screening_results WHERE assignment_id = ? LIMIT 1');
+    $existingStmt->execute([$assignmentId]);
+    if ($existingStmt->fetchColumn()) {
+        throw new Exception('ใบงานนี้มีผลคัดกรองอยู่แล้ว ระบบไม่เขียนทับหรือลบผลงานเดิม');
+    }
+
+    return $locked;
+}
+
 try {
     // Fetch target population & home coordinates and verify VHV ownership
     $assignStmt = $pdo->prepare("
@@ -101,8 +131,8 @@ try {
         throw new Exception("ไม่พบข้อมูลใบงานมอบหมายที่ระบุ หรือท่านไม่ได้รับสิทธิ์มอบหมายในใบงานนี้");
     }
 
-    if ($assignment['assignment_status'] === 'completed' && (int)$assignment['round_number'] === 1) {
-        throw new Exception("ผลการคัดกรองรอบที่ 1 ถูกล็อคเป็นจุดเซฟประจำปี (Baseline Checkpoint) เรียบร้อยแล้ว ไม่สามารถแก้ไขย้อนหลังได้");
+    if ($assignment['assignment_status'] !== 'pending') {
+        throw new Exception("ใบงานนี้ดำเนินการแล้ว ไม่สามารถบันทึกซ้ำหรือเขียนทับผลเดิมได้");
     }
 
     $targetCid = $assignment['target_cid'];
@@ -112,6 +142,12 @@ try {
 
     if ($action === 'save_screening') {
         $pdo->beginTransaction();
+
+        $lockedAssignment = lockPendingScreeningAssignment($pdo, $assignmentId, $vhvId);
+        if ((int)$lockedAssignment['round_number'] !== (int)$assignment['round_number']
+            || $lockedAssignment['target_cid'] !== $targetCid) {
+            throw new Exception('ข้อมูลใบงานมีการเปลี่ยนแปลงระหว่างบันทึก กรุณาโหลดหน้าใหม่');
+        }
 
         $weight = (float)($_POST['weight'] ?? 0);
         $height = (float)($_POST['height'] ?? 0);
@@ -141,18 +177,6 @@ try {
         $adviceGiven = $_POST['advice_given'] ?? '';
 
         $roundNumber = (int)($assignment['round_number'] ?? 1);
-
-        // 0. ปกป้องคะแนน อสม. คนเก่าโดยการเซ็ตค่า FK ใน vhv_rewards เป็น NULL ก่อนทำการลบผลลัพธ์คัดกรองเก่า
-        $nullifyStmt = $pdo->prepare("
-            UPDATE vhv_rewards 
-            SET screening_id = NULL 
-            WHERE screening_id IN (SELECT screening_id FROM screening_results WHERE assignment_id = ?)
-        ");
-        $nullifyStmt->execute([$assignmentId]);
-
-        // Delete any previous skipped entry to prevent duplicate rows for this assignment
-        $delStmt = $pdo->prepare("DELETE FROM screening_results WHERE assignment_id = ?");
-        $delStmt->execute([$assignmentId]);
 
         $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
         $sleepQuality = in_array($_POST['sleep_quality'] ?? '', ['good', 'restless', 'poor']) ? $_POST['sleep_quality'] : 'good';
@@ -575,6 +599,12 @@ try {
     } elseif ($action === 'skip_case') {
         $pdo->beginTransaction();
 
+        $lockedAssignment = lockPendingScreeningAssignment($pdo, $assignmentId, $vhvId);
+        if ((int)$lockedAssignment['round_number'] !== (int)$assignment['round_number']
+            || $lockedAssignment['target_cid'] !== $targetCid) {
+            throw new Exception('ข้อมูลใบงานมีการเปลี่ยนแปลงระหว่างบันทึก กรุณาโหลดหน้าใหม่');
+        }
+
         $skippedReason = $_POST['skipped_reason'] ?? 'ไม่อยู่บ้าน/ทำนา';
         $lat = (float)($_POST['lat'] ?? 0);
         $lng = (float)($_POST['lng'] ?? 0);
@@ -593,10 +623,10 @@ try {
 
         // 2. Insert record in screening_results with skipped reason
         $screenStmt = $pdo->prepare("
-            INSERT INTO screening_results (assignment_id, round_number, skipped_reason, screening_lat, screening_lng, is_sandbox)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO screening_results (assignment_id, target_cid, round_number, skipped_reason, screening_lat, screening_lng, is_sandbox)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
-        $screenStmt->execute([$assignmentId, $roundNumber, $skippedReason, $lat, $lng, $isSandboxVal]);
+        $screenStmt->execute([$assignmentId, $targetCid, $roundNumber, $skippedReason, $lat, $lng, $isSandboxVal]);
         $screeningId = $pdo->lastInsertId();
 
         // 3. Award VHV +1 reward point immediately (approval_status = 'approved') to motivate them
