@@ -254,6 +254,10 @@ if (DemoDataProvider::isDemoMode()) {
         .bulk-status.ready, .bulk-status.success { color: #059669; }
         .bulk-status.skip { color: #d97706; }
         .bulk-status.error { color: #dc2626; }
+        .bulk-progress { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: var(--bg-main); box-shadow: var(--neumorph-inset); }
+        .bulk-progress-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; color: var(--text-secondary); font-size: 13px; font-weight: 700; }
+        .bulk-progress-track { height: 10px; overflow: hidden; border-radius: 999px; background: rgba(100, 116, 139, 0.16); }
+        .bulk-progress-bar { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #2563eb, #10b981); transition: width 0.2s ease; }
         @media (max-width: 760px) {
             .bulk-summary-grid { grid-template-columns: 1fr 1fr; }
             .bulk-result-row { grid-template-columns: 1fr; gap: 5px; }
@@ -684,6 +688,15 @@ if (DemoDataProvider::isDemoMode()) {
             </div>
 
             <div class="bulk-summary-grid" id="bulk-summary-grid" style="display:none;"></div>
+            <div class="bulk-progress" id="bulk-preview-progress" style="display:none;">
+                <div class="bulk-progress-head">
+                    <span id="bulk-progress-label">กำลังเตรียมตรวจสอบ...</span>
+                    <span id="bulk-progress-percent">0%</span>
+                </div>
+                <div class="bulk-progress-track" role="progressbar" aria-label="ความคืบหน้าการตรวจสอบ" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <div class="bulk-progress-bar" id="bulk-progress-bar"></div>
+                </div>
+            </div>
             <div id="bulk-result-list" class="bulk-result-list" style="margin-top:14px;">
                 <div style="padding:28px; text-align:center; color:var(--text-muted);">เลือกขอบเขตและรอบ แล้วกดตรวจสอบก่อนยืนยัน</div>
             </div>
@@ -1116,6 +1129,7 @@ if (DemoDataProvider::isDemoMode()) {
         let bulkPreviewCandidates = [];
         let bulkPreviewRows = [];
         let bulkExecutionInProgress = false;
+        let bulkPreviewInProgress = false;
 
         function escapeBulkText(value) {
             return String(value ?? '').replace(/[&<>'"]/g, char => ({
@@ -1178,6 +1192,7 @@ if (DemoDataProvider::isDemoMode()) {
             document.getElementById('bulk-assignment-title').textContent = 'มอบหมายงานแบบรวมสำหรับ Admin หลัก';
             document.getElementById('bulk-assignment-subtitle').textContent = 'ตรวจและดำเนินการเสมือนมอบหมายอัตโนมัติทีละหมู่บ้าน';
             document.getElementById('bulk-summary-grid').style.display = 'none';
+            document.getElementById('bulk-preview-progress').style.display = 'none';
             document.getElementById('bulk-result-list').innerHTML = '<div style="padding:28px; text-align:center; color:var(--text-muted);">เลือกขอบเขตและรอบ แล้วกดตรวจสอบก่อนยืนยัน</div>';
             document.getElementById('bulk-preview-button').style.display = '';
             document.getElementById('bulk-preview-button').disabled = false;
@@ -1189,7 +1204,7 @@ if (DemoDataProvider::isDemoMode()) {
         }
 
         function closeBulkAssignmentModal() {
-            if (bulkExecutionInProgress) return;
+            if (bulkExecutionInProgress || bulkPreviewInProgress) return;
             const overlay = document.getElementById('bulk-assignment-overlay');
             if (overlay) overlay.style.display = 'none';
         }
@@ -1234,6 +1249,17 @@ if (DemoDataProvider::isDemoMode()) {
             `;
         }
 
+        function updateBulkPreviewProgress(completed, total, label) {
+            const percent = total > 0 ? Math.round((completed / total) * 100) : 100;
+            const progress = document.getElementById('bulk-preview-progress');
+            const track = progress.querySelector('[role="progressbar"]');
+            progress.style.display = 'block';
+            document.getElementById('bulk-progress-label').textContent = label || `ตรวจสอบแล้ว ${completed} จาก ${total} หมู่บ้าน`;
+            document.getElementById('bulk-progress-percent').textContent = `${percent}%`;
+            document.getElementById('bulk-progress-bar').style.width = `${percent}%`;
+            track.setAttribute('aria-valuenow', String(percent));
+        }
+
         async function previewBulkAssignments() {
             const scope = document.getElementById('bulk-scope').value;
             const requestedRound = Number(document.getElementById('bulk-round').value);
@@ -1241,14 +1267,19 @@ if (DemoDataProvider::isDemoMode()) {
             const villages = getBulkVillageList(scope);
             const previewButton = document.getElementById('bulk-preview-button');
             const confirmButton = document.getElementById('bulk-confirm-button');
+            bulkPreviewInProgress = true;
             previewButton.disabled = true;
             previewButton.textContent = 'กำลังตรวจสอบ...';
             confirmButton.style.display = 'none';
+            document.getElementById('bulk-scope').disabled = true;
+            document.getElementById('bulk-round').disabled = true;
             document.getElementById('bulk-result-list').innerHTML = `<div style="padding:28px; text-align:center; color:var(--text-muted);">กำลังตรวจสอบ ${villages.length} หมู่บ้านด้วยกติกาการมอบหมายเดิม...</div>`;
+            updateBulkPreviewProgress(0, villages.length, `กำลังเตรียมตรวจสอบ ${villages.length} หมู่บ้าน...`);
 
             bulkPreviewCandidates = [];
             bulkPreviewRows = [];
-            for (const village of villages) {
+            for (const [index, village] of villages.entries()) {
+                updateBulkPreviewProgress(index, villages.length, `กำลังตรวจ ${village.hoscode} · ${village.village_name} หมู่ ${village.moo} (${index + 1}/${villages.length})`);
                 const params = new URLSearchParams({
                     action: 'check_status', tambon: village.tambon, moo: village.moo,
                     hoscode: village.hoscode, group: currentTargetGroup,
@@ -1272,15 +1303,20 @@ if (DemoDataProvider::isDemoMode()) {
                 } catch (error) {
                     bulkPreviewRows.push({ ...village, ui_status: 'error', eligible_count: 0, detail: 'เชื่อมต่อหรือตรวจสอบข้อมูลไม่สำเร็จ' });
                 }
+                updateBulkPreviewProgress(index + 1, villages.length);
             }
 
             const eligible = bulkPreviewRows.reduce((sum, row) => sum + Number(row.eligible_count || 0), 0);
             const skippedVillages = bulkPreviewRows.filter(row => row.ui_status !== 'ready').length;
             renderBulkSummary({ villages: villages.length, readyVillages: bulkPreviewCandidates.length, eligible, skipped: skippedVillages });
             renderBulkRows(bulkPreviewRows);
+            updateBulkPreviewProgress(villages.length, villages.length, `ตรวจสอบครบ ${villages.length} หมู่บ้านแล้ว`);
             document.getElementById('bulk-assignment-subtitle').textContent = `ผลตรวจสอบก่อนยืนยัน · ${groupLabels[currentTargetGroup] || currentTargetGroup} · รอบที่ ${requestedRound} · ยังไม่มีการบันทึกข้อมูล`;
+            bulkPreviewInProgress = false;
             previewButton.disabled = false;
             previewButton.textContent = 'ตรวจสอบใหม่';
+            document.getElementById('bulk-scope').disabled = false;
+            document.getElementById('bulk-round').disabled = false;
             confirmButton.style.display = bulkPreviewCandidates.length ? '' : 'none';
             confirmButton.disabled = false;
             confirmButton.textContent = `ยืนยันมอบหมาย ${eligible} ราย`;
