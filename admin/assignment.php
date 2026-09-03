@@ -207,6 +207,38 @@ if (DemoDataProvider::isDemoMode()) {
             border: 1px solid var(--border-color);
         }
 
+        .assignment-result-modal {
+            max-width: 460px;
+            padding: 30px 28px 24px;
+            text-align: center;
+            border: 0;
+            background: color-mix(in srgb, var(--bg-card) 94%, transparent);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            box-shadow: 0 24px 60px rgba(13, 44, 84, 0.24);
+        }
+
+        .assignment-result-icon {
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 16px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: rgba(16, 185, 129, 0.13);
+            color: #059669;
+            font-size: 34px;
+        }
+
+        .assignment-result-modal.error .assignment-result-icon {
+            background: rgba(239, 68, 68, 0.12);
+            color: #dc2626;
+        }
+
+        .assignment-result-modal h3 { margin: 0; color: var(--text-primary); font-size: 23px; }
+        .assignment-result-modal p { margin: 10px 0 22px; color: var(--text-secondary); font-size: 16px; line-height: 1.65; }
+        .assignment-result-modal .btn-giant { width: 100%; margin: 0; }
+
         .row-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -597,6 +629,16 @@ if (DemoDataProvider::isDemoMode()) {
         </div>
     </div>
 
+    <!-- Assignment result modal (replaces the browser alert) -->
+    <div class="modal-overlay" id="assignment-result-overlay" role="dialog" aria-modal="true" aria-labelledby="assignment-result-title">
+        <div class="modal-content assignment-result-modal" id="assignment-result-modal">
+            <div class="assignment-result-icon" id="assignment-result-icon">✓</div>
+            <h3 id="assignment-result-title">มอบหมายงานสำเร็จ</h3>
+            <p id="assignment-result-message"></p>
+            <button type="button" class="btn-giant btn-giant-primary" onclick="closeAssignmentResultModal()">ตกลง</button>
+        </div>
+    </div>
+
     <!-- Load Tambon Data & Scripts -->
     <script>
         // Data logic from register.php
@@ -927,6 +969,23 @@ if (DemoDataProvider::isDemoMode()) {
             document.getElementById('auto-assign-modal').style.display = 'none';
         }
 
+        function showAssignmentResultModal(type, message) {
+            const overlay = document.getElementById('assignment-result-overlay');
+            const modal = document.getElementById('assignment-result-modal');
+            const isSuccess = type === 'success';
+            modal.classList.toggle('error', !isSuccess);
+            document.getElementById('assignment-result-icon').textContent = isSuccess ? '✓' : '!';
+            document.getElementById('assignment-result-title').textContent = isSuccess
+                ? 'มอบหมายงานสำเร็จ'
+                : 'ไม่สามารถมอบหมายงานได้';
+            document.getElementById('assignment-result-message').textContent = message;
+            overlay.style.display = 'flex';
+        }
+
+        function closeAssignmentResultModal() {
+            document.getElementById('assignment-result-overlay').style.display = 'none';
+        }
+
         function executeSmartAutoAssign() {
             if (!currentAutoAssignData || currentAutoAssignData.status !== 'ready') return;
 
@@ -968,17 +1027,17 @@ if (DemoDataProvider::isDemoMode()) {
                 btnConfirm.innerHTML = '🚀 ยืนยันมอบหมายงานรอบถัดไปทันที';
 
                 if (res.status === 'success') {
-                    alert(`🎉 ${res.message}`);
+                    showAssignmentResultModal('success', res.message);
                     fetchData();
                 } else {
-                    alert(`เกิดข้อผิดพลาด: ${res.message || 'ไม่สามารถมอบหมายงานได้'}`);
+                    showAssignmentResultModal('error', res.message || 'ไม่สามารถมอบหมายงานได้');
                 }
             })
             .catch(err => {
                 if (window.hidePageLoading) hidePageLoading();
                 btnConfirm.disabled = false;
                 btnConfirm.innerHTML = '🚀 ยืนยันมอบหมายงานรอบถัดไปทันที';
-                alert('เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย');
+                showAssignmentResultModal('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย');
             });
         }
 
