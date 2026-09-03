@@ -925,8 +925,6 @@ window.getDeterministicPrivacyJitter = function(lat, lng, seedStr) {
 // Universal NCDs Page Preloader & Loading Transition Engine
 // ==========================================================================
 (function() {
-    let safetyTimeout = null;
-
     // 1. Global showPageLoading
     window.showPageLoading = function(title, subtitle, icon, targetUrl) {
         let overlay = document.getElementById('page-loading-overlay');
@@ -979,25 +977,15 @@ window.getDeterministicPrivacyJitter = function(lat, lng, seedStr) {
         overlay.classList.add('active');
         overlay.style.opacity = '1';
 
-        // Safety Auto-Dismiss after 4.5 seconds to guarantee it NEVER freezes
-        if (safetyTimeout) clearTimeout(safetyTimeout);
-        safetyTimeout = setTimeout(() => {
-            window.hidePageLoading();
-        }, 4500);
-
         if (targetUrl) {
-            setTimeout(() => {
-                window.location.href = targetUrl;
-            }, 40);
+            // Start navigation immediately. The current document keeps the loader
+            // visible while the browser waits for the destination response.
+            window.location.assign(targetUrl);
         }
     };
 
     // 2. Global hidePageLoading
     window.hidePageLoading = function() {
-        if (safetyTimeout) {
-            clearTimeout(safetyTimeout);
-            safetyTimeout = null;
-        }
         const overlay = document.getElementById('page-loading-overlay');
         if (overlay) {
             overlay.classList.remove('active');
@@ -1016,10 +1004,8 @@ window.getDeterministicPrivacyJitter = function(lat, lng, seedStr) {
     };
 
     // --------------------------------------------------------------------------
-    // 3. VHV Menu Blur Pre-Loader & Navigation Engine (~1s Smooth Transition)
+    // 3. VHV Menu Blur Pre-Loader & Navigation Engine
     // --------------------------------------------------------------------------
-    let vhvMenuTimeout = null;
-
     window.showVhvMenuLoader = function(title, subtitle, icon, targetUrl) {
         let loader = document.getElementById('vhv-menu-loader');
         if (!loader) {
@@ -1052,25 +1038,13 @@ window.getDeterministicPrivacyJitter = function(lat, lng, seedStr) {
 
         loader.classList.add('active');
 
-        // Safety timeout to prevent any stuck state
-        if (vhvMenuTimeout) clearTimeout(vhvMenuTimeout);
-        vhvMenuTimeout = setTimeout(() => {
-            window.hideVhvMenuLoader();
-        }, 5000);
-
         if (targetUrl) {
-            // Snappy ~500ms (0.5s) smooth transition for fast & responsive feel
-            setTimeout(() => {
-                window.location.href = targetUrl;
-            }, 500);
+            // Do not impose a fixed visual delay on fast pages.
+            window.location.assign(targetUrl);
         }
     };
 
     window.hideVhvMenuLoader = function() {
-        if (vhvMenuTimeout) {
-            clearTimeout(vhvMenuTimeout);
-            vhvMenuTimeout = null;
-        }
         const loader = document.getElementById('vhv-menu-loader');
         if (loader) {
             loader.classList.remove('active');
