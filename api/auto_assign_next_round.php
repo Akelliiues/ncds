@@ -5,8 +5,11 @@ header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../config/demo_data.php';
 
+$rawInput = file_get_contents('php://input');
+$postData = json_decode($rawInput, true) ?: [];
+
 if (DemoDataProvider::isDemoMode()) {
-    $action = $_GET['action'] ?? ($_POST['action'] ?? '');
+    $action = $_GET['action'] ?? ($postData['action'] ?? ($_POST['action'] ?? ''));
     if ($action === 'check_status') {
         echo json_encode([
             'status' => 'ready',
@@ -47,15 +50,16 @@ require_once __DIR__ . '/../config/db.php';
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
 $selectedBudgetYear = isset($_SESSION['active_budget_year']) ? (int)$_SESSION['active_budget_year'] : (function_exists('get_current_budget_year') ? get_current_budget_year() : 2026);
 
-// Support both GET (check_status) and POST JSON (execute/check_status)
-$rawInput = file_get_contents('php://input');
-$postData = json_decode($rawInput, true) ?: [];
-
 $action = $_GET['action'] ?? ($postData['action'] ?? 'check_status');
 $tambon = $_GET['tambon'] ?? ($postData['tambon'] ?? '');
 $moo = $_GET['moo'] ?? ($postData['moo'] ?? '');
-$hoscode = !empty($_GET['hoscode']) ? $_GET['hoscode'] : ($admin_hoscode ?: ($postData['hoscode'] ?? ''));
+$requestedHoscode = !empty($_GET['hoscode']) ? $_GET['hoscode'] : ($postData['hoscode'] ?? '');
+// A facility administrator is always restricted to the hoscode in the session.
+$hoscode = $admin_hoscode ?: $requestedHoscode;
 $group = $_GET['group'] ?? ($postData['group'] ?? 'main');
+$expectedRound = isset($postData['expected_round']) && is_numeric($postData['expected_round'])
+    ? (int)$postData['expected_round']
+    : 0;
 if (isset($_GET['budget_year']) && is_numeric($_GET['budget_year'])) {
     $selectedBudgetYear = (int)$_GET['budget_year'];
 } elseif (isset($postData['budget_year']) && is_numeric($postData['budget_year'])) {
@@ -324,46 +328,62 @@ try {
     }
 
     $vhvBreakdownList = array_values($vhvBreakdownMap);
+    // A next-round assignment must retain the responsible VHV from the
+    // previous round. Targets without a previous owner are reported for
+    // manual review and are never assigned to an arbitrary village VHV.
+    $assignableTargets = array_values(array_filter($eligibleTargets, static function ($target) {
+        return !empty($target['prev_vhv_id']);
+    }));
 
     // IF ACTION IS JUST CHECK_STATUS -> Return Status Data
     if ($action === 'check_status') {
         echo json_encode([
             'status' => 'ready',
-            'can_assign' => true,
+            'can_assign' => count($assignableTargets) > 0,
             'current_round' => $foundReadyRound - 1,
             'target_round' => $foundReadyRound,
             'total_targets' => $totalTargets,
             'prev_round_completed' => $totalTargets,
             'prev_round_pct' => 100.0,
             'already_assigned_count' => $alreadyAssignedInTargetRound,
-            'eligible_count' => count($eligibleTargets),
+            'eligible_count' => count($assignableTargets),
             'vhv_breakdown' => $vhvBreakdownList,
             'unassigned_vhv_count' => count($unassignedVhvTargets),
             'unassigned_vhv_targets' => $unassignedVhvTargets,
-            'message' => "รอบที่ " . ($foundReadyRound - 1) . " ดำเนินการครบ 100% แล้ว พร้อมมอบหมายรอบที่ {$foundReadyRound} จำนวน " . count($eligibleTargets) . " ราย ให้ อสม. คนเดิม"
+            'message' => count($assignableTargets) > 0
+                ? "รอบที่ " . ($foundReadyRound - 1) . " ดำเนินการครบ 100% แล้ว พร้อมมอบหมายรอบที่ {$foundReadyRound} จำนวน " . count($assignableTargets) . " ราย ให้ อสม. คนเดิม"
+                : "พบผู้มีสิทธิ์เข้าสู่รอบที่ {$foundReadyRound} แต่ไม่พบ อสม. ผู้รับผิดชอบเดิม ระบบจึงยังไม่สร้างใบงาน"
         ], JSON_UNESCAPED_UNICODE);
         exit();
     }
 
     // IF ACTION IS EXECUTE -> Perform Database Insert Transaction
     if ($action === 'execute') {
-        $defaultVhvId = $postData['default_vhv_id'] ?? null;
-        
-        // Fetch list of active VHVs in this village as fallback if needed
-        $villageVhvsStmt = $pdo->prepare("
-            SELECT vhv_id, vhv_name 
-            FROM vhv_users 
-            WHERE (vhid_code = ? OR (CAST(vhv_moo AS UNSIGNED) = CAST(? AS UNSIGNED) AND (? = '' OR hoscode = ?)))
-              AND (approved = 1 OR approved IS NULL)
-            ORDER BY vhv_name ASC
-        ");
-        $villageVhvsStmt->execute([$vhidCode, (int)$moo, $hoscode ?: '', $hoscode ?: '']);
-        $villageVhvs = $villageVhvsStmt->fetchAll(PDO::FETCH_ASSOC);
-        $fallbackVhvId = $defaultVhvId ?: (!empty($villageVhvs[0]['vhv_id']) ? $villageVhvs[0]['vhv_id'] : null);
+        if ($expectedRound > 0 && $expectedRound !== $foundReadyRound) {
+            echo json_encode([
+                'status' => 'stale_preview',
+                'assigned_count' => 0,
+                'target_round' => $foundReadyRound,
+                'message' => "สถานะรอบเปลี่ยนหลังการตรวจสอบ เดิมยืนยันรอบที่ {$expectedRound} แต่รอบถัดไปปัจจุบันคือรอบที่ {$foundReadyRound} ระบบจึงไม่สร้างใบงาน"
+            ], JSON_UNESCAPED_UNICODE);
+            exit();
+        }
+
+        if (count($assignableTargets) === 0) {
+            echo json_encode([
+                'status' => 'needs_owner',
+                'assigned_count' => 0,
+                'skipped_count' => count($unassignedVhvTargets),
+                'target_round' => $foundReadyRound,
+                'message' => 'ไม่พบรายการที่มี อสม. ผู้รับผิดชอบเดิม จึงไม่มีการสร้างใบงาน'
+            ], JSON_UNESCAPED_UNICODE);
+            exit();
+        }
 
         $pdo->beginTransaction();
 
         $insertCount = 0;
+        $duplicateCount = 0;
         $insertStmt = $pdo->prepare("
             INSERT INTO task_assignments (target_cid, vhv_id, budget_year, round_number, assignment_status, is_sandbox)
             VALUES (?, ?, ?, ?, 'pending', ?)
@@ -374,15 +394,36 @@ try {
             VALUES (?, 'AUTO_ASSIGN', ?)
         ");
 
-        foreach ($eligibleTargets as $t) {
-            $cid = $t['cid'];
-            $targetVhvId = $t['prev_vhv_id'] ?: $fallbackVhvId;
+        $duplicateStmt = $pdo->prepare("
+            SELECT assignment_id
+            FROM task_assignments
+            WHERE target_cid = ? AND budget_year = ? AND round_number = ? AND is_sandbox = ?
+            LIMIT 1
+            FOR UPDATE
+        ");
 
-            if (!$targetVhvId) {
-                throw new \Exception("ไม่สามารถระบุ อสม. ผู้รับผิดชอบสำหรับ {$t['name']} (CID: $cid) ได้ กรุณาระบุ อสม. ประจำหมู่บ้าน");
+        foreach ($assignableTargets as $t) {
+            $cid = $t['cid'];
+            $targetVhvId = $t['prev_vhv_id'];
+
+            // Recheck inside the write transaction. A repeated click or another
+            // administrator working at the same time must not create the round twice.
+            $duplicateStmt->execute([$cid, $selectedBudgetYear, $foundReadyRound, $isSandboxVal]);
+            if ($duplicateStmt->fetchColumn()) {
+                $duplicateCount++;
+                continue;
             }
 
-            $insertStmt->execute([$cid, $targetVhvId, $selectedBudgetYear, $foundReadyRound, $isSandboxVal]);
+            try {
+                $insertStmt->execute([$cid, $targetVhvId, $selectedBudgetYear, $foundReadyRound, $isSandboxVal]);
+            } catch (\PDOException $e) {
+                $driverError = isset($e->errorInfo[1]) ? (int)$e->errorInfo[1] : 0;
+                if ($driverError === 1062) {
+                    $duplicateCount++;
+                    continue;
+                }
+                throw $e;
+            }
             $newAssignmentId = $pdo->lastInsertId();
 
             $note = "มอบหมายรอบที่ {$foundReadyRound} อัตโนมัติ (อสม. เดิม: $targetVhvId) โดยผู้ดูแลระบบ";
@@ -405,8 +446,11 @@ try {
         echo json_encode([
             'status' => 'success',
             'assigned_count' => $insertCount,
+            'skipped_count' => $duplicateCount + count($unassignedVhvTargets),
+            'duplicate_count' => $duplicateCount,
+            'unassigned_vhv_count' => count($unassignedVhvTargets),
             'target_round' => $foundReadyRound,
-            'message' => "มอบหมายงานคัดกรองติดตามรอบที่ {$foundReadyRound} อัตโนมัติสำเร็จเรียบร้อยแล้ว จำนวน {$insertCount} ราย!"
+            'message' => "มอบหมายงานคัดกรองติดตามรอบที่ {$foundReadyRound} สำเร็จ {$insertCount} ราย ข้าม " . ($duplicateCount + count($unassignedVhvTargets)) . " ราย"
         ], JSON_UNESCAPED_UNICODE);
         exit();
     }

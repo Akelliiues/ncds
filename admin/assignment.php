@@ -10,6 +10,7 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 require_once __DIR__ . '/../config/db.php';
 
 $admin_hoscode = $_SESSION['admin_hoscode'] ?? null;
+$is_main_admin = empty($admin_hoscode);
 $selectedBudgetYear = isset($_SESSION['active_budget_year']) ? (int)$_SESSION['active_budget_year'] : (function_exists('get_current_budget_year') ? get_current_budget_year() : 2026);
 if (isset($_GET['budget_year']) && ctype_digit((string)$_GET['budget_year'])) {
     $selectedBudgetYear = (int)$_GET['budget_year'];
@@ -239,6 +240,25 @@ if (DemoDataProvider::isDemoMode()) {
         .assignment-result-modal p { margin: 10px 0 22px; color: var(--text-secondary); font-size: 16px; line-height: 1.65; }
         .assignment-result-modal .btn-giant { width: 100%; margin: 0; }
 
+        .bulk-assignment-modal { max-width: 920px; max-height: 90vh; display: flex; flex-direction: column; }
+        .bulk-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 14px 0; }
+        .bulk-summary-card { padding: 12px; border-radius: 12px; background: var(--bg-main); box-shadow: var(--neumorph-inset); }
+        .bulk-summary-card span { display: block; color: var(--text-secondary); font-size: 12px; font-weight: 700; }
+        .bulk-summary-card strong { display: block; margin-top: 4px; color: var(--text-primary); font-size: 21px; }
+        .bulk-result-list { border: 1px solid var(--border-color); border-radius: 12px; overflow-y: auto; max-height: 340px; }
+        .bulk-result-row { display: grid; grid-template-columns: minmax(180px, 1.1fr) 90px minmax(260px, 1.6fr); gap: 12px; align-items: center; padding: 11px 14px; border-bottom: 1px solid var(--border-color); font-size: 13px; }
+        .bulk-result-row:last-child { border-bottom: 0; }
+        .bulk-result-row strong { color: var(--text-primary); }
+        .bulk-result-row small { display: block; margin-top: 2px; color: var(--text-muted); }
+        .bulk-status { font-weight: 800; }
+        .bulk-status.ready, .bulk-status.success { color: #059669; }
+        .bulk-status.skip { color: #d97706; }
+        .bulk-status.error { color: #dc2626; }
+        @media (max-width: 760px) {
+            .bulk-summary-grid { grid-template-columns: 1fr 1fr; }
+            .bulk-result-row { grid-template-columns: 1fr; gap: 5px; }
+        }
+
         .row-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -287,9 +307,16 @@ if (DemoDataProvider::isDemoMode()) {
             <h2 style="color: var(--color-accent); margin: 0;">
                 ระบบมอบหมายงานคัดกรอง (Smart Assignment Manager)
             </h2>
-            <a href="vhv_tasks.php" class="btn-primary" style="padding: 10px 20px; border-radius: 20px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: bold; background: var(--color-primary); color: white; box-shadow: var(--neumorph-flat); transition: all 0.2s;">
-                📋 เช็คงาน อสม. (VHV Tasks)
-            </a>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <?php if ($is_main_admin): ?>
+                    <button type="button" onclick="openBulkAssignmentModal()" class="btn-primary" style="padding: 10px 20px; border: 0; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: 800; background: #059669; color: white; box-shadow: var(--neumorph-flat);">
+                        มอบหมายงานทั้งอำเภอ
+                    </button>
+                <?php endif; ?>
+                <a href="vhv_tasks.php" class="btn-primary" style="padding: 10px 20px; border-radius: 20px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: bold; background: var(--color-primary); color: white; box-shadow: var(--neumorph-flat); transition: all 0.2s;">
+                    📋 เช็คงาน อสม. (VHV Tasks)
+                </a>
+            </div>
         </div>
 
         <!-- Step 1: Filters -->
@@ -629,6 +656,47 @@ if (DemoDataProvider::isDemoMode()) {
         </div>
     </div>
 
+    <?php if ($is_main_admin): ?>
+    <!-- District-wide controller: invokes the existing village assignment API for each village. -->
+    <div class="modal-overlay" id="bulk-assignment-overlay" role="dialog" aria-modal="true" aria-labelledby="bulk-assignment-title">
+        <div class="modal-content bulk-assignment-modal">
+            <div style="display:flex; justify-content:space-between; gap:16px; align-items:flex-start; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
+                <div>
+                    <h3 id="bulk-assignment-title" style="margin:0; color:var(--color-accent); font-size:20px;">มอบหมายงานแบบรวมสำหรับ Admin หลัก</h3>
+                    <p id="bulk-assignment-subtitle" style="margin:5px 0 0; color:var(--text-secondary); font-size:13px;">ตรวจและดำเนินการเสมือนมอบหมายอัตโนมัติทีละหมู่บ้าน</p>
+                </div>
+                <button type="button" onclick="closeBulkAssignmentModal()" aria-label="ปิด" style="border:0; background:none; color:var(--text-muted); font-size:26px; cursor:pointer;">&times;</button>
+            </div>
+
+            <div id="bulk-assignment-controls" style="display:grid; grid-template-columns:1fr 180px; gap:12px; margin-top:14px;">
+                <div>
+                    <label class="form-label">ขอบเขตหน่วยบริการ</label>
+                    <select id="bulk-scope" class="form-select"><option value="ALL">ทั้งหมดทั้งอำเภอ</option></select>
+                </div>
+                <div>
+                    <label class="form-label">รอบที่จะมอบหมาย</label>
+                    <select id="bulk-round" class="form-select">
+                        <?php for ($bulkRound = 2; $bulkRound <= 10; $bulkRound++): ?>
+                            <option value="<?= $bulkRound ?>">รอบที่ <?= $bulkRound ?></option>
+                        <?php endfor; ?>
+                    </select>
+                </div>
+            </div>
+
+            <div class="bulk-summary-grid" id="bulk-summary-grid" style="display:none;"></div>
+            <div id="bulk-result-list" class="bulk-result-list" style="margin-top:14px;">
+                <div style="padding:28px; text-align:center; color:var(--text-muted);">เลือกขอบเขตและรอบ แล้วกดตรวจสอบก่อนยืนยัน</div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px; padding-top:12px; border-top:1px solid var(--border-color);">
+                <button type="button" onclick="closeBulkAssignmentModal()" class="btn-giant btn-giant-secondary" style="width:auto; margin:0; padding:10px 22px;">ยกเลิก</button>
+                <button type="button" id="bulk-preview-button" onclick="previewBulkAssignments()" class="btn-giant btn-giant-primary" style="width:auto; margin:0; padding:10px 22px;">ตรวจสอบก่อนยืนยัน</button>
+                <button type="button" id="bulk-confirm-button" onclick="executeBulkAssignments()" class="btn-giant btn-giant-primary" style="display:none; width:auto; margin:0; padding:10px 22px; background:#059669;">ยืนยันมอบหมายงาน</button>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <!-- Assignment result modal (replaces the browser alert) -->
     <div class="modal-overlay" id="assignment-result-overlay" role="dialog" aria-modal="true" aria-labelledby="assignment-result-title">
         <div class="modal-content assignment-result-modal" id="assignment-result-modal">
@@ -796,7 +864,7 @@ if (DemoDataProvider::isDemoMode()) {
                 .then(r => r.json())
                 .then(res => {
                     currentAutoAssignData = res;
-                    if (res.status === 'ready') {
+                    if (res.status === 'ready' && res.can_assign) {
                         badge.innerText = `✨ พร้อมมอบหมายรอบที่ ${res.target_round}`;
                         badge.style.background = 'rgba(16, 185, 129, 0.15)';
                         badge.style.color = '#10b981';
@@ -1016,6 +1084,7 @@ if (DemoDataProvider::isDemoMode()) {
                     moo: moo,
                     hoscode: hoscode,
                     group: currentTargetGroup,
+                    expected_round: targetRound,
                     budget_year: <?= $selectedBudgetYear ?>
                 })
             })
@@ -1039,6 +1108,241 @@ if (DemoDataProvider::isDemoMode()) {
                 btnConfirm.innerHTML = '🚀 ยืนยันมอบหมายงานรอบถัดไปทันที';
                 showAssignmentResultModal('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย');
             });
+        }
+
+        // District-wide assignment controller for the main administrator only.
+        // It deliberately calls the same village endpoint used by the existing
+        // button, so eligibility and write rules remain in one place.
+        let bulkPreviewCandidates = [];
+        let bulkPreviewRows = [];
+        let bulkExecutionInProgress = false;
+
+        function escapeBulkText(value) {
+            return String(value ?? '').replace(/[&<>'"]/g, char => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+            })[char]);
+        }
+
+        function getBulkVillageList(scopeHoscode) {
+            const villages = [];
+            Object.entries(tambonData).forEach(([tambonCode, tambon]) => {
+                if (tambon.hasSubUnits) {
+                    Object.entries(tambon.subUnits || {}).forEach(([hoscode, unit]) => {
+                        if (scopeHoscode !== 'ALL' && scopeHoscode !== hoscode) return;
+                        (unit.villages || []).forEach(village => villages.push({
+                            tambon: tambonCode,
+                            tambon_name: tambon.name,
+                            hoscode,
+                            hosname: unit.name || hoscode,
+                            moo: village.moo,
+                            village_name: village.name || `หมู่ ${village.moo}`
+                        }));
+                    });
+                } else {
+                    const hoscode = tambon.hoscode || '';
+                    if (scopeHoscode !== 'ALL' && scopeHoscode !== hoscode) return;
+                    (tambon.villages || []).forEach(village => villages.push({
+                        tambon: tambonCode,
+                        tambon_name: tambon.name,
+                        hoscode,
+                        hosname: tambon.name || hoscode,
+                        moo: village.moo,
+                        village_name: village.name || `หมู่ ${village.moo}`
+                    }));
+                }
+            });
+            return villages;
+        }
+
+        function populateBulkScopeOptions() {
+            const select = document.getElementById('bulk-scope');
+            if (!select || select.options.length > 1) return;
+            const units = new Map();
+            getBulkVillageList('ALL').forEach(village => {
+                if (village.hoscode) units.set(village.hoscode, village.hosname);
+            });
+            [...units.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([hoscode, hosname]) => {
+                const option = document.createElement('option');
+                option.value = hoscode;
+                option.textContent = `${hoscode} - ${hosname}`;
+                select.appendChild(option);
+            });
+        }
+
+        function openBulkAssignmentModal() {
+            const overlay = document.getElementById('bulk-assignment-overlay');
+            if (!overlay) return;
+            populateBulkScopeOptions();
+            bulkPreviewCandidates = [];
+            bulkPreviewRows = [];
+            document.getElementById('bulk-assignment-title').textContent = 'มอบหมายงานแบบรวมสำหรับ Admin หลัก';
+            document.getElementById('bulk-assignment-subtitle').textContent = 'ตรวจและดำเนินการเสมือนมอบหมายอัตโนมัติทีละหมู่บ้าน';
+            document.getElementById('bulk-summary-grid').style.display = 'none';
+            document.getElementById('bulk-result-list').innerHTML = '<div style="padding:28px; text-align:center; color:var(--text-muted);">เลือกขอบเขตและรอบ แล้วกดตรวจสอบก่อนยืนยัน</div>';
+            document.getElementById('bulk-preview-button').style.display = '';
+            document.getElementById('bulk-preview-button').disabled = false;
+            document.getElementById('bulk-preview-button').textContent = 'ตรวจสอบก่อนยืนยัน';
+            document.getElementById('bulk-confirm-button').style.display = 'none';
+            document.getElementById('bulk-scope').disabled = false;
+            document.getElementById('bulk-round').disabled = false;
+            overlay.style.display = 'flex';
+        }
+
+        function closeBulkAssignmentModal() {
+            if (bulkExecutionInProgress) return;
+            const overlay = document.getElementById('bulk-assignment-overlay');
+            if (overlay) overlay.style.display = 'none';
+        }
+
+        function bulkStatusLabel(row) {
+            if (row.ui_status === 'ready') return `พร้อม ${row.eligible_count} ราย`;
+            if (row.ui_status === 'success') return `สำเร็จ ${row.assigned_count} ราย`;
+            if (row.ui_status === 'error') return 'ผิดพลาด';
+            return 'ข้าม/รอตรวจ';
+        }
+
+        function renderBulkRows(rows) {
+            const container = document.getElementById('bulk-result-list');
+            if (!rows.length) {
+                container.innerHTML = '<div style="padding:28px; text-align:center; color:var(--text-muted);">ไม่พบหมู่บ้านในขอบเขตที่เลือก</div>';
+                return;
+            }
+            container.innerHTML = rows.map(row => `
+                <div class="bulk-result-row">
+                    <div><strong>${escapeBulkText(row.hoscode)} - ${escapeBulkText(row.hosname)}</strong><small>${escapeBulkText(row.village_name)} หมู่ ${escapeBulkText(row.moo)} · ${escapeBulkText(row.tambon_name)}</small></div>
+                    <div class="bulk-status ${escapeBulkText(row.ui_status)}">${escapeBulkText(bulkStatusLabel(row))}</div>
+                    <div style="color:var(--text-secondary);">${escapeBulkText(row.detail || '-')}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderBulkSummary(summary, completed = false) {
+            const grid = document.getElementById('bulk-summary-grid');
+            grid.style.display = 'grid';
+            grid.innerHTML = completed ? `
+                <div class="bulk-summary-card"><span>หมู่บ้านที่ตรวจทั้งหมด</span><strong>${summary.villages}</strong></div>
+                <div class="bulk-summary-card"><span>หมู่บ้านที่สั่งดำเนินการ</span><strong>${summary.processed}</strong></div>
+                <div class="bulk-summary-card"><span>สร้างใบงานสำเร็จ</span><strong style="color:#059669;">${summary.assigned}</strong></div>
+                <div class="bulk-summary-card"><span>บุคคลที่ข้าม</span><strong style="color:#d97706;">${summary.skippedPeople}</strong></div>
+                <div class="bulk-summary-card"><span>หมู่บ้านที่ไม่ดำเนินการ</span><strong style="color:#d97706;">${summary.skippedVillages}</strong></div>
+                <div class="bulk-summary-card"><span>ผิดพลาด</span><strong style="color:#dc2626;">${summary.errors}</strong></div>
+            ` : `
+                <div class="bulk-summary-card"><span>หมู่บ้านที่ตรวจ</span><strong>${summary.villages}</strong></div>
+                <div class="bulk-summary-card"><span>หมู่บ้านพร้อมดำเนินการ</span><strong style="color:#059669;">${summary.readyVillages}</strong></div>
+                <div class="bulk-summary-card"><span>ใบงานที่จะสร้าง</span><strong style="color:#059669;">${summary.eligible}</strong></div>
+                <div class="bulk-summary-card"><span>หมู่บ้านที่ยังไม่พร้อม</span><strong style="color:#d97706;">${summary.skipped}</strong></div>
+            `;
+        }
+
+        async function previewBulkAssignments() {
+            const scope = document.getElementById('bulk-scope').value;
+            const requestedRound = Number(document.getElementById('bulk-round').value);
+            const groupLabels = { main: 'กลุ่มเป้าหมายหลัก', suspect: 'กลุ่มสงสัยป่วย', under_35_risk: 'กลุ่มเสี่ยงอายุต่ำกว่า 35 ปี' };
+            const villages = getBulkVillageList(scope);
+            const previewButton = document.getElementById('bulk-preview-button');
+            const confirmButton = document.getElementById('bulk-confirm-button');
+            previewButton.disabled = true;
+            previewButton.textContent = 'กำลังตรวจสอบ...';
+            confirmButton.style.display = 'none';
+            document.getElementById('bulk-result-list').innerHTML = `<div style="padding:28px; text-align:center; color:var(--text-muted);">กำลังตรวจสอบ ${villages.length} หมู่บ้านด้วยกติกาการมอบหมายเดิม...</div>`;
+
+            bulkPreviewCandidates = [];
+            bulkPreviewRows = [];
+            for (const village of villages) {
+                const params = new URLSearchParams({
+                    action: 'check_status', tambon: village.tambon, moo: village.moo,
+                    hoscode: village.hoscode, group: currentTargetGroup,
+                    budget_year: '<?= $selectedBudgetYear ?>'
+                });
+                try {
+                    const response = await fetch(`../api/auto_assign_next_round.php?${params.toString()}`, { cache: 'no-store' });
+                    const result = await response.json();
+                    const row = { ...village, result, eligible_count: 0, ui_status: 'skip', detail: result.message || '' };
+                    if (result.status === 'ready' && result.can_assign && Number(result.target_round) === requestedRound) {
+                        row.ui_status = 'ready';
+                        row.eligible_count = Number(result.eligible_count || 0);
+                        row.detail = `รอบก่อนครบแล้ว · มีงานรอบนี้แล้ว ${Number(result.already_assigned_count || 0)} ราย · ไม่มีเจ้าของเดิม ${Number(result.unassigned_vhv_count || 0)} ราย`;
+                        bulkPreviewCandidates.push({ ...village, expected_round: requestedRound, target_group: currentTargetGroup });
+                    } else {
+                        if (result.status === 'ready' && Number(result.target_round) !== requestedRound) {
+                            row.detail = `รอบถัดไปที่ถูกต้องของหมู่บ้านนี้คือรอบที่ ${result.target_round}`;
+                        }
+                    }
+                    bulkPreviewRows.push(row);
+                } catch (error) {
+                    bulkPreviewRows.push({ ...village, ui_status: 'error', eligible_count: 0, detail: 'เชื่อมต่อหรือตรวจสอบข้อมูลไม่สำเร็จ' });
+                }
+            }
+
+            const eligible = bulkPreviewRows.reduce((sum, row) => sum + Number(row.eligible_count || 0), 0);
+            const skippedVillages = bulkPreviewRows.filter(row => row.ui_status !== 'ready').length;
+            renderBulkSummary({ villages: villages.length, readyVillages: bulkPreviewCandidates.length, eligible, skipped: skippedVillages });
+            renderBulkRows(bulkPreviewRows);
+            document.getElementById('bulk-assignment-subtitle').textContent = `ผลตรวจสอบก่อนยืนยัน · ${groupLabels[currentTargetGroup] || currentTargetGroup} · รอบที่ ${requestedRound} · ยังไม่มีการบันทึกข้อมูล`;
+            previewButton.disabled = false;
+            previewButton.textContent = 'ตรวจสอบใหม่';
+            confirmButton.style.display = bulkPreviewCandidates.length ? '' : 'none';
+            confirmButton.disabled = false;
+            confirmButton.textContent = `ยืนยันมอบหมาย ${eligible} ราย`;
+        }
+
+        async function executeBulkAssignments() {
+            if (!bulkPreviewCandidates.length) return;
+            bulkExecutionInProgress = true;
+            const requestedRound = Number(document.getElementById('bulk-round').value);
+            const confirmButton = document.getElementById('bulk-confirm-button');
+            confirmButton.disabled = true;
+            confirmButton.textContent = 'กำลังมอบหมายงาน...';
+            document.getElementById('bulk-preview-button').style.display = 'none';
+            document.getElementById('bulk-scope').disabled = true;
+            document.getElementById('bulk-round').disabled = true;
+            if (window.showPageLoading) showPageLoading(`กำลังมอบหมายงานรอบที่ ${requestedRound}`, 'ระบบกำลังตรวจสอบซ้ำและดำเนินการทีละหมู่บ้าน...', '📋');
+
+            const actualRows = bulkPreviewRows.filter(row => row.ui_status !== 'ready');
+            let assigned = 0;
+            let skippedPeople = 0;
+            let skippedVillages = actualRows.filter(row => row.ui_status === 'skip').length;
+            let errors = actualRows.filter(row => row.ui_status === 'error').length;
+
+            for (const village of bulkPreviewCandidates) {
+                try {
+                    const response = await fetch('../api/auto_assign_next_round.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'execute', tambon: village.tambon, moo: village.moo,
+                            hoscode: village.hoscode, group: village.target_group,
+                            expected_round: requestedRound,
+                            budget_year: <?= $selectedBudgetYear ?>
+                        })
+                    });
+                    const result = await response.json();
+                    if (result.status === 'success' && Number(result.target_round) === requestedRound) {
+                        assigned += Number(result.assigned_count || 0);
+                        skippedPeople += Number(result.skipped_count || 0);
+                        actualRows.push({ ...village, ui_status: 'success', assigned_count: Number(result.assigned_count || 0), detail: result.message || '' });
+                    } else if (result.status === 'error') {
+                        errors++;
+                        actualRows.push({ ...village, ui_status: 'error', assigned_count: 0, detail: result.message || 'บันทึกไม่สำเร็จ' });
+                    } else {
+                        skippedVillages++;
+                        actualRows.push({ ...village, ui_status: 'skip', assigned_count: 0, detail: result.message || 'สถานะเปลี่ยนหลังพรีวิว ระบบจึงไม่สร้างใบงาน' });
+                    }
+                } catch (error) {
+                    errors++;
+                    actualRows.push({ ...village, ui_status: 'error', assigned_count: 0, detail: 'เชื่อมต่อหรือบันทึกข้อมูลไม่สำเร็จ' });
+                }
+            }
+
+            if (window.hidePageLoading) hidePageLoading();
+            renderBulkSummary({ villages: bulkPreviewRows.length, processed: bulkPreviewCandidates.length, assigned, skippedPeople, skippedVillages, errors }, true);
+            renderBulkRows(actualRows);
+            document.getElementById('bulk-assignment-title').textContent = 'สรุปผลการมอบหมายงานแบบรวม';
+            document.getElementById('bulk-assignment-subtitle').textContent = `ผลจากการบันทึกจริง รอบที่ ${requestedRound} · ตรวจเงื่อนไขซ้ำก่อนสร้างทุกหมู่บ้าน`;
+            confirmButton.style.display = 'none';
+            bulkPreviewCandidates = [];
+            bulkExecutionInProgress = false;
+            fetchData();
         }
 
         function onSearchInput() {
