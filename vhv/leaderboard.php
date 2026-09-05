@@ -323,12 +323,43 @@ if (DemoDataProvider::isDemoMode()) {
                 COALESCE(NULLIF(u.hoscode, ''), v.hoscode) as hoscode,
                 v.village_name,
                 (
-                    SELECT COALESCE(SUM(CASE WHEN (r.followup_id IS NULL AND r.assignment_id IS NULL) OR (r.followup_id IS NULL AND ta.assignment_id IS NOT NULL) OR (r.followup_id IS NOT NULL AND f.followup_id IS NOT NULL) THEN r.points_earned ELSE 0 END), 0)
+                    SELECT COALESCE(SUM(CASE
+                        WHEN r.screening_id IS NOT NULL AND sr.screening_id IS NOT NULL THEN r.points_earned
+                        WHEN r.followup_id IS NOT NULL AND f.followup_id IS NOT NULL THEN r.points_earned
+                        WHEN r.screening_id IS NULL AND r.followup_id IS NULL
+                             AND r.assignment_id IS NULL AND r.points_earned = 5.00 THEN r.points_earned
+                        ELSE 0
+                    END), 0)
                     FROM vhv_rewards r
-                    LEFT JOIN task_assignments ta ON r.assignment_id = ta.assignment_id
+                    LEFT JOIN screening_results sr ON r.screening_id = sr.screening_id
                     LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id
                     WHERE r.vhv_id = u.vhv_id AND r.approval_status IN ('approved', 'waiting') AND r.is_sandbox = :is_sandbox1
                 ) as total_points,
+                (
+                    SELECT COALESCE(SUM(r.points_earned), 0)
+                    FROM vhv_rewards r
+                    JOIN screening_results sr ON r.screening_id = sr.screening_id
+                    WHERE r.vhv_id = u.vhv_id
+                      AND r.approval_status IN ('approved', 'waiting')
+                      AND r.is_sandbox = :is_sandbox_score
+                ) as screening_points,
+                (
+                    SELECT COALESCE(SUM(r.points_earned), 0)
+                    FROM vhv_rewards r
+                    WHERE r.vhv_id = u.vhv_id
+                      AND r.screening_id IS NULL AND r.followup_id IS NULL
+                      AND r.assignment_id IS NULL AND r.points_earned = 5.00
+                      AND r.approval_status IN ('approved', 'waiting')
+                      AND r.is_sandbox = :is_sandbox_survey
+                ) as survey_points,
+                (
+                    SELECT COALESCE(SUM(r.points_earned), 0)
+                    FROM vhv_rewards r
+                    JOIN dpac_followups f ON r.followup_id = f.followup_id
+                    WHERE r.vhv_id = u.vhv_id
+                      AND r.approval_status IN ('approved', 'waiting')
+                      AND r.is_sandbox = :is_sandbox_dpac
+                ) as dpac_points,
                 (
                     SELECT COUNT(*) 
                     FROM task_assignments ta 
@@ -372,6 +403,9 @@ if (DemoDataProvider::isDemoMode()) {
         ");
         $leaderboardStmt->execute([
             'is_sandbox1' => $isSandboxVal,
+            'is_sandbox_score' => $isSandboxVal,
+            'is_sandbox_survey' => $isSandboxVal,
+            'is_sandbox_dpac' => $isSandboxVal,
             'is_sandbox2' => $isSandboxVal,
             'is_sandbox3' => $isSandboxVal,
             'is_sandbox4' => $isSandboxVal,
@@ -386,11 +420,17 @@ if (DemoDataProvider::isDemoMode()) {
 // Find current VHV rank and score
 $currentVhvRank = 0;
 $currentVhvPoints = 0;
+$currentVhvScreeningPoints = 0;
+$currentVhvSurveyPoints = 0;
+$currentVhvDpacPoints = 0;
 
 foreach ($allLeaders as $index => $leader) {
     if ($leader['vhv_id'] === $currentVhvId) {
         $currentVhvRank = $index + 1;
         $currentVhvPoints = $leader['total_points'] ?? 0;
+        $currentVhvScreeningPoints = $leader['screening_points'] ?? 0;
+        $currentVhvSurveyPoints = $leader['survey_points'] ?? 0;
+        $currentVhvDpacPoints = $leader['dpac_points'] ?? 0;
         break;
     }
 }
@@ -737,9 +777,17 @@ $totalEarned = 0.0;
 $pointsSpent = 0.0;
 try {
     $stmtPts = $pdo->prepare("
-        SELECT COALESCE(SUM(points_earned), 0) 
-        FROM `vhv_rewards` 
-        WHERE `vhv_id` = ? AND `approval_status` IN ('approved', 'waiting') AND `is_sandbox` = ?
+        SELECT COALESCE(SUM(CASE
+            WHEN r.screening_id IS NOT NULL AND sr.screening_id IS NOT NULL THEN r.points_earned
+            WHEN r.followup_id IS NOT NULL AND f.followup_id IS NOT NULL THEN r.points_earned
+            WHEN r.screening_id IS NULL AND r.followup_id IS NULL
+                 AND r.assignment_id IS NULL AND r.points_earned = 5.00 THEN r.points_earned
+            ELSE 0
+        END), 0)
+        FROM vhv_rewards r
+        LEFT JOIN screening_results sr ON r.screening_id = sr.screening_id
+        LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id
+        WHERE r.vhv_id = ? AND r.approval_status IN ('approved', 'waiting') AND r.is_sandbox = ?
     ");
     $stmtPts->execute([$currentVhvId, $isSandboxVal]);
     $totalEarned = (float)$stmtPts->fetchColumn();
@@ -1984,6 +2032,11 @@ try {
                     </div>
                 </div>
                 <div style="margin-top: 14px; font-size: 12.5px; text-align: center; color: var(--text-primary); border-top: 1px solid rgba(13, 44, 84, 0.1); padding-top: 10px; font-weight: bold; line-height: 1.4;">
+                    <div style="margin-bottom: 7px; color: var(--text-secondary); font-weight: 700;">
+                        คัดกรอง <?= number_format((float)$currentVhvScreeningPoints, 2) ?>
+                        + แบบประเมิน <?= number_format((float)$currentVhvSurveyPoints, 2) ?>
+                        + DPAC <?= number_format((float)$currentVhvDpacPoints, 2) ?> แต้ม
+                    </div>
                     <?= $systemEnabled 
                         ? '🎉 เปิดให้แลกของรางวัลแล้ว เลือกของรางวัลและกดแลกรับสิทธิ์ได้เลยค่ะ' 
                         : '🎁 กำลังจัดเตรียมรายการของรางวัล ท่านสามารถสะสมแต้มรอไว้ได้เลยค่ะ' ?>

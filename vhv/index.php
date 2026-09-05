@@ -29,6 +29,10 @@ $vhidCode = $_SESSION['vhid_code'] ?? '34100101';
 $isLeader = $_SESSION['is_leader'] ?? 1;
 $hoscode = $_SESSION['hoscode'] ?? '00325';
 $isHlCoach = $_SESSION['is_hl_coach'] ?? false;
+$vhvTotalPoints = 0.0;
+$vhvScreeningPoints = 0.0;
+$vhvSurveyPoints = 0.0;
+$vhvDpacPoints = 0.0;
 
 // Fetch assigned tasks for budget year 2026
 // Grouped by status
@@ -45,10 +49,56 @@ if (DemoDataProvider::isDemoMode()) {
     $dpacTasks = $demoTasks['dpac'];
     $completedTasks = $demoTasks['completed'];
     $skippedTasks = $demoTasks['skipped'] ?? [];
+    foreach (DemoDataProvider::getDemoLeaderboard() as $demoLeader) {
+        if (($demoLeader['vhv_id'] ?? '') === $vhvId) {
+            $vhvTotalPoints = (float)($demoLeader['total_points'] ?? 0);
+            $vhvScreeningPoints = (float)($demoLeader['screening_points'] ?? 0);
+            $vhvDpacPoints = (float)($demoLeader['dpac_points'] ?? 0);
+            $vhvSurveyPoints = max(0, $vhvTotalPoints - $vhvScreeningPoints - $vhvDpacPoints);
+            break;
+        }
+    }
 } else {
     try {
         $isSandboxVal = isSandboxMode($hoscode) ? 1 : 0;
         $currentBudgetYear = function_exists('get_current_budget_year') ? get_current_budget_year() : 2026;
+
+    // คะแนนหน้าบ้านใช้เฉพาะรายการที่เชื่อมกับผลงานจริง หรือโบนัสแบบประเมิน 5 แต้ม
+    $pointsStmt = $pdo->prepare("
+        SELECT
+            COALESCE(SUM(CASE
+                WHEN r.screening_id IS NOT NULL AND sr.screening_id IS NOT NULL THEN r.points_earned
+                WHEN r.followup_id IS NOT NULL AND f.followup_id IS NOT NULL THEN r.points_earned
+                WHEN r.screening_id IS NULL AND r.followup_id IS NULL
+                     AND r.assignment_id IS NULL AND r.points_earned = 5.00 THEN r.points_earned
+                ELSE 0
+            END), 0) AS total_points,
+            COALESCE(SUM(CASE
+                WHEN r.screening_id IS NOT NULL AND sr.screening_id IS NOT NULL THEN r.points_earned
+                ELSE 0
+            END), 0) AS screening_points,
+            COALESCE(SUM(CASE
+                WHEN r.screening_id IS NULL AND r.followup_id IS NULL
+                     AND r.assignment_id IS NULL AND r.points_earned = 5.00 THEN r.points_earned
+                ELSE 0
+            END), 0) AS survey_points,
+            COALESCE(SUM(CASE
+                WHEN r.followup_id IS NOT NULL AND f.followup_id IS NOT NULL THEN r.points_earned
+                ELSE 0
+            END), 0) AS dpac_points
+        FROM vhv_rewards r
+        LEFT JOIN screening_results sr ON r.screening_id = sr.screening_id
+        LEFT JOIN dpac_followups f ON r.followup_id = f.followup_id
+        WHERE r.vhv_id = ?
+          AND r.approval_status IN ('approved', 'waiting')
+          AND COALESCE(r.is_sandbox, 0) = ?
+    ");
+    $pointsStmt->execute([$vhvId, $isSandboxVal]);
+    $pointSummary = $pointsStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    $vhvTotalPoints = (float)($pointSummary['total_points'] ?? 0);
+    $vhvScreeningPoints = (float)($pointSummary['screening_points'] ?? 0);
+    $vhvSurveyPoints = (float)($pointSummary['survey_points'] ?? 0);
+    $vhvDpacPoints = (float)($pointSummary['dpac_points'] ?? 0);
 
     $pendingStmt = $pdo->prepare("
         SELECT a.assignment_id, a.assignment_status, a.round_number, p.cid, p.hid, p.first_name, p.last_name, p.house_no, p.moo, p.sex, p.birth, p.need_screen_dm, p.need_screen_ht, p.health_status_origin,
@@ -733,6 +783,9 @@ if (DemoDataProvider::isDemoMode()) {
                             • <span style="color: #ec4899; font-weight: bold; background: rgba(236,72,153,0.1); padding: 1px 4px; border-radius: 4px;">👑 ประธานอำเภอ</span>
                         <?php endif; ?>
                     </p>
+                    <div id="vhv-total-points" data-points="<?= htmlspecialchars((string)$vhvTotalPoints) ?>" title="คัดกรอง <?= number_format($vhvScreeningPoints, 2) ?> + แบบประเมิน <?= number_format($vhvSurveyPoints, 2) ?> + DPAC <?= number_format($vhvDpacPoints, 2) ?> แต้ม" style="margin-top: 4px; display: inline-flex; align-items: center; max-width: 100%; padding: 3px 8px; border-radius: 999px; background: rgba(245, 158, 11, 0.12); color: #b45309; font-size: 12px; font-weight: 800; white-space: nowrap;">
+                        🪙 คะแนนรวม <span id="vhv-total-points-value" style="margin: 0 3px;"><?= number_format($vhvTotalPoints, 2) ?></span> แต้ม
+                    </div>
                 </div>
             </div>
 
@@ -2088,6 +2141,19 @@ if (DemoDataProvider::isDemoMode()) {
                     
                     alert(data.message);
                     closeSurveyModal();
+
+                    // คะแนนแบบประเมินถูกบันทึกสำเร็จแล้ว จึงสะท้อนยอดรวมบนหน้าบ้านทันที
+                    const totalPointsBadge = document.getElementById('vhv-total-points');
+                    const totalPointsValue = document.getElementById('vhv-total-points-value');
+                    if (totalPointsBadge && totalPointsValue) {
+                        const currentPoints = Number.parseFloat(totalPointsBadge.dataset.points || '0');
+                        const updatedPoints = currentPoints + 5;
+                        totalPointsBadge.dataset.points = String(updatedPoints);
+                        totalPointsValue.textContent = updatedPoints.toLocaleString('th-TH', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        });
+                    }
                     
                     // Remove banner from UI
                     const banner = document.getElementById('survey-banner');
